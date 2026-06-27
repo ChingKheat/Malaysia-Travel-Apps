@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_decorations.dart';
 import '../models/attraction.dart';
+import '../services/location_service.dart';
 
 class AttractionListScreen extends StatelessWidget {
   const AttractionListScreen({
@@ -46,7 +47,7 @@ class AttractionListScreen extends StatelessWidget {
                     ? AppColors.primary
                     : AppColors.primary.withValues(alpha: 0.12),
                 child: Icon(
-                  selected ? Icons.check : Icons.place_outlined,
+                  selected ? Icons.check : _getCategoryIcon(attraction.category),
                   color: selected ? Colors.white : AppColors.primary,
                 ),
               ),
@@ -71,8 +72,26 @@ class AttractionListScreen extends StatelessWidget {
     );
   }
 
+  IconData _getCategoryIcon(String category) {
+    final kind = category.toLowerCase();
+    if (kind.contains('food') || kind.contains('cafe') || kind.contains('restaurant')) {
+      return Icons.restaurant;
+    }
+    if (kind.contains('shop') || kind.contains('mall') || kind.contains('market') || kind.contains('shopping')) {
+      return Icons.shopping_bag;
+    }
+    if (kind.contains('natural') || kind.contains('park') || kind.contains('nature') || kind.contains('garden') || kind.contains('forest') || kind.contains('beach')) {
+      return Icons.park;
+    }
+    if (kind.contains('religion') || kind.contains('cultural') || kind.contains('historic') || kind.contains('architecture') || kind.contains('landmark') || kind.contains('monument') || kind.contains('sights') || kind.contains('temple') || kind.contains('museum')) {
+      return Icons.museum;
+    }
+    return Icons.place_outlined;
+  }
+
   String _distanceLabel(double? meters) {
-    if (meters == null) return 'Distance available after route calculation';
-    return '${(meters / 1000).toStringAsFixed(1)} km from Kuala Lumpur center';
+    if (meters == null) return 'Distance not available';
+    final area = LocationService().currentAreaName;
+    return '${(meters / 1000).toStringAsFixed(1)} km from $area';
   }
 }
