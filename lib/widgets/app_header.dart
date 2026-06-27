@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
 import '../core/demo_feedback.dart';
+import '../screens/profile_page.dart';
+import '../services/auth_service.dart';
 
 class AppHeader extends StatelessWidget {
   const AppHeader({super.key, required this.title, required this.subtitle});
@@ -47,7 +49,38 @@ class AppHeader extends StatelessWidget {
           icon: const Icon(Icons.notifications_none),
           tooltip: 'Notifications',
         ),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () {
+            demoHaptic();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfilePage()),
+            );
+          },
+          child: ListenableBuilder(
+            listenable: AuthService(),
+            builder: (context, _) {
+              final user = AuthService().currentUser;
+              return Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.line, width: 1.5),
+                ),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.sky,
+                  backgroundImage: user != null ? NetworkImage(user.avatarUrl) : null,
+                  child: user == null
+                      ? const Icon(Icons.person, color: AppColors.primary, size: 20)
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
 }
+

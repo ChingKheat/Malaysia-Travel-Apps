@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
 import '../data/sample_data.dart';
+import '../services/auth_service.dart';
 import '../widgets/action_cards.dart';
 import '../widgets/app_header.dart';
 import '../widgets/section_header.dart';
@@ -25,14 +26,16 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final upcomingTrip = savedTrips.first;
+    final user = AuthService().currentUser;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       children: [
-        const AppHeader(
-          title: 'Hello, Traveler!',
+        AppHeader(
+          title: 'Hello, ${user != null ? user.name.split(' ').first : "Traveler"}!',
           subtitle: 'Where would you like to explore today?',
         ),
+
         const SizedBox(height: 18),
         HeroPanel(onSearchTap: onPlanTap),
         const SizedBox(height: 18),
