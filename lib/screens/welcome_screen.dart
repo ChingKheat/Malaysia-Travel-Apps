@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/demo_feedback.dart';
 import '../services/auth_service.dart';
+import 'auth_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -32,11 +33,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _showLoginSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const LoginBottomSheet(),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AuthScreen(initialTabIndex: 1),
+      ),
     );
   }
 

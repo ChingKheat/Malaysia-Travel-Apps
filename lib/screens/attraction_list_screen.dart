@@ -21,6 +21,42 @@ class AttractionListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (attractions.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.explore_outlined,
+                size: 64,
+                color: AppColors.primary.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No attractions loaded',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Add an API key to load live attractions or search for places.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
       itemCount: attractions.length,
