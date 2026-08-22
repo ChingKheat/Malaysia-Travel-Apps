@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../data/sample_data.dart';
 import '../services/auth_service.dart';
-import '../widgets/action_cards.dart';
 import '../widgets/app_header.dart';
-import '../widgets/section_header.dart';
 import '../widgets/trip_cards.dart';
+import 'api_retrieval_screen.dart';
 import 'trip_detail_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -37,16 +36,69 @@ class HomePage extends StatelessWidget {
         ),
 
         const SizedBox(height: 18),
+        
+        // Live API Test Inspector Banner
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: Colors.white24,
+                child: Icon(Icons.api, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Live API Retrieval Inspector',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    Text(
+                      'Test real-time place retrieval & inspect JSON output',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ApiRetrievalScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Open'),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
         HeroPanel(onSearchTap: onPlanTap),
         const SizedBox(height: 18),
-        SectionHeader(
-          title: 'Auto Smart Scheduling',
-          action: 'New plan',
-          onTap: onPlanTap,
-        ),
-        const SizedBox(height: 10),
-        const FeatureGrid(),
-        const SizedBox(height: 18),
+
         TripCard(
           trip: upcomingTrip,
           onTap: () => Navigator.of(context).push(
@@ -55,38 +107,7 @@ class HomePage extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 18),
-        const Text(
-          'Quick Actions',
-          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            QuickAction(
-              icon: Icons.auto_awesome,
-              label: 'Smart Plan',
-              onTap: onPlanTap,
-            ),
-            QuickAction(
-              icon: Icons.list_alt_outlined,
-              label: 'Itinerary',
-              onTap: onItineraryTap,
-            ),
-            QuickAction(
-              icon: Icons.map_outlined,
-              label: 'Explore',
-              onTap: onRouteTap,
-            ),
-            QuickAction(
-              icon: Icons.smart_toy_outlined,
-              label: 'Assistant',
-              onTap: onAssistantTap,
-            ),
-          ],
-        ),
+
       ],
     );
   }

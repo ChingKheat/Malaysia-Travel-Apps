@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../core/api_keys.dart';
 import '../core/app_colors.dart';
 import '../core/app_decorations.dart';
 import '../data/malaysia_states.dart';
@@ -10,7 +9,7 @@ import '../models/route_info.dart';
 import '../services/itinerary_service.dart';
 import '../services/location_service.dart';
 import '../services/openroute_service.dart';
-import '../services/opentripmap_service.dart';
+import '../services/places_service.dart';
 import '../widgets/app_header.dart';
 import 'attraction_detail_page.dart';
 import 'attraction_list_screen.dart';
@@ -24,7 +23,7 @@ class ApiDemoPage extends StatefulWidget {
 }
 
 class _ApiDemoPageState extends State<ApiDemoPage> {
-  final _attractionService = OpenTripMapService();
+  final _placesService = PlacesService();
   final _routeService = OpenRouteService();
   final _itineraryService = ItineraryService();
   final _locationService = LocationService();
@@ -72,7 +71,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
     try {
       final loc = _locationService.currentLocation;
-      final attractions = await _attractionService.fetchAttractionsNearKualaLumpur(
+      final attractions = await _placesService.fetchPlacesNearLocation(
         latitude: loc.latitude,
         longitude: loc.longitude,
       );
@@ -125,11 +124,10 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   }
 
   Future<void> _openDetails(Attraction attraction) async {
-    final detail = await _attractionService.fetchAttractionDetails(attraction);
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AttractionDetailPage(attraction: detail),
+        builder: (_) => AttractionDetailPage(attraction: attraction),
       ),
     );
   }
@@ -196,8 +194,6 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final hasApiKeys = ApiKeys.hasOpenTripMapKey && ApiKeys.hasOpenRouteServiceKey;
-
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -206,11 +202,9 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
               child: Column(
                 children: [
-                  AppHeader(
+                  const AppHeader(
                     title: 'Explore Malaysia',
-                    subtitle: hasApiKeys
-                        ? 'Search tourist locations dynamically'
-                        : 'Sample fallback active until API keys are added',
+                    subtitle: 'Live OpenStreetMap API active for Malaysia',
                   ),
                   const SizedBox(height: 12),
 

@@ -1,0 +1,432 @@
+import 'package:flutter/material.dart';
+
+import '../core/app_colors.dart';
+import '../core/demo_feedback.dart';
+import '../services/auth_service.dart';
+
+class CreateAccountForm extends StatefulWidget {
+  const CreateAccountForm({super.key, this.onSuccess});
+
+  final VoidCallback? onSuccess;
+
+  @override
+  State<CreateAccountForm> createState() => _CreateAccountFormState();
+}
+
+class _CreateAccountFormState extends State<CreateAccountForm> {
+  final _authService = AuthService();
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+
+  String? _errorMessage;
+  Set<String> _highlightedEmptyFields = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.removeListener(_onPasswordChanged);
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _handleRegister() async {
+    demoHaptic();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _highlightedEmptyFields.clear();
+    });
+
+    final result = await _authService.registerUser(
+      name: _nameController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+      confirmPassword: _confirmPasswordController.text,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      if (!result.success) {
+        _errorMessage = result.message;
+        _highlightedEmptyFields = result.emptyFields;
+      }
+    });
+
+    if (result.success) {
+      // Display M1 SnackBar
+      showDemoSnackBar(
+        context,
+        AuthService.m1AccountCreated,
+        icon: Icons.check_circle_outline,
+      );
+      widget.onSuccess?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pwd = _passwordController.text;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header description
+          const Text(
+            'Create Account',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Register as a new tourist to plan your personalized trips in Malaysia.',
+            style: TextStyle(fontSize: 14, color: AppColors.muted),
+          ),
+          const SizedBox(height: 20),
+
+          // Error Banner (M2 - M8)
+          if (_errorMessage != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.red.shade200, width: 1.2),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: Colors.red.shade900,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+          ],
+
+          // Field 1: Full Name
+          _buildLabel('Full Name', isMandatory: true),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _nameController,
+            textInputAction: TextInputAction.next,
+            decoration: _inputDecoration(
+              hint: 'e.g. Ali Bin Ahmad',
+              icon: Icons.person_outline,
+              isError: _highlightedEmptyFields.contains('name'),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Field 2: Email Address
+          _buildLabel('Email Address', isMandatory: true),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            decoration: _inputDecoration(
+              hint: 'e.g. tourist@example.com',
+              icon: Icons.email_outlined,
+              isError: _highlightedEmptyFields.contains('email'),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Field 3: Password
+          _buildLabel('Password', isMandatory: true),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            textInputAction: TextInputAction.next,
+            decoration: _inputDecoration(
+              hint: 'Enter strong password',
+              icon: Icons.lock_outline,
+              isError: _highlightedEmptyFields.contains('password'),
+              suffix: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: AppColors.muted,
+                ),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Password Strength Policy Checklist (C3)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Password Strength Policy (C3):',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildRuleItem('At least 8 characters', AuthService.hasMinLength(pwd)),
+                _buildRuleItem('One uppercase letter (A-Z)', AuthService.hasUppercase(pwd)),
+                _buildRuleItem('One lowercase letter (a-z)', AuthService.hasLowercase(pwd)),
+                _buildRuleItem('One number (0-9)', AuthService.hasDigit(pwd)),
+                _buildRuleItem('One special character (!@#\$%^&*)', AuthService.hasSpecialChar(pwd)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Field 4: Confirm Password
+          _buildLabel('Confirm Password', isMandatory: true),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _confirmPasswordController,
+            obscureText: _obscureConfirmPassword,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _handleRegister(),
+            decoration: _inputDecoration(
+              hint: 'Re-enter password',
+              icon: Icons.lock_clock_outlined,
+              isError: _highlightedEmptyFields.contains('confirmPassword'),
+              suffix: IconButton(
+                icon: Icon(
+                  _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: AppColors.muted,
+                ),
+                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Register Button
+          _isLoading
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _handleRegister,
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      backgroundColor: AppColors.primary,
+                    ),
+                    child: const Text(
+                      'Register Account',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+
+          const SizedBox(height: 20),
+
+          // Interactive UC100 Testing Bar for Reviewers
+          Material(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: ExpansionTile(
+                initiallyExpanded: false,
+                title: Row(
+                  children: const [
+                    Icon(Icons.bug_report_outlined, size: 18, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text(
+                      'UC100 Flow Testing Tools',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
+                    ),
+                  ],
+                ),
+                subtitle: const Text(
+                  'Quickly test messages M1–M6 & alternative flows A1–A5',
+                  style: TextStyle(fontSize: 11, color: AppColors.muted),
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    child: Column(
+                      children: [
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            ActionChip(
+                              avatar: const Icon(Icons.mark_email_read_outlined, size: 16),
+                              label: const Text('Fill Valid Form', style: TextStyle(fontSize: 11)),
+                              onPressed: () {
+                                _nameController.text = 'Smart Tourist';
+                                _emailController.text = 'tourist_${DateTime.now().millisecondsSinceEpoch}@example.com';
+                                _passwordController.text = 'SafeP@ss123!';
+                                _confirmPasswordController.text = 'SafeP@ss123!';
+                                setState(() => _errorMessage = null);
+                              },
+                            ),
+                            ActionChip(
+                              avatar: const Icon(Icons.email_outlined, size: 16),
+                              label: const Text('Test A5 (Email Exists)', style: TextStyle(fontSize: 11)),
+                              onPressed: () {
+                                _nameController.text = 'Duplicate User';
+                                _emailController.text = 'chingkheat@example.com';
+                                _passwordController.text = 'SafeP@ss123!';
+                                _confirmPasswordController.text = 'SafeP@ss123!';
+                                setState(() => _errorMessage = null);
+                              },
+                            ),
+                            ActionChip(
+                              avatar: const Icon(Icons.lock_open_outlined, size: 16),
+                              label: const Text('Test A3 (Weak Pwd)', style: TextStyle(fontSize: 11)),
+                              onPressed: () {
+                                _nameController.text = 'Ali Ahmad';
+                                _emailController.text = 'ali@example.com';
+                                _passwordController.text = '12345';
+                                _confirmPasswordController.text = '12345';
+                                setState(() => _errorMessage = null);
+                              },
+                            ),
+                            ActionChip(
+                              avatar: const Icon(Icons.compare_arrows_outlined, size: 16),
+                              label: const Text('Test A4 (Mismatch)', style: TextStyle(fontSize: 11)),
+                              onPressed: () {
+                                _nameController.text = 'Ali Ahmad';
+                                _emailController.text = 'ali@example.com';
+                                _passwordController.text = 'SafeP@ss123!';
+                                _confirmPasswordController.text = 'DifferentPass123!';
+                                setState(() => _errorMessage = null);
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text, {bool isMandatory = false}) {
+    return Row(
+      children: [
+        Text(
+          text,
+          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.ink),
+        ),
+        if (isMandatory)
+          const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String hint,
+    required IconData icon,
+    Widget? suffix,
+    bool isError = false,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: isError ? Colors.red : AppColors.muted, size: 20),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: isError ? Colors.red.shade50 : Colors.grey.shade50,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: isError ? Colors.red : AppColors.line),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: isError ? Colors.red.shade400 : AppColors.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: isError ? Colors.red : AppColors.primary, width: 2),
+      ),
+    );
+  }
+
+  Widget _buildRuleItem(String label, bool isSatisfied) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        children: [
+          Icon(
+            isSatisfied ? Icons.check_circle : Icons.radio_button_unchecked,
+            size: 15,
+            color: isSatisfied ? Colors.green.shade600 : Colors.grey.shade400,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              color: isSatisfied ? Colors.green.shade800 : Colors.grey.shade700,
+              fontWeight: isSatisfied ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
