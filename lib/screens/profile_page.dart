@@ -4,6 +4,7 @@ import '../core/app_colors.dart';
 import '../core/app_decorations.dart';
 import '../core/demo_feedback.dart';
 import '../services/auth_service.dart';
+import 'admin_places_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -132,6 +133,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       _buildBadge(user.nationality, Colors.blue.shade50, Colors.blue.shade700),
                       const SizedBox(width: 8),
                       _buildBadge(user.travelStyle, Colors.purple.shade50, Colors.purple.shade700),
+                      if (user.isAdmin) ...[
+                        const SizedBox(width: 8),
+                        _buildBadge('👑 Admin', const Color(0xFFFEF3C7), const Color(0xFFB45309)),
+                      ],
                     ],
                   ),
                 ],
@@ -261,6 +266,22 @@ class _ProfilePageState extends State<ProfilePage> {
                       icon: Icons.description,
                     ),
                   ),
+                  if (user.isAdmin) ...[
+                    const Divider(height: 1, color: AppColors.line, indent: 56),
+                    _buildListTile(
+                      icon: Icons.admin_panel_settings_outlined,
+                      title: 'Admin Database Hub',
+                      subtitle: 'Secret portal to fetch & sync places',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminPlacesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
-import '../data/sample_data.dart';
-import '../services/auth_service.dart';
-import '../widgets/app_header.dart';
+import '../models/saved_trip.dart';
+import '../services/trip_preferences_service.dart';
 import '../widgets/trip_cards.dart';
 import 'api_retrieval_screen.dart';
 import 'trip_detail_page.dart';
@@ -24,19 +23,30 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final upcomingTrip = savedTrips.first;
-    final user = AuthService().currentUser;
+    final userPrefs = TripPreferencesService.storedPreferences;
+    final upcomingTrip = (userPrefs != null && userPrefs.destination != null)
+        ? SavedTrip(
+            title: '${userPrefs.destination} Smart Schedule',
+            date: 'Active Planned Trip',
+            detail: '${userPrefs.numberOfDays ?? 3} days itinerary',
+            destination: '${userPrefs.destination}, Malaysia',
+            budget: userPrefs.budgetCategory ?? 'Medium',
+            interests: userPrefs.interests,
+            totalDays: userPrefs.numberOfDays ?? 3,
+          )
+        : const SavedTrip(
+            title: 'Kuala Lumpur Smart Schedule',
+            date: 'Smart Scheduled Trip',
+            detail: '3 days itinerary',
+            destination: 'Kuala Lumpur, Malaysia',
+            budget: 'Medium',
+            interests: ['Culture', 'Food', 'Sights'],
+            totalDays: 3,
+          );
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
       children: [
-        AppHeader(
-          title: 'Hello, ${user != null ? user.name.split(' ').first : "Traveler"}!',
-          subtitle: 'Where would you like to explore today?',
-        ),
-
-        const SizedBox(height: 18),
-        
         // Live API Test Inspector Banner
         Container(
           padding: const EdgeInsets.all(14),

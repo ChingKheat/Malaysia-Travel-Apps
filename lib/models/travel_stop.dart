@@ -11,6 +11,11 @@ class TravelStop {
     required this.tips,
     required this.icon,
     required this.color,
+    this.category = 'Attraction',
+    this.photoUrls = const [],
+    this.placeId,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
   });
 
   final String title;
@@ -22,4 +27,11 @@ class TravelStop {
   final List<String> tips;
   final IconData icon;
   final Color color;
+  final String category;
+  final List<String> photoUrls;
+  final String? placeId;
+  final double latitude;
+  final double longitude;
+
+  String? get primaryPhotoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
 }

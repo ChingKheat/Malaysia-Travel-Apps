@@ -15,6 +15,7 @@ class MapScreen extends StatelessWidget {
     required this.route,
     required this.onAttractionTap,
     required this.onToggleStop,
+    this.center,
   });
 
   final List<Attraction> attractions;
@@ -22,14 +23,21 @@ class MapScreen extends StatelessWidget {
   final RouteInfo? route;
   final ValueChanged<Attraction> onAttractionTap;
   final ValueChanged<Attraction> onToggleStop;
+  final LatLng? center;
 
   @override
   Widget build(BuildContext context) {
+    final mapCenter = center ??
+        (attractions.isNotEmpty
+            ? attractions.first.point
+            : const LatLng(3.1496, 101.7077));
+
     return Stack(
       children: [
         FlutterMap(
-          options: const MapOptions(
-            initialCenter: LatLng(3.1496, 101.7077),
+          key: ValueKey('${mapCenter.latitude}_${mapCenter.longitude}'),
+          options: MapOptions(
+            initialCenter: mapCenter,
             initialZoom: 12.2,
           ),
           children: [

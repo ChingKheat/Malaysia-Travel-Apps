@@ -6,6 +6,7 @@ import '../screens/assistant_page.dart';
 import '../screens/home_page.dart';
 import '../screens/itinerary_page.dart';
 import '../screens/planner_page.dart';
+import '../widgets/app_header.dart';
 
 class TravelShell extends StatefulWidget {
   const TravelShell({super.key});
@@ -16,6 +17,22 @@ class TravelShell extends StatefulWidget {
 
 class _TravelShellState extends State<TravelShell> {
   int _selectedIndex = 0;
+
+  static const _tabTitles = [
+    null, // Home: automatically shows Hello, <UserName>!
+    'Explore Malaysia',
+    'Plan Your Trip',
+    'My Itinerary',
+    'Trip Assistant',
+  ];
+
+  static const _tabSubtitles = [
+    null, // Home: automatically shows Where would you like to explore today?
+    'Discover attractions & places',
+    'Tell us your preferences',
+    'Custom smart schedule & stops',
+    'AI help, translation and weather alerts',
+  ];
 
   void _goToTab(int index) {
     setState(() => _selectedIndex = index);
@@ -32,12 +49,28 @@ class _TravelShellState extends State<TravelShell> {
       ),
       const ApiDemoPage(),
       PlannerPage(onItineraryReady: () => _goToTab(3)),
-      const ItineraryPage(),
+      ItineraryPage(onPlanTap: () => _goToTab(2)),
       const AssistantPage(),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: pages),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: AppHeader(
+                title: _tabTitles[_selectedIndex],
+                subtitle: _tabSubtitles[_selectedIndex],
+              ),
+            ),
+            Expanded(
+              child: IndexedStack(index: _selectedIndex, children: pages),
+            ),
+          ],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         height: 72,
