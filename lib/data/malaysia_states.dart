@@ -45,6 +45,7 @@ const malaysiaStatesData = [
     areas: [
       CityArea(name: 'Alor Setar', latitude: 6.1231908, longitude: 100.3683962),
       CityArea(name: 'Bukit Kayu Hitam', latitude: 6.5053399, longitude: 100.4207711),
+      CityArea(name: 'Langkawi', latitude: 6.3500, longitude: 99.8000),
       CityArea(name: 'Sungai Petani', latitude: 5.6435195, longitude: 100.4869513),
     ],
   ),
@@ -108,6 +109,7 @@ const malaysiaStatesData = [
     name: 'Perlis',
     areas: [
       CityArea(name: 'Arau', latitude: 6.4307281, longitude: 100.2718795),
+      CityArea(name: 'Kangar', latitude: 6.4414, longitude: 100.1986),
     ],
   ),
   MalaysiaStateData(
@@ -140,6 +142,16 @@ const malaysiaStatesData = [
       CityArea(name: 'Rawang', latitude: 3.3197692, longitude: 101.5773144),
       CityArea(name: 'Shah Alam', latitude: 3.0739429, longitude: 101.5185278),
       CityArea(name: 'Subang Jaya', latitude: 3.051487, longitude: 101.5823339),
+    ],
+  ),
+  MalaysiaStateData(
+    name: 'Terengganu',
+    areas: [
+      CityArea(name: 'Dungun', latitude: 4.7734, longitude: 103.4162),
+      CityArea(name: 'Kemaman', latitude: 4.2372, longitude: 103.4194),
+      CityArea(name: 'Kuala Terengganu', latitude: 5.3302, longitude: 103.1408),
+      CityArea(name: 'Pulau Perhentian', latitude: 5.9125, longitude: 102.7380),
+      CityArea(name: 'Pulau Redang', latitude: 5.7836, longitude: 103.0076),
     ],
   ),
 ];

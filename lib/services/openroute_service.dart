@@ -23,12 +23,7 @@ class OpenRouteService {
     }
 
     if (!ApiKeys.hasOpenRouteServiceKey) {
-      return const RouteInfo(
-        points: [],
-        distanceKm: 0,
-        durationMinutes: 0,
-        isFallback: false,
-      );
+      return _fallbackRoute(stops);
     }
 
     final uri = Uri.parse(

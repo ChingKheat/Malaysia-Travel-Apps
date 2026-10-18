@@ -28,6 +28,10 @@ class TripPreferencesService {
   static TripPreferences? _storedPreferences;
   static TripPreferences? get storedPreferences => _storedPreferences;
 
+  static void clearPreferences() {
+    _storedPreferences = null;
+  }
+
   /// Validates the trip preferences according to UC300 requirements (C1-C7)
   static PreferencesValidationResult validatePreferences(TripPreferences prefs) {
     final Set<String> emptyFields = {};

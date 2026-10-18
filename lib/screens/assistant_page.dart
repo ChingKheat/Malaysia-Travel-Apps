@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_decorations.dart';
 import '../core/demo_feedback.dart';
-import '../widgets/app_header.dart';
 import '../widgets/demo_tap.dart';
 
 class AssistantPage extends StatelessWidget {
@@ -43,13 +42,8 @@ class AssistantPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
       children: [
-        const AppHeader(
-          title: 'Trip Assistant',
-          subtitle: 'AI help, translation and weather alerts',
-        ),
-        const SizedBox(height: 18),
         Container(
           padding: const EdgeInsets.all(18),
           decoration: cardDecoration(AppColors.primary),

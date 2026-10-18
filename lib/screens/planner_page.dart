@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../core/api_keys.dart';
 import '../core/app_colors.dart';
 import '../core/demo_feedback.dart';
 import '../data/malaysia_states.dart';
 import '../models/trip_preferences.dart';
+import '../services/smart_itinerary_service.dart';
 import '../services/trip_preferences_service.dart';
-import '../widgets/app_header.dart';
 import '../widgets/form_tile.dart';
 import 'itinerary_ready_page.dart';
+
 
 class PlannerPage extends StatefulWidget {
   const PlannerPage({super.key, required this.onItineraryReady});
@@ -69,10 +71,81 @@ class _PlannerPageState extends State<PlannerPage> {
 
   String _formatTimeOfDay(TimeOfDay? time) {
     if (time == null) return 'Select Time';
-    final hour = time.hour.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
     final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    return '${hour.toString().padLeft(2, '0')}:$minute $period';
   }
+
+  bool _isSuggestedStartTime(TimeOfDay time) {
+    return time.hour == 8 || time.hour == 9;
+  }
+
+  bool _isSuggestedEndTime(TimeOfDay time) {
+    return time.hour == 18 || time.hour == 21 || time.hour == 22;
+  }
+
+  Widget _buildTimePresetChip({
+    required String title,
+    required int startHour,
+    required int endHour,
+    required String hoursLabel,
+  }) {
+    final isSelected = dailyStartTime?.hour == startHour &&
+        dailyStartTime?.minute == 0 &&
+        dailyEndTime?.hour == endHour &&
+        dailyEndTime?.minute == 0;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        setState(() {
+          dailyStartTime = TimeOfDay(hour: startHour, minute: 0);
+          dailyEndTime = TimeOfDay(hour: endHour, minute: 0);
+          _errorMessage = null;
+          _highlightedEmptyFields.remove('dailyStartTime');
+          _highlightedEmptyFields.remove('dailyEndTime');
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE8FDF2) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF10B981) : Colors.grey.shade300,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF10B981).withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '$title ($hoursLabel)',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? const Color(0xFF065F46) : AppColors.ink,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Future<void> _pickDestination() async {
     final selected = await showModalBottomSheet<String>(
@@ -206,14 +279,18 @@ class _PlannerPageState extends State<PlannerPage> {
       icon: Icons.auto_awesome,
     );
 
-    // Transition with demo loading effect
+    // Transition with demo loading effect and live generation
     runDemoLoadingAction(
       context,
-      loadingLabel: 'Building your itinerary…',
+      loadingLabel: ApiKeys.hasGoogleMapsKey
+          ? 'Fetching real places via Google Places API…'
+          : 'Building smart itinerary…',
       successMessage: 'Itinerary generated — opening preview.',
       icon: Icons.auto_awesome,
-      delay: const Duration(milliseconds: 1600),
-    ).then((_) {
+      delay: const Duration(milliseconds: 1400),
+    ).then((_) async {
+      await SmartItineraryService.generateLiveItineraryForAllDays(preferences: currentPrefs);
+
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -225,22 +302,82 @@ class _PlannerPageState extends State<PlannerPage> {
     });
   }
 
+  void _showGoogleApiKeyDialog() {
+    final controller = TextEditingController(text: ApiKeys.googleMaps);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.vpn_key_outlined, color: AppColors.primary),
+              SizedBox(width: 10),
+              Text('Google Places API', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter your Google Maps / Places API key to fetch 100% real-time tourist spots, restaurants, addresses, and live ratings.',
+                style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: 'AIzaSy...',
+                  labelText: 'Google Maps API Key',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.key),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                ApiKeys.googleMaps = '';
+                Navigator.pop(context);
+                setState(() {});
+                showDemoSnackBar(context, 'Reset to offline catalog mode');
+              },
+              child: const Text('Clear Key', style: TextStyle(color: Colors.red)),
+            ),
+            FilledButton(
+              onPressed: () {
+                final key = controller.text.trim();
+                ApiKeys.googleMaps = key;
+                Navigator.pop(context);
+                setState(() {});
+                showDemoSnackBar(
+                  context,
+                  key.isNotEmpty
+                      ? 'Google Places API connected!'
+                      : 'Key cleared. Using offline catalog.',
+                  icon: Icons.check_circle,
+                );
+              },
+              child: const Text('Save & Use'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
-    return SafeArea(
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, 28 + bottomInset),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        children: [
-          const AppHeader(
-            title: 'Plan Your Trip',
-            subtitle: 'Tell us your preferences',
-          ),
-          const SizedBox(height: 18),
-
-          // Error Alerts Banner
+    return ListView(
+      padding: EdgeInsets.fromLTRB(20, 4, 20, 28 + bottomInset),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      children: [
+        // Error Alerts Banner
           if (_errorMessage != null) ...[
             Container(
               padding: const EdgeInsets.all(14),
@@ -269,6 +406,90 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
             const SizedBox(height: 16),
           ],
+
+          // Google Places API Status Card / Config Banner
+          InkWell(
+            onTap: _showGoogleApiKeyDialog,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: ApiKeys.hasGoogleMapsKey
+                    ? const Color(0xFFE8F5E9)
+                    : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: ApiKeys.hasGoogleMapsKey
+                      ? const Color(0xFF81C784)
+                      : const Color(0xFFCBD5E1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    ApiKeys.hasGoogleMapsKey
+                        ? Icons.check_circle_rounded
+                        : Icons.public_rounded,
+                    size: 20,
+                    color: ApiKeys.hasGoogleMapsKey
+                        ? const Color(0xFF2E7D32)
+                        : AppColors.muted,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ApiKeys.hasGoogleMapsKey
+                              ? 'Google Places API: Live Data Active'
+                              : 'Google Places API: Offline Mode',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: ApiKeys.hasGoogleMapsKey
+                                ? const Color(0xFF1B5E20)
+                                : AppColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          ApiKeys.hasGoogleMapsKey
+                              ? 'Fetching real attractions & dining in Malaysia'
+                              : 'Tap to enter Google API key for real-time live data',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: ApiKeys.hasGoogleMapsKey
+                                ? const Color(0xFF2E7D32)
+                                : AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    ApiKeys.hasGoogleMapsKey ? 'Edit' : 'Connect',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: ApiKeys.hasGoogleMapsKey
+                          ? const Color(0xFF2E7D32)
+                          : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: ApiKeys.hasGoogleMapsKey
+                        ? const Color(0xFF2E7D32)
+                        : AppColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
 
           // Destination Tile
           Container(
@@ -306,14 +527,84 @@ class _PlannerPageState extends State<PlannerPage> {
           ),
           const SizedBox(height: 16),
 
-          // Daily Start & End Hours selector (Option A - Segmented hours selector)
+          // Daily Sightseeing Hours section with suggestion indicators
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const FieldLabel('Daily Sightseeing Hours'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7.5,
+                    height: 7.5,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Suggested',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF059669),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Attractions, transit, and meals will be scheduled within this daily window.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.muted,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Quick Preset Suggestions
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTimePresetChip(
+                  title: 'Standard',
+                  startHour: 8,
+                  endHour: 22,
+                  hoursLabel: '8 AM – 10 PM',
+                ),
+                const SizedBox(width: 8),
+                _buildTimePresetChip(
+                  title: 'Popular',
+                  startHour: 9,
+                  endHour: 21,
+                  hoursLabel: '9 AM – 9 PM',
+                ),
+                const SizedBox(width: 8),
+                _buildTimePresetChip(
+                  title: 'Relaxed',
+                  startHour: 9,
+                  endHour: 18,
+                  hoursLabel: '9 AM – 6 PM',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Daily Start & End Dropdowns
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const FieldLabel('Start Hour'),
+                    const FieldLabel('Daily Start Time'),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -332,16 +623,93 @@ class _PlannerPageState extends State<PlannerPage> {
                           value: dailyStartTime,
                           isExpanded: true,
                           hint: const Text('Start Time'),
+                          selectedItemBuilder: (context) {
+                            return _timeOptions.map((time) {
+                              final isSuggested = _isSuggestedStartTime(time);
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isSuggested) ...[
+                                    Container(
+                                      width: 7,
+                                      height: 7,
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      _formatTimeOfDay(time),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.ink,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList();
+                          },
                           items: _timeOptions.map((time) {
+                            final isSuggested = _isSuggestedStartTime(time);
                             return DropdownMenuItem<TimeOfDay>(
                               value: time,
-                              child: Text(_formatTimeOfDay(time)),
+                              child: Row(
+                                children: [
+                                  if (isSuggested) ...[
+                                    Container(
+                                      width: 7.5,
+                                      height: 7.5,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ] else ...[
+                                    const SizedBox(width: 15.5),
+                                  ],
+                                  Text(
+                                    _formatTimeOfDay(time),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isSuggested ? FontWeight.w700 : FontWeight.w500,
+                                      color: AppColors.ink,
+                                    ),
+                                  ),
+                                  if (isSuggested) ...[
+                                    const Spacer(),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE8FDF2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                                      ),
+                                      child: const Text(
+                                        'Suggested',
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF059669),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             );
                           }).toList(),
                           onChanged: (val) {
                             setState(() {
                               dailyStartTime = val;
                               _errorMessage = null;
+                              _highlightedEmptyFields.remove('dailyStartTime');
                             });
                           },
                         ),
@@ -355,7 +723,7 @@ class _PlannerPageState extends State<PlannerPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const FieldLabel('End Hour'),
+                    const FieldLabel('Daily End Time'),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -374,16 +742,93 @@ class _PlannerPageState extends State<PlannerPage> {
                           value: dailyEndTime,
                           isExpanded: true,
                           hint: const Text('End Time'),
+                          selectedItemBuilder: (context) {
+                            return _timeOptions.map((time) {
+                              final isSuggested = _isSuggestedEndTime(time);
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isSuggested) ...[
+                                    Container(
+                                      width: 7,
+                                      height: 7,
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      _formatTimeOfDay(time),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.ink,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList();
+                          },
                           items: _timeOptions.map((time) {
+                            final isSuggested = _isSuggestedEndTime(time);
                             return DropdownMenuItem<TimeOfDay>(
                               value: time,
-                              child: Text(_formatTimeOfDay(time)),
+                              child: Row(
+                                children: [
+                                  if (isSuggested) ...[
+                                    Container(
+                                      width: 7.5,
+                                      height: 7.5,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ] else ...[
+                                    const SizedBox(width: 15.5),
+                                  ],
+                                  Text(
+                                    _formatTimeOfDay(time),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isSuggested ? FontWeight.w700 : FontWeight.w500,
+                                      color: AppColors.ink,
+                                    ),
+                                  ),
+                                  if (isSuggested) ...[
+                                    const Spacer(),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE8FDF2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                                      ),
+                                      child: const Text(
+                                        'Suggested',
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF059669),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             );
                           }).toList(),
                           onChanged: (val) {
                             setState(() {
                               dailyEndTime = val;
                               _errorMessage = null;
+                              _highlightedEmptyFields.remove('dailyEndTime');
                             });
                           },
                         ),
@@ -394,11 +839,88 @@ class _PlannerPageState extends State<PlannerPage> {
               ),
             ],
           ),
+
+          // Total daily sightseeing duration feedback
+          if (dailyStartTime != null && dailyEndTime != null) ...[
+            Builder(
+              builder: (context) {
+                final startMin = dailyStartTime!.hour * 60 + dailyStartTime!.minute;
+                final endMin = dailyEndTime!.hour * 60 + dailyEndTime!.minute;
+                final diff = endMin - startMin;
+                if (diff <= 0) return const SizedBox.shrink();
+                final hours = diff ~/ 60;
+                final minutes = diff % 60;
+                final timeStr = minutes == 0 ? '$hours hrs' : '$hours hrs $minutes mins';
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFDCFCE7)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.schedule_rounded, size: 14, color: Color(0xFF059669)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Total daily sightseeing: $timeStr / day',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF065F46),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
           const SizedBox(height: 18),
 
-          // Budget Per Day selector
-          const FieldLabel('Budget Category'),
-          const SizedBox(height: 8),
+          // Budget Per Day selector with suggestion and total calculation
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const FieldLabel('Daily Estimated Budget'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7.5,
+                    height: 7.5,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Per person / day',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF059669),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Daily budget covers meals, attraction tickets, and local transport.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.muted,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
               border: _highlightedEmptyFields.contains('budgetCategory')
@@ -413,10 +935,63 @@ class _PlannerPageState extends State<PlannerPage> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minWidth: constraints.maxWidth),
                     child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'Low', label: Text('Low\n< RM150')),
-                        ButtonSegment(value: 'Medium', label: Text('Medium\nRM150-300')),
-                        ButtonSegment(value: 'High', label: Text('High\n> RM300')),
+                      segments: [
+                        ButtonSegment(
+                          value: 'Low',
+                          label: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Text('Low', style: TextStyle(fontWeight: FontWeight.w700)),
+                                SizedBox(height: 2),
+                                Text('< RM150 / day', style: TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        ButtonSegment(
+                          value: 'Medium',
+                          label: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('Medium', style: TextStyle(fontWeight: FontWeight.w700)),
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      width: 6.5,
+                                      height: 6.5,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                const Text('RM150–300 / day', style: TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        ButtonSegment(
+                          value: 'High',
+                          label: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Text('High', style: TextStyle(fontWeight: FontWeight.w700)),
+                                SizedBox(height: 2),
+                                Text('> RM300 / day', style: TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                       selected: {budgetCategory},
                       onSelectionChanged: (value) {
@@ -431,11 +1006,105 @@ class _PlannerPageState extends State<PlannerPage> {
               },
             ),
           ),
+
+          // Dynamic trip total estimate based on calculated days
+          Builder(
+            builder: (context) {
+              final days = _calculatedDays > 0 ? _calculatedDays : 1;
+              String estimateRange;
+              switch (budgetCategory) {
+                case 'Low':
+                  estimateRange = 'Up to ~RM${150 * days} total';
+                  break;
+                case 'Medium':
+                  estimateRange = '~RM${150 * days} – RM${300 * days} total';
+                  break;
+                case 'High':
+                  estimateRange = 'Above ~RM${300 * days} total';
+                  break;
+                default:
+                  estimateRange = '';
+              }
+
+              if (estimateRange.isEmpty) return const SizedBox.shrink();
+
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.account_balance_wallet_outlined, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Estimated total for $days ${days == 1 ? "day" : "days"}: ',
+                            style: const TextStyle(fontSize: 12, color: AppColors.ink),
+                            children: [
+                              TextSpan(
+                                text: estimateRange,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 18),
 
           // Travel Mode (Driving / Walking / Public Transport)
-          const FieldLabel('Travel Mode'),
-          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const FieldLabel('Travel Mode'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7.5,
+                    height: 7.5,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Routing Profile',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF059669),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'How you plan to get around. Determines route clustering, speeds, and transit times.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.muted,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
               border: _highlightedEmptyFields.contains('travelMode')
@@ -450,10 +1119,36 @@ class _PlannerPageState extends State<PlannerPage> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minWidth: constraints.maxWidth),
                     child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'Driving', icon: Icon(Icons.directions_car), label: Text('Driving')),
-                        ButtonSegment(value: 'Walking', icon: Icon(Icons.directions_walk), label: Text('Walking')),
-                        ButtonSegment(value: 'Public Transport', icon: Icon(Icons.directions_bus), label: Text('Transit')),
+                      segments: [
+                        ButtonSegment(
+                          value: 'Driving',
+                          icon: const Icon(Icons.directions_car),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Driving'),
+                              const SizedBox(width: 4),
+                              Container(
+                                width: 6.5,
+                                height: 6.5,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const ButtonSegment(
+                          value: 'Walking',
+                          icon: Icon(Icons.directions_walk),
+                          label: Text('Walking'),
+                        ),
+                        const ButtonSegment(
+                          value: 'Public Transport',
+                          icon: Icon(Icons.directions_bus),
+                          label: Text('Transit'),
+                        ),
                       ],
                       selected: {travelMode},
                       onSelectionChanged: (value) {
@@ -466,6 +1161,57 @@ class _PlannerPageState extends State<PlannerPage> {
                   ),
                 );
               },
+            ),
+          ),
+
+          // Dynamic mode explanation badge
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: travelMode == 'Public Transport'
+                    ? const Color(0xFFFFFBEB)
+                    : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: travelMode == 'Public Transport'
+                      ? const Color(0xFFFDE68A)
+                      : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    travelMode == 'Driving'
+                        ? Icons.directions_car_outlined
+                        : travelMode == 'Walking'
+                            ? Icons.directions_walk
+                            : Icons.info_outline_rounded,
+                    size: 16,
+                    color: travelMode == 'Public Transport'
+                        ? const Color(0xFFD97706)
+                        : AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      travelMode == 'Driving'
+                          ? 'Driving & e-Hailing: Optimized for city-wide attractions with driving speeds (~35 km/h).'
+                          : travelMode == 'Walking'
+                              ? 'Walking: Best for walkable heritage clusters (1–2 km radius) at pedestrian pace (~4 km/h).'
+                              : 'Public Transit: Heuristic routing supports Driving & Walking; Transit is used for testing Flow A7.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: travelMode == 'Public Transport'
+                            ? const Color(0xFF92400E)
+                            : AppColors.ink,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 18),
@@ -659,8 +1405,7 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 

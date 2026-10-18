@@ -29,13 +29,13 @@ class AttractionListScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.explore_outlined,
+                Icons.search_off_rounded,
                 size: 64,
-                color: AppColors.primary.withValues(alpha: 0.3),
+                color: AppColors.primary.withValues(alpha: 0.35),
               ),
               const SizedBox(height: 16),
-              Text(
-                'No attractions loaded',
+              const Text(
+                'No attractions found',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -43,12 +43,13 @@ class AttractionListScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Add an API key to load live attractions or search for places.',
+              const Text(
+                'No attractions match your current search or category filter. Try clearing your search keyword, choosing another category, or selecting a different location area above.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.muted,
+                  height: 1.4,
                 ),
               ),
             ],

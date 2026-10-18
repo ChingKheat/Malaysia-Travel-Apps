@@ -56,7 +56,7 @@ class AttractionDetailPage extends StatelessWidget {
             decoration: cardDecoration(),
             child: Text(
               attraction.description ??
-                  'OpenTripMap returned this attraction without a long description. It can still be used for map marker and route planning in the demo.',
+                  'Authentic point of interest in Malaysia. You can view its location coordinates below or add it to your smart itinerary route.',
               style: const TextStyle(color: AppColors.muted, height: 1.5),
             ),
           ),
@@ -72,8 +72,8 @@ class AttractionDetailPage extends StatelessWidget {
             value: attraction.longitude.toStringAsFixed(5),
           ),
           _InfoTile(
-            icon: Icons.api,
-            label: 'OpenTripMap XID',
+            icon: Icons.tag,
+            label: 'Reference ID',
             value: attraction.xid,
           ),
         ],

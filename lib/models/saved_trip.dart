@@ -6,6 +6,7 @@ class SavedTrip {
     required this.destination,
     required this.budget,
     required this.interests,
+    this.totalDays = 3,
   });
 
   final String title;
@@ -14,4 +15,5 @@ class SavedTrip {
   final String destination;
   final String budget;
   final List<String> interests;
+  final int totalDays;
 }

@@ -10,7 +10,6 @@ import '../services/itinerary_service.dart';
 import '../services/location_service.dart';
 import '../services/openroute_service.dart';
 import '../services/places_service.dart';
-import '../widgets/app_header.dart';
 import 'attraction_detail_page.dart';
 import 'attraction_list_screen.dart';
 import 'map_screen.dart';
@@ -194,21 +193,13 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Column(
-                children: [
-                  const AppHeader(
-                    title: 'Explore Malaysia',
-                    subtitle: 'Live OpenStreetMap API active for Malaysia',
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Location Display Selector Bar
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+          child: Column(
+            children: [
+              // Location Display Selector Bar
                   ListenableBuilder(
                     listenable: _locationService,
                     builder: (context, _) {
@@ -377,9 +368,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
             ),
             Expanded(child: _buildBody()),
           ],
-        ),
-      ),
-    );
+        );
   }
 
   Widget _buildBody() {
@@ -398,6 +387,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
         attractions: filtered,
         selectedStops: _selectedStops,
         route: _route,
+        center: _locationService.currentLocation,
         onAttractionTap: _openDetails,
         onToggleStop: _toggleStop,
       );
