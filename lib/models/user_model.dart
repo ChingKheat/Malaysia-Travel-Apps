@@ -28,7 +28,7 @@ class UserModel {
   });
 
   /// True if user has administrative privileges to access Admin Database Hub
-  bool get isAdmin => role.toLowerCase() == 'admin' || email.toLowerCase().contains('admin');
+  bool get isAdmin => role.toLowerCase() == 'admin';
 
   /// Factory constructor to deserialize from Supabase `profiles` table row (Table 4.2)
   factory UserModel.fromSupabase(Map<String, dynamic> data, String id) {

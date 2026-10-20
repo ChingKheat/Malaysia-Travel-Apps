@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
 import '../models/saved_trip.dart';
+import '../services/auth_service.dart';
+import '../services/supabase_itinerary_service.dart';
 import '../services/trip_preferences_service.dart';
 import '../widgets/trip_cards.dart';
 import 'api_retrieval_screen.dart';
-import 'trip_detail_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
     required this.onPlanTap,
@@ -22,27 +23,69 @@ class HomePage extends StatelessWidget {
   final VoidCallback onAssistantTap;
 
   @override
-  Widget build(BuildContext context) {
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  List<SavedTrip> _dbSavedTrips = [];
+
+  @override
+  void initState() {
+    super.initState();
+    SupabaseItineraryService().addListener(_onRepoChanged);
+    _loadTrips();
+  }
+
+  @override
+  void dispose() {
+    SupabaseItineraryService().removeListener(_onRepoChanged);
+    super.dispose();
+  }
+
+  void _onRepoChanged() {
+    if (mounted) {
+      _loadTrips(refresh: false);
+    }
+  }
+
+  Future<void> _loadTrips({bool refresh = true}) async {
+    try {
+      final uid = AuthService().currentUser?.uid;
+      final itineraries = await SupabaseItineraryService().getSavedItineraries(
+        refresh: refresh,
+      );
+      if (mounted && uid == AuthService().currentUser?.uid) {
+        setState(() {
+          _dbSavedTrips = itineraries.map((e) => e.toSavedTrip()).toList();
+        });
+      }
+    } catch (_) {}
+  }
+
+  SavedTrip? get _upcomingTrip {
     final userPrefs = TripPreferencesService.storedPreferences;
-    final upcomingTrip = (userPrefs != null && userPrefs.destination != null)
-        ? SavedTrip(
-            title: '${userPrefs.destination} Smart Schedule',
-            date: 'Active Planned Trip',
-            detail: '${userPrefs.numberOfDays ?? 3} days itinerary',
-            destination: '${userPrefs.destination}, Malaysia',
-            budget: userPrefs.budgetCategory ?? 'Medium',
-            interests: userPrefs.interests,
-            totalDays: userPrefs.numberOfDays ?? 3,
-          )
-        : const SavedTrip(
-            title: 'Kuala Lumpur Smart Schedule',
-            date: 'Smart Scheduled Trip',
-            detail: '3 days itinerary',
-            destination: 'Kuala Lumpur, Malaysia',
-            budget: 'Medium',
-            interests: ['Culture', 'Food', 'Sights'],
-            totalDays: 3,
-          );
+    if (userPrefs != null &&
+        userPrefs.destination != null &&
+        userPrefs.destination!.trim().isNotEmpty) {
+      return SavedTrip(
+        title: '${userPrefs.destination} Smart Schedule',
+        date: 'Active Planned Trip',
+        detail: '${userPrefs.numberOfDays ?? 3} days itinerary',
+        destination: '${userPrefs.destination}, Malaysia',
+        budget: userPrefs.budgetCategory ?? 'Medium',
+        interests: userPrefs.interests,
+        totalDays: userPrefs.numberOfDays ?? 3,
+      );
+    }
+    if (_dbSavedTrips.isNotEmpty) {
+      return _dbSavedTrips.first;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final upcomingTrip = _upcomingTrip;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
@@ -77,11 +120,15 @@ class HomePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Live API Retrieval Inspector',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      'Saved Places Inspector',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                     Text(
-                      'Test real-time place retrieval & inspect JSON output',
+                      'View admin-synced places & inspect saved data',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
@@ -90,14 +137,21 @@ class HomePage extends StatelessWidget {
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ApiRetrievalScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const ApiRetrievalScreen(),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: const Text('Open'),
               ),
@@ -106,19 +160,86 @@ class HomePage extends StatelessWidget {
         ),
 
         const SizedBox(height: 18),
-        HeroPanel(onSearchTap: onPlanTap),
+        HeroPanel(onSearchTap: widget.onPlanTap),
         const SizedBox(height: 18),
 
-        TripCard(
-          trip: upcomingTrip,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TripDetailPage(trip: upcomingTrip),
-            ),
-          ),
-        ),
-
+        if (upcomingTrip != null)
+          TripCard(trip: upcomingTrip, onTap: widget.onItineraryTap)
+        else
+          _EmptyTripCard(onPlanTap: widget.onPlanTap),
       ],
+    );
+  }
+}
+
+class _EmptyTripCard extends StatelessWidget {
+  const _EmptyTripCard({required this.onPlanTap});
+
+  final VoidCallback onPlanTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPlanTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE6E9F4), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: AppColors.primary.withValues(alpha: 0.1),
+              ),
+              child: const Icon(
+                Icons.add_location_alt_outlined,
+                color: AppColors.primary,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No Active Trip Planned',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Tap to plan your smart schedule',
+                    style: TextStyle(color: AppColors.muted, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.muted,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

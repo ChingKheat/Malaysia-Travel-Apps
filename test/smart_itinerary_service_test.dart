@@ -26,10 +26,18 @@ void main() {
       // First stop should start at 09:00 AM
       expect(stops.first.time.startsWith('09:00 AM'), isTrue);
       // All stops should be within the 18:00 (6:00 PM) ceiling
-      expect(stops.any((s) => s.title.contains('Penang') || s.title.contains('George Town') || s.title.contains('Gurney')), isTrue);
+      expect(
+        stops.any(
+          (s) =>
+              s.title.contains('Penang') ||
+              s.title.contains('George Town') ||
+              s.title.contains('Gurney'),
+        ),
+        isTrue,
+      );
     });
 
-    test('Schedules attractions for Melaka with lunch break', () {
+    test('Schedules Melaka attractions and a food stop', () {
       const prefs = TripPreferences(
         destination: 'Melaka',
         dailyStartTime: TimeOfDay(hour: 8, minute: 30),
@@ -45,9 +53,20 @@ void main() {
 
       expect(stops.isNotEmpty, isTrue);
       // Check Melaka landmark is present
-      expect(stops.any((s) => s.title.contains('Dutch Square') || s.title.contains('A Famosa') || s.title.contains('Jonker')), isTrue);
-      // Check lunch stop is scheduled
-      expect(stops.any((s) => s.title.toLowerCase().contains('lunch')), isTrue);
+      expect(
+        stops.any(
+          (s) =>
+              s.title.contains('Dutch Square') ||
+              s.title.contains('A Famosa') ||
+              s.title.contains('Jonker'),
+        ),
+        isTrue,
+      );
+      // Do not invent lunch when only a night-market venue is available.
+      expect(
+        stops.any((s) => s.category.toLowerCase().contains('food')),
+        isTrue,
+      );
     });
 
     test('Schedules stops within custom daily end time window', () {
@@ -70,12 +89,7 @@ void main() {
       expect(stops.length, lessThanOrEqualTo(3));
     });
 
-    test('GooglePlacesService builds photo URLs and convertGooglePlaceToStop extracts multiple photos', () {
-      const samplePhotoName = 'places/ChIJ123/photos/ABC456';
-      final photoUrl = GooglePlacesService.buildPhotoUrl(samplePhotoName);
-      expect(photoUrl.contains('places.googleapis.com/v1/$samplePhotoName/media'), isTrue);
-      expect(photoUrl.contains('maxWidthPx='), isTrue);
-
+    test('Google details retain ephemeral photos without permanent URLs', () {
       final dummyPlace = {
         'displayName': {'text': 'Penang Hill'},
         'formattedAddress': 'Penang, Malaysia',
@@ -95,60 +109,75 @@ void main() {
         durationLabel: '1 h 30 min',
       );
 
-      expect(stop.photoUrls.length, equals(3));
-      expect(stop.primaryPhotoUrl, isNotNull);
-      expect(stop.primaryPhotoUrl!.contains('photo1'), isTrue);
+      expect(stop.photoUrls, isEmpty);
+      expect(stop.primaryPhotoUrl, isNull);
+      expect(stop.googleDetails!.photos.length, 3);
+      expect(stop.googleDetails!.photos.first.name, contains('photo1'));
+      expect(stop.tips, contains('Rating: 4.7'));
+      expect(stop.tips, contains('500 reviews'));
     });
 
-    test('calculateRouteDistanceKm accurately computes distance with tortuosity factor', () {
-      const stop1 = TravelStop(
-        title: 'KLCC',
-        time: '09:00 AM - 10:30 AM',
-        note: '',
-        description: '',
-        duration: '1 h 30 min',
-        openingHours: '10:00 AM - 10:00 PM',
-        tips: [],
-        icon: Icons.place,
-        color: Colors.blue,
-        latitude: 3.1578,
-        longitude: 101.7119,
-      );
+    test(
+      'calculateRouteDistanceKm accurately computes distance with tortuosity factor',
+      () {
+        const stop1 = TravelStop(
+          title: 'KLCC',
+          time: '09:00 AM - 10:30 AM',
+          note: '',
+          description: '',
+          duration: '1 h 30 min',
+          openingHours: '10:00 AM - 10:00 PM',
+          tips: [],
+          icon: Icons.place,
+          color: Colors.blue,
+          latitude: 3.1578,
+          longitude: 101.7119,
+        );
 
-      const stop2 = TravelStop(
-        title: 'Batu Caves',
-        time: '11:00 AM - 01:00 PM',
-        note: '',
-        description: '',
-        duration: '2 h',
-        openingHours: '06:00 AM - 09:00 PM',
-        tips: [],
-        icon: Icons.place,
-        color: Colors.green,
-        latitude: 3.2379,
-        longitude: 101.6840,
-      );
+        const stop2 = TravelStop(
+          title: 'Batu Caves',
+          time: '11:00 AM - 01:00 PM',
+          note: '',
+          description: '',
+          duration: '2 h',
+          openingHours: '06:00 AM - 09:00 PM',
+          tips: [],
+          icon: Icons.place,
+          color: Colors.green,
+          latitude: 3.2379,
+          longitude: 101.6840,
+        );
 
-      final dist = SmartItineraryService.calculateRouteDistanceKm([stop1, stop2]);
-      // Haversine between KLCC and Batu Caves is ~9.4 km * 1.28 = ~12.0 km
-      expect(dist, greaterThan(10.0));
-      expect(dist, lessThan(16.0));
+        final dist = SmartItineraryService.calculateRouteDistanceKm([
+          stop1,
+          stop2,
+        ]);
+        // Haversine between KLCC and Batu Caves is ~9.4 km * 1.28 = ~12.0 km
+        expect(dist, greaterThan(10.0));
+        expect(dist, lessThan(16.0));
 
-      // Single stop should yield 0.0 km
-      expect(SmartItineraryService.calculateRouteDistanceKm([stop1]), equals(0.0));
-    });
+        // Single stop should yield 0.0 km
+        expect(
+          SmartItineraryService.calculateRouteDistanceKm([stop1]),
+          equals(0.0),
+        );
+      },
+    );
 
-    test('WeatherService returns realistic meteorological snapshot with outdoor suitability badge', () async {
-      final forecast = await WeatherService().getForecastForDate(
-        state: 'Penang',
-        date: DateTime.now().add(const Duration(days: 1)),
-      );
+    test(
+      'WeatherService returns realistic meteorological snapshot with outdoor suitability badge',
+      () async {
+        final forecast = await WeatherService().getForecastForDate(
+          state: 'Penang',
+          date: DateTime.now().add(const Duration(days: 1)),
+        );
 
-      expect(forecast.locationState, equals('Penang'));
-      expect(forecast.temperatureC, greaterThan(20.0));
-      expect(forecast.rainProbability, greaterThanOrEqualTo(0.0));
-      expect(forecast.suitabilityBadge.isNotEmpty, isTrue);
-      expect(forecast.adviceText.isNotEmpty, isTrue);
-    });
+        expect(forecast.locationState, equals('Penang'));
+        expect(forecast.temperatureC, greaterThan(20.0));
+        expect(forecast.rainProbability, greaterThanOrEqualTo(0.0));
+        expect(forecast.suitabilityBadge.isNotEmpty, isTrue);
+        expect(forecast.adviceText.isNotEmpty, isTrue);
+      },
+    );
   });
 }

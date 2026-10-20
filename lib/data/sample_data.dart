@@ -134,11 +134,6 @@ const daySummaries7Days = [
 ];
 
 List<TravelStop> getDailyStops(int dayIndex) {
-  final liveStops = SmartItineraryService.getLiveStops(dayIndex);
-  if (liveStops != null && liveStops.isNotEmpty) {
-    return liveStops;
-  }
-
   final stored = TripPreferencesService.storedPreferences;
   if (stored != null && stored.destination != null && stored.destination!.trim().isNotEmpty) {
     return SmartItineraryService.generateDailyStops(

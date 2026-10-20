@@ -5,6 +5,7 @@
 -- ==============================================================================
 
 -- Enable UUID extension if not already enabled
+BEGIN;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==============================================================================
@@ -21,9 +22,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- Ensure migration if column does not exist and relax foreign key for demo accounts
+-- Legacy demo rows remain local-only; new cloud profiles must belong to Auth users.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
-ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_user_id_fkey;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.profiles'::regclass AND conname = 'profiles_user_id_fkey') THEN
+        ALTER TABLE public.profiles ADD CONSTRAINT profiles_user_id_fkey
+          FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE NOT VALID;
+    END IF;
+END $$;
 
 -- ==============================================================================
 -- 2. PLACES TABLE (Table 4.6)
@@ -55,7 +61,6 @@ CREATE TABLE IF NOT EXISTS public.indoor_places (
     is_air_conditioned BOOLEAN NOT NULL DEFAULT TRUE,
     max_capacity INTEGER
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_indoor_place_id ON public.indoor_places(place_id);
 
 -- ==============================================================================
 -- 4. OUTDOOR_PLACES TABLE (Table 4.7)
@@ -67,6 +72,54 @@ CREATE TABLE IF NOT EXISTS public.outdoor_places (
     is_rain_sensitive BOOLEAN NOT NULL DEFAULT TRUE,
     weather_condition VARCHAR(100)
 );
+-- Older installations allowed several subtype rows for the same place. Archive
+-- every original row in each duplicate group before retaining the lowest ID.
+-- The archive is outside the API schema and inaccessible to mobile clients.
+CREATE SCHEMA IF NOT EXISTS recovery;
+REVOKE ALL ON SCHEMA recovery FROM PUBLIC, anon, authenticated;
+CREATE TABLE IF NOT EXISTS recovery.place_subtype_duplicates (
+    source_table TEXT NOT NULL,
+    original_id TEXT NOT NULL,
+    snapshot_hash TEXT NOT NULL,
+    row_data JSONB NOT NULL,
+    archived_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (source_table, original_id, snapshot_hash)
+);
+REVOKE ALL ON recovery.place_subtype_duplicates FROM PUBLIC, anon, authenticated;
+ALTER TABLE recovery.place_subtype_duplicates ENABLE ROW LEVEL SECURITY;
+-- No client policies: only trusted database administration can read the archive.
+
+DO $$
+DECLARE subtype TEXT; duplicate_exists BOOLEAN;
+BEGIN
+  FOREACH subtype IN ARRAY ARRAY['indoor_places', 'outdoor_places'] LOOP
+    EXECUTE format('LOCK TABLE public.%I IN ACCESS EXCLUSIVE MODE', subtype);
+    EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I GROUP BY place_id HAVING count(*) > 1)', subtype)
+      INTO duplicate_exists;
+    IF NOT duplicate_exists THEN CONTINUE; END IF;
+    -- Unknown referencing tables need a tailored migration, not cascading deletion.
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE contype = 'f'
+      AND confrelid = to_regclass(format('public.%I', subtype))) THEN
+      RAISE EXCEPTION 'Cannot consolidate public.%: another table references its rows. A tailored migration is required.', subtype;
+    END IF;
+    EXECUTE format($archive$
+      INSERT INTO recovery.place_subtype_duplicates(source_table, original_id, snapshot_hash, row_data)
+      SELECT %L, t.id::text, md5(to_jsonb(t)::text), to_jsonb(t)
+      FROM public.%I t
+      WHERE t.place_id IN (SELECT place_id FROM public.%I GROUP BY place_id HAVING count(*) > 1)
+      ON CONFLICT DO NOTHING
+    $archive$, subtype, subtype, subtype);
+    EXECUTE format($consolidate$
+      DELETE FROM public.%I t USING (
+        SELECT id, row_number() OVER (PARTITION BY place_id ORDER BY id::text) AS occurrence
+        FROM public.%I
+      ) duplicates
+      WHERE t.id = duplicates.id AND duplicates.occurrence > 1
+    $consolidate$, subtype, subtype);
+  END LOOP;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_indoor_place_id ON public.indoor_places(place_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_outdoor_place_id ON public.outdoor_places(place_id);
 
 -- ==============================================================================
@@ -158,13 +211,13 @@ BEGIN
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
         COALESCE(NEW.raw_user_meta_data->>'preferred_language', 'en'),
-        COALESCE(NEW.raw_user_meta_data->>'role', 'user')
+        'user'
     )
     ON CONFLICT (user_id) DO UPDATE
     SET email = EXCLUDED.email;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- Drop trigger if already exists then recreate
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -186,99 +239,106 @@ ALTER TABLE public.outdoor_places ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.weather_forecasts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assistant_messages ENABLE ROW LEVEL SECURITY;
 
--- Profiles: Allow reading, inserting and updating profiles (authenticated and demo/guest)
-DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Public can view profiles" ON public.profiles;
-CREATE POLICY "Public can view profiles" ON public.profiles FOR SELECT USING (TRUE);
+-- Replace legacy permissive policies, including installations made by older scripts.
+DO $$ DECLARE p record; BEGIN
+  FOR p IN SELECT schemaname, tablename, policyname FROM pg_policies
+    WHERE schemaname = 'public' AND tablename IN
+      ('profiles','itineraries','daily_schedules','itinerary_stops','places',
+       'indoor_places','outdoor_places','weather_forecasts','assistant_messages')
+  LOOP EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I',p.policyname,p.schemaname,p.tablename); END LOOP;
+END $$;
 
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Public can update profiles" ON public.profiles;
-CREATE POLICY "Public can update profiles" ON public.profiles FOR UPDATE USING (TRUE);
+CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND role = 'admin');
+$$;
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated;
 
-DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Public can insert profiles" ON public.profiles;
-CREATE POLICY "Public can insert profiles" ON public.profiles FOR INSERT WITH CHECK (TRUE);
+-- BEGIN PLACE SYNC STATUS
+-- Import metadata only: no Google content, keys, or private user data.
+CREATE TABLE IF NOT EXISTS public.place_sync_status (
+    state VARCHAR(100) PRIMARY KEY CHECK (length(btrim(state)) > 0),
+    last_synced_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    place_count INTEGER NOT NULL CHECK (place_count >= 0),
+    request_count INTEGER NOT NULL CHECK (request_count >= 0)
+);
+ALTER TABLE public.place_sync_status ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.place_sync_status FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.place_sync_status TO authenticated;
+DROP POLICY IF EXISTS place_sync_status_admin ON public.place_sync_status;
+CREATE POLICY place_sync_status_admin ON public.place_sync_status
+    FOR ALL TO authenticated
+    USING ((SELECT public.is_admin())) WITH CHECK ((SELECT public.is_admin()));
 
--- Itineraries: Allow viewing and managing itineraries
-DROP POLICY IF EXISTS "Users can view own or public itineraries" ON public.itineraries;
-DROP POLICY IF EXISTS "Public can view itineraries" ON public.itineraries;
-CREATE POLICY "Public can view itineraries" ON public.itineraries FOR SELECT USING (TRUE);
+-- Invoker permissions and RLS enforce admin access. Time comes from PostgreSQL,
+-- and is recorded only after the app has completed all import batches.
+CREATE OR REPLACE FUNCTION public.record_place_sync(
+    p_state TEXT, p_place_count INTEGER, p_request_count INTEGER
+) RETURNS SETOF public.place_sync_status
+LANGUAGE sql SECURITY INVOKER SET search_path = '' AS $$
+    INSERT INTO public.place_sync_status(state, last_synced_at, place_count, request_count)
+    VALUES (p_state, clock_timestamp(), p_place_count, p_request_count)
+    ON CONFLICT (state) DO UPDATE SET
+        last_synced_at = EXCLUDED.last_synced_at,
+        place_count = EXCLUDED.place_count,
+        request_count = EXCLUDED.request_count
+    RETURNING *;
+$$;
+REVOKE ALL ON FUNCTION public.record_place_sync(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_place_sync(TEXT, INTEGER, INTEGER) TO authenticated;
+-- END PLACE SYNC STATUS
 
-DROP POLICY IF EXISTS "Users can insert own itineraries" ON public.itineraries;
-DROP POLICY IF EXISTS "Public can insert itineraries" ON public.itineraries;
-CREATE POLICY "Public can insert itineraries" ON public.itineraries FOR INSERT WITH CHECK (TRUE);
 
-DROP POLICY IF EXISTS "Users can update own itineraries" ON public.itineraries;
-DROP POLICY IF EXISTS "Public can update itineraries" ON public.itineraries;
-CREATE POLICY "Public can update itineraries" ON public.itineraries FOR UPDATE USING (TRUE);
+-- Client-controlled metadata and profile updates cannot grant administrator access.
+CREATE OR REPLACE FUNCTION public.protect_profile_role() RETURNS trigger
+LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+BEGIN
+ IF auth.role() IN ('anon','authenticated') AND (
+   (TG_OP = 'INSERT' AND NEW.role <> 'user') OR
+   (TG_OP = 'UPDATE' AND (NEW.role IS DISTINCT FROM OLD.role OR NEW.user_id IS DISTINCT FROM OLD.user_id))
+ ) THEN RAISE EXCEPTION 'Profile role and identity are managed by the server'; END IF;
+ RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS protect_profile_role ON public.profiles;
+CREATE TRIGGER protect_profile_role BEFORE INSERT OR UPDATE ON public.profiles
+FOR EACH ROW EXECUTE FUNCTION public.protect_profile_role();
 
-DROP POLICY IF EXISTS "Users can delete own itineraries" ON public.itineraries;
-DROP POLICY IF EXISTS "Public can delete itineraries" ON public.itineraries;
-CREATE POLICY "Public can delete itineraries" ON public.itineraries FOR DELETE USING (TRUE);
-
--- Daily Schedules: Allow viewing and managing daily schedules
-DROP POLICY IF EXISTS "Users can view daily schedules of accessible itineraries" ON public.daily_schedules;
-DROP POLICY IF EXISTS "Public can view daily schedules" ON public.daily_schedules;
-CREATE POLICY "Public can view daily schedules" ON public.daily_schedules FOR SELECT USING (TRUE);
-
-DROP POLICY IF EXISTS "Users can insert daily schedules of own itineraries" ON public.daily_schedules;
-DROP POLICY IF EXISTS "Public can insert daily schedules" ON public.daily_schedules;
-CREATE POLICY "Public can insert daily schedules" ON public.daily_schedules FOR INSERT WITH CHECK (TRUE);
-
-DROP POLICY IF EXISTS "Users can update daily schedules of own itineraries" ON public.daily_schedules;
-DROP POLICY IF EXISTS "Public can update daily schedules" ON public.daily_schedules;
-CREATE POLICY "Public can update daily schedules" ON public.daily_schedules FOR UPDATE USING (TRUE);
-
-DROP POLICY IF EXISTS "Users can delete daily schedules of own itineraries" ON public.daily_schedules;
-DROP POLICY IF EXISTS "Public can delete daily schedules" ON public.daily_schedules;
-CREATE POLICY "Public can delete daily schedules" ON public.daily_schedules FOR DELETE USING (TRUE);
-
--- Itinerary Stops: Allow viewing and managing scheduled stops
-DROP POLICY IF EXISTS "Users can view stops of accessible itineraries" ON public.itinerary_stops;
-DROP POLICY IF EXISTS "Public can view stops" ON public.itinerary_stops;
-CREATE POLICY "Public can view stops" ON public.itinerary_stops FOR SELECT USING (TRUE);
-
-DROP POLICY IF EXISTS "Users can insert stops of own itineraries" ON public.itinerary_stops;
-DROP POLICY IF EXISTS "Public can insert stops" ON public.itinerary_stops FOR INSERT WITH CHECK (TRUE);
-
-DROP POLICY IF EXISTS "Users can update stops of own itineraries" ON public.itinerary_stops;
-DROP POLICY IF EXISTS "Public can update stops" ON public.itinerary_stops FOR UPDATE USING (TRUE);
-
-DROP POLICY IF EXISTS "Users can delete stops of own itineraries" ON public.itinerary_stops;
-DROP POLICY IF EXISTS "Public can delete stops" ON public.itinerary_stops FOR DELETE USING (TRUE);
-
--- Places: Anyone can view cached places (authenticated or anon)
-CREATE POLICY "Public read for places"
-    ON public.places FOR SELECT
-    USING (TRUE);
-
-DROP POLICY IF EXISTS "Authenticated users can insert/cache places" ON public.places;
-DROP POLICY IF EXISTS "Public can insert/cache places" ON public.places;
-CREATE POLICY "Public can insert/cache places"
-    ON public.places FOR INSERT
-    WITH CHECK (TRUE);
-
-DROP POLICY IF EXISTS "Public can update places" ON public.places;
-CREATE POLICY "Public can update places"
-    ON public.places FOR UPDATE
-    USING (TRUE);
-
-ALTER TABLE public.indoor_places DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.outdoor_places DISABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public read for indoor places" ON public.indoor_places;
-DROP POLICY IF EXISTS "Public can manage indoor places" ON public.indoor_places;
-CREATE POLICY "Public can manage indoor places"
-    ON public.indoor_places FOR ALL
-    USING (TRUE)
-    WITH CHECK (TRUE);
-
-DROP POLICY IF EXISTS "Public read for outdoor places" ON public.outdoor_places;
-DROP POLICY IF EXISTS "Public can manage outdoor places" ON public.outdoor_places;
-CREATE POLICY "Public can manage outdoor places"
-    ON public.outdoor_places FOR ALL
-    USING (TRUE)
-    WITH CHECK (TRUE);
+CREATE POLICY profiles_read ON public.profiles FOR SELECT TO authenticated USING (user_id = auth.uid());
+CREATE POLICY profiles_insert ON public.profiles FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid() AND role = 'user');
+CREATE POLICY profiles_update ON public.profiles FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE POLICY itineraries_read ON public.itineraries FOR SELECT TO authenticated USING (user_id = auth.uid() OR is_public);
+CREATE POLICY itineraries_insert ON public.itineraries FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+CREATE POLICY itineraries_update ON public.itineraries FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE POLICY itineraries_delete ON public.itineraries FOR DELETE TO authenticated USING (user_id = auth.uid());
+CREATE POLICY schedules_read ON public.daily_schedules FOR SELECT TO authenticated USING (
+ EXISTS (SELECT 1 FROM public.itineraries i WHERE i.itinerary_id = daily_schedules.itinerary_id AND (i.user_id = auth.uid() OR i.is_public)));
+CREATE POLICY schedules_write ON public.daily_schedules FOR ALL TO authenticated USING (
+ EXISTS (SELECT 1 FROM public.itineraries i WHERE i.itinerary_id = daily_schedules.itinerary_id AND i.user_id = auth.uid())) WITH CHECK (
+ EXISTS (SELECT 1 FROM public.itineraries i WHERE i.itinerary_id = daily_schedules.itinerary_id AND i.user_id = auth.uid()));
+CREATE POLICY stops_read ON public.itinerary_stops FOR SELECT TO authenticated USING (
+ EXISTS (SELECT 1 FROM public.daily_schedules d JOIN public.itineraries i USING (itinerary_id)
+ WHERE d.schedule_id = itinerary_stops.schedule_id AND (i.user_id = auth.uid() OR i.is_public)));
+CREATE POLICY stops_write ON public.itinerary_stops FOR ALL TO authenticated USING (
+ EXISTS (SELECT 1 FROM public.daily_schedules d JOIN public.itineraries i USING (itinerary_id)
+ WHERE d.schedule_id = itinerary_stops.schedule_id AND i.user_id = auth.uid())) WITH CHECK (
+ EXISTS (SELECT 1 FROM public.daily_schedules d JOIN public.itineraries i USING (itinerary_id)
+ WHERE d.schedule_id = itinerary_stops.schedule_id AND i.user_id = auth.uid()));
+CREATE POLICY weather_read ON public.weather_forecasts FOR SELECT TO authenticated USING (
+ EXISTS (SELECT 1 FROM public.itineraries i WHERE i.itinerary_id = weather_forecasts.itinerary_id AND (i.user_id = auth.uid() OR i.is_public)));
+CREATE POLICY weather_write ON public.weather_forecasts FOR ALL TO authenticated USING (
+ EXISTS (SELECT 1 FROM public.itineraries i WHERE i.itinerary_id = weather_forecasts.itinerary_id AND i.user_id = auth.uid())) WITH CHECK (
+ EXISTS (SELECT 1 FROM public.itineraries i WHERE i.itinerary_id = weather_forecasts.itinerary_id AND i.user_id = auth.uid()));
+CREATE POLICY messages_read ON public.assistant_messages FOR SELECT TO authenticated USING (user_id = auth.uid());
+CREATE POLICY messages_insert ON public.assistant_messages FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+CREATE POLICY places_read ON public.places FOR SELECT USING (true);
+CREATE POLICY places_admin ON public.places FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+ALTER TABLE public.indoor_places ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.outdoor_places ENABLE ROW LEVEL SECURITY;
+CREATE POLICY indoor_read ON public.indoor_places FOR SELECT USING (true);
+CREATE POLICY indoor_admin ON public.indoor_places FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY outdoor_read ON public.outdoor_places FOR SELECT USING (true);
+CREATE POLICY outdoor_admin ON public.outdoor_places FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- ==============================================================================
 -- AUTOMATIC TRIGGER: SYNC INDOOR & OUTDOOR PLACES
@@ -306,31 +366,13 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 DROP TRIGGER IF EXISTS trg_sync_indoor_outdoor_subtables ON public.places;
 CREATE TRIGGER trg_sync_indoor_outdoor_subtables
 AFTER INSERT OR UPDATE OF is_indoor ON public.places
 FOR EACH ROW
 EXECUTE FUNCTION public.sync_indoor_outdoor_subtables();
-
--- Assistant Messages: Allow reading and logging AI chats
-DROP POLICY IF EXISTS "Users can view own chat messages" ON public.assistant_messages;
-DROP POLICY IF EXISTS "Public can view assistant messages" ON public.assistant_messages;
-CREATE POLICY "Public can view assistant messages" ON public.assistant_messages FOR SELECT USING (TRUE);
-
-DROP POLICY IF EXISTS "Users can insert own chat messages" ON public.assistant_messages;
-DROP POLICY IF EXISTS "Public can insert assistant messages" ON public.assistant_messages;
-CREATE POLICY "Public can insert assistant messages" ON public.assistant_messages FOR INSERT WITH CHECK (TRUE);
-
--- Weather Forecasts: Allow viewing and caching daily weather snapshots
-DROP POLICY IF EXISTS "Users can view weather forecasts" ON public.weather_forecasts;
-DROP POLICY IF EXISTS "Public can view weather forecasts" ON public.weather_forecasts;
-CREATE POLICY "Public can view weather forecasts" ON public.weather_forecasts FOR SELECT USING (TRUE);
-
-DROP POLICY IF EXISTS "Users can insert weather forecasts" ON public.weather_forecasts;
-DROP POLICY IF EXISTS "Public can insert weather forecasts" ON public.weather_forecasts;
-CREATE POLICY "Public can insert weather forecasts" ON public.weather_forecasts FOR INSERT WITH CHECK (TRUE);
 
 -- ==============================================================================
 -- SEED DATA: POPULAR MALAYSIAN ATTRACTIONS (FOR INSTANT READ-THROUGH CACHE HIT)
@@ -364,3 +406,46 @@ VALUES
 ('poi_png_kek_lok_si', FALSE, 1500),
 ('poi_mlk_stadthuys', TRUE, 500)
 ON CONFLICT DO NOTHING;
+
+-- Planning snapshots and atomic, retry-safe itinerary synchronization.
+ALTER TABLE public.itineraries ADD COLUMN IF NOT EXISTS preferences JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE public.itinerary_stops ADD COLUMN IF NOT EXISTS stop_data JSONB NOT NULL DEFAULT '{}'::jsonb;
+CREATE OR REPLACE FUNCTION public.save_itinerary(payload jsonb) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE trip_id uuid := (payload->>'itinerary_id')::uuid;
+        owner_id uuid := auth.uid(); d jsonb; st jsonb; day_id uuid;
+BEGIN
+ IF owner_id IS NULL OR owner_id <> (payload->>'user_id')::uuid THEN
+   RAISE EXCEPTION 'Authentication required';
+ END IF;
+ -- Serialize retries of the same trip, including concurrent first inserts.
+ PERFORM pg_advisory_xact_lock(hashtextextended(trip_id::text, 0));
+ IF EXISTS (SELECT 1 FROM public.itineraries WHERE itinerary_id = trip_id AND user_id <> owner_id) THEN
+   RAISE EXCEPTION 'Itinerary belongs to another user';
+ END IF;
+ INSERT INTO public.itineraries(itinerary_id,user_id,title,destination_state,total_cost,is_public,created_at,preferences)
+ VALUES(trip_id,owner_id,payload->>'title',payload->>'destination_state',
+ (payload->>'total_cost')::numeric,COALESCE((payload->>'is_public')::boolean,false),
+ (payload->>'created_at')::timestamptz,COALESCE(payload->'preferences','{}'::jsonb))
+ ON CONFLICT (itinerary_id) DO UPDATE SET title=EXCLUDED.title,destination_state=EXCLUDED.destination_state,
+ total_cost=EXCLUDED.total_cost,is_public=EXCLUDED.is_public,preferences=EXCLUDED.preferences;
+ DELETE FROM public.daily_schedules WHERE itinerary_id = trip_id;
+ FOR d IN SELECT value FROM jsonb_array_elements(payload->'daily_schedules') LOOP
+   day_id := (d->>'schedule_id')::uuid;
+   INSERT INTO public.daily_schedules(schedule_id,itinerary_id,day_number,schedule_date,total_distance_km)
+   VALUES(day_id,trip_id,(d->>'day_number')::integer,(d->>'schedule_date')::date,(d->>'total_distance_km')::numeric);
+   FOR st IN SELECT value FROM jsonb_array_elements(d->'itinerary_stops') LOOP
+     INSERT INTO public.places(place_id,name,state,category,latitude,longitude)
+     VALUES(st->>'place_id',st->>'place_name',payload->>'destination_state',
+       COALESCE(st->>'category','Attraction'),(st->>'latitude')::double precision,(st->>'longitude')::double precision)
+     ON CONFLICT (place_id) DO NOTHING;
+     INSERT INTO public.itinerary_stops(id,schedule_id,place_id,stop_order,arrival_time,departure_time,is_visited,stop_data)
+     VALUES((st->>'id')::uuid,day_id,st->>'place_id',(st->>'stop_order')::integer,
+       (st->>'arrival_time')::time,(st->>'departure_time')::time,COALESCE((st->>'is_visited')::boolean,false),st || COALESCE(st->'stop_data','{}'::jsonb));
+   END LOOP;
+ END LOOP;
+ RETURN trip_id;
+END $$;
+REVOKE ALL ON FUNCTION public.save_itinerary(jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.save_itinerary(jsonb) TO authenticated;
+COMMIT;

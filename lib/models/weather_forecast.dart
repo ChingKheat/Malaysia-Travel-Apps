@@ -10,6 +10,7 @@ class WeatherForecast {
   final double rainProbability;
   final double temperatureC;
   final String adviceText;
+  final bool isAvailable;
 
   const WeatherForecast({
     this.id = '',
@@ -20,12 +21,15 @@ class WeatherForecast {
     required this.rainProbability,
     this.temperatureC = 30.0,
     this.adviceText = '',
+    this.isAvailable = true,
   });
 
   /// Evaluates whether current day's weather is suitable for outdoor attractions
   bool get isSuitableForOutdoor {
     final lower = condition.toLowerCase();
-    if (lower.contains('thunder') || lower.contains('storm') || lower.contains('heavy rain')) {
+    if (lower.contains('thunder') ||
+        lower.contains('storm') ||
+        lower.contains('heavy rain')) {
       return false;
     }
     return rainProbability < 55.0;
@@ -33,6 +37,7 @@ class WeatherForecast {
 
   /// User-facing status badge label
   String get suitabilityBadge {
+    if (!isAvailable) return 'Forecast unavailable';
     if (isSuitableForOutdoor) {
       return 'Outdoor Friendly';
     } else if (rainProbability >= 70.0) {
@@ -44,6 +49,7 @@ class WeatherForecast {
 
   /// Badge color
   Color get badgeColor {
+    if (!isAvailable) return const Color(0xFF64748B);
     if (isSuitableForOutdoor) {
       return const Color(0xFF16A34A); // Green
     } else if (rainProbability >= 70.0) {
@@ -59,7 +65,8 @@ class WeatherForecast {
       itineraryId: data['itinerary_id']?.toString() ?? '',
       locationState: data['location_state']?.toString() ?? '',
       scheduleDate: data['schedule_date'] != null
-          ? DateTime.tryParse(data['schedule_date'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(data['schedule_date'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       condition: data['condition']?.toString() ?? 'Partly Cloudy',
       rainProbability: (data['rain_probability'] as num?)?.toDouble() ?? 20.0,

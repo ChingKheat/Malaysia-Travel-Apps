@@ -20,7 +20,7 @@ class AppHeader extends StatelessWidget {
   const AppHeader.explore({
     super.key,
     this.title = 'Explore Malaysia',
-    this.subtitle = 'Live OpenStreetMap API active for Malaysia',
+    this.subtitle = 'Live Google Places API active for Malaysia',
   });
 
   const AppHeader.plan({

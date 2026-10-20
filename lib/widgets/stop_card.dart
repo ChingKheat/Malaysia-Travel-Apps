@@ -89,10 +89,13 @@ class StopCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (stop.photoUrls.length > 1) ...[
+                      if (!stop.isGooglePlace && stop.photoUrls.length > 1) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -100,7 +103,11 @@ class StopCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.photo_library_outlined, size: 11, color: AppColors.primary),
+                              const Icon(
+                                Icons.photo_library_outlined,
+                                size: 11,
+                                color: AppColors.primary,
+                              ),
                               const SizedBox(width: 3),
                               Text(
                                 '${stop.photoUrls.length}',

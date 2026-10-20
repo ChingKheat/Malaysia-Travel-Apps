@@ -118,7 +118,8 @@ void main() {
       );
 
       expect(result.success, isTrue);
-      expect(result.message, equals(SupabaseItineraryService.m1SaveSuccess));
+      expect(result.synced, isFalse);
+      expect(result.message, equals(SupabaseItineraryService.m1SaveLocal));
       expect(result.itineraryId, isNotNull);
 
       // UC700: Retrieve saved itineraries for user

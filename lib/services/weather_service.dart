@@ -14,6 +14,10 @@ class WeatherService {
   WeatherService._internal();
 
   final http.Client _client = http.Client();
+  final Map<String, (DateTime, List<dynamic>)> _cache = {};
+
+  WeatherService.withClient(http.Client client) : _injectedClient = client;
+  http.Client? _injectedClient;
 
   /// Known GPS center coordinates for Malaysian states and tourist territories
   static const Map<String, (double, double)> stateCoordinates = {
@@ -57,25 +61,38 @@ class WeatherService {
   }) async {
     final (lat, lng) = _getCoordinates(state);
 
-    if (ApiKeys.hasOpenWeatherMapKey) {
+    if (ApiKeys.hasOpenWeatherMapKey || _injectedClient != null) {
       try {
         final url = Uri.parse(
           'https://api.openweathermap.org/data/2.5/forecast'
           '?lat=$lat&lon=$lng&units=metric&appid=${ApiKeys.openWeatherMap}',
         );
 
-        final response = await _client.get(url).timeout(const Duration(seconds: 8));
-
-        if (response.statusCode == 200) {
+        final cached = _cache[state.toLowerCase()];
+        List<dynamic> list;
+        if (cached != null &&
+            DateTime.now().difference(cached.$1).inMinutes < 30) {
+          list = cached.$2;
+        } else {
+          final response = await (_injectedClient ?? _client)
+              .get(url)
+              .timeout(const Duration(seconds: 8));
+          if (response.statusCode != 200) {
+            return unavailable(state, date, itineraryId);
+          }
           final data = jsonDecode(response.body) as Map<String, dynamic>;
-          final list = (data['list'] as List<dynamic>? ?? []);
-
+          list = data['list'] as List<dynamic>? ?? [];
+          _cache[state.toLowerCase()] = (DateTime.now(), list);
+        }
+        {
           final targetDateStr = date.toIso8601String().split('T').first;
 
           // Find slot on that date closest to midday (12:00 or 15:00)
           Map<String, dynamic>? bestMatch;
           for (final item in list) {
-            final dtTxt = item['dt_txt']?.toString() ?? '';
+            final utc = DateTime.tryParse('${item['dt_txt']}Z');
+            final local = utc?.add(const Duration(hours: 8));
+            final dtTxt = local?.toIso8601String() ?? '';
             if (dtTxt.startsWith(targetDateStr)) {
               if (dtTxt.contains('12:00') || dtTxt.contains('15:00')) {
                 bestMatch = item as Map<String, dynamic>;
@@ -85,18 +102,29 @@ class WeatherService {
             }
           }
 
-          bestMatch ??= list.isNotEmpty ? (list.first as Map<String, dynamic>) : null;
+          // Do not substitute a forecast from a different travel date.
 
           if (bestMatch != null) {
             final weatherArr = bestMatch['weather'] as List<dynamic>? ?? [];
-            final mainWeather = weatherArr.isNotEmpty ? weatherArr.first['main']?.toString() ?? 'Clouds' : 'Clouds';
-            final descWeather = weatherArr.isNotEmpty ? weatherArr.first['description']?.toString() ?? '' : '';
+            final mainWeather = weatherArr.isNotEmpty
+                ? weatherArr.first['main']?.toString() ?? 'Clouds'
+                : 'Clouds';
+            final descWeather = weatherArr.isNotEmpty
+                ? weatherArr.first['description']?.toString() ?? ''
+                : '';
             final pop = ((bestMatch['pop'] as num?)?.toDouble() ?? 0.2) * 100.0;
             final main = bestMatch['main'] as Map<String, dynamic>? ?? {};
             final temp = (main['temp'] as num?)?.toDouble() ?? 30.5;
 
             final conditionTitle = descWeather.isNotEmpty
-                ? descWeather.split(' ').map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}').join(' ')
+                ? descWeather
+                      .split(' ')
+                      .map(
+                        (w) => w.isEmpty
+                            ? ''
+                            : '${w[0].toUpperCase()}${w.substring(1)}',
+                      )
+                      .join(' ')
                 : mainWeather;
 
             return WeatherForecast(
@@ -108,22 +136,36 @@ class WeatherService {
               temperatureC: double.parse(temp.toStringAsFixed(1)),
               adviceText: pop >= 60.0
                   ? 'Heavy rain anticipated. Indoor backup places recommended.'
-                  : (pop >= 35.0 ? 'Afternoon showers possible. Carry an umbrella.' : 'Clear and pleasant for outdoor sights.'),
+                  : (pop >= 35.0
+                        ? 'Afternoon showers possible. Carry an umbrella.'
+                        : 'Clear and pleasant for outdoor sights.'),
             );
           }
         }
       } catch (e) {
-        debugPrint('OpenWeatherMap API live fetch notice: $e (Falling back to tropical model)');
+        debugPrint(
+          'OpenWeatherMap API live fetch notice: $e (Forecast unavailable)',
+        );
       }
     }
 
-    // High-fidelity fallback based on Malaysian equatorial monsoon patterns
-    return _generateTropicalClimateSnapshot(
-      state: state,
-      date: date,
-      itineraryId: itineraryId,
-    );
+    return unavailable(state, date, itineraryId);
   }
+
+  static WeatherForecast unavailable(
+    String state,
+    DateTime date, [
+    String itineraryId = '',
+  ]) => WeatherForecast(
+    itineraryId: itineraryId,
+    locationState: state,
+    scheduleDate: date,
+    condition: 'Forecast unavailable',
+    rainProbability: 0,
+    isAvailable: false,
+    adviceText:
+        'Weather data is unavailable for this date. Check again closer to travel.',
+  );
 
   /// Generates multi-day forecasts for a scheduled trip
   Future<List<WeatherForecast>> getMultiDayForecast({
@@ -141,48 +183,5 @@ class WeatherService {
       results.add(forecast);
     }
     return results;
-  }
-
-  /// Realistic Malaysian tropical climate estimation (equatorial weather baseline)
-  WeatherForecast _generateTropicalClimateSnapshot({
-    required String state,
-    required DateTime date,
-    required String itineraryId,
-  }) {
-    final dayNum = date.day;
-    final isAfternoonRainDay = (dayNum % 3) == 0;
-    final isClearDay = (dayNum % 3) == 1;
-
-    String condition;
-    double rainProb;
-    double temp;
-
-    if (isAfternoonRainDay) {
-      condition = 'Scattered Afternoon Showers';
-      rainProb = 55.0 + ((dayNum * 3) % 25);
-      temp = 29.5;
-    } else if (isClearDay) {
-      condition = 'Sunny & Clear';
-      rainProb = 15.0 + ((dayNum * 2) % 15);
-      temp = 32.0;
-    } else {
-      condition = 'Partly Cloudy';
-      rainProb = 35.0 + ((dayNum * 4) % 20);
-      temp = 31.0;
-    }
-
-    return WeatherForecast(
-      itineraryId: itineraryId,
-      locationState: state,
-      scheduleDate: date,
-      condition: condition,
-      rainProbability: double.parse(rainProb.toStringAsFixed(1)),
-      temperatureC: temp,
-      adviceText: rainProb >= 60.0
-          ? 'Afternoon downpours expected. Visit indoor attractions like museums or malls after 2 PM.'
-          : (rainProb >= 40.0
-              ? 'Warm with light rain probability. Suitable for outdoor parks in the morning.'
-              : 'Ideal clear weather for outdoor exploration and landmark photography.'),
-    );
   }
 }

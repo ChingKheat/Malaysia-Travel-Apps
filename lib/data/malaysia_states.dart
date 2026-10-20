@@ -1,4 +1,4 @@
-// Generated automatically using Overpass API script. Do not edit manually.
+// Malaysian states and city coordinates catalog.
 
 class CityArea {
   final String name;

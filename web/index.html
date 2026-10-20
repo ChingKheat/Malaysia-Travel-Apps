@@ -41,6 +41,24 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script src="maps-config.js"></script>
+  <script>
+    let mapsLoading;
+    window.smartTravelMapsReady = function () {
+      if (window.google && window.google.maps) return Promise.resolve(true);
+      if (mapsLoading) return mapsLoading;
+      const key = window.SMART_TRAVEL_MAPS_KEY;
+      if (!key) return Promise.resolve(false);
+      mapsLoading = new Promise(resolve => {
+        const script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key);
+        script.onload = () => resolve(!!(window.google && window.google.maps));
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+      });
+      return mapsLoading;
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

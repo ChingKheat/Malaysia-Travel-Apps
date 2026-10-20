@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../services/place_catalog_service.dart';
 
 import '../core/app_colors.dart';
 
@@ -13,7 +13,9 @@ class ApiRetrievalScreen extends StatefulWidget {
 }
 
 class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
-  final TextEditingController _cityController = TextEditingController(text: 'Kuala Lumpur');
+  final TextEditingController _cityController = TextEditingController(
+    text: 'Kuala Lumpur',
+  );
   bool _isLoading = false;
   int? _statusCode;
   int _responseTimeMs = 0;
@@ -38,57 +40,48 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
       _isLoading = true;
       _errorMessage = '';
       _statusCode = null;
-      _rawJsonOutput = '';
     });
-
     final stopwatch = Stopwatch()..start();
-    final city = _cityController.text.trim();
-    final url = Uri.https('nominatim.openstreetmap.org', '/search', {
-      'q': 'attractions in $city',
-      'format': 'json',
-      'limit': '15',
-    });
-
     try {
-      final response = await http.get(
-        url,
-        headers: {'User-Agent': 'SmartTravelPlanner/1.0'},
-      ).timeout(const Duration(seconds: 12));
-
-      stopwatch.stop();
-
+      final rows = await PlaceCatalogService().load();
+      final city = _cityController.text.trim().toLowerCase();
+      final matches = rows
+          .where(
+            (r) => '${r['state']} ${r['name']}'.toLowerCase().contains(city),
+          )
+          .take(50)
+          .toList();
+      if (!mounted) return;
       setState(() {
-        _statusCode = response.statusCode;
-        _responseTimeMs = stopwatch.elapsedMilliseconds;
-        _rawJsonOutput = const JsonEncoder.withIndent('  ').convert(jsonDecode(response.body));
-
-        if (response.statusCode == 200) {
-          final List rawList = jsonDecode(response.body);
-          _retrievedPlaces = rawList.map((item) {
-            final displayName = item['display_name'] ?? 'Unknown Place';
-            final firstName = displayName.split(',').first;
-            return {
-              'name': firstName,
-              'full_address': displayName,
-              'type': item['type'] ?? item['class'] ?? 'attraction',
-              'lat': item['lat'],
-              'lon': item['lon'],
-            };
-          }).toList();
-        } else {
-          _errorMessage = 'API returned status code: ${response.statusCode}';
-        }
+        _statusCode = 200;
+        _rawJsonOutput = const JsonEncoder.withIndent('  ').convert(matches);
+        _retrievedPlaces = matches
+            .map(
+              (r) => <String, dynamic>{
+                'name': r['name'],
+                'full_address': r['state'],
+                'type': r['category'],
+                'lat': '${r['latitude']}',
+                'lon': '${r['longitude']}',
+              },
+            )
+            .toList();
       });
-    } catch (e) {
-      stopwatch.stop();
-      setState(() {
-        _errorMessage = 'Failed to retrieve from API: $e';
-        _responseTimeMs = stopwatch.elapsedMilliseconds;
-      });
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () =>
+              _errorMessage = 'Saved places are unavailable. Try again later.',
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      stopwatch.stop();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _responseTimeMs = stopwatch.elapsedMilliseconds;
+        });
+      }
     }
   }
 
@@ -98,7 +91,7 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Live API Retrieval Inspector'),
+          title: const Text('Saved Places Inspector'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
@@ -128,11 +121,17 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                           controller: _cityController,
                           decoration: InputDecoration(
                             labelText: 'Search City / Destination',
-                            prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: AppColors.primary,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                           ),
                           onSubmitted: (_) => _fetchPlacesFromApi(),
                         ),
@@ -143,7 +142,10 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -152,7 +154,10 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
                             : const Icon(Icons.cloud_download),
                         label: Text(_isLoading ? 'Fetching...' : 'Retrieve'),
@@ -163,16 +168,23 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
 
                   // HTTP Response Status Banner
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: _statusCode == 200
                           ? Colors.green.shade50
-                          : (_statusCode != null ? Colors.red.shade50 : Colors.grey.shade100),
+                          : (_statusCode != null
+                                ? Colors.red.shade50
+                                : Colors.grey.shade100),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: _statusCode == 200
                             ? Colors.green.shade300
-                            : (_statusCode != null ? Colors.red.shade300 : Colors.grey.shade300),
+                            : (_statusCode != null
+                                  ? Colors.red.shade300
+                                  : Colors.grey.shade300),
                       ),
                     ),
                     child: Row(
@@ -181,34 +193,54 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                         Row(
                           children: [
                             Icon(
-                              _statusCode == 200 ? Icons.check_circle : Icons.info,
-                              color: _statusCode == 200 ? Colors.green.shade700 : Colors.grey.shade700,
+                              _statusCode == 200
+                                  ? Icons.check_circle
+                                  : Icons.info,
+                              color: _statusCode == 200
+                                  ? Colors.green.shade700
+                                  : Colors.grey.shade700,
                               size: 18,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               _statusCode != null
                                   ? 'HTTP Status: $_statusCode OK'
-                                  : (_isLoading ? 'Sending GET request...' : 'Ready'),
+                                  : (_isLoading
+                                        ? 'Reading saved database...'
+                                        : 'Ready'),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: _statusCode == 200 ? Colors.green.shade900 : Colors.black87,
+                                color: _statusCode == 200
+                                    ? Colors.green.shade900
+                                    : Colors.black87,
                               ),
                             ),
                           ],
                         ),
                         Row(
                           children: [
-                            const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
+                            const Icon(
+                              Icons.timer_outlined,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${_responseTimeMs}ms',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Text(
                               '${_retrievedPlaces.length} Items',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
                         ),
@@ -224,7 +256,10 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 color: Colors.red.shade100,
-                child: Text(_errorMessage, style: TextStyle(color: Colors.red.shade900)),
+                child: Text(
+                  _errorMessage,
+                  style: TextStyle(color: Colors.red.shade900),
+                ),
               ),
 
             // Tab Views Content
@@ -235,37 +270,50 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _retrievedPlaces.isEmpty
-                          ? const Center(child: Text('No places retrieved yet.'))
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _retrievedPlaces.length,
-                              itemBuilder: (context, index) {
-                                final place = _retrievedPlaces[index];
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  elevation: 2,
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                                      child: Text(
-                                        '${index + 1}',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      place['name'] ?? '',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    subtitle: Text(
-                                      'Category: ${place['type']}\nLocation: (${place['lat']}, ${place['lon']})',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                      ? const Center(child: Text('No places retrieved yet.'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _retrievedPlaces.length,
+                          itemBuilder: (context, index) {
+                            final place = _retrievedPlaces[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: AppColors.primary.withValues(
+                                    alpha: 0.1,
                                   ),
-                                );
-                              },
-                            ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  place['name'] ?? '',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Category: ${place['type']}\nLocation: (${place['lat']}, ${place['lon']})',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                trailing: const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
 
                   // Tab 2: Raw JSON Output
                   _isLoading
@@ -276,7 +324,9 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                           padding: const EdgeInsets.all(14),
                           child: SingleChildScrollView(
                             child: SelectableText(
-                              _rawJsonOutput.isEmpty ? '// Click Retrieve to fetch raw API JSON' : _rawJsonOutput,
+                              _rawJsonOutput.isEmpty
+                                  ? '// Read stored place data; no Google search requests'
+                                  : _rawJsonOutput,
                               style: const TextStyle(
                                 fontFamily: 'Courier',
                                 color: Color(0xFF4EC9B0),

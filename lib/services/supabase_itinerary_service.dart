@@ -1,377 +1,344 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../core/supabase_config.dart';
-import '../data/curated_attractions.dart';
+import 'package:uuid/uuid.dart';
+import 'itinerary_cloud.dart';
 import '../models/itinerary_models.dart';
+import '../models/trip_preferences.dart';
 import 'auth_service.dart';
-import 'weather_service.dart';
+import 'local_itinerary_store.dart';
+import 'trip_preferences_service.dart';
+import 'smart_itinerary_service.dart';
 
 class ItinerarySaveResult {
   final bool success;
+  final bool synced;
   final String message;
   final String? itineraryId;
-
   const ItinerarySaveResult({
     required this.success,
     required this.message,
     this.itineraryId,
+    this.synced = false,
   });
 }
 
-/// Service implementing UC601 (Save Itinerary), UC602 (Edit Itinerary),
-/// and UC700 (View Saved Itineraries) connected to Supabase PostgreSQL.
+/// Local-first repository. Cloud replacement is a single SQL transaction.
 class SupabaseItineraryService extends ChangeNotifier {
-  static final SupabaseItineraryService _instance =
-      SupabaseItineraryService._internal();
+  static final _instance = SupabaseItineraryService._internal();
   factory SupabaseItineraryService() => _instance;
-  SupabaseItineraryService._internal();
-
-  // Local fallback storage for offline/testing mode
-  final List<Itinerary> _inMemoryItineraries = [];
-
-  // Messages per Chapter 3 Specifications
-  static const String m1SaveSuccess =
-      'Itinerary saved successfully to your profile!';
-  static const String m2SaveError =
-      'Unable to save itinerary. Please check your network connection and try again.';
-  static const String m1LoadSuccess = 'Saved itinerary loaded successfully.';
-  static const String m2NoSavedTrips =
+  SupabaseItineraryService._internal() {
+    _lastUserId = AuthService().currentUser?.uid;
+    AuthService().addListener(_onAuthChanged);
+  }
+  @visibleForTesting
+  SupabaseItineraryService.withStore(this._store, {ItineraryCloud? cloud})
+    : _cloud = cloud ?? SupabaseItineraryCloud();
+  LocalItineraryStore _store = LocalItineraryStore();
+  ItineraryCloud _cloud = SupabaseItineraryCloud();
+  Future<void> _operations = Future.value();
+  String? _lastUserId;
+  String? lastError;
+  String lastOperationMessage = '';
+  static const m1SaveSuccess = 'Itinerary saved successfully to your profile!';
+  static const m1SaveLocal = 'Saved on this device. Cloud sync is pending.';
+  static const m2SaveError =
+      'Unable to save itinerary on this device. Please try again.';
+  static const m1LoadSuccess = 'Saved itinerary loaded successfully.';
+  static const m2NoSavedTrips =
       'You have no saved trips yet. Tap "Plan a Trip" to generate your first itinerary!';
-  static const String m3LoadError =
-      'Unable to load saved trips. Please check your network connection and try again.';
+  static const m3LoadError = 'Unable to load saved trips. Please try again.';
 
-  /// UC601: Save Itinerary to Supabase Database (Table 4.3, 4.4, 4.5)
+  Future<T> _serial<T>(Future<T> Function() action) {
+    final next = _operations.then((_) => action());
+    _operations = next.then<void>((_) {}, onError: (Object e, StackTrace s) {});
+    return next;
+  }
+
+  bool _hasCloudSession(String uid) =>
+      !AuthService().isGuest &&
+      _cloud.isAuthenticated(uid) &&
+      AuthService().currentUser?.uid == uid;
+  void _onAuthChanged() {
+    final uid = AuthService().currentUser?.uid;
+    if (uid != _lastUserId) {
+      TripPreferencesService.clearPreferences();
+      SmartItineraryService.clearLiveCache();
+      _lastUserId = uid;
+    }
+    if (uid != null && _hasCloudSession(uid)) unawaited(syncPending());
+    notifyListeners();
+  }
+
   Future<ItinerarySaveResult> saveItinerary({
     required String title,
     required String destinationState,
     required double totalCost,
     required List<DailySchedule> dailySchedules,
     bool isPublic = false,
-  }) async {
-    final authService = AuthService();
-    final currentUser = authService.currentUser;
-
-    // Constraint C2: User must be authenticated in a valid session
-    if (currentUser == null) {
+    TripPreferences? preferences,
+    String? itineraryId,
+  }) => _serial(() async {
+    final user = AuthService().currentUser;
+    if (user == null) {
       return const ItinerarySaveResult(
         success: false,
-        message: 'Authentication required. Please log in to save your itinerary.',
+        message:
+            'Authentication required. Please log in to save your itinerary.',
       );
     }
-
-    final client = SupabaseConfig.client;
-
-    // 1. Live Supabase Execution (when configured)
-    if (client != null && SupabaseConfig.isConfigured) {
-      try {
-        // Step 1: Insert into `itineraries` table (FR601_4)
-        final itineraryInsert = await client
-            .from('itineraries')
-            .insert({
-              'user_id': currentUser.uid,
-              'title': title,
-              'destination_state': destinationState,
-              'total_cost': totalCost,
-              'is_public': isPublic,
-            })
-            .select('itinerary_id')
-            .single()
-            .timeout(const Duration(seconds: 10));
-
-        final itineraryId = itineraryInsert['itinerary_id']?.toString() ?? '';
-
-        // Step 2 & 3: Insert `daily_schedules` and `itinerary_stops`
-        for (final schedule in dailySchedules) {
-          final scheduleInsert = await client
-              .from('daily_schedules')
-              .insert({
-                'itinerary_id': itineraryId,
-                'day_number': schedule.dayNumber,
-                'schedule_date':
-                    schedule.scheduleDate.toIso8601String().split('T').first,
-                'total_distance_km': schedule.totalDistanceKm,
-              })
-              .select('schedule_id')
-              .single()
-              .timeout(const Duration(seconds: 10));
-
-          final scheduleId = scheduleInsert['schedule_id']?.toString() ?? '';
-
-          if (schedule.stops.isNotEmpty) {
-            // Upsert places first so foreign key references to public.places succeed
-            for (final stop in schedule.stops) {
-              double lat = stop.latitude;
-              double lng = stop.longitude;
-              if (lat == 0.0 || lng == 0.0 || (lat == 3.140853 && lng == 101.693207)) {
-                final normName = stop.placeName.toLowerCase().trim();
-                for (final a in curatedMalaysianAttractions) {
-                  final aNorm = a.name.toLowerCase().trim();
-                  if (normName == aNorm ||
-                      (normName.length > 3 && aNorm.contains(normName)) ||
-                      (aNorm.length > 3 && normName.contains(aNorm))) {
-                    lat = a.latitude;
-                    lng = a.longitude;
-                    break;
-                  }
-                }
-              }
-              try {
-                await client.from('places').upsert({
-                  'place_id': stop.placeId,
-                  'name': stop.placeName,
-                  'state': destinationState,
-                  'category': stop.category,
-                  'latitude': lat != 0.0 ? lat : 3.140853,
-                  'longitude': lng != 0.0 ? lng : 101.693207,
-                  'photo_url': stop.photoUrl,
-                }, onConflict: 'place_id').timeout(const Duration(seconds: 5));
-              } catch (e) {
-                debugPrint('Supabase upsert place note: $e');
-              }
-            }
-
-            final stopsPayload = schedule.stops.map((stop) {
-              return {
-                'schedule_id': scheduleId,
-                'place_id': stop.placeId,
-                'stop_order': stop.stopOrder,
-                'arrival_time': _formatTimeForDb(stop.arrivalTime),
-                'departure_time': _formatTimeForDb(stop.departureTime),
-                'is_visited': stop.isVisited,
-              };
-            }).toList();
-
-            await client
-                .from('itinerary_stops')
-                .insert(stopsPayload)
-                .timeout(const Duration(seconds: 10));
-          }
-
-          // Step 4: Insert weather forecast snapshot for this travel date (Table 4.8)
-          try {
-            final weatherForecast = await WeatherService().getForecastForDate(
-              state: destinationState,
-              date: schedule.scheduleDate,
-              itineraryId: itineraryId,
-            );
-
-            await client.from('weather_forecasts').insert({
-              'itinerary_id': itineraryId,
-              'location_state': destinationState,
-              'schedule_date':
-                  schedule.scheduleDate.toIso8601String().split('T').first,
-              'condition': weatherForecast.condition,
-              'rain_probability': weatherForecast.rainProbability,
-            }).timeout(const Duration(seconds: 5));
-          } catch (we) {
-            debugPrint('Weather forecast insert note: $we');
-          }
-        }
-
-        notifyListeners();
-        return ItinerarySaveResult(
-          success: true,
-          message: m1SaveSuccess,
-          itineraryId: itineraryId,
+    try {
+      final journal = await _store.read(user.uid);
+      final id = itineraryId ?? const Uuid().v4();
+      final existing = journal[id] as Map?;
+      final old = existing?['trip'] as Map?;
+      if (itineraryId != null && old == null) {
+        return const ItinerarySaveResult(
+          success: false,
+          message: 'Saved trip could not be found.',
         );
-      } catch (e) {
-        debugPrint('Supabase saveItinerary error: $e. Falling back to local.');
       }
+      final trip = <String, dynamic>{
+        'itinerary_id': id,
+        'user_id': user.uid,
+        'title': title,
+        'destination_state': destinationState,
+        'total_cost': totalCost,
+        'is_public': isPublic,
+        'preferences': preferences?.toJson() ?? old?['preferences'] ?? {},
+        'created_at': old?['created_at'] ?? DateTime.now().toIso8601String(),
+        'daily_schedules': dailySchedules.map((day) {
+          final sid = day.scheduleId.isEmpty
+              ? const Uuid().v4()
+              : day.scheduleId;
+          return {
+            ...day.toSupabaseMap(),
+            'schedule_id': sid,
+            'itinerary_id': id,
+            'itinerary_stops': day.stops
+                .map((stop) => _stopJson(stop, sid))
+                .toList(),
+          };
+        }).toList(),
+      };
+      journal[id] = {'trip': trip, 'pending': true, 'deleted': false};
+      await _store.write(user.uid, journal);
+      await _sync(user.uid, journal);
+      final synced = (journal[id] as Map)['pending'] != true;
+      notifyListeners();
+      return ItinerarySaveResult(
+        success: true,
+        synced: synced,
+        message: synced ? m1SaveSuccess : m1SaveLocal,
+        itineraryId: id,
+      );
+    } catch (e) {
+      lastError = '$e';
+      return const ItinerarySaveResult(success: false, message: m2SaveError);
     }
+  });
 
-    // 2. Offline / Local In-Memory Fallback
-    final generatedId = 'itin_${DateTime.now().millisecondsSinceEpoch}';
-    final fallbackItinerary = Itinerary(
-      itineraryId: generatedId,
-      userId: currentUser.uid,
-      title: title,
-      destinationState: destinationState,
-      totalCost: totalCost,
-      isPublic: isPublic,
-      createdAt: DateTime.now(),
-      dailySchedules: dailySchedules,
-    );
-
-    _inMemoryItineraries.insert(0, fallbackItinerary);
-    notifyListeners();
-
-    return ItinerarySaveResult(
-      success: true,
-      message: m1SaveSuccess,
-      itineraryId: generatedId,
-    );
+  static Map<String, dynamic> _stopJson(ItineraryStop stop, String scheduleId) {
+    final snapshot = stop.toTravelStop().toJson();
+    return {
+      ...stop.toSupabaseMap(),
+      'id': stop.id.isEmpty ? const Uuid().v4() : stop.id,
+      'schedule_id': scheduleId,
+      'place_name': snapshot['title'],
+      'category': snapshot['category'],
+      'latitude': snapshot['latitude'],
+      'longitude': snapshot['longitude'],
+      'photo_url': (snapshot['photo_urls'] as List).join('|'),
+      'arrival_time': _dbTime(stop.arrivalTime),
+      'departure_time': _dbTime(stop.departureTime),
+      'snapshot': snapshot,
+    };
   }
 
-  /// UC700: Retrieve saved itineraries for the authenticated user (FR700_1 to FR700_6)
-  Future<List<Itinerary>> getSavedItineraries() async {
-    final authService = AuthService();
-    final currentUser = authService.currentUser;
-    if (currentUser == null) return [];
+  static Map<String, dynamic> _tripJson(Itinerary trip) => {
+    ...trip.toSupabaseMap(),
+    'daily_schedules': [
+      for (final day in trip.dailySchedules)
+        {
+          ...day.toSupabaseMap(),
+          'itinerary_stops': [
+            for (final stop in day.stops) _stopJson(stop, day.scheduleId),
+          ],
+        },
+    ],
+  };
 
-    final client = SupabaseConfig.client;
+  Future<List<Itinerary>> getSavedItineraries({bool refresh = true}) =>
+      _serial(() async {
+        final uid = AuthService().currentUser?.uid;
+        if (uid == null) return [];
+        try {
+          final journal = await _store.read(uid);
+          final trips =
+              journal.values
+                  .cast<Map>()
+                  .where((r) => r['deleted'] != true)
+                  .map(
+                    (r) => Itinerary.fromSupabase(
+                      Map<String, dynamic>.from(r['trip'] as Map),
+                    ),
+                  )
+                  .where((t) => t.userId == uid)
+                  .toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          if (refresh && _hasCloudSession(uid)) unawaited(syncPending());
+          return trips;
+        } catch (e) {
+          lastError = '$e';
+          return [];
+        }
+      });
 
-    // 1. Live Supabase Query
-    if (client != null && SupabaseConfig.isConfigured) {
+  Future<void> syncPending() => _serial(() async {
+    final uid = AuthService().currentUser?.uid;
+    if (uid == null || !_hasCloudSession(uid)) return;
+    try {
+      final journal = await _store.read(uid);
+      await _sync(uid, journal);
+      if (!_hasCloudSession(uid)) return;
+      final rows = await _cloud.load(uid);
+      final remoteIds = <String>{};
+      for (final row in rows) {
+        final id = row['itinerary_id'].toString();
+        remoteIds.add(id);
+        if ((journal[id] as Map?)?['pending'] == true) continue;
+        journal[id] = {
+          'trip': _tripJson(Itinerary.fromSupabase(row)),
+          'pending': false,
+          'deleted': false,
+        };
+      }
+      journal.removeWhere(
+        (id, record) =>
+            (record as Map)['pending'] != true && !remoteIds.contains(id),
+      );
+      await _store.write(uid, journal);
+      notifyListeners();
+    } catch (e) {
+      lastError = 'Cloud unavailable; local changes retained: $e';
+    }
+  });
+
+  Future<void> _sync(String uid, Map<String, dynamic> journal) async {
+    if (!_hasCloudSession(uid)) return;
+    for (final id in journal.keys.toList()) {
+      if (!_hasCloudSession(uid)) return;
+      final record = Map<String, dynamic>.from(journal[id] as Map);
+      if (record['pending'] != true) continue;
       try {
-        final data = await client
-            .from('itineraries')
-            .select(
-              '*, daily_schedules(*, itinerary_stops(*, places(*)))',
-            )
-            .eq('user_id', currentUser.uid)
-            .order('created_at', ascending: false)
-            .timeout(const Duration(seconds: 10));
-
-        final list = (data as List<dynamic>)
-            .map((item) => Itinerary.fromSupabase(item as Map<String, dynamic>))
-            .toList();
-
-        return list;
+        if (record['deleted'] == true) {
+          await _cloud.delete(uid, id);
+          journal.remove(id);
+        } else {
+          await _cloud.save(Map<String, dynamic>.from(record['trip'] as Map));
+          record['pending'] = false;
+          journal[id] = record;
+        }
+        await _store.write(uid, journal);
       } catch (e) {
-        debugPrint('Supabase getSavedItineraries error: $e');
+        lastError = 'Cloud sync pending: $e';
+        break;
       }
     }
-
-    // 2. Local Fallback
-    return _inMemoryItineraries
-        .where((item) => item.userId == currentUser.uid)
-        .toList();
   }
 
-  /// Delete an itinerary from Supabase Database (CASCADE deletes schedules & stops)
-  Future<bool> deleteItinerary(String itineraryId) async {
-    final client = SupabaseConfig.client;
-
-    if (client != null && SupabaseConfig.isConfigured) {
-      try {
-        // 1. Delete associated weather forecasts
-        try {
-          await client
-              .from('weather_forecasts')
-              .delete()
-              .eq('itinerary_id', itineraryId)
-              .timeout(const Duration(seconds: 5));
-        } catch (we) {
-          debugPrint('Delete weather forecasts note: $we');
-        }
-
-        // 2. Find schedule IDs to delete stops safely
-        try {
-          final scheds = await client
-              .from('daily_schedules')
-              .select('schedule_id')
-              .eq('itinerary_id', itineraryId)
-              .timeout(const Duration(seconds: 5));
-          if (scheds.isNotEmpty) {
-            final schedIds = scheds.map((s) => s['schedule_id'].toString()).toList();
-            for (final sid in schedIds) {
-              await client
-                  .from('itinerary_stops')
-                  .delete()
-                  .eq('schedule_id', sid)
-                  .timeout(const Duration(seconds: 5));
-            }
-          }
-        } catch (se) {
-          debugPrint('Delete itinerary stops note: $se');
-        }
-
-        // 3. Delete daily schedules
-        try {
-          await client
-              .from('daily_schedules')
-              .delete()
-              .eq('itinerary_id', itineraryId)
-              .timeout(const Duration(seconds: 5));
-        } catch (de) {
-          debugPrint('Delete daily schedules note: $de');
-        }
-
-        // 4. Delete the parent itinerary row
-        await client
-            .from('itineraries')
-            .delete()
-            .eq('itinerary_id', itineraryId)
-            .timeout(const Duration(seconds: 10));
-      } catch (e) {
-        debugPrint('Supabase deleteItinerary error: $e');
+  Future<bool> deleteItinerary(String itineraryId) => _serial(() async {
+    final uid = AuthService().currentUser?.uid;
+    if (uid == null) return false;
+    try {
+      final journal = await _store.read(uid);
+      final record = journal[itineraryId] as Map?;
+      if (record == null || (record['trip'] as Map)['user_id'] != uid) {
+        return false;
       }
+      journal[itineraryId] = {...record, 'deleted': true, 'pending': true};
+      await _store.write(uid, journal);
+      await _sync(uid, journal);
+      lastOperationMessage = journal.containsKey(itineraryId)
+          ? 'Deleted on this device. Cloud sync is pending.'
+          : 'Itinerary deleted.';
+      notifyListeners();
+      return true;
+    } catch (e) {
+      lastError = '$e';
+      return false;
     }
+  });
 
-    _inMemoryItineraries.removeWhere((i) => i.itineraryId == itineraryId);
-    notifyListeners();
-    return true;
-  }
-
-  /// UC602: Update stops and distance for an existing daily schedule in Supabase
   Future<bool> updateDailyScheduleStops({
     required String scheduleId,
     required double totalDistanceKm,
     required List<ItineraryStop> stops,
-  }) async {
-    final client = SupabaseConfig.client;
-
-    if (client != null && SupabaseConfig.isConfigured && scheduleId.isNotEmpty) {
-      try {
-        // 1. Update distance on daily_schedules
-        await client
-            .from('daily_schedules')
-            .update({'total_distance_km': totalDistanceKm})
-            .eq('schedule_id', scheduleId)
-            .timeout(const Duration(seconds: 10));
-
-        // 2. Delete existing stops for this schedule
-        await client
-            .from('itinerary_stops')
-            .delete()
-            .eq('schedule_id', scheduleId)
-            .timeout(const Duration(seconds: 10));
-
-        // 3. Insert updated stops
-        if (stops.isNotEmpty) {
-          final stopsPayload = stops.map((stop) {
-            return {
-              'schedule_id': scheduleId,
-              'place_id': stop.placeId,
-              'stop_order': stop.stopOrder,
-              'arrival_time': _formatTimeForDb(stop.arrivalTime),
-              'departure_time': _formatTimeForDb(stop.departureTime),
-              'is_visited': stop.isVisited,
-            };
-          }).toList();
-
-          await client
-              .from('itinerary_stops')
-              .insert(stopsPayload)
-              .timeout(const Duration(seconds: 10));
+  }) => _serial(() async {
+    final uid = AuthService().currentUser?.uid;
+    if (uid == null) return false;
+    try {
+      final journal = await _store.read(uid);
+      for (final id in journal.keys) {
+        final record = Map<String, dynamic>.from(journal[id] as Map);
+        if (record['deleted'] == true) continue;
+        final trip = Map<String, dynamic>.from(record['trip'] as Map);
+        final days = trip['daily_schedules'] as List;
+        for (var i = 0; i < days.length; i++) {
+          final day = Map<String, dynamic>.from(days[i] as Map);
+          if (day['schedule_id'] != scheduleId) continue;
+          day['itinerary_stops'] = stops
+              .map((s) => _stopJson(s, scheduleId))
+              .toList();
+          day['total_distance_km'] = totalDistanceKm;
+          days[i] = day;
+          trip['total_cost'] = days.fold<double>(
+            0,
+            (sum, d) =>
+                sum +
+                ((d as Map)['itinerary_stops'] as List).fold<double>(0, (
+                  cost,
+                  s,
+                ) {
+                  final snapshot =
+                      (s as Map)['snapshot'] as Map? ??
+                      (s['stop_data'] as Map?)?['snapshot'] as Map?;
+                  return cost +
+                      ((snapshot?['estimated_cost'] as num?)?.toDouble() ?? 0) +
+                      ((snapshot?['travel_cost'] as num?)?.toDouble() ?? 0);
+                }),
+          );
+          journal[id] = {...record, 'trip': trip, 'pending': true};
+          await _store.write(uid, journal);
+          await _sync(uid, journal);
+          lastOperationMessage = (journal[id] as Map)['pending'] == true
+              ? m1SaveLocal
+              : 'Itinerary updated and synced.';
+          notifyListeners();
+          return true;
         }
+      }
+      return false;
+    } catch (e) {
+      lastError = '$e';
+      return false;
+    }
+  });
 
-        notifyListeners();
-        return true;
-      } catch (e) {
-        debugPrint('Supabase updateDailyScheduleStops error: $e');
+  static String _dbTime(String value) {
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$',
+      caseSensitive: false,
+    ).firstMatch(value.trim());
+    if (match == null) throw FormatException('Invalid schedule time', value);
+    var h = int.parse(match[1]!);
+    final m = int.parse(match[2]!);
+    if (match[3] != null) {
+      h %= 12;
+      if (match[3]!.toUpperCase() == 'PM') {
+        h += 12;
       }
     }
-
-    notifyListeners();
-    return true;
-  }
-
-  static String _formatTimeForDb(String timeStr) {
-    try {
-      final clean = timeStr.trim().toUpperCase();
-      final isPm = clean.contains('PM');
-      final isAm = clean.contains('AM');
-      final stripped = clean.replaceAll('AM', '').replaceAll('PM', '').trim();
-      final parts = stripped.split(':');
-      if (parts.isNotEmpty) {
-        int hour = int.parse(parts[0].trim());
-        int minute = parts.length > 1 ? int.parse(parts[1].trim()) : 0;
-        if (isPm && hour < 12) hour += 12;
-        if (isAm && hour == 12) hour = 0;
-        return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}:00';
-      }
-    } catch (_) {}
-    return '09:00:00';
+    if (h > 23 || m > 59) throw FormatException('Invalid schedule time', value);
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:00';
   }
 }

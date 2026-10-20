@@ -7,6 +7,9 @@ import '../data/curated_attractions.dart';
 import '../models/attraction.dart';
 import '../models/itinerary_models.dart';
 import '../models/travel_stop.dart';
+import '../models/trip_preferences.dart';
+import '../services/scheduling_engine.dart';
+import '../services/travel_matrix_service.dart';
 import '../models/weather_forecast.dart';
 import '../services/place_classifier.dart';
 import '../services/smart_itinerary_service.dart';
@@ -25,6 +28,8 @@ class EditItineraryScreen extends StatefulWidget {
     this.otherDaysStops = const [],
     this.weatherForecast,
     this.scheduleId,
+    this.preferences,
+    this.scheduleDate,
   });
 
   final String tripTitle;
@@ -34,6 +39,8 @@ class EditItineraryScreen extends StatefulWidget {
   final List<TravelStop> otherDaysStops;
   final WeatherForecast? weatherForecast;
   final String? scheduleId;
+  final TripPreferences? preferences;
+  final DateTime? scheduleDate;
 
   @override
   State<EditItineraryScreen> createState() => _EditItineraryScreenState();
@@ -49,74 +56,23 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     _stops = List<TravelStop>.from(widget.initialStops);
   }
 
-  /// Recalculates chronological arrival and departure times for all stops
-  List<TravelStop> _recalculateTimes(List<TravelStop> list) {
-    final updated = <TravelStop>[];
-    int currentMinutes = 9 * 60; // Start at 09:00 AM by default
-
-    // Parse starting time from first stop if available
-    if (list.isNotEmpty && list.first.time.isNotEmpty) {
-      final firstTime = list.first.time;
-      final startPart = firstTime.split('-').first.trim().toUpperCase();
-      final isPm = startPart.contains('PM');
-      final isAm = startPart.contains('AM');
-      final clean = startPart.replaceAll('AM', '').replaceAll('PM', '').trim();
-      final parts = clean.split(':');
-      if (parts.isNotEmpty) {
-        int h = int.tryParse(parts[0]) ?? 9;
-        int m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
-        if (isPm && h < 12) h += 12;
-        if (isAm && h == 12) h = 0;
-        currentMinutes = h * 60 + m;
-      }
-    }
-
-    for (int i = 0; i < list.length; i++) {
-      final s = list[i];
-      final arrivalH = currentMinutes ~/ 60;
-      final arrivalM = currentMinutes % 60;
-
-      // 90 minutes visit duration
-      final departMinutes = currentMinutes + 90;
-      final departH = departMinutes ~/ 60;
-      final departM = departMinutes % 60;
-
-      final arrivalStr = _format12Hour(arrivalH, arrivalM);
-      final departStr = _format12Hour(departH, departM);
-
-      updated.add(
-        TravelStop(
-          title: s.title,
-          time: '$arrivalStr - $departStr',
-          note: s.note,
-          description: s.description,
-          duration: s.duration.isNotEmpty ? s.duration : '1 h 30 min',
-          openingHours: s.openingHours,
-          tips: s.tips,
-          icon: s.icon,
-          color: s.color,
-          category: s.category,
-          photoUrls: s.photoUrls,
-          placeId: s.placeId,
-          latitude: s.latitude,
-          longitude: s.longitude,
-        ),
+  TripPreferences get _preferences =>
+      widget.preferences ??
+      TripPreferences(
+        destination: widget.destination.split(',').first.trim(),
+        dailyStartTime: const TimeOfDay(hour: 9, minute: 0),
+        dailyEndTime: const TimeOfDay(hour: 22, minute: 0),
       );
-
-      // 15 min travel buffer between consecutive stops
-      currentMinutes = departMinutes + 15;
-    }
-
-    return updated;
-  }
-
-  static String _format12Hour(int h, int m) {
-    final period = h >= 12 ? 'PM' : 'AM';
-    int h12 = h % 12;
-    if (h12 == 0) h12 = 12;
-    final mStr = m.toString().padLeft(2, '0');
-    final hStr = h12.toString().padLeft(2, '0');
-    return '$hStr:$mStr $period';
+  List<TravelStop> _recalculateTimes(List<TravelStop> list) {
+    final scheduled = SchedulingEngine.schedule(
+      candidates: list,
+      preferences: _preferences,
+      date: widget.scheduleDate ?? DateTime.now(),
+      visited: <String>{},
+      preserveOrder: true,
+    );
+    // Keep invalid edits visible so the user can resolve them; saving validates all stops.
+    return scheduled.length == list.length ? scheduled : list;
   }
 
   void _onReorder(int oldIndex, int newIndex) {
@@ -160,7 +116,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
   bool _isSamePlace(Attraction candidate, TravelStop stop) {
     if (stop.placeId != null &&
         stop.placeId!.isNotEmpty &&
-        candidate.xid.toLowerCase().trim() == stop.placeId!.toLowerCase().trim()) {
+        candidate.xid.toLowerCase().trim() ==
+            stop.placeId!.toLowerCase().trim()) {
       return true;
     }
 
@@ -187,8 +144,14 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     }
 
     final stopWords = {'the', 'and', 'at', 'in', 'of', 'for', 'near'};
-    final words1 = c1.split(' ').where((w) => w.length >= 4 && !stopWords.contains(w)).toSet();
-    final words2 = c2.split(' ').where((w) => w.length >= 4 && !stopWords.contains(w)).toSet();
+    final words1 = c1
+        .split(' ')
+        .where((w) => w.length >= 4 && !stopWords.contains(w))
+        .toSet();
+    final words2 = c2
+        .split(' ')
+        .where((w) => w.length >= 4 && !stopWords.contains(w))
+        .toSet();
     final commonWords = words1.intersection(words2);
 
     if (candidate.latitude != 0.0 &&
@@ -196,7 +159,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         stop.latitude != 0.0 &&
         stop.longitude != 0.0) {
       const p = 0.017453292519943295;
-      final a = 0.5 -
+      final a =
+          0.5 -
           math.cos((stop.latitude - candidate.latitude) * p) / 2 +
           math.cos(candidate.latitude * p) *
               math.cos(stop.latitude * p) *
@@ -243,8 +207,14 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     }
 
     final stopWords = {'the', 'and', 'at', 'in', 'of', 'for', 'near'};
-    final words1 = c1.split(' ').where((w) => w.length >= 4 && !stopWords.contains(w)).toSet();
-    final words2 = c2.split(' ').where((w) => w.length >= 4 && !stopWords.contains(w)).toSet();
+    final words1 = c1
+        .split(' ')
+        .where((w) => w.length >= 4 && !stopWords.contains(w))
+        .toSet();
+    final words2 = c2
+        .split(' ')
+        .where((w) => w.length >= 4 && !stopWords.contains(w))
+        .toSet();
     final commonWords = words1.intersection(words2);
 
     if (s1.latitude != 0.0 &&
@@ -252,7 +222,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         s2.latitude != 0.0 &&
         s2.longitude != 0.0) {
       const p = 0.017453292519943295;
-      final a = 0.5 -
+      final a =
+          0.5 -
           math.cos((s2.latitude - s1.latitude) * p) / 2 +
           math.cos(s1.latitude * p) *
               math.cos(s2.latitude * p) *
@@ -280,12 +251,14 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
   void _showSwapAttractionSheet(int stopIndex) {
     final current = _stops[stopIndex];
-    final isCurrentlyIndoor = PlaceClassifier.classify(
+    final isCurrentlyIndoor =
+        PlaceClassifier.classify(
           category: current.category,
           name: current.title,
         ) ==
         true;
-    final isRainy = widget.weatherForecast != null &&
+    final isRainy =
+        widget.weatherForecast != null &&
         !widget.weatherForecast!.isSuitableForOutdoor;
 
     // Filter out items already scheduled in any day of the entire itinerary
@@ -315,16 +288,23 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final indoorCount = allInDest
-                .where((a) =>
-                    PlaceClassifier.classify(
-                        category: a.category, name: a.name) ==
-                    true)
+                .where(
+                  (a) =>
+                      PlaceClassifier.classify(
+                        category: a.category,
+                        name: a.name,
+                      ) ==
+                      true,
+                )
                 .length;
             final outdoorCount = allInDest.length - indoorCount;
 
             final displayedList = allInDest.where((a) {
-              final isInd = PlaceClassifier.classify(
-                      category: a.category, name: a.name) ==
+              final isInd =
+                  PlaceClassifier.classify(
+                    category: a.category,
+                    name: a.name,
+                  ) ==
                   true;
               if (activeFilter == 'Indoor') return isInd;
               if (activeFilter == 'Outdoor') return !isInd;
@@ -385,7 +365,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     // Weather recommendation hint banner
                     if (isRainy && !isCurrentlyIndoor)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFEF3C7),
@@ -394,7 +377,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.umbrella_outlined, size: 16, color: Color(0xFFD97706)),
+                            Icon(
+                              Icons.umbrella_outlined,
+                              size: 16,
+                              color: Color(0xFFD97706),
+                            ),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -411,7 +398,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       )
                     else if (!isRainy && isCurrentlyIndoor)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFDCFCE7),
@@ -420,7 +410,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.wb_sunny_outlined, size: 16, color: Color(0xFF16A34A)),
+                            Icon(
+                              Icons.wb_sunny_outlined,
+                              size: 16,
+                              color: Color(0xFF16A34A),
+                            ),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -442,19 +436,22 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                         ChoiceChip(
                           label: Text('All (${allInDest.length})'),
                           selected: activeFilter == 'All',
-                          onSelected: (_) => setModalState(() => activeFilter = 'All'),
+                          onSelected: (_) =>
+                              setModalState(() => activeFilter = 'All'),
                         ),
                         const SizedBox(width: 8),
                         ChoiceChip(
                           label: Text('🏛️ Indoor ($indoorCount)'),
                           selected: activeFilter == 'Indoor',
-                          onSelected: (_) => setModalState(() => activeFilter = 'Indoor'),
+                          onSelected: (_) =>
+                              setModalState(() => activeFilter = 'Indoor'),
                         ),
                         const SizedBox(width: 8),
                         ChoiceChip(
                           label: Text('🏞️ Outdoor ($outdoorCount)'),
                           selected: activeFilter == 'Outdoor',
-                          onSelected: (_) => setModalState(() => activeFilter = 'Outdoor'),
+                          onSelected: (_) =>
+                              setModalState(() => activeFilter = 'Outdoor'),
                         ),
                       ],
                     ),
@@ -468,17 +465,22 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                               child: Center(
                                 child: Text(
                                   'No attractions match this filter in this city.',
-                                  style: TextStyle(color: AppColors.muted, fontSize: 13),
+                                  style: TextStyle(
+                                    color: AppColors.muted,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                             )
                           : ListView.separated(
                               shrinkWrap: true,
                               itemCount: displayedList.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 8),
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 8),
                               itemBuilder: (context, idx) {
                                 final c = displayedList[idx];
-                                final isIndoor = PlaceClassifier.classify(
+                                final isIndoor =
+                                    PlaceClassifier.classify(
                                       category: c.category,
                                       name: c.name,
                                     ) ==
@@ -487,28 +489,43 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                 return ListTile(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(color: Colors.grey.shade200),
+                                    side: BorderSide(
+                                      color: Colors.grey.shade200,
+                                    ),
                                   ),
                                   leading: CircleAvatar(
                                     backgroundColor: isIndoor
                                         ? Colors.blue.withValues(alpha: 0.1)
                                         : Colors.green.withValues(alpha: 0.1),
                                     child: Icon(
-                                      isIndoor ? Icons.roofing_outlined : Icons.park_outlined,
-                                      color: isIndoor ? Colors.blue : Colors.green,
+                                      isIndoor
+                                          ? Icons.roofing_outlined
+                                          : Icons.park_outlined,
+                                      color: isIndoor
+                                          ? Colors.blue
+                                          : Colors.green,
                                       size: 20,
                                     ),
                                   ),
                                   title: Text(
                                     c.name,
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                   subtitle: Text(
                                     '${c.category} • ${isIndoor ? "Indoor" : "Outdoor"}',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.muted,
+                                    ),
                                     maxLines: 1,
                                   ),
-                                  trailing: const Icon(Icons.swap_horiz, color: AppColors.primary),
+                                  trailing: const Icon(
+                                    Icons.swap_horiz,
+                                    color: AppColors.primary,
+                                  ),
                                   onTap: () {
                                     Navigator.pop(ctx);
                                     final swappedStop = TravelStop(
@@ -519,11 +536,27 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                           : 'Outdoor sightseeing',
                                       description: c.description ?? '',
                                       duration: '1 h 30 min',
-                                      openingHours: 'Daily, 10:00 AM - 10:00 PM',
+                                      openingHours: 'Hours unverified',
+                                      estimatedCost:
+                                          SmartItineraryService.estimateVisitCost(
+                                            c.category,
+                                          ),
+                                      isIndoor: PlaceClassifier.classify(
+                                        category: c.category,
+                                        name: c.name,
+                                      ),
                                       tips: isIndoor
-                                          ? const ['Air-conditioned', 'Rain-proof backup']
-                                          : const ['Outdoor sight', 'Comfortable footwear advised'],
-                                      icon: isIndoor ? Icons.roofing_outlined : Icons.place,
+                                          ? const [
+                                              'Air-conditioned',
+                                              'Rain-proof backup',
+                                            ]
+                                          : const [
+                                              'Outdoor sight',
+                                              'Comfortable footwear advised',
+                                            ],
+                                      icon: isIndoor
+                                          ? Icons.roofing_outlined
+                                          : Icons.place,
                                       color: isIndoor
                                           ? const Color(0xFF2563EB)
                                           : const Color(0xFF16A34A),
@@ -560,10 +593,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
   void _showAddStopSheet() {
     // Collect all existing stops across the entire itinerary to block
-    final existingToBlock = [
-      ...widget.otherDaysStops,
-      ..._stops,
-    ];
+    final existingToBlock = [...widget.otherDaysStops, ..._stops];
 
     final candidates = _getAllCandidateAttractions()
         .where((c) => !existingToBlock.any((s) => _isSamePlace(c, s)))
@@ -587,7 +617,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.add_location_alt_outlined, color: AppColors.primary),
+                    Icon(
+                      Icons.add_location_alt_outlined,
+                      color: AppColors.primary,
+                    ),
                     SizedBox(width: 10),
                     Text(
                       'Add Stop to Day Schedule',
@@ -609,10 +642,16 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: candidates.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
                     itemBuilder: (context, idx) {
                       final c = candidates[idx];
-                      final isIndoor = PlaceClassifier.classify(category: c.category, name: c.name) == true;
+                      final isIndoor =
+                          PlaceClassifier.classify(
+                            category: c.category,
+                            name: c.name,
+                          ) ==
+                          true;
                       return ListTile(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -623,33 +662,58 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                               ? Colors.blue.withValues(alpha: 0.1)
                               : Colors.green.withValues(alpha: 0.1),
                           child: Icon(
-                            isIndoor ? Icons.roofing_outlined : Icons.park_outlined,
+                            isIndoor
+                                ? Icons.roofing_outlined
+                                : Icons.park_outlined,
                             color: isIndoor ? Colors.blue : Colors.green,
                             size: 20,
                           ),
                         ),
                         title: Text(
                           c.name,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
                         ),
                         subtitle: Text(
                           '${c.category} • ${isIndoor ? "Indoor" : "Outdoor"}',
-                          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                          ),
                           maxLines: 1,
                         ),
-                        trailing: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                        trailing: const Icon(
+                          Icons.add_circle_outline,
+                          color: AppColors.primary,
+                        ),
                         onTap: () {
                           Navigator.pop(ctx);
                           final newStop = TravelStop(
                             title: c.name,
                             time: '04:00 PM - 05:30 PM',
-                            note: isIndoor ? 'Indoor activity' : 'Outdoor sightseeing',
+                            note: isIndoor
+                                ? 'Indoor activity'
+                                : 'Outdoor sightseeing',
                             description: c.description ?? '',
                             duration: '1 h 30 min',
-                            openingHours: 'Daily, 9:00 AM - 9:00 PM',
+                            openingHours: 'Hours unverified',
+                            estimatedCost:
+                                SmartItineraryService.estimateVisitCost(
+                                  c.category,
+                                ),
+                            isIndoor: PlaceClassifier.classify(
+                              category: c.category,
+                              name: c.name,
+                            ),
                             tips: const ['Scheduled visit'],
-                            icon: isIndoor ? Icons.roofing_outlined : Icons.place,
-                            color: isIndoor ? const Color(0xFF2563EB) : const Color(0xFF16A34A),
+                            icon: isIndoor
+                                ? Icons.roofing_outlined
+                                : Icons.place,
+                            color: isIndoor
+                                ? const Color(0xFF2563EB)
+                                : const Color(0xFF16A34A),
                             category: c.category,
                             placeId: c.xid,
                             latitude: c.latitude,
@@ -680,6 +744,16 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
   }
 
   Future<void> _saveAndReturn() async {
+    if (_stops.any(
+      (s) => s.isGooglePlace && (s.latitude == 0 || s.longitude == 0),
+    )) {
+      showDemoSnackBar(
+        context,
+        'Connect to refresh Google place locations before saving schedule changes.',
+        icon: Icons.wifi,
+      );
+      return;
+    }
     // 1. Validate duplicates within current day (cannot have duplicate stops today)
     for (int i = 0; i < _stops.length; i++) {
       for (int j = i + 1; j < _stops.length; j++) {
@@ -697,7 +771,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     // 2. Validate newly added stops against other itinerary days
     for (final stop in _stops) {
       final wasInInitial = widget.initialStops.any((s) => _isSameStop(s, stop));
-      if (!wasInInitial && widget.otherDaysStops.any((o) => _isSameStop(stop, o))) {
+      if (!wasInInitial &&
+          widget.otherDaysStops.any((o) => _isSameStop(stop, o))) {
         showDemoSnackBar(
           context,
           'Cannot save: "${stop.title}" is already scheduled on another day of this itinerary.',
@@ -708,6 +783,36 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     }
 
     setState(() => _isSaving = true);
+    final legs = await TravelMatrixService().fetch(
+      _stops,
+      _preferences.travelMode ?? 'Driving',
+    );
+    if (!mounted) return;
+    final checked = SchedulingEngine.schedule(
+      candidates: _stops,
+      preferences: _preferences,
+      date: widget.scheduleDate ?? DateTime.now(),
+      visited: <String>{},
+      weather: widget.weatherForecast,
+      legs: legs,
+      preserveOrder: true,
+    );
+    if (checked.length != _stops.length ||
+        List.generate(
+          checked.length,
+          (i) =>
+              SchedulingEngine.identity(checked[i]) ==
+              SchedulingEngine.identity(_stops[i]),
+        ).contains(false)) {
+      setState(() => _isSaving = false);
+      showDemoSnackBar(
+        context,
+        'Cannot save: this order exceeds daily hours, opening hours, budget, or weather constraints.',
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+    _stops = checked;
 
     // If an existing schedule is stored in Supabase, update it directly
     if (widget.scheduleId != null && widget.scheduleId!.isNotEmpty) {
@@ -715,9 +820,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       final itinStops = [
         for (int i = 0; i < _stops.length; i++)
           ItineraryStop(
+            snapshot: _stops[i],
             id: '',
             scheduleId: widget.scheduleId!,
-            placeId: (_stops[i].placeId != null && _stops[i].placeId!.isNotEmpty)
+            placeId:
+                (_stops[i].placeId != null && _stops[i].placeId!.isNotEmpty)
                 ? _stops[i].placeId!
                 : 'poi_${widget.destination.toLowerCase().replaceAll(' ', '_')}_d${widget.dayNumber}_$i',
             placeName: _stops[i].title,
@@ -734,10 +841,24 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
           ),
       ];
 
-      await SupabaseItineraryService().updateDailyScheduleStops(
+      final saved = await SupabaseItineraryService().updateDailyScheduleStops(
         scheduleId: widget.scheduleId!,
         totalDistanceKm: totalDist,
         stops: itinStops,
+      );
+      if (!mounted) return;
+      if (!saved) {
+        setState(() => _isSaving = false);
+        showDemoSnackBar(
+          context,
+          'Unable to save itinerary changes on this device.',
+          icon: Icons.error_outline,
+        );
+        return;
+      }
+      showDemoSnackBar(
+        context,
+        SupabaseItineraryService().lastOperationMessage,
       );
     }
 
@@ -751,8 +872,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
   Widget build(BuildContext context) {
     final distanceKm = SmartItineraryService.calculateRouteDistanceKm(_stops);
     final forecast = widget.weatherForecast;
-    final hasSameDayDuplicate = _stops.any((s) =>
-        _stops.where((other) => _isSameStop(s, other)).length > 1);
+    final hasSameDayDuplicate = _stops.any(
+      (s) => _stops.where((other) => _isSameStop(s, other)).length > 1,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -773,14 +895,19 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                   ? const SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.check, size: 18),
               label: const Text('Save'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -799,7 +926,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     Expanded(
                       child: Row(
                         children: [
-                          const Icon(Icons.route_outlined, color: AppColors.primary, size: 18),
+                          const Icon(
+                            Icons.route_outlined,
+                            color: AppColors.primary,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             '$distanceKm km • ${_stops.length} stops',
@@ -814,7 +945,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     ),
                     if (forecast != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: forecast.badgeColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -838,7 +972,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     Expanded(
                       child: Text(
                         'Drag items by the handle to reorder. Tap Swap to replace with indoor places.',
-                        style: TextStyle(color: AppColors.muted, fontSize: 11.5),
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11.5,
+                        ),
                       ),
                     ),
                   ],
@@ -854,7 +991,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               color: const Color(0xFFFFFBEB),
               child: const Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFD97706)),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 20,
+                    color: Color(0xFFD97706),
+                  ),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -879,18 +1020,19 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               onReorder: _onReorder,
               itemBuilder: (context, index) {
                 final stop = _stops[index];
-                final isIndoor = PlaceClassifier.classify(
+                final isIndoor =
+                    PlaceClassifier.classify(
                       category: stop.category,
                       name: stop.title,
                     ) ==
                     true;
 
                 final hasLocalDuplicate = _stops.asMap().entries.any(
-                      (e) => e.key != index && _isSameStop(stop, e.value),
-                    );
+                  (e) => e.key != index && _isSameStop(stop, e.value),
+                );
                 final hasCrossDayDuplicate = widget.otherDaysStops.any(
-                      (other) => _isSameStop(stop, other),
-                    );
+                  (other) => _isSameStop(stop, other),
+                );
 
                 return Container(
                   key: ValueKey('${stop.title}_$index'),
@@ -900,7 +1042,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: hasLocalDuplicate ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                      color: hasLocalDuplicate
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFFE2E8F0),
                       width: hasLocalDuplicate ? 1.5 : 1,
                     ),
                     boxShadow: [
@@ -922,7 +1066,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                             color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.drag_indicator, color: Color(0xFF64748B), size: 20),
+                          child: const Icon(
+                            Icons.drag_indicator,
+                            color: Color(0xFF64748B),
+                            size: 20,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -936,7 +1084,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                         child: Text(
                           '${index + 1}',
                           style: TextStyle(
-                            color: hasLocalDuplicate ? const Color(0xFFD97706) : AppColors.primary,
+                            color: hasLocalDuplicate
+                                ? const Color(0xFFD97706)
+                                : AppColors.primary,
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                           ),
@@ -972,7 +1122,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: isIndoor
                                         ? Colors.blue.withValues(alpha: 0.1)
@@ -982,7 +1135,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                   child: Text(
                                     isIndoor ? 'Indoor' : 'Outdoor',
                                     style: TextStyle(
-                                      color: isIndoor ? Colors.blue : Colors.green,
+                                      color: isIndoor
+                                          ? Colors.blue
+                                          : Colors.green,
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -993,16 +1148,25 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                             if (hasLocalDuplicate) ...[
                               const SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFEF3C7),
                                   borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: const Color(0xFFFDE68A)),
+                                  border: Border.all(
+                                    color: const Color(0xFFFDE68A),
+                                  ),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFD97706)),
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 12,
+                                      color: Color(0xFFD97706),
+                                    ),
                                     SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
@@ -1022,16 +1186,25 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                             ] else if (hasCrossDayDuplicate) ...[
                               const SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                                  border: Border.all(
+                                    color: const Color(0xFFBFDBFE),
+                                  ),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.info_outline, size: 12, color: Color(0xFF2563EB)),
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 12,
+                                      color: Color(0xFF2563EB),
+                                    ),
                                     SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
@@ -1057,15 +1230,23 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       IconButton(
                         tooltip: 'Swap attraction',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
                         icon: Icon(
                           (widget.weatherForecast != null &&
-                                  !widget.weatherForecast!.isSuitableForOutdoor &&
+                                  !widget
+                                      .weatherForecast!
+                                      .isSuitableForOutdoor &&
                                   !isIndoor)
                               ? Icons.umbrella_outlined
                               : Icons.swap_horiz_rounded,
-                          color: (widget.weatherForecast != null &&
-                                  !widget.weatherForecast!.isSuitableForOutdoor &&
+                          color:
+                              (widget.weatherForecast != null &&
+                                  !widget
+                                      .weatherForecast!
+                                      .isSuitableForOutdoor &&
                                   !isIndoor)
                               ? Colors.amber.shade800
                               : AppColors.primary,
@@ -1078,8 +1259,15 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       IconButton(
                         tooltip: 'Remove stop',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                          size: 20,
+                        ),
                         onPressed: () => _deleteStop(index),
                       ),
                     ],
@@ -1112,7 +1300,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                 label: const Text('Add Stop'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -1125,7 +1315,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),

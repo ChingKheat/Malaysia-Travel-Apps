@@ -266,22 +266,26 @@ class _ProfilePageState extends State<ProfilePage> {
                       icon: Icons.description,
                     ),
                   ),
-                  if (user.isAdmin) ...[
-                    const Divider(height: 1, color: AppColors.line, indent: 56),
-                    _buildListTile(
-                      icon: Icons.admin_panel_settings_outlined,
-                      title: 'Admin Database Hub',
-                      subtitle: 'Secret portal to fetch & sync places',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdminPlacesScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                  const Divider(height: 1, color: AppColors.line, indent: 56),
+                  _buildListTile(
+                    icon: Icons.admin_panel_settings_outlined,
+                    title: 'Admin Database Hub',
+                    subtitle: user.isAdmin
+                        ? 'Secret portal to fetch & sync places'
+                        : 'Admin access (Tap to log in as admin)',
+                    onTap: () {
+                      if (!user.isAdmin) {
+                        _showAdminLoginDialog(context);
+                        return;
+                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminPlacesScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -395,6 +399,64 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.muted),
       onTap: onTap,
+    );
+  }
+
+  void _showAdminLoginDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.admin_panel_settings, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Admin Hub Access'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'The Admin Database Hub requires administrator privileges to fetch, sync, and import places from Google.',
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 14),
+            Text(
+              'Default Admin Account:\nEmail: chingkheat@example.com\nPassword: SafeP@ss123!',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.login, size: 18),
+            label: const Text('Login as Admin'),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final res = await AuthService().login('chingkheat@example.com', 'SafeP@ss123!');
+              if (res && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Logged in as Administrator (Ching Kheat)')),
+                );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminPlacesScreen()),
+                );
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 }

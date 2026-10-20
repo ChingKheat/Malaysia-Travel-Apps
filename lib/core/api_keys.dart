@@ -12,7 +12,6 @@ class ApiKeys {
 
   static const googleMapsEnv = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyDAPLDpQt61HmTptGwswe9usaUVRoxhcMw',
   );
 
   // Allow setting or overriding Google Maps key dynamically at runtime

@@ -1,321 +1,182 @@
 import 'package:flutter/material.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import '../core/app_colors.dart';
-import '../core/app_decorations.dart';
-import '../core/demo_feedback.dart';
 import '../models/travel_stop.dart';
+import '../services/google_places_service.dart';
+import '../widgets/google_place_image.dart';
 
-class PlaceDetailPage extends StatelessWidget {
-  const PlaceDetailPage({super.key, required this.stop});
-
+class PlaceDetailPage extends StatefulWidget {
+  const PlaceDetailPage({super.key, required this.stop, this.placesService});
   final TravelStop stop;
+  final GooglePlacesService? placesService;
+  @override
+  State<PlaceDetailPage> createState() => _PlaceDetailPageState();
+}
 
+class _PlaceDetailPageState extends State<PlaceDetailPage> {
+  late TravelStop _stop;
+  late final GooglePlacesService _service;
+  bool _loading = false;
+  String? _error;
+  int _generation = 0;
+  @override
+  void initState() {
+    super.initState();
+    _stop = widget.stop;
+    _service = widget.placesService ?? GooglePlacesService();
+    if (_stop.isGooglePlace) _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final id = _stop.placeId;
+    if (id == null) return;
+    final generation = ++_generation;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final details = await _service.fetchDetails(id);
+    if (!mounted || generation != _generation) return;
+    setState(() {
+      _loading = false;
+      if (details != null) {
+        _stop = widget.stop.withGoogleDetails(details);
+      } else {
+        _error = _service.lastError ?? 'Live place details unavailable.';
+      }
+    });
+  }
+
+  Future<void> _open(String? value) async {
+    final uri = Uri.tryParse(value ?? '');
+    if (uri == null || !['https', 'http'].contains(uri.scheme)) return;
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {}
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open this link.')),
+      );
+    }
+  }
+
+  Widget _field(String label, String value, {VoidCallback? onTap}) => Card(
+    child: ListTile(
+      title: Text(label),
+      subtitle: Text(value),
+      onTap: onTap,
+      trailing: onTap == null ? null : const Icon(Icons.open_in_new, size: 18),
+    ),
+  );
   @override
   Widget build(BuildContext context) {
+    final details = _stop.googleDetails;
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FD),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: Text(stop.title),
-      ),
+      appBar: AppBar(title: Text(_stop.title)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+        padding: const EdgeInsets.all(20),
         children: [
-          Container(
-            height: 220,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              color: stop.color.withValues(alpha: 0.16),
+          if (_loading) const LinearProgressIndicator(),
+          if (_error != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Text('$_error Your scheduled time remains saved.'),
+                    TextButton(onPressed: _refresh, child: const Text('Retry')),
+                  ],
+                ),
+              ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: stop.primaryPhotoUrl != null
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          stop.primaryPhotoUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, stack) => Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [stop.color, AppColors.primaryDark],
-                              ),
-                            ),
-                            child: Center(
-                              child: Icon(stop.icon, color: Colors.white, size: 58),
-                            ),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.65),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 14,
-                          left: 16,
-                          right: 16,
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  stop.category,
-                                  style: const TextStyle(
-                                    color: AppColors.ink,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              if (stop.photoUrls.length > 1)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.7),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.photo_library, size: 14, color: Colors.white),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${stop.photoUrls.length} Photos',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [stop.color, AppColors.primaryDark],
-                        ),
-                      ),
-                      child: Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.all(22),
-                          child: Icon(stop.icon, color: Colors.white, size: 58),
-                        ),
-                      ),
-                    ),
+          if (details != null && details.photos.isNotEmpty)
+            ...details.photos.asMap().entries.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: GooglePlaceImage(
+                  placeId: details.id,
+                  photo: entry.value,
+                  photoIndex: entry.key,
+                  service: _service,
+                ),
+              ),
+            )
+          else if (_stop.primaryPhotoUrl != null)
+            Image.network(
+              _stop.primaryPhotoUrl!,
+              height: 220,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const SizedBox(
+                height: 120,
+                child: Center(child: Text('Photo unavailable')),
+              ),
+            )
+          else
+            const SizedBox(
+              height: 140,
+              child: Center(child: Text('Photo unavailable')),
             ),
-          ),
-          const SizedBox(height: 18),
           Text(
-            stop.title,
+            _stop.title,
             style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
               color: AppColors.ink,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            stop.description,
-            style: const TextStyle(color: AppColors.muted, height: 1.5),
-          ),
-          if (stop.photoUrls.length > 1) ...[
-            const SizedBox(height: 16),
-            const Text(
-              'Photos',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppColors.ink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 110,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: stop.photoUrls.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final photoUrl = stop.photoUrls[index];
-                  return GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => Dialog(
-                          backgroundColor: Colors.transparent,
-                          insetPadding: const EdgeInsets.all(16),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.network(photoUrl, fit: BoxFit.contain),
-                          ),
-                        ),
-                      );
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: 150,
-                        color: Colors.black12,
-                        child: Image.network(
-                          photoUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Center(
-                            child: Icon(Icons.broken_image, color: Colors.grey),
-                          ),
-                          loadingBuilder: (ctx, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          _DetailStat(icon: Icons.schedule, label: 'Time', value: stop.time),
-          _DetailStat(
-            icon: Icons.timer_outlined,
-            label: 'Duration',
-            value: stop.duration,
-          ),
-          _DetailStat(
-            icon: Icons.access_time,
-            label: 'Opening Hours',
-            value: stop.openingHours,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: cardDecoration(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tips',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ...stop.tips.map(
-                  (tip) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: AppColors.teal,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(tip)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: () => showDemoSheet(
-              context,
-              title: 'Directions to ${stop.title}',
-              body:
-                  'Opening in Google Maps (demo).\n\n'
-                  'Estimated travel: 18 min by car · 35 min by public transit.\n'
-                  'Next stop suggestion: ${stop.note}',
-              icon: Icons.directions,
-              actionLabel: 'Start navigation',
-            ),
-            icon: const Icon(Icons.directions),
-            label: const Text('Get Directions'),
-            style: primaryFilledButtonStyle(),
-          ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => showDemoSnackBar(
-              context,
-              '${stop.title} added to favorites.',
-              icon: Icons.favorite_outline,
+          if (_stop.isGooglePlace)
+            const Text(
+              'Google Maps',
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            icon: const Icon(Icons.favorite_outline),
-            label: const Text('Save Place'),
-            style: demoOutlinedButtonStyle(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailStat extends StatelessWidget {
-  const _DetailStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: cardDecoration(),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(color: AppColors.muted),
+          const SizedBox(height: 10),
+          Text(_stop.description),
+          const SizedBox(height: 16),
+          _field('Scheduled time', widget.stop.time),
+          _field('Planned duration', widget.stop.duration),
+          _field('Opening hours', _stop.openingHours),
+          if (_stop.isGooglePlace) ...[
+            _field('Address', details?.address ?? 'Address unavailable'),
+            _field(
+              'Rating',
+              details?.rating?.toString() ?? 'Rating unavailable',
             ),
-          ),
+            _field(
+              'Reviews',
+              details?.reviewCount?.toString() ?? 'Review count unavailable',
+            ),
+            _field('Phone', details?.phone ?? 'Phone unavailable'),
+            _field(
+              'Website',
+              details?.website ?? 'Website unavailable',
+              onTap: details?.website == null
+                  ? null
+                  : () => _open(details!.website),
+            ),
+            if (details?.mapsUri != null)
+              FilledButton.icon(
+                onPressed: () => _open(details!.mapsUri),
+                icon: const Icon(Icons.directions),
+                label: const Text('Open in Google Maps'),
+              ),
+            ...?details?.attributions.map(
+              (a) => _field(
+                'Source',
+                a['provider']?.toString() ?? 'Google Maps',
+                onTap: a['providerUri'] == null
+                    ? null
+                    : () => _open(a['providerUri'].toString()),
+              ),
+            ),
+          ] else
+            ..._stop.tips.map(
+              (tip) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(tip),
+              ),
+            ),
         ],
       ),
     );

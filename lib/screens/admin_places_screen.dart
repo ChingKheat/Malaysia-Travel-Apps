@@ -1,15 +1,22 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
-import '../core/api_keys.dart';
+import '../services/auth_service.dart';
+import 'place_detail_page.dart';
 import '../core/app_colors.dart';
 import '../core/app_decorations.dart';
 import '../core/supabase_config.dart';
 import '../services/google_places_service.dart';
+import '../services/place_catalog_service.dart';
 import '../services/place_classifier.dart';
+import '../services/place_sync_history_service.dart';
+import '../models/place_sync_record.dart';
+import '../widgets/place_sync_notice.dart';
+import '../services/admin_places_repository.dart';
 
 class AdminPlacesScreen extends StatefulWidget {
   const AdminPlacesScreen({super.key});
@@ -34,6 +41,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     'Kelantan',
     'Negeri Sembilan',
     'Perlis',
+    'Putrajaya',
+    'Labuan',
   ];
 
   String _selectedState = 'Penang';
@@ -49,11 +58,52 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
   String _syncStatusText = '';
   String _syncSubStatusText = '';
   bool _showTerminalLogs = false;
+  String? _activityState;
+  final _syncHistory = PlaceSyncHistoryService();
+  final _places = AdminPlacesRepository();
+  String? _placesLoadError;
+  PlaceSyncRecord? _lastSync;
+  bool _loadingSyncHistory = true;
+  bool _syncHistoryOffline = false;
+  int _historyGeneration = 0;
+  int _listGeneration = 0;
+  String _placesState = 'Penang';
+  Timer? _noticeTimer;
 
   @override
   void initState() {
     super.initState();
     _loadStateData();
+    _noticeTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _noticeTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSyncHistory() async {
+    final state = _selectedState;
+    final generation = ++_historyGeneration;
+    setState(() {
+      _loadingSyncHistory = true;
+      _lastSync = null;
+    });
+    final reader = PlaceSyncHistoryService();
+    final record = await reader.load(state);
+    if (!mounted ||
+        generation != _historyGeneration ||
+        state != _selectedState) {
+      return;
+    }
+    setState(() {
+      _lastSync = record;
+      _loadingSyncHistory = false;
+      _syncHistoryOffline = reader.lastReadOffline;
+    });
   }
 
   static double _calculatePopularityScore(Map<String, dynamic> item) {
@@ -79,359 +129,327 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
   }
 
   Future<void> _loadStateData() async {
+    final state = _selectedState;
+    final generation = ++_listGeneration;
+    unawaited(_loadSyncHistory());
     setState(() {
       _isFetchingList = true;
+      _placesLoadError = null;
       _rlsBlocked = false;
+      if (_placesState != state) {
+        _currentPlaces = [];
+        _dbCount = 0;
+        _placesState = state;
+        _syncProgress = 0;
+        _syncStatusText = '';
+        _syncSubStatusText = '';
+        _logs.clear();
+        _activityState = null;
+        _showTerminalLogs = false;
+      }
     });
 
     final client = SupabaseConfig.client;
     if (client != null && SupabaseConfig.isConfigured) {
       try {
-        final res = await client
-            .from('places')
-            .select()
-            .ilike('state', '%$_selectedState%')
-            .order('rating', ascending: false)
-            .limit(500);
+        final page = await _places.load(state);
 
-        final list = (res as List<dynamic>).cast<Map<String, dynamic>>();
-        list.sort((a, b) => _calculatePopularityScore(b).compareTo(_calculatePopularityScore(a)));
+        final list = page.rows
+            .map(
+              (row) => row['name'] == 'Saved Google place'
+                  ? <String, dynamic>{
+                      ...row,
+                      'name': 'Incomplete import — needs review',
+                      'category': 'Country/state not verified',
+                    }
+                  : row,
+            )
+            .toList();
+        list.sort(
+          (a, b) => _calculatePopularityScore(
+            b,
+          ).compareTo(_calculatePopularityScore(a)),
+        );
 
-        final hasColumnInDb = list.isEmpty || list.any((p) => p.containsKey('user_ratings_total'));
+        final hasColumnInDb =
+            list.isEmpty ||
+            list.any((p) => p.containsKey('user_ratings_total'));
 
+        if (!mounted ||
+            generation != _listGeneration ||
+            state != _selectedState) {
+          return;
+        }
         setState(() {
           _currentPlaces = list;
-          _dbCount = _currentPlaces.length;
+          _dbCount = page.totalCount;
           _missingReviewColumn = !hasColumnInDb;
         });
       } catch (e) {
         debugPrint('Error loading places: $e');
+        if (mounted && generation == _listGeneration) {
+          _placesLoadError =
+              'Unable to read saved places. Refresh the database list before starting another import.';
+        }
       }
+    } else {
+      _placesLoadError =
+          'Database unavailable. Reconnect to check your saved places.';
     }
 
+    if (!mounted || generation != _listGeneration) return;
     setState(() {
       _isFetchingList = false;
     });
   }
 
   Future<void> _syncPlacesFromGoogle() async {
-    if (!ApiKeys.hasGoogleMapsKey) {
+    if (_isLoading ||
+        _loadingSyncHistory ||
+        _isFetchingList ||
+        _placesLoadError != null) {
+      return;
+    }
+    final db = SupabaseConfig.client;
+    if (!GooglePlacesService.isAvailable ||
+        AuthService().currentUser?.isAdmin != true ||
+        db == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google Maps API key is not configured.')),
+        const SnackBar(
+          content: Text(
+            'Sign in as an administrator to import Google place IDs.',
+          ),
+        ),
       );
       return;
     }
-
+    final state = _selectedState;
+    if (_lastSync != null || _dbCount > 0) {
+      final previous = _lastSync;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Sync $state again?'),
+          content: Text(
+            previous == null
+                ? 'This state already has stored places, but its previous sync time was not recorded. Syncing again will use Google API quota.'
+                : 'Last successful sync: ${previous.ageLabel(DateTime.now())} (${previous.malaysiaDateLabel}).\n\nSyncing again will use Google API quota. You can keep the existing data instead.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep existing data'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Sync again'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true ||
+          !mounted ||
+          state != _selectedState ||
+          _isLoading) {
+        return;
+      }
+    }
     setState(() {
       _isLoading = true;
-      _rlsBlocked = false;
       _logs.clear();
+      _activityState = state;
+      _rlsBlocked = false;
       _syncProgress = 0.05;
-      _syncStatusText = 'Starting top-rated sync for $_selectedState...';
-      _syncSubStatusText = 'Target: 100 places per category (300 places total)';
+      _syncStatusText = 'Searching Google for $state';
+      _syncSubStatusText =
+          'Only place IDs and your selected state are saved. Details and photos stay live.';
     });
-
-    _addLog('🚀 Starting top-rated enrichment for $_selectedState (Target: 100 per category)...');
-
-    final client = http.Client();
-    final allPlaces = <String, Map<String, dynamic>>{};
-
+    final service = GooglePlacesService();
+    final live = <String, Map<String, dynamic>>{};
+    var searchRequests = 0;
     final categorySpecs = [
       {
-        'category': 'Attraction',
+        'category': 'Culture',
         'icon': '🏛️',
         'queries': [
-          'top rated famous tourist attractions, iconic landmarks and must visit places in $_selectedState, Malaysia',
-          'famous historical heritage monuments, iconic temples and top cultural sights in $_selectedState, Malaysia',
-          'top rated museums, art galleries, popular viewpoints and architecture in $_selectedState, Malaysia',
-          'famous theme parks, family entertainment attractions and top sightseeing spots in $_selectedState, Malaysia',
-          'popular shopping malls, craft centers and top attractions to visit in $_selectedState, Malaysia',
+          'top rated museums, art galleries and cultural complexes in $_selectedState, Malaysia',
+          'famous cultural heritage centres, architectural landmarks in $_selectedState, Malaysia',
         ],
       },
       {
-        'category': 'Restaurant',
+        'category': 'Food',
         'icon': '🍜',
         'queries': [
           'top rated famous local street food, legendary hawker stalls and food courts in $_selectedState, Malaysia',
-          'best Michelin guide and award winning restaurants, famous local dining in $_selectedState, Malaysia',
-          'most popular traditional authentic Malaysian restaurants and top cafes in $_selectedState, Malaysia',
-          'famous night markets, iconic breakfast spots and top local delicacies in $_selectedState, Malaysia',
-          'top rated seafood restaurants, coffee shops and famous eateries in $_selectedState, Malaysia',
+          'best authentic restaurants, traditional eateries and famous dining in $_selectedState, Malaysia',
         ],
       },
       {
-        'category': 'Nature & Culture',
+        'category': 'Nature',
         'icon': '🌿',
         'queries': [
-          'top rated scenic national parks, forest reserves, botanical gardens and waterfalls in $_selectedState, Malaysia',
-          'famous pristine beaches, islands, coastal viewpoints and scenic spots in $_selectedState, Malaysia',
-          'popular hiking trails, scenic mountain peaks, famous caves and nature lookouts in $_selectedState, Malaysia',
-          'iconic cultural heritage villages, handicraft centers and historic temples in $_selectedState, Malaysia',
-          'famous eco parks, wildlife sanctuaries and scenic nature attractions in $_selectedState, Malaysia',
+          'top rated national parks, botanical gardens and waterfalls in $_selectedState, Malaysia',
+          'famous scenic beaches, islands, hills and nature lookouts in $_selectedState, Malaysia',
+        ],
+      },
+      {
+        'category': 'Shopping',
+        'icon': '🛍️',
+        'queries': [
+          'popular shopping malls, department stores and retail complexes in $_selectedState, Malaysia',
+          'famous local markets, handicraft centers and souvenir bazaars in $_selectedState, Malaysia',
+        ],
+      },
+      {
+        'category': 'History',
+        'icon': '🏰',
+        'queries': [
+          'famous UNESCO historical heritage monuments and colonial buildings in $_selectedState, Malaysia',
+          'iconic historic temples, clan houses, forts and memorials in $_selectedState, Malaysia',
+        ],
+      },
+      {
+        'category': 'Adventure',
+        'icon': '🧗',
+        'queries': [
+          'popular hiking trails, mountain peaks and forest canopy walks in $_selectedState, Malaysia',
+          'famous theme parks, water parks and adventure eco attractions in $_selectedState, Malaysia',
+        ],
+      },
+      {
+        'category': 'Family',
+        'icon': '👨‍👩‍👧',
+        'queries': [
+          'family friendly attractions, aquariums, interactive science centres and zoos in $_selectedState, Malaysia',
+          'kid friendly recreation parks and family sightseeing spots in $_selectedState, Malaysia',
+        ],
+      },
+      {
+        'category': 'Nightlife',
+        'icon': '🌙',
+        'queries': [
+          'famous vibrant night markets and evening street food bazaars in $_selectedState, Malaysia',
+          'popular evening viewpoints, night waterfront walks and evening spots in $_selectedState, Malaysia',
         ],
       },
     ];
 
-    const targetPerCategory = 100;
-
     try {
-      for (int cIdx = 0; cIdx < categorySpecs.length; cIdx++) {
-        final spec = categorySpecs[cIdx];
-        final catName = spec['category'] as String;
-        final icon = spec['icon'] as String;
-        final queriesList = (spec['queries'] as List<String>);
-
-        _addLog('📂 [${cIdx + 1}/${categorySpecs.length}] Category: $icon $catName (Target: Top $targetPerCategory)...');
-        setState(() {
-          final baseProg = cIdx * 0.28;
-          _syncProgress = (baseProg + 0.02).clamp(0.05, 0.85);
-          _syncStatusText = 'Category ${cIdx + 1}/3: $icon $catName (Target: Top $targetPerCategory)';
-          _syncSubStatusText = 'Gathered ${allPlaces.length} places so far';
-        });
-
-        final categoryPlaces = <String, Map<String, dynamic>>{};
-
-        for (int qIdx = 0; qIdx < queriesList.length && categoryPlaces.length < targetPerCategory; qIdx++) {
-          final queryText = queriesList[qIdx];
+      for (int c = 0; c < categorySpecs.length; c++) {
+        final queries = categorySpecs[c]['queries'] as List<String>;
+        for (final query in queries) {
           String? pageToken;
-          int pageNum = 1;
-
-          while (categoryPlaces.length < targetPerCategory && pageNum <= 3) {
-            _addLog('   ↳ Query ${qIdx + 1}, Page $pageNum: Searching top places from Google...');
-
-            final bodyMap = <String, dynamic>{
-              'textQuery': queryText,
-              'languageCode': 'en',
-              'pageSize': 20,
-            };
-            if (pageToken != null && pageToken.isNotEmpty) {
-              bodyMap['pageToken'] = pageToken;
-            }
-
-            final response = await client.post(
-              Uri.parse('https://places.googleapis.com/v1/places:searchText'),
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Goog-Api-Key': ApiKeys.googleMaps,
-                'X-Goog-FieldMask':
-                    'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.regularOpeningHours,places.primaryTypeDisplayName,places.editorialSummary,places.types,places.photos,nextPageToken',
-              },
-              body: jsonEncode(bodyMap),
+          for (int page = 0; page < 3; page++) {
+            searchRequests++;
+            final data = await service.searchPage(
+              query: query,
+              pageToken: pageToken,
             );
-
-            if (response.statusCode == 200) {
-              final data = jsonDecode(response.body) as Map<String, dynamic>;
-              final places = (data['places'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-
-              int newInPage = 0;
-              for (final p in places) {
-                final id = p['id']?.toString();
-                if (id == null || id.isEmpty) continue;
-
-                final name = (p['displayName'] as Map<String, dynamic>?)?['text'] ?? 'Point of Interest';
-                final primaryType = (p['primaryTypeDisplayName'] as Map<String, dynamic>?)?['text'] ?? catName;
-                final loc = p['location'] as Map<String, dynamic>?;
-                final lat = (loc?['latitude'] as num?)?.toDouble() ?? 3.140853;
-                final lng = (loc?['longitude'] as num?)?.toDouble() ?? 101.693207;
-
-                // Sanity check: place must be strictly within Malaysia
-                if (lat < 1.0 || lat > 7.5 || lng < 99.0 || lng > 120.0) continue;
-                // If Kuala Lumpur, verify place is within greater KL / Klang Valley bounds
-                if (_selectedState.toLowerCase().contains('kuala lumpur')) {
-                  if (lat < 2.8 || lat > 3.5 || lng < 101.4 || lng > 102.1) continue;
-                }
-                final rating = (p['rating'] as num?)?.toDouble();
-                final reviewCount = (p['userRatingCount'] as num?)?.toInt() ?? 0;
-
-                final photosRaw = (p['photos'] as List<dynamic>? ?? []);
-                final photoUrls = photosRaw
-                    .take(5)
-                    .map((ph) {
-                      final photoName = ph['name']?.toString() ?? '';
-                      return photoName.isNotEmpty
-                          ? GooglePlacesService.buildPhotoUrl(photoName)
-                          : '';
-                    })
-                    .where((url) => url.isNotEmpty)
-                    .toList();
-
-                final isIndoor = PlaceClassifier.classify(
-                  category: primaryType,
-                  name: name,
-                );
-
-                final placeEntry = {
-                  'place_id': id,
-                  'name': name,
-                  'state': _selectedState,
-                  'category': primaryType,
-                  'latitude': lat,
-                  'longitude': lng,
-                  'rating': rating,
-                  'user_ratings_total': reviewCount,
-                  'is_indoor': isIndoor,
-                  'photo_url': photoUrls.isNotEmpty ? photoUrls.join('|') : null,
-                  'operating_hours': p['regularOpeningHours'],
-                };
-
-                if (!categoryPlaces.containsKey(id)) {
-                  newInPage++;
-                  categoryPlaces[id] = placeEntry;
-                }
-              }
-
-              _addLog('   ✓ Added $newInPage places (Total for $catName: ${categoryPlaces.length}/$targetPerCategory)');
-
-              final currentTotal = allPlaces.length + categoryPlaces.length;
-              final catProgress = (categoryPlaces.length / targetPerCategory).clamp(0.0, 1.0);
-              final overall = 0.05 + (cIdx * 0.25) + (catProgress * 0.25);
-              setState(() {
-                _syncProgress = overall.clamp(0.05, 0.80);
-                _syncStatusText = 'Step ${cIdx + 1}/3: $icon $catName (${categoryPlaces.length}/$targetPerCategory)';
-                _syncSubStatusText = '$currentTotal places gathered with photos & reviews';
-              });
-
-              final nextToken = data['nextPageToken']?.toString();
-              if (nextToken != null && nextToken.isNotEmpty && categoryPlaces.length < targetPerCategory) {
-                pageToken = nextToken;
-                pageNum++;
-                await Future.delayed(const Duration(milliseconds: 500));
-              } else {
-                break;
-              }
-            } else {
-              _addLog('   ✗ Google API returned ${response.statusCode}: ${response.body}');
-              break;
-            }
-          }
-        }
-
-        // Sort category places by popularity score (rating + review count) descending
-        final sortedCat = categoryPlaces.values.toList()
-          ..sort((a, b) => _calculatePopularityScore(b).compareTo(_calculatePopularityScore(a)));
-        for (final p in sortedCat) {
-          allPlaces[p['place_id'] as String] = p;
-        }
-
-        _addLog('   🏁 $catName complete: Gathered ${categoryPlaces.length} top-rated places.');
-        setState(() {
-          final prog = 0.05 + ((cIdx + 1) * 0.25);
-          _syncProgress = prog.clamp(0.05, 0.80);
-          _syncStatusText = 'Finished $icon $catName (${categoryPlaces.length} places)';
-          _syncSubStatusText = 'Total gathered so far: ${allPlaces.length} places';
-        });
-      }
-
-      _addLog('📦 Total unique top places gathered across all categories: ${allPlaces.length}');
-
-      if (allPlaces.isNotEmpty) {
-        // Sort entire dataset by popularity score (rating + review count) descending
-        final rows = allPlaces.values.toList()
-          ..sort((a, b) => _calculatePopularityScore(b).compareTo(_calculatePopularityScore(a)));
-
-        _addLog('💾 Saving ${rows.length} top-rated places with photos into Supabase in batches...');
-
-        const chunkSize = 40;
-        int savedCount = 0;
-        bool hasError = false;
-
-        for (int i = 0; i < rows.length; i += chunkSize) {
-          final end = (i + chunkSize > rows.length) ? rows.length : i + chunkSize;
-          final chunk = rows.sublist(i, end);
-          final batchNum = (i ~/ chunkSize) + 1;
-          final totalBatches = (rows.length / chunkSize).ceil();
-
-          _addLog('   Batch [$batchNum/$totalBatches]: Uploading ${chunk.length} places...');
-          final batchProgress = 0.80 + (0.15 * (batchNum / totalBatches));
-          setState(() {
-            _syncProgress = batchProgress.clamp(0.80, 0.95);
-            _syncStatusText = 'Saving to database: Batch $batchNum/$totalBatches';
-            _syncSubStatusText = '$savedCount / ${rows.length} places saved';
-          });
-
-          final supabaseRes = await client.post(
-            Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/places'),
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SupabaseConfig.supabaseAnonKey,
-              'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
-              'Prefer': 'resolution=merge-duplicates',
-            },
-            body: jsonEncode(chunk),
-          );
-
-          if (supabaseRes.statusCode >= 200 && supabaseRes.statusCode < 300) {
-            savedCount += chunk.length;
-          } else {
-            // Check if failure is due to missing user_ratings_total column
-            if (supabaseRes.body.contains('user_ratings_total')) {
-              setState(() {
-                _missingReviewColumn = true;
-              });
-              _addLog('⚠️ Supabase is missing "user_ratings_total" column. Retrying batch without review count...');
-              final fallbackChunk = chunk.map((c) {
-                final copy = Map<String, dynamic>.from(c);
-                copy.remove('user_ratings_total');
-                return copy;
-              }).toList();
-
-              final retryRes = await client.post(
-                Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/places'),
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': SupabaseConfig.supabaseAnonKey,
-                  'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
-                  'Prefer': 'resolution=merge-duplicates',
-                },
-                body: jsonEncode(fallbackChunk),
+            if (data == null) {
+              throw StateError(
+                service.lastError ?? 'Google Places unavailable',
               );
-
-              if (retryRes.statusCode >= 200 && retryRes.statusCode < 300) {
-                savedCount += chunk.length;
+            }
+            for (final p in (data['places'] as List? ?? []).whereType<Map>()) {
+              if (AdminPlacesRepository.googleState(
+                    Map<String, dynamic>.from(p),
+                  ) !=
+                  state) {
                 continue;
               }
-            }
+              final id = p['id']?.toString();
+              final location = p['location'] as Map?;
+              final lat = location?['latitude'] as num?;
+              final lng = location?['longitude'] as num?;
+              if (id == null ||
+                  lat == null ||
+                  lng == null ||
+                  !lat.isFinite ||
+                  !lng.isFinite ||
+                  lat < 1 ||
+                  lat > 7.5 ||
+                  lng < 99 ||
+                  lng > 120) {
+                continue;
+              }
+              if (state == 'Kuala Lumpur' &&
+                  (lat < 2.8 || lat > 3.5 || lng < 101.4 || lng > 102.1)) {
+                continue;
+              }
+              final rawCat =
+                  (p['primaryTypeDisplayName'] as Map?)?['text']?.toString() ??
+                  (categorySpecs[c]['category'] as String);
+              final placeName =
+                  (p['displayName'] as Map?)?['text']?.toString() ??
+                  'Name unavailable';
+              final isIndoor =
+                  PlaceClassifier.classify(category: rawCat, name: placeName) ??
+                  ([
+                    'Culture',
+                    'Food',
+                    'Shopping',
+                  ].contains(categorySpecs[c]['category']));
 
-            hasError = true;
-            _addLog('❌ Supabase Error on Batch $batchNum (${supabaseRes.statusCode}): ${supabaseRes.body}');
-            if (supabaseRes.body.contains('row-level security') || supabaseRes.statusCode == 401) {
-              setState(() {
-                _rlsBlocked = true;
-              });
+              live[id] = {
+                'place_id': id,
+                'name': placeName,
+                'state': state,
+                'category': rawCat,
+                'rating': p['rating'],
+                'user_ratings_total': p['userRatingCount'],
+                'is_indoor': isIndoor,
+                'photo_url': null,
+                'latitude': lat,
+                'longitude': lng,
+                'operating_hours': p['regularOpeningHours'],
+              };
             }
-            break;
+            if (!mounted) return;
+            _addLog('Google returned ${live.length} unique places so far.');
+            pageToken = data['nextPageToken'] as String?;
+            if (pageToken == null || pageToken.isEmpty) break;
           }
         }
-
-        if (!hasError) {
-          _addLog('🎉 SUCCESS! Saved all $savedCount top-rated places with photos into Supabase!');
-          setState(() {
-            _syncProgress = 0.96;
-            _syncStatusText = 'Auto-syncing indoor & outdoor sub-tables...';
-            _syncSubStatusText = 'Configuring rain & AC tags for $savedCount places';
-          });
-          _addLog('⚡ Auto-syncing indoor & outdoor classifications to sub-tables...');
-          await _syncConfirmedSubTables(rows);
-          GooglePlacesService.clearMemoryCache();
-          await _loadStateData();
-          setState(() {
-            _syncProgress = 1.0;
-            _syncStatusText = 'Sync Completed Successfully! 🎉';
-            _syncSubStatusText = 'Saved all $savedCount places with photos, reviews & indoor tags';
-          });
-        }
+        if (!mounted) return;
+        setState(() {
+          _syncProgress = (c + 1) / categorySpecs.length;
+        });
       }
-    } catch (e) {
-      _addLog('⚠️ Exception: $e');
+      final inserted = await _places.savePlaces(
+        state,
+        live.values,
+        updateExisting: true,
+      );
+      // A failed/cancelled search or database batch never advances this date.
+      final completed = await _syncHistory.recordSuccess(
+        state: state,
+        placeCount: live.length,
+        requestCount: searchRequests,
+      );
+      await _loadStateData();
+      if (!mounted) return;
       setState(() {
-        _syncStatusText = 'Sync stopped with error';
-        _syncSubStatusText = e.toString();
+        _lastSync = completed;
+        _syncHistoryOffline = completed.localOnly;
+        _syncProgress = 1;
+        _syncStatusText = '$state import complete';
+        _syncSubStatusText =
+            '${live.length} places found · $inserted new records added. Existing IDs were kept.';
       });
+      _addLog(
+        'Saved returned place details. Photos load when you open a place.',
+      );
+      if (_syncHistory.lastError != null) _addLog(_syncHistory.lastError!);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _syncStatusText = 'Import stopped';
+          _syncSubStatusText = error.toString();
+          _rlsBlocked = error.toString().contains('row-level security');
+        });
+      }
     } finally {
-      client.close();
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -440,7 +458,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Clear $_selectedState Places?'),
-        content: Text('This will delete all cached places for $_selectedState from the Supabase database.'),
+        content: Text(
+          'This will delete all cached places for $_selectedState from the Supabase database.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -462,13 +482,17 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       _logs.clear();
       _syncProgress = 0.2;
       _syncStatusText = 'Clearing places for $_selectedState...';
+      _activityState = _selectedState;
       _syncSubStatusText = 'Deleting records from Supabase';
     });
 
     final client = SupabaseConfig.client;
     if (client != null && SupabaseConfig.isConfigured) {
       try {
-        await client.from('places').delete().ilike('state', '%$_selectedState%');
+        await client
+            .from('places')
+            .delete()
+            .ilike('state', '%$_selectedState%');
         GooglePlacesService.clearMemoryCache();
         _addLog('🗑️ Cleared places for $_selectedState in Supabase.');
         await _loadStateData();
@@ -491,7 +515,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     });
   }
 
-  Future<void> _syncConfirmedSubTables(List<Map<String, dynamic>> places) async {
+  Future<void> _syncConfirmedSubTables(
+    List<Map<String, dynamic>> places,
+  ) async {
     final client = http.Client();
     try {
       final indoorRows = places
@@ -510,13 +536,16 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           headers: {
             'Content-Type': 'application/json',
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
             'Prefer': 'resolution=merge-duplicates',
           },
           body: jsonEncode(indoorRows),
         );
         if (res.statusCode < 300) {
-          _addLog('   🏠 Synced ${indoorRows.length} indoor places into indoor_places table.');
+          _addLog(
+            '   🏠 Synced ${indoorRows.length} indoor places into indoor_places table.',
+          );
         } else {
           _addLog('   ⚠️ Note on indoor_places sync (${res.statusCode})');
         }
@@ -528,13 +557,16 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           headers: {
             'Content-Type': 'application/json',
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
             'Prefer': 'resolution=merge-duplicates',
           },
           body: jsonEncode(outdoorRows),
         );
         if (res.statusCode < 300) {
-          _addLog('   ☀️ Synced ${outdoorRows.length} outdoor places into outdoor_places table.');
+          _addLog(
+            '   ☀️ Synced ${outdoorRows.length} outdoor places into outdoor_places table.',
+          );
         } else {
           _addLog('   ⚠️ Note on outdoor_places sync (${res.statusCode})');
         }
@@ -552,19 +584,25 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       _logs.clear();
       _syncProgress = 0.1;
       _syncStatusText = 'Starting auto-classification for $_selectedState...';
+      _activityState = _selectedState;
       _syncSubStatusText = 'Fetching places from database';
     });
 
-    _addLog('⚡ Starting automatic classification for $_selectedState places...');
+    _addLog(
+      '⚡ Starting automatic classification for $_selectedState places...',
+    );
 
     final client = http.Client();
     try {
       final encodedState = Uri.encodeComponent(_selectedState);
       final getRes = await client.get(
-        Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/places?state=ilike.*$encodedState*&select=place_id,name,category,is_indoor'),
+        Uri.parse(
+          '${SupabaseConfig.supabaseUrl}/rest/v1/places?state=ilike.*$encodedState*&select=place_id,name,category,is_indoor',
+        ),
         headers: {
           'apikey': SupabaseConfig.supabaseAnonKey,
-          'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+          'Authorization':
+              'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
         },
       );
 
@@ -577,8 +615,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         return;
       }
 
-      final places = (jsonDecode(getRes.body) as List<dynamic>).cast<Map<String, dynamic>>();
-      _addLog('📋 Loaded ${places.length} places for $_selectedState from database.');
+      final places = (jsonDecode(getRes.body) as List<dynamic>)
+          .cast<Map<String, dynamic>>();
+      _addLog(
+        '📋 Loaded ${places.length} places for $_selectedState from database.',
+      );
 
       int indoorCount = 0;
       int outdoorCount = 0;
@@ -590,7 +631,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         final name = (p['name'] ?? '').toString();
         final category = (p['category'] ?? '').toString();
 
-        final classified = PlaceClassifier.classify(category: category, name: name);
+        final classified = PlaceClassifier.classify(
+          category: category,
+          name: name,
+        );
 
         if (classified == true) {
           indoorCount++;
@@ -601,10 +645,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         }
 
         if (p['is_indoor'] != classified) {
-          updates.add({
-            'place_id': id,
-            'is_indoor': classified,
-          });
+          updates.add({'place_id': id, 'is_indoor': classified});
         }
       }
 
@@ -616,11 +657,14 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       setState(() {
         _syncProgress = 0.35;
         _syncStatusText = 'Analyzed ${places.length} places';
-        _syncSubStatusText = '$indoorCount Indoor • $outdoorCount Outdoor • $unassignedCount Review';
+        _syncSubStatusText =
+            '$indoorCount Indoor • $outdoorCount Outdoor • $unassignedCount Review';
       });
 
       if (updates.isEmpty) {
-        _addLog('✨ All places are already up-to-date with classification rules!');
+        _addLog(
+          '✨ All places are already up-to-date with classification rules!',
+        );
       } else {
         _addLog('💾 Updating ${updates.length} places in Supabase...');
 
@@ -629,11 +673,14 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           final u = updates[uIdx];
           final id = u['place_id'] as String;
           final patchRes = await client.patch(
-            Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/places?place_id=eq.$id'),
+            Uri.parse(
+              '${SupabaseConfig.supabaseUrl}/rest/v1/places?place_id=eq.$id',
+            ),
             headers: {
               'Content-Type': 'application/json',
               'apikey': SupabaseConfig.supabaseAnonKey,
-              'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+              'Authorization':
+                  'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
             },
             body: jsonEncode({'is_indoor': u['is_indoor']}),
           );
@@ -645,7 +692,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             final prog = 0.35 + (0.50 * ((uIdx + 1) / updates.length));
             setState(() {
               _syncProgress = prog.clamp(0.35, 0.85);
-              _syncStatusText = 'Updating places in database ($updatedCount/${updates.length})...';
+              _syncStatusText =
+                  'Updating places in database ($updatedCount/${updates.length})...';
               _syncSubStatusText = 'Saving indoor/outdoor tags';
             });
           }
@@ -654,7 +702,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       }
 
       // Re-sync sub-tables
-      _addLog('🔄 Synchronizing indoor_places and outdoor_places sub-tables...');
+      _addLog(
+        '🔄 Synchronizing indoor_places and outdoor_places sub-tables...',
+      );
       setState(() {
         _syncProgress = 0.90;
         _syncStatusText = 'Syncing indoor & outdoor sub-tables...';
@@ -666,10 +716,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           category: (p['category'] ?? '').toString(),
           name: (p['name'] ?? '').toString(),
         );
-        return {
-          'place_id': p['place_id'],
-          'is_indoor': classified,
-        };
+        return {'place_id': p['place_id'], 'is_indoor': classified};
       }).toList();
 
       await _syncConfirmedSubTables(allClassified);
@@ -681,7 +728,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       setState(() {
         _syncProgress = 1.0;
         _syncStatusText = 'Auto-classification complete! ⚡';
-        _syncSubStatusText = '${updates.length} places updated & sub-tables synchronized';
+        _syncSubStatusText =
+            '${updates.length} places updated & sub-tables synchronized';
       });
     } catch (e) {
       _addLog('⚠️ Exception: $e');
@@ -719,11 +767,14 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     try {
       // 1. Update places table
       await client.patch(
-        Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/places?place_id=eq.$id'),
+        Uri.parse(
+          '${SupabaseConfig.supabaseUrl}/rest/v1/places?place_id=eq.$id',
+        ),
         headers: {
           'Content-Type': 'application/json',
           'apikey': SupabaseConfig.supabaseAnonKey,
-          'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+          'Authorization':
+              'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
         },
         body: jsonEncode({'is_indoor': nextVal}),
       );
@@ -735,16 +786,22 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           headers: {
             'Content-Type': 'application/json',
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
             'Prefer': 'resolution=merge-duplicates',
           },
-          body: jsonEncode([{'place_id': id, 'is_air_conditioned': true}]),
+          body: jsonEncode([
+            {'place_id': id, 'is_air_conditioned': true},
+          ]),
         );
         await client.delete(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places?place_id=eq.$id'),
+          Uri.parse(
+            '${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places?place_id=eq.$id',
+          ),
           headers: {
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
           },
         );
       } else if (nextVal == false) {
@@ -753,36 +810,50 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           headers: {
             'Content-Type': 'application/json',
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
             'Prefer': 'resolution=merge-duplicates',
           },
-          body: jsonEncode([{'place_id': id, 'is_rain_sensitive': true}]),
+          body: jsonEncode([
+            {'place_id': id, 'is_rain_sensitive': true},
+          ]),
         );
         await client.delete(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places?place_id=eq.$id'),
+          Uri.parse(
+            '${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places?place_id=eq.$id',
+          ),
           headers: {
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
           },
         );
       } else {
         await client.delete(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places?place_id=eq.$id'),
+          Uri.parse(
+            '${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places?place_id=eq.$id',
+          ),
           headers: {
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
           },
         );
         await client.delete(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places?place_id=eq.$id'),
+          Uri.parse(
+            '${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places?place_id=eq.$id',
+          ),
           headers: {
             'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization': 'Bearer ${SupabaseConfig.supabaseAnonKey}',
+            'Authorization':
+                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
           },
         );
       }
 
-      final label = nextVal == true ? '🏠 Indoor' : (nextVal == false ? '☀️ Outdoor' : '❓ Needs Review');
+      final label = nextVal == true
+          ? '🏠 Indoor'
+          : (nextVal == false ? '☀️ Outdoor' : '❓ Needs Review');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -827,7 +898,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: textColor.withValues(alpha: 0.3), width: 0.8),
+          border: Border.all(
+            color: textColor.withValues(alpha: 0.3),
+            width: 0.8,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -841,7 +915,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               ),
             ),
             const SizedBox(width: 2),
-            Icon(Icons.touch_app, size: 9, color: textColor.withValues(alpha: 0.6)),
+            Icon(
+              Icons.touch_app,
+              size: 9,
+              color: textColor.withValues(alpha: 0.6),
+            ),
           ],
         ),
       ),
@@ -889,7 +967,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
   }
 
   Widget _buildSyncProgressBar() {
-    if (_logs.isEmpty && !_isLoading) return const SizedBox.shrink();
+    if (_activityState != _selectedState || (_logs.isEmpty && !_isLoading)) {
+      return const SizedBox.shrink();
+    }
 
     final isDone = !_isLoading && _syncProgress >= 1.0;
     final percent = (_syncProgress * 100).toInt().clamp(0, 100);
@@ -938,19 +1018,19 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                               size: 24,
                             )
                           : _isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Color(0xFF2563EB),
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.info_outline_rounded,
-                                  color: Color(0xFF2563EB),
-                                  size: 24,
-                                ),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Color(0xFF2563EB),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.info_outline_rounded,
+                              color: Color(0xFF2563EB),
+                              size: 24,
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -964,7 +1044,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                                 child: Text(
                                   _syncStatusText.isNotEmpty
                                       ? _syncStatusText
-                                      : (_isLoading ? 'Syncing places...' : 'Activity Status'),
+                                      : (_isLoading
+                                            ? 'Syncing places...'
+                                            : 'Activity Status'),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
@@ -1067,7 +1149,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.terminal, size: 15, color: Color(0xFF64748B)),
+                      const Icon(
+                        Icons.terminal,
+                        size: 15,
+                        color: Color(0xFF64748B),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         _showTerminalLogs
@@ -1099,7 +1185,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               padding: const EdgeInsets.all(12),
               decoration: const BoxDecoration(
                 color: Color(0xFF0F172A),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
               ),
               constraints: const BoxConstraints(maxHeight: 200),
               child: Scrollbar(
@@ -1108,23 +1196,28 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                   reverse: true,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: _logs.map(
-                      (log) => Padding(
-                        padding: const EdgeInsets.only(bottom: 3),
-                        child: Text(
-                          log,
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 10.5,
-                            color: log.contains('🎉') || log.contains('✓') || log.contains('✅')
-                                ? const Color(0xFF4ADE80)
-                                : (log.contains('❌') || log.contains('✗')
-                                    ? const Color(0xFFF87171)
-                                    : Colors.white70),
+                    children: _logs
+                        .map(
+                          (log) => Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Text(
+                              log,
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 10.5,
+                                color:
+                                    log.contains('🎉') ||
+                                        log.contains('✓') ||
+                                        log.contains('✅')
+                                    ? const Color(0xFF4ADE80)
+                                    : (log.contains('❌') || log.contains('✗')
+                                          ? const Color(0xFFF87171)
+                                          : Colors.white70),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ).toList(),
+                        )
+                        .toList(),
                   ),
                 ),
               ),
@@ -1184,7 +1277,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                 SizedBox(height: 6),
                 Text(
                   'Bulk-fetch real tourist attractions, restaurants, and nature spots with Google photos directly into your Supabase database.',
-                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -1202,11 +1299,17 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                   children: [
                     const Text(
                       '1. Select Destination State',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
@@ -1254,24 +1357,42 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.storage, size: 18, color: AppColors.primary),
+                        const Icon(
+                          Icons.storage,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Database Count for $_selectedState:',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: _dbCount > 0 ? const Color(0xFFE8FDF2) : const Color(0xFFFEE2E2),
+                        color: _dbCount > 0
+                            ? const Color(0xFFE8FDF2)
+                            : const Color(0xFFFEE2E2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '$_dbCount places',
+                        _isFetchingList
+                            ? 'Checking…'
+                            : _placesLoadError != null
+                            ? 'Unavailable'
+                            : '$_dbCount places',
                         style: TextStyle(
-                          color: _dbCount > 0 ? const Color(0xFF059669) : Colors.red,
+                          color: _dbCount > 0
+                              ? const Color(0xFF059669)
+                              : Colors.red,
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
@@ -1286,7 +1407,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       _buildCountBadge(
                         label: 'Indoor',
                         icon: '🏠',
-                        count: _currentPlaces.where((p) => p['is_indoor'] == true).length,
+                        count: _currentPlaces
+                            .where((p) => p['is_indoor'] == true)
+                            .length,
                         color: const Color(0xFF0284C7),
                         bgColor: const Color(0xFFE0F2FE),
                       ),
@@ -1294,7 +1417,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       _buildCountBadge(
                         label: 'Outdoor',
                         icon: '☀️',
-                        count: _currentPlaces.where((p) => p['is_indoor'] == false).length,
+                        count: _currentPlaces
+                            .where((p) => p['is_indoor'] == false)
+                            .length,
                         color: const Color(0xFF16A34A),
                         bgColor: const Color(0xFFDCFCE7),
                       ),
@@ -1302,7 +1427,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       _buildCountBadge(
                         label: 'Review',
                         icon: '❓',
-                        count: _currentPlaces.where((p) => p['is_indoor'] == null).length,
+                        count: _currentPlaces
+                            .where((p) => p['is_indoor'] == null)
+                            .length,
                         color: const Color(0xFFD97706),
                         bgColor: const Color(0xFFFEF3C7),
                       ),
@@ -1315,6 +1442,13 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           const SizedBox(height: 14),
 
           // RLS Alert Banner if blocked
+          PlaceSyncNotice(
+            state: _selectedState,
+            record: _lastSync,
+            loading: _loadingSyncHistory,
+            offline: _syncHistoryOffline,
+          ),
+          const SizedBox(height: 14),
           if (_rlsBlocked) ...[
             Container(
               padding: const EdgeInsets.all(14),
@@ -1358,17 +1492,28 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         const Expanded(
                           child: SelectableText(
                             'ALTER TABLE public.places DISABLE ROW LEVEL SECURITY;',
-                            style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black),
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.copy, size: 16),
                           onPressed: () {
-                            Clipboard.setData(const ClipboardData(
-                              text: 'ALTER TABLE public.places DISABLE ROW LEVEL SECURITY;',
-                            ));
+                            Clipboard.setData(
+                              const ClipboardData(
+                                text:
+                                    'ALTER TABLE public.places DISABLE ROW LEVEL SECURITY;',
+                              ),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('SQL command copied to clipboard!')),
+                              const SnackBar(
+                                content: Text(
+                                  'SQL command copied to clipboard!',
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -1425,17 +1570,28 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         const Expanded(
                           child: SelectableText(
                             'ALTER TABLE public.places ADD COLUMN IF NOT EXISTS user_ratings_total INTEGER DEFAULT 0;',
-                            style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black),
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.copy, size: 16),
                           onPressed: () {
-                            Clipboard.setData(const ClipboardData(
-                              text: 'ALTER TABLE public.places ADD COLUMN IF NOT EXISTS user_ratings_total INTEGER DEFAULT 0;',
-                            ));
+                            Clipboard.setData(
+                              const ClipboardData(
+                                text:
+                                    'ALTER TABLE public.places ADD COLUMN IF NOT EXISTS user_ratings_total INTEGER DEFAULT 0;',
+                              ),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('SQL command copied to clipboard!')),
+                              const SnackBar(
+                                content: Text(
+                                  'SQL command copied to clipboard!',
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -1456,7 +1612,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.refresh, size: 16, color: Color(0xFFB45309)),
+                      icon: const Icon(
+                        Icons.refresh,
+                        size: 16,
+                        color: Color(0xFFB45309),
+                      ),
                       label: const Text(
                         'Already Ran It? Tap to Refresh & Dismiss',
                         style: TextStyle(
@@ -1479,19 +1639,36 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               Expanded(
                 flex: 3,
                 child: FilledButton.icon(
-                  onPressed: _isLoading ? null : _syncPlacesFromGoogle,
+                  onPressed:
+                      _isLoading ||
+                          _loadingSyncHistory ||
+                          _isFetchingList ||
+                          _placesLoadError != null
+                      ? null
+                      : _syncPlacesFromGoogle,
                   icon: _isLoading
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.download_for_offline),
-                  label: Text(_isLoading ? 'Syncing...' : 'Fetch & Sync $_selectedState (Top 100/cat)'),
+                  label: Text(
+                    _isLoading
+                        ? 'Syncing...'
+                        : _lastSync == null
+                        ? 'Fetch & Sync $_selectedState'
+                        : 'Sync $_selectedState again',
+                  ),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -1500,12 +1677,21 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                 flex: 1,
                 child: OutlinedButton.icon(
                   onPressed: _isLoading ? null : _clearStatePlaces,
-                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                  label: const Text('Clear', style: TextStyle(color: Colors.red, fontSize: 12)),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: Colors.red,
+                  ),
+                  label: const Text(
+                    'Clear',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     side: const BorderSide(color: Color(0xFFFCA5A5)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -1519,12 +1705,18 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               icon: const Icon(Icons.bolt, color: Color(0xFF4F46E5), size: 18),
               label: const Text(
                 '⚡ Auto-Classify Indoor & Outdoor (Schedule Ready)',
-                style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF4F46E5), fontSize: 13),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF4F46E5),
+                  fontSize: 13,
+                ),
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFEEF2FF),
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -1537,23 +1729,50 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Places in Database ($_selectedState)',
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+              Expanded(
+                child: Text(
+                  'Places in Database ($_selectedState)',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.refresh, size: 20),
-                onPressed: _loadStateData,
+                onPressed: _isLoading ? null : _loadStateData,
               ),
             ],
           ),
           const SizedBox(height: 8),
 
+          const Text(
+            'Google Maps',
+            style: TextStyle(fontSize: 12, color: AppColors.muted),
+          ),
+          const SizedBox(height: 8),
+          if (_currentPlaces.any(
+            (p) => p['name'] == 'Incomplete import — needs review',
+          ))
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Some older imports have unverified countries or states. These are marked for review; repeating the full sync will not repair them.',
+              ),
+            ),
           if (_isFetchingList)
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_placesLoadError != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _placesLoadError!,
+                style: const TextStyle(color: Colors.red),
               ),
             )
           else if (_currentPlaces.isEmpty)
@@ -1562,15 +1781,22 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               decoration: cardDecoration(),
               child: Column(
                 children: [
-                  Icon(Icons.folder_open, size: 48, color: Colors.grey.shade400),
+                  Icon(
+                    Icons.folder_open,
+                    size: 48,
+                    color: Colors.grey.shade400,
+                  ),
                   const SizedBox(height: 10),
                   Text(
                     'No places stored for $_selectedState yet.',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.muted),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Tap "Fetch & Sync" above to download 300+ top places (100 per category) from Google API.',
+                    'This state has no saved records. Syncing it will use Google API quota.',
                     style: TextStyle(fontSize: 12, color: AppColors.muted),
                     textAlign: TextAlign.center,
                   ),
@@ -1579,9 +1805,17 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             )
           else
             ..._currentPlaces.map((p) {
-              final rawPhoto = p['photo_url']?.toString();
+              final value = p['photo_url']?.toString();
+              final rawPhoto =
+                  value != null &&
+                      !value.contains('places.googleapis.com') &&
+                      !value.contains('key=')
+                  ? value
+                  : null;
               final primaryPhoto = rawPhoto != null && rawPhoto.isNotEmpty
-                  ? (rawPhoto.contains('|') ? rawPhoto.split('|').first : rawPhoto)
+                  ? (rawPhoto.contains('|')
+                        ? rawPhoto.split('|').first
+                        : rawPhoto)
                   : null;
               final photoCount = rawPhoto != null && rawPhoto.contains('|')
                   ? rawPhoto.split('|').length
@@ -1605,14 +1839,20 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                                 width: 52,
                                 height: 52,
                                 color: Colors.grey.shade200,
-                                child: const Icon(Icons.place, color: AppColors.primary),
+                                child: const Icon(
+                                  Icons.place,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             )
                           : Container(
                               width: 52,
                               height: 52,
                               color: Colors.grey.shade200,
-                              child: const Icon(Icons.place, color: AppColors.primary),
+                              child: const Icon(
+                                Icons.place,
+                                color: AppColors.primary,
+                              ),
                             ),
                     ),
                     const SizedBox(width: 12),
@@ -1631,6 +1871,27 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
+                          if (p['place_id']?.toString().startsWith('ChIJ') ??
+                              false)
+                            TextButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PlaceDetailPage(
+                                    stop:
+                                        GooglePlacesService.convertGooglePlaceToStop(
+                                          place:
+                                              PlaceCatalogService.asGoogleShape(
+                                                p,
+                                              ),
+                                          timeRange: '',
+                                          durationLabel: '',
+                                        ),
+                                  ),
+                                ),
+                              ),
+                              child: const Text('Open details & photos'),
+                            ),
                           Wrap(
                             spacing: 6,
                             runSpacing: 4,
@@ -1638,7 +1899,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                             children: [
                               Text(
                                 p['category']?.toString() ?? 'Attraction',
-                                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.muted,
+                                ),
                               ),
                               _buildIndoorOutdoorBadge(p),
                             ],
@@ -1651,17 +1915,28 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.star, size: 14, color: Colors.amber),
+                            const Icon(
+                              Icons.star,
+                              size: 14,
+                              color: Colors.amber,
+                            ),
                             const SizedBox(width: 2),
                             Text(
-                              p['rating']?.toString() ?? '4.5',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              p['rating']?.toString() ?? 'Unavailable',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            if (p['user_ratings_total'] != null && (p['user_ratings_total'] as num) > 0) ...[
+                            if (p['user_ratings_total'] != null &&
+                                (p['user_ratings_total'] as num) > 0) ...[
                               const SizedBox(width: 3),
                               Text(
                                 '(${_formatReviewCount((p['user_ratings_total'] as num).toInt())})',
-                                style: const TextStyle(fontSize: 10, color: AppColors.muted),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.muted,
+                                ),
                               ),
                             ],
                           ],
@@ -1669,7 +1944,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         if (photoCount > 0) ...[
                           const SizedBox(height: 3),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),

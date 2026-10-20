@@ -2,25 +2,40 @@ import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
 import '../core/app_decorations.dart';
+import '../models/travel_stop.dart';
+import '../services/smart_itinerary_service.dart';
+import '../services/scheduling_engine.dart';
 
 class SummaryBar extends StatelessWidget {
-  const SummaryBar({super.key});
+  const SummaryBar({super.key, this.stops = const []});
+  final List<TravelStop> stops;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: cardDecoration(const Color(0xFFEFF7FF)),
-      child: const Row(
+      child: Row(
         children: [
           Expanded(
-            child: SummaryItem(title: 'Travel Time', value: '1 h 25 min'),
+            child: SummaryItem(
+              title: 'Travel Time',
+              value:
+                  '${stops.fold<int>(0, (sum, s) => sum + s.travelMinutes)} min',
+            ),
           ),
           Expanded(
-            child: SummaryItem(title: 'Distance', value: '18.6 km'),
+            child: SummaryItem(
+              title: 'Est. Distance',
+              value:
+                  '~${SmartItineraryService.calculateRouteDistanceKm(stops)} km',
+            ),
           ),
           Expanded(
-            child: SummaryItem(title: 'Est. Cost', value: 'RM120-180'),
+            child: SummaryItem(
+              title: 'Est. Cost',
+              value: 'RM ${SchedulingEngine.cost(stops).toStringAsFixed(0)}',
+            ),
           ),
         ],
       ),

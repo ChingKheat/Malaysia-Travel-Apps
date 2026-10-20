@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/supabase_itinerary_service.dart';
 
 import '../core/app_colors.dart';
 import '../screens/api_demo_page.dart';
@@ -15,7 +17,31 @@ class TravelShell extends StatefulWidget {
   State<TravelShell> createState() => _TravelShellState();
 }
 
-class _TravelShellState extends State<TravelShell> {
+class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
+  Timer? _syncTimer;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      unawaited(SupabaseItineraryService().syncPending());
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(SupabaseItineraryService().syncPending());
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
   int _selectedIndex = 0;
 
   static const _tabTitles = [

@@ -15,25 +15,46 @@ class PreferencesValidationResult {
 
 class TripPreferencesService {
   // Messages M1 to M8
-  static const String m1Success = 'Trip preferences recorded successfully. Generating your itinerary.';
-  static const String m2Mandatory = 'Please complete all mandatory trip-preference fields.';
-  static const String m3InvalidDestination = 'Please enter or select a valid destination.';
-  static const String m4InvalidDays = 'Please select a valid number of travel days.';
-  static const String m5InvalidTimeRange = 'Daily end time must be later than daily start time.';
-  static const String m6NoInterests = 'Please select at least one travel interest.';
-  static const String m7InvalidBudget = 'Please select a valid estimated budget category.';
-  static const String m8UnsupportedMode = 'The selected travel mode is not supported. Please select Driving or Walking.';
+  static const String m1Success =
+      'Trip preferences recorded successfully. Generating your itinerary.';
+  static const String m2Mandatory =
+      'Please complete all mandatory trip-preference fields.';
+  static const String m3InvalidDestination =
+      'Please enter or select a valid destination.';
+  static const String m4InvalidDays =
+      'Please select a valid number of travel days.';
+  static const String m5InvalidTimeRange =
+      'Daily end time must be later than daily start time.';
+  static const String m6NoInterests =
+      'Please select at least one travel interest.';
+  static const String m7InvalidBudget =
+      'Please select a valid estimated budget category.';
+  static const String m8UnsupportedMode =
+      'The selected travel mode is not supported. Please select Driving or Walking.';
 
   // Temporarily stored preferences
+  static String? activeItineraryId;
   static TripPreferences? _storedPreferences;
   static TripPreferences? get storedPreferences => _storedPreferences;
 
   static void clearPreferences() {
     _storedPreferences = null;
+    activeItineraryId = null;
   }
 
   /// Validates the trip preferences according to UC300 requirements (C1-C7)
-  static PreferencesValidationResult validatePreferences(TripPreferences prefs) {
+  static PreferencesValidationResult validatePreferences(
+    TripPreferences prefs,
+  ) {
+    if ((prefs.startDate == null) != (prefs.endDate == null) ||
+        (prefs.startDate != null &&
+            prefs.endDate!.isBefore(prefs.startDate!))) {
+      return const PreferencesValidationResult(
+        success: false,
+        message: 'Please select a valid travel date range.',
+        emptyFields: {'travelDates'},
+      );
+    }
     final Set<String> emptyFields = {};
 
     // C1 / A1: Mandatory fields check
@@ -84,8 +105,10 @@ class TripPreferencesService {
     }
 
     // C4 / A4: Valid Daily Time Range Check (end time must be later than start time)
-    final startMinutes = prefs.dailyStartTime!.hour * 60 + prefs.dailyStartTime!.minute;
-    final endMinutes = prefs.dailyEndTime!.hour * 60 + prefs.dailyEndTime!.minute;
+    final startMinutes =
+        prefs.dailyStartTime!.hour * 60 + prefs.dailyStartTime!.minute;
+    final endMinutes =
+        prefs.dailyEndTime!.hour * 60 + prefs.dailyEndTime!.minute;
     if (endMinutes <= startMinutes) {
       return const PreferencesValidationResult(
         success: false,
@@ -121,10 +144,8 @@ class TripPreferencesService {
 
     // FR300_10: Store preferences temporarily
     _storedPreferences = prefs;
+    activeItineraryId = null;
 
-    return const PreferencesValidationResult(
-      success: true,
-      message: m1Success,
-    );
+    return const PreferencesValidationResult(success: true, message: m1Success);
   }
 }

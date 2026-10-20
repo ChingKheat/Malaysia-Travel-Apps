@@ -2,7 +2,7 @@ import '../models/attraction.dart';
 
 /// Curated Malaysian tourist attractions across various states.
 /// Serves as the primary offline-resilient catalog for Browse Attractions (UC400)
-/// whenever Overpass API is unreachable or returns empty results.
+/// whenever Google Places API is unreachable or returns empty results.
 const List<Attraction> curatedMalaysianAttractions = [
   // ==================== KUALA LUMPUR ====================
   Attraction(

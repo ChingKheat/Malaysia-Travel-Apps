@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+supabase/functions/.env
+supabase/functions/.env.local
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +45,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Platform-specific Google Maps credentials (never server keys)
+/ios/Flutter/MapsKeys.xcconfig
+/web/maps-config.js

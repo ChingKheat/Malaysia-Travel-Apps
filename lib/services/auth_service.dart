@@ -143,7 +143,7 @@ class AuthService extends ChangeNotifier {
   /// Automatically synchronizes/upserts user profile into Supabase `public.profiles` (Table 4.2)
   Future<void> _ensureSupabaseProfile(UserModel user) async {
     final client = SupabaseConfig.client;
-    if (client != null && SupabaseConfig.isConfigured) {
+    if (client != null && client.auth.currentUser?.id == user.uid && !_isGuest) {
       try {
         await client
             .from('profiles')
@@ -520,6 +520,7 @@ class AuthService extends ChangeNotifier {
       placesVisited: user.placesVisited,
       memberSince: user.memberSince,
       preferredLanguage: preferredLanguage ?? user.preferredLanguage,
+      role: user.role,
     );
 
     _isLoading = false;

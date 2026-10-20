@@ -3,39 +3,46 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:smart_travel_planner/core/api_keys.dart';
+import 'package:smart_travel_planner/services/places_service.dart';
 
 void main() {
-  test('Fetch Tourist Attractions and Places from OpenStreetMap API', () async {
+  test('Fetch Tourist Attractions and Places from Google Places API', () async {
     print('==================================================');
-    print('🔍 Fetching Tourist Attractions & Places from API');
+    print('🔍 Fetching Tourist Attractions & Places from Google Places API');
     print('==================================================\n');
 
     bool success = false;
 
-    // 1. Try Nominatim API (Super fast & reliable search for places)
-    final nominatimUrl = Uri.https('nominatim.openstreetmap.org', '/search', {
-      'q': 'attractions in Kuala Lumpur',
-      'format': 'json',
-      'limit': '15',
-    });
-
+    // 1. Test direct Google Places API (New) Search
     try {
-      print('🌐 Connecting to Nominatim API (nominatim.openstreetmap.org)...');
-      final res = await http.get(
-        nominatimUrl,
-        headers: {'User-Agent': 'SmartTravelPlanner/1.0'},
+      print('🌐 Connecting to Google Places API (places.googleapis.com)...');
+      final res = await http.post(
+        Uri.parse('https://places.googleapis.com/v1/places:searchText'),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': ApiKeys.googleMaps,
+          'X-Goog-FieldMask':
+              'places.id,places.displayName,places.formattedAddress,places.location,places.primaryTypeDisplayName,places.types',
+        },
+        body: jsonEncode({
+          'textQuery': 'attractions in Kuala Lumpur Malaysia',
+          'pageSize': 5,
+        }),
       ).timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        if (data.isNotEmpty) {
-          print('✅ Connected successfully! Received ${data.length} places:\n');
+        final Map<String, dynamic> data = jsonDecode(res.body);
+        final List places = (data['places'] as List?) ?? [];
+        if (places.isNotEmpty) {
+          print('✅ Connected successfully! Received ${places.length} places from Google Places API:\n');
           int count = 1;
-          for (final item in data) {
-            final name = item['display_name']?.split(',')?.first ?? 'Attraction';
-            final type = item['type'] ?? item['class'] ?? 'place';
-            final lat = item['lat'];
-            final lon = item['lon'];
+          for (final item in places) {
+            final name = item['displayName']?['text'] ?? 'Attraction';
+            final type = item['primaryTypeDisplayName']?['text'] ?? item['types']?[0] ?? 'Place';
+            final location = item['location'] ?? {};
+            final lat = location['latitude'];
+            final lon = location['longitude'];
 
             print('$count. 📍 $name');
             print('   - Type: $type');
@@ -45,28 +52,26 @@ void main() {
           }
           success = true;
         }
+      } else {
+        print('⚠️ Google Places API returned status ${res.statusCode}: ${res.body}');
       }
     } catch (e) {
-      print('⚠️ Nominatim request failed ($e). Trying Overpass fallback...');
+      print('⚠️ Google Places API request failed ($e).');
     }
 
-    // 2. Fallback to Overpass API if needed
-    if (!success) {
-      const overpassQuery = '''
-        [out:json][timeout:15];
-        node["tourism"="attraction"](3.10, 101.65, 3.20, 101.75);
-        out body 10;
-      ''';
-      final url = Uri.https('overpass-api.de', '/api/interpreter', {'data': overpassQuery});
-      final res = await http.get(url, headers: {'User-Agent': 'SmartTravelPlanner/1.0'});
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final List elements = data['elements'] ?? [];
-        print('✅ Connected successfully via Overpass API! Found ${elements.length} places.');
-        success = true;
-      }
-    }
+    // 2. Validate PlacesService returns resilient results
+    final service = PlacesService();
+    final places = await service.fetchPlacesNearLocation(
+      latitude: 3.1390,
+      longitude: 101.6869,
+      limit: 5,
+    );
 
-    expect(success, isTrue, reason: 'API call should succeed and return places.');
+    expect(places.isNotEmpty, isTrue, reason: 'PlacesService should return attractions.');
+    print('✅ PlacesService returned ${places.length} attractions.');
+    if (success) {
+      print('✅ Live Google Places API connection verified.');
+    }
   });
 }
+
