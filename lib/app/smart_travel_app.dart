@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_colors.dart';
-import '../core/demo_feedback.dart';
-import '../screens/welcome_screen.dart';
-import '../services/auth_service.dart';
+import 'package:smart_travel_planner/core/theme/app_colors.dart';
+import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
+import 'package:smart_travel_planner/features/auth/screens/welcome_screen.dart';
+import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'travel_shell.dart';
 
 class SmartTravelApp extends StatelessWidget {
