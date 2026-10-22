@@ -23,7 +23,7 @@ class ImageRecognitionPage extends StatefulWidget {
 class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   final _picker = ImagePicker();
   late final RecognitionHistoryStore _store;
-  late final Future<void> _historyReady;
+
   Future<void> _pendingWrite = Future.value();
   List<RecognitionResult> _history = [];
   int _tab = 0;
@@ -34,33 +34,28 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   void initState() {
     super.initState();
     _store = RecognitionHistoryStore(userId: widget.userId);
-    _historyReady = _loadHistory();
+    unawaited(_loadHistory());
   }
 
   Future<void> _loadHistory() async {
     final history = await _store.load();
-    if (mounted) setState(() => _history = history);
+    if (mounted) {
+      setState(
+        () => _history = history.where((item) => !item.isSample).toList(),
+      );
+    }
   }
 
   void _saveHistory() {
+
     final entries = List<RecognitionResult>.of(_history);
     _pendingWrite = _pendingWrite.then((_) async {
       await _store.save(entries);
     });
   }
 
-  Future<void> _openSample(RecognitionPreset preset) async {
-    await _historyReady;
-    if (!mounted) return;
-    final result = preset.sampleResult();
-    setState(() {
-      _history = [
-        result,
-        ..._history,
-      ].take(RecognitionHistoryStore.maxEntries).toList();
-    });
-    _saveHistory();
-    _showResult(result);
+  void _openSample(RecognitionPreset preset) {
+    _showResult(preset.sampleResult());
   }
 
   void _showResult(RecognitionResult result) {
@@ -116,13 +111,59 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       if (result.isSample) ...[
         const SizedBox(height: 18),
         const Text(
-          'This is a preset example, not a live photo recognition.',
+          'This is a prepared demo result. It has not analysed your uploaded photo and is not added to scan history.',
+          style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+        ),
+      ],
+      const SizedBox(height: 24),
+      const Text(
+        'Explore this result',
+        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'These actions will be available when live recognition and tourism details are connected.',
+        style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+      ),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _pendingAction(Icons.favorite_border, 'Add to Wishlist'),
+          _pendingAction(Icons.translate, 'Translate'),
+          _pendingAction(
+            Icons.near_me_outlined,
+            result.kind == 'food' ? 'Find Restaurants' : 'View Nearby',
+          ),
+          if (result.kind != 'food') ...[
+            _pendingAction(Icons.map_outlined, 'View on Map'),
+            _pendingAction(
+              Icons.event_available_outlined,
+              'Add to Travel Plan',
+            ),
+          ],
+        ],
+      ),
+      if (result.kind == 'food') ...[
+        const SizedBox(height: 12),
+        const Text(
+          'Choose a restaurant before adding this dish to your travel plan.',
           style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
         ),
       ],
       const SizedBox(height: 24),
     ]);
   }
+
+  Widget _pendingAction(IconData icon, String label) => Tooltip(
+    message: 'Available after setup',
+    child: OutlinedButton.icon(
+      onPressed: null,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+    ),
+  );
 
   Future<void> _pickPhoto(ImageSource source) async {
     if (_picking) return;
@@ -180,14 +221,72 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     const _Badge('PHOTO PREVIEW'),
     const SizedBox(height: 14),
     const Text(
-      'Your photo is ready',
+      'Ready to discover what you found?',
       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
     ),
     const SizedBox(height: 12),
     const Text(
-      'Live photo recognition is coming next. For now, try a sample '
-      'to explore the result and history screens.',
+      'Your photo has been uploaded successfully. Recognition will be connected in the next step, after the Vision service is configured.',
       style: TextStyle(color: AppColors.muted, height: 1.6),
+    ),
+    const SizedBox(height: 18),
+    Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.16)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.auto_awesome_outlined, color: AppColors.primary, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'For the best result, use one clear landmark or dish, keep it centred, and avoid blurry or very dark photos.',
+              style: TextStyle(color: AppColors.ink, fontSize: 12, height: 1.5),
+            ),
+          ),
+        ],
+      ),
+    ),
+    const SizedBox(height: 20),
+    SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: null,
+        icon: Icon(Icons.document_scanner_outlined),
+        label: Text('Recognition unavailable'),
+      ),
+    ),
+    const SizedBox(height: 8),
+    const Text(
+      'Photo recognition will be enabled after the cloud service is connected.',
+      style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+    ),
+    const SizedBox(height: 12),
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () {
+            Navigator.pop(context);
+            _pickPhoto(ImageSource.camera);
+          },
+          icon: const Icon(Icons.photo_camera_outlined),
+          label: const Text('Retake Photo'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () {
+            Navigator.pop(context);
+            _pickPhoto(ImageSource.gallery);
+          },
+          icon: const Icon(Icons.photo_library_outlined),
+          label: const Text('Choose Another'),
+        ),
+      ],
     ),
     const SizedBox(height: 24),
   ]);
@@ -241,7 +340,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           style: TextStyle(color: AppColors.ink),
         ),
         content: const Text(
-          'Remove the saved results on this device?',
+          'Remove all scan results saved on this device? This cannot be undone.',
           style: TextStyle(color: AppColors.muted),
         ),
         actions: [
@@ -293,7 +392,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       child: Row(
         children: [
           _tabButton(0, Icons.photo_camera_outlined, 'Scanner'),
-          _tabButton(1, Icons.collections_outlined, 'Presets'),
+          _tabButton(1, Icons.auto_awesome_outlined, 'Demo Results'),
           _tabButton(2, Icons.history, 'History (${_history.length})'),
         ],
       ),
@@ -344,7 +443,16 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
     children: [
       const Text(
-        'Choose an image source to identify Malaysian landmarks or culinary delicacies.',
+        'Discover a landmark or a local dish',
+        style: TextStyle(
+          fontSize: 21,
+          height: 1.3,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      const SizedBox(height: 10),
+      const Text(
+        'Choose a photo, review it, then identify what you see.',
         style: TextStyle(fontSize: 13, height: 1.6, color: AppColors.muted),
       ),
       const SizedBox(height: 20),
@@ -371,18 +479,12 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           backgroundColor: Colors.white,
         ),
       ],
-      const SizedBox(height: 28),
-      const Text(
-        'TAP TO RECOGNIZE A SAMPLE',
-        style: TextStyle(
-          color: AppColors.muted,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1,
-        ),
+      const SizedBox(height: 24),
+      OutlinedButton.icon(
+        onPressed: () => setState(() => _tab = 1),
+        icon: const Icon(Icons.collections_outlined),
+        label: const Text('View demo results'),
       ),
-      const SizedBox(height: 12),
-      _sampleGrid(recognitionPresets),
       const SizedBox(height: 20),
       Container(
         padding: const EdgeInsets.all(16),
@@ -423,80 +525,11 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       ),
       const SizedBox(height: 16),
       const Text(
-        'UI preview · Sample scans work offline. Live photo recognition is coming next.',
+        'Scanner ready - upload a photo to prepare it for recognition.',
         textAlign: TextAlign.center,
         style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.5),
       ),
     ],
-  );
-
-  Widget _sampleGrid(List<RecognitionPreset> presets) => LayoutBuilder(
-    builder: (context, constraints) => GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: presets.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: constraints.maxWidth >= 260 ? 2 : 1,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        mainAxisExtent: MediaQuery.textScalerOf(context).scale(1) > 1.3
-            ? 94
-            : 72,
-      ),
-      itemBuilder: (context, index) {
-        final preset = presets[index];
-        return Material(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: const BorderSide(color: AppColors.line),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => _openSample(preset),
-            child: Padding(
-              padding: const EdgeInsets.all(9),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: _PresetImage(preset: preset, height: 44, width: 44),
-                  ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          preset.kind.toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          preset.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    ),
   );
 
   Widget _presets() {
@@ -508,12 +541,12 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
       children: [
         const Text(
-          'Explore the sample collection',
+          'Try prepared recognition results',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 10),
         const Text(
-          'Try a landmark or local dish to preview a recognition result. No camera needed.',
+          'Browse prepared landmark and food results to understand what the finished recognition screen will show.',
           style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.6),
         ),
         const SizedBox(height: 16),
@@ -580,7 +613,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Try sample scan',
+                                  'View demo result',
                                   style: TextStyle(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w700,
@@ -628,7 +661,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       ),
       const SizedBox(height: 10),
       const Text(
-        'Your results are saved on this device.',
+        'Your completed recognition results will appear here. Demo results stay separate. History is currently stored on this device.',
         style: TextStyle(color: AppColors.muted, fontSize: 13),
       ),
       const SizedBox(height: 24),
@@ -646,7 +679,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Try a sample scan and revisit your result here.',
+                'After live recognition is connected, successful scans will be saved here automatically.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.muted, height: 1.6),
               ),
@@ -657,7 +690,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Try a sample'),
+                child: const Text('Go to Scanner'),
               ),
             ],
           ),

@@ -56,57 +56,51 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Sample result persists locally, reopens and clears from history',
-    (tester) async {
-      phoneSize(tester);
-      await tester.pumpWidget(page());
-      await tester.pumpAndSettle();
-      final sample = find.text('Petronas Twin Towers');
-      await tester.ensureVisible(sample);
-      await tester.tap(sample);
-      await tester.pumpAndSettle();
-      expect(find.text('SAMPLE PREVIEW'), findsOneWidget);
-      expect(find.text('KLCC, Kuala Lumpur'), findsOneWidget);
-      await tester.ensureVisible(find.text('Done'));
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-      expect(find.text('History (1)'), findsOneWidget);
-      expect(
-        await RecognitionHistoryStore(userId: 'recognition-test').load(),
-        hasLength(1),
-      );
-
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpWidget(page());
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('History (1)'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Petronas Twin Towers'));
-      await tester.pumpAndSettle();
-      expect(find.text('SAMPLE PREVIEW'), findsOneWidget);
-      await tester.ensureVisible(find.text('Done'));
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-      expect(find.text('History (1)'), findsOneWidget);
-      await tester.tap(find.text('Clear history'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Clear'));
-      await tester.pumpAndSettle();
-      expect(find.text('No scans yet'), findsOneWidget);
-      expect(
-        await RecognitionHistoryStore(userId: 'recognition-test').load(),
-        isEmpty,
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('Demo results stay separate from real scan history', (
+    tester,
+  ) async {
+    phoneSize(tester);
+    await tester.pumpWidget(page());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Demo Results'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Sultan Abdul Samad Building'),
+      250,
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Sultan Abdul Samad Building'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sultan Abdul Samad Building'));
+    await tester.pumpAndSettle();
+    expect(find.text('SAMPLE PREVIEW'), findsOneWidget);
+    await tester.ensureVisible(find.text('Add to Wishlist'));
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Add to Wishlist'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.ensureVisible(find.text('Done'));
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(
+      await RecognitionHistoryStore(userId: 'recognition-test').load(),
+      isEmpty,
+    );
+    await tester.tap(find.text('History (0)'));
+    await tester.pumpAndSettle();
+    expect(find.text('No scans yet'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Presets can be filtered to food', (tester) async {
     phoneSize(tester);
     await tester.pumpWidget(page());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Presets'));
+    await tester.tap(find.text('Demo Results'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Food'));
     await tester.pumpAndSettle();
@@ -128,7 +122,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    await tester.tap(find.text('Presets'));
+    await tester.tap(find.text('Demo Results'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Food'));
     await tester.pumpAndSettle();
