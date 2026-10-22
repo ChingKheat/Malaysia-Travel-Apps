@@ -8,8 +8,11 @@ The Flutter application includes authentication, attraction browsing, smart trip
 planning, saved itineraries, maps, an assistant UI, and an image recognition UI.
 Its client-cloud architecture uses Supabase Auth and PostgreSQL, Google Maps
 Platform, and OpenWeatherMap, with the existing local fallbacks available when
-services cannot be reached. Image recognition currently supports sample results,
-photo previews, and local history; live photo recognition is not connected.
+services cannot be reached. Image recognition supports photo recognition through
+Google Vision, result translation into Malay/Chinese, offline samples, and local
+result history. Live recognition and translation use authenticated Supabase Edge
+Functions with a server-only Google key. See the
+[recognition setup and limitations](docs/architecture/image_recognition_data_flow.md).
 
 The bottom navigation has five destinations: Home, Explore, Recognize, Plan, and AI.
 Recognize is centered. Open My Trips from the Home card or the Plan shortcut to view
@@ -113,6 +116,7 @@ Run the application checks from the project root:
 flutter analyze --no-pub
 flutter test --no-pub
 node --test tool/checks/google_places_proxy_test.mjs tool/checks/google_routes_proxy_test.mjs
+node --test tool/checks/image_recognition_proxy_test.mjs
 ```
 
 The Node checks use mocked upstream services. The manual API check keeps its

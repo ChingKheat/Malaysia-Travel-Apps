@@ -2,3 +2,7 @@
 # signing keys that the legacy gateway JWT verifier does not support.
 [functions.google-places]
 verify_jwt = false
+
+# The handler verifies every bearer token with Supabase Auth before Google calls.
+[functions.image-recognition]
+verify_jwt = false
