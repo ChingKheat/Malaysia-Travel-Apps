@@ -168,7 +168,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             const SizedBox(height: 16),
             Text(
               widget.result.isSample
-                  ? 'This is a preset example, not a live photo recognition.'
+                  ? 'This is a prepared demo result. It has not analysed your uploaded photo and is not added to scan history.'
                   : 'Identification uses Vision detections. Guide descriptions come from the app’s curated catalog.',
               style: const TextStyle(
                 color: AppColors.muted,
@@ -176,10 +176,75 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                 height: 1.5,
               ),
             ),
+            const SizedBox(height: 24),
+            const Text(
+              'Explore this result',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'These actions will be available when live recognition and tourism details are connected.',
+              style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Tooltip(
+                  message: 'Available after setup',
+                  child: OutlinedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.favorite_border, size: 18),
+                    label: const Text('Add to Wishlist'),
+                  ),
+                ),
+                Tooltip(
+                  message: 'Available after setup',
+                  child: OutlinedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.near_me_outlined, size: 18),
+                    label: Text(
+                      _display.kind == 'food' ? 'Find Restaurants' : 'View Nearby',
+                    ),
+                  ),
+                ),
+                if (_display.kind != 'food') ...[
+                  Tooltip(
+                    message: 'Available after setup',
+                    child: OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.map_outlined, size: 18),
+                      label: const Text('View on Map'),
+                    ),
+                  ),
+                  Tooltip(
+                    message: 'Available after setup',
+                    child: OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.event_available_outlined, size: 18),
+                      label: const Text('Add to Travel Plan'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (_display.kind == 'food') ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Choose a restaurant before adding this dish to your travel plan.',
+                style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+              ),
+            ],
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Done'),
               ),

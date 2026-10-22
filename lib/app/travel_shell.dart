@@ -120,10 +120,35 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                   offstage: _myTripsOpen,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    child: AppHeader(
-                      title: _tabTitles[_selectedIndex],
-                      subtitle: _tabSubtitles[_selectedIndex],
-                    ),
+                    child: _selectedIndex == 2
+                        ? const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Image Recognition',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.ink,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Discover Malaysia through your camera',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : AppHeader(
+                            title: _tabTitles[_selectedIndex],
+                            subtitle: _tabSubtitles[_selectedIndex],
+                          ),
                   ),
                 ),
                 Expanded(

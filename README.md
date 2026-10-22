@@ -10,8 +10,10 @@ Its client-cloud architecture uses Supabase Auth and PostgreSQL, Google Maps
 Platform, and OpenWeatherMap, with the existing local fallbacks available when
 services cannot be reached. Image recognition supports photo recognition through
 Google Vision, result translation into Malay/Chinese, offline samples, and local
-result history. Live recognition and translation use authenticated Supabase Edge
-Functions with a server-only Google key. See the
+result history (with demo results kept separate from scan history). The
+recognition-only header omits unrelated notifications to focus on scanning.
+Live recognition and translation use authenticated Supabase Edge Functions with a
+server-only Google key, with offline fallback samples available when offline. See the
 [recognition setup and limitations](docs/architecture/image_recognition_data_flow.md).
 
 The bottom navigation has five destinations: Home, Explore, Recognize, Plan, and AI.
