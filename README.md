@@ -8,8 +8,11 @@ The Flutter application includes authentication, attraction browsing, smart trip
 planning, saved itineraries, maps, an assistant UI, and an image recognition UI.
 Its client-cloud architecture uses Supabase Auth and PostgreSQL, Google Maps
 Platform, and OpenWeatherMap, with the existing local fallbacks available when
-services cannot be reached. Image recognition currently supports sample results,
+services cannot be reached. Image recognition currently supports clearly labelled example results,
 photo previews, and local history; live photo recognition is not connected.
+Examples do not enter scan history. The recognition-only header omits unrelated
+notifications and profile shortcuts. Result actions and Identify Photo are shown
+disabled until their services are connected.
 
 The bottom navigation has five destinations: Home, Explore, Recognize, Plan, and AI.
 Recognize is centered. Open My Trips from the Home card or the Plan shortcut to view

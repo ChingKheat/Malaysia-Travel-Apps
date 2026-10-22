@@ -34,13 +34,18 @@ void main() {
         }.entries) {
           await tester.tap(_tab(entry.key));
           await tester.pumpAndSettle();
-          expect(
-            find.descendant(
-              of: find.byType(AppHeader),
-              matching: find.text(entry.value),
-            ),
-            findsOneWidget,
-          );
+          if (entry.key == 'Recognize') {
+            expect(find.text(entry.value), findsOneWidget);
+            expect(find.byTooltip('Notifications'), findsNothing);
+          } else {
+            expect(
+              find.descendant(
+                of: find.byType(AppHeader),
+                matching: find.text(entry.value),
+              ),
+              findsOneWidget,
+            );
+          }
         }
         await tester.tap(_tab('Home'));
         await tester.pumpAndSettle();
