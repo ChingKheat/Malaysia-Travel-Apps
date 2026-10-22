@@ -842,21 +842,20 @@ class _PresetImage extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge(this.label, {this.color = AppColors.primary});
+  const _Badge(this.label);
   final String label;
-  final Color color;
 
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
     decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.1),
+      color: AppColors.primary.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
       label,
-      style: TextStyle(
-        color: color,
+      style: const TextStyle(
+        color: AppColors.primary,
         fontSize: 9,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.5,
