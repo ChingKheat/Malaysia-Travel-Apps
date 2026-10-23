@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {createHandler} from '../../supabase/functions/image-recognition/handler.mjs';
 
 const image = Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...Array(12).fill(0)]).toString('base64');
-const config = {SUPABASE_URL: 'https://db.test', SUPABASE_ANON_KEY: 'public', GOOGLE_PLACES_API_KEY: 'server-only'};
+const config = {SUPABASE_URL: 'https://db.test', SUPABASE_ANON_KEY: 'public', GOOGLE_BACKEND_API_KEY: 'server-only'};
 const request = (body, token = 'valid') => new Request('https://app.test', {
   method: 'POST', headers: {...(token ? {Authorization: `Bearer ${token}`} : {}), 'Content-Type': 'application/json'},
   body: JSON.stringify(body),
 });
-function setup({user = {id: 'tourist'}, upstream, missingKey = false} = {}) {
+function setup({user = {id: 'tourist'}, upstream, missingKey = false, secrets = {}} = {}) {
   const calls = [];
-  const handler = createHandler({env: name => missingKey && name === 'GOOGLE_PLACES_API_KEY' ? '' : config[name], fetcher: async (url, options) => {
+  const handler = createHandler({env: name => missingKey && name === 'GOOGLE_BACKEND_API_KEY' ? '' : {...config,...secrets}[name], fetcher: async (url, options) => {
     calls.push({url, options});
     if (url.endsWith('/auth/v1/user')) return user ? Response.json(user) : new Response('', {status: 401});
     return upstream ? upstream(url, options) : Response.json({responses: [{
@@ -44,6 +44,25 @@ test('Vision uses only the server secret and fixed features; responses exclude r
   assert.equal(url.includes('server-only'), false);
   assert.equal(options.redirect, 'error');
   assert.deepEqual(JSON.parse(options.body).requests[0].features.map(f => f.type), ['LANDMARK_DETECTION', 'LABEL_DETECTION']);
+});
+
+test('Vision and Translation use only the shared backend secret', async () => {
+  for (const secrets of [
+    {GOOGLE_BACKEND_API_KEY:'shared-backend'},
+    {GOOGLE_BACKEND_API_KEY:'shared-backend',GOOGLE_PLACES_API_KEY:'legacy-key'},
+  ]) {
+    const {handler,calls}=setup({secrets,upstream:url=>Response.json(url.includes('vision.googleapis.com')
+      ? {responses:[{}]}
+      : {data:{translations:[{translatedText:'Helo'}]}})});
+    assert.equal((await handler(request({image}))).status,200);
+    assert.equal(calls.at(-1).options.headers['X-Goog-Api-Key'],'shared-backend');
+    assert.equal((await handler(request({operation:'translate',texts:['Hello'],target:'ms'}))).status,200);
+    assert.equal(calls.at(-1).options.headers['X-Goog-Api-Key'],'shared-backend');
+  }
+  const {handler,calls}=setup({secrets:{GOOGLE_BACKEND_API_KEY:undefined,GOOGLE_PLACES_API_KEY:'removed-secret'}});
+  assert.equal((await handler(request({image}))).status,503);
+  assert.equal((await handler(request({operation:'translate',texts:['Hello'],target:'ms'}))).status,503);
+  assert.equal(calls.length,2);
 });
 
 test('Rejects malformed images, arbitrary URLs, unsupported operations and oversized bodies', async () => {

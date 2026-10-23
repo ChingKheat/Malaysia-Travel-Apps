@@ -108,7 +108,7 @@ export function createHandler({env, fetcher = fetch, now = Date.now}) {
         payload = {q: texts, source: 'en', target, format: 'text'};
       } else return json({error: 'Unsupported operation'}, 400);
 
-      const key = env('GOOGLE_PLACES_API_KEY');
+      const key = env('GOOGLE_BACKEND_API_KEY');
       if (!key) return json({error: 'Recognition and translation are not configured'}, 503);
       const minute = Math.floor(now() / 60000);
       for (const [id, entry] of usage) if (entry.minute !== minute) usage.delete(id);

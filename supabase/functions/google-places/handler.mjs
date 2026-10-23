@@ -26,7 +26,7 @@ export function createHandler({env,fetcher=fetch}) {
       const count=usage?.minute===minute?usage.count+1:1;
       requests.set(user.id,{minute,count});
       if(count>90) return json({error:'Too many place requests. Try again shortly.'},429);
-      const key=env('GOOGLE_PLACES_API_KEY');
+      const key=env('GOOGLE_BACKEND_API_KEY');
       if(!key) return json({error:'Google Places is not configured on the server'},503);
       let body;
       try { body=await req.json(); } catch { return json({error:'Invalid JSON request'},400); }

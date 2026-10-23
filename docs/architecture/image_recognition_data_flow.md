@@ -30,10 +30,14 @@ that map key or put the Google backend key in Flutter.
 `ImageRecognitionService` sends a user bearer token and the project's public
 Supabase key to `functions/v1/image-recognition`. The function verifies the user
 with Supabase Auth, rejects anonymous users, validates bounded inputs, and reads
-the existing `GOOGLE_PLACES_API_KEY` Edge Function secret. Despite the variable's
-historical name, its value is the **SmartTravel-Backend** key, allowed to access
+the `GOOGLE_BACKEND_API_KEY` Edge Function secret. Its value is the
+**SmartTravel-Backend** key, allowed to access
 Places API (New), Routes API, Cloud Vision API and Cloud Translation API. No
 second secret or additional Google key is needed for this feature.
+
+Both functions read only `GOOGLE_BACKEND_API_KEY` for the shared Google key.
+Keep that secret populated with the actual SmartTravel-Backend key in Supabase.
+Do not paste an actual key into tracked files or documentation.
 
 - Recognition: fixed `LANDMARK_DETECTION` and `LABEL_DETECTION` requests to
   `https://vision.googleapis.com/v1/images:annotate`.
@@ -72,7 +76,7 @@ HTTP 401. A successful signed-in Vision/Translation request remains a normal
 device check; no user's session token was extracted for testing.
 
 Deploy the three files in `supabase/functions/image-recognition/` together and
-restore `GOOGLE_PLACES_API_KEY` in Edge Function secrets. The existing
+restore `GOOGLE_BACKEND_API_KEY` in Edge Function secrets. The existing
 `google-places` deployment is separate and must also be restored on recovery.
 No database table, column, trigger, relationship or RLS policy is changed here;
 `docs/supabase_schema.sql` therefore remains unchanged.

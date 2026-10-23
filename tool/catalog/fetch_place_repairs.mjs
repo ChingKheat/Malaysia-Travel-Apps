@@ -6,10 +6,10 @@ const [input, output] = process.argv.slice(2);
 if (!input || !output) throw new Error('Usage: node tool/catalog/fetch_place_repairs.mjs input.json output.json');
 const ids = JSON.parse(fs.readFileSync(input, 'utf8').replace(/^\uFEFF/, ''));
 if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string' && /^[A-Za-z0-9_-]{5,255}$/.test(id))) throw new Error('Invalid ID list');
-// Use an existing local development key without logging it. Production app calls
+// Use the backend key from the environment without logging it. Production app calls
 // continue to use the authenticated Edge Function and its server secret.
-const key = process.env.GOOGLE_PLACES_API_KEY || fs.readFileSync('lib/core/config/api_keys.dart', 'utf8').match(/AIza[A-Za-z0-9_-]+/)?.[0];
-if (!key) throw new Error('No local Google Places key available');
+const key = process.env.GOOGLE_BACKEND_API_KEY;
+if (!key) throw new Error('Set GOOGLE_BACKEND_API_KEY before running this repair helper');
 const fields = 'id,displayName,addressComponents,location,rating,userRatingCount,regularOpeningHours,primaryTypeDisplayName';
 const results = [];
 const rawResults = [];
