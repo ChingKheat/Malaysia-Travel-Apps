@@ -47,7 +47,8 @@ selecting route stops can request real Google directions.
 
 Both route polylines and the scheduler's travel matrix use the authenticated Edge
 Function. Routes has an optional `GOOGLE_ROUTES_API_KEY` server secret, otherwise
-it uses the existing Google Places server key. Points, mode, field masks and
+it uses `GOOGLE_BACKEND_API_KEY`, shared with Vision and Translation.
+Points, mode, field masks and
 request sizes are bounded server-side. A matrix is capped at 10×10 elements;
 repeated identical results are reused in memory for 10 minutes. Candidates outside
 the bounded matrix use labelled estimates. Offline/unavailable routes also use

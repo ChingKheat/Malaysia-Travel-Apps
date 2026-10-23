@@ -9,19 +9,29 @@ import 'package:smart_travel_planner/core/theme/app_decorations.dart';
 import 'package:smart_travel_planner/features/image_recognition/data/recognition_presets.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
+import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
+import 'package:smart_travel_planner/features/image_recognition/widgets/recognition_result_sheet.dart';
 
-/// UI preview: samples and history work locally; photos are never sent to an API.
+/// Photos are sent only after the user presses Recognize photo.
 class ImageRecognitionPage extends StatefulWidget {
-  const ImageRecognitionPage({super.key, this.userId = 'guest'});
+  const ImageRecognitionPage({
+    super.key,
+    this.userId = 'guest',
+    this.service,
+    this.imagePicker,
+  });
 
   final String userId;
+  final ImageRecognitionService? service;
+  final ImagePicker? imagePicker;
 
   @override
   State<ImageRecognitionPage> createState() => _ImageRecognitionPageState();
 }
 
 class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
-  final _picker = ImagePicker();
+  late final ImagePicker _picker;
+  late final ImageRecognitionService _service;
   late final RecognitionHistoryStore _store;
 
   Future<void> _pendingWrite = Future.value();
@@ -29,10 +39,13 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   int _tab = 0;
   String _filter = 'all';
   bool _picking = false;
+  bool _recognizing = false;
 
   @override
   void initState() {
     super.initState();
+    _picker = widget.imagePicker ?? ImagePicker();
+    _service = widget.service ?? ImageRecognitionService();
     _store = RecognitionHistoryStore(userId: widget.userId);
     unawaited(_loadHistory());
   }
@@ -61,111 +74,24 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     final preset = recognitionPresets
         .where((item) => item.id == result.sampleId)
         .firstOrNull;
-    _showSheet([
-      if (preset != null) ...[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: _PresetImage(preset: preset, height: 200),
-        ),
-        const SizedBox(height: 20),
-      ],
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _Badge(result.kind.toUpperCase()),
-          if (result.isSample)
-            const _Badge('SAMPLE PREVIEW', color: AppColors.muted),
-        ],
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      constraints: const BoxConstraints(maxWidth: 560),
+      builder: (_) => RecognitionResultSheet(
+        result: result,
+        service: _service,
+        image: preset == null
+            ? null
+            : _PresetImage(preset: preset, height: 200),
       ),
-      const SizedBox(height: 14),
-      Text(
-        result.name,
-        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-      ),
-      const SizedBox(height: 12),
-      if (result.location.isNotEmpty) ...[
-        Row(
-          children: [
-            const Icon(
-              Icons.place_outlined,
-              color: AppColors.primary,
-              size: 18,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                result.location,
-                style: const TextStyle(color: AppColors.muted, fontSize: 13),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-      ],
-      Text(
-        result.description,
-        style: const TextStyle(color: AppColors.muted, height: 1.6),
-      ),
-      if (result.isSample) ...[
-        const SizedBox(height: 18),
-        const Text(
-          'This is a prepared demo result. It has not analysed your uploaded photo and is not added to scan history.',
-          style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
-        ),
-      ],
-      const SizedBox(height: 24),
-      const Text(
-        'Explore this result',
-        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-      ),
-      const SizedBox(height: 8),
-      const Text(
-        'These actions will be available when live recognition and tourism details are connected.',
-        style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
-      ),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _pendingAction(Icons.favorite_border, 'Add to Wishlist'),
-          _pendingAction(Icons.translate, 'Translate'),
-          _pendingAction(
-            Icons.near_me_outlined,
-            result.kind == 'food' ? 'Find Restaurants' : 'View Nearby',
-          ),
-          if (result.kind != 'food') ...[
-            _pendingAction(Icons.map_outlined, 'View on Map'),
-            _pendingAction(
-              Icons.event_available_outlined,
-              'Add to Travel Plan',
-            ),
-          ],
-        ],
-      ),
-      if (result.kind == 'food') ...[
-        const SizedBox(height: 12),
-        const Text(
-          'Choose a restaurant before adding this dish to your travel plan.',
-          style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
-        ),
-      ],
-      const SizedBox(height: 24),
-    ]);
+    );
   }
 
-  Widget _pendingAction(IconData icon, String label) => Tooltip(
-    message: 'Available after setup',
-    child: OutlinedButton.icon(
-      onPressed: null,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-    ),
-  );
-
   Future<void> _pickPhoto(ImageSource source) async {
-    if (_picking) return;
+    if (_picking || _recognizing) return;
     setState(() => _picking = true);
     try {
       final photo = await _picker.pickImage(
@@ -176,11 +102,16 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         requestFullMetadata: false,
       );
       if (photo == null || !mounted) return;
-      if (await photo.length() > 8 * 1024 * 1024) {
-        _notify('Choose a photo smaller than 8 MB.');
+      if (await photo.length() > ImageRecognitionService.maxImageBytes) {
+        _notify('Choose a photo smaller than 4 MB.');
         return;
       }
       final bytes = await photo.readAsBytes();
+      if (bytes.isEmpty ||
+          bytes.length > ImageRecognitionService.maxImageBytes) {
+        _notify('Choose a photo smaller than 4 MB.');
+        return;
+      }
       if (mounted) _showPhotoPreview(bytes);
     } on MissingPluginException {
       _notify('Restart the app to enable the camera and photo library.');
@@ -195,11 +126,42 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     }
   }
 
+  Future<void> _recognize(Uint8List bytes) async {
+    if (_recognizing) return;
+    setState(() => _recognizing = true);
+    try {
+      final result = await _service.recognize(bytes);
+      if (!mounted) return;
+      setState(
+        () => _history = [
+          result,
+          ..._history,
+        ].take(RecognitionHistoryStore.maxEntries).toList(),
+      );
+      _saveHistory();
+      _showResult(result);
+    } on ImageRecognitionException catch (error) {
+      _notify(error.message);
+    } catch (_) {
+      _notify('Image recognition is temporarily unavailable. Try a sample.');
+    } finally {
+      if (mounted) setState(() => _recognizing = false);
+    }
+  }
+
   void _notify(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
   }
 
   void _showPhotoPreview(Uint8List bytes) => _showSheet([
@@ -220,15 +182,21 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     const _Badge('PHOTO PREVIEW'),
     const SizedBox(height: 14),
     const Text(
-      'Ready to discover what you found?',
+      'Your photo is ready',
       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+    ),
+    const SizedBox(height: 6),
+    const Text(
+      'Ready to discover what you found?',
+      style: TextStyle(color: AppColors.muted, fontSize: 14),
     ),
     const SizedBox(height: 12),
     const Text(
-      'Your photo has been uploaded successfully. You can test the result flow now; live recognition will be connected when the Vision key is available.',
+      'Recognize sends this photo to Google Vision through our secure service. '
+      'Only result text is saved in your local history; the photo is not stored by the app.',
       style: TextStyle(color: AppColors.muted, height: 1.6),
     ),
-    const SizedBox(height: 18),
+    const SizedBox(height: 16),
     Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -258,6 +226,18 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       child: FilledButton.icon(
         onPressed: () {
           Navigator.pop(context);
+          unawaited(_recognize(bytes));
+        },
+        icon: const Icon(Icons.image_search),
+        label: const Text('Recognize photo'),
+      ),
+    ),
+    const SizedBox(height: 8),
+    SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.pop(context);
           _showLocalTestResult();
         },
         icon: const Icon(Icons.science_outlined),
@@ -266,7 +246,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     ),
     const SizedBox(height: 8),
     const Text(
-      'This uses a prepared catalogue result for testing. It does not analyse the uploaded photo yet.',
+      'Test recognition uses prepared catalog results to preview the flow.',
       style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
     ),
     const SizedBox(height: 12),
@@ -473,7 +453,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         subtitle: 'Launch your camera to capture a landmark or food',
         icon: Icons.photo_camera_outlined,
         prominent: true,
-        enabled: !_picking,
+        enabled: !_picking && !_recognizing,
         onTap: () => _pickPhoto(ImageSource.camera),
       ),
       const SizedBox(height: 12),
@@ -481,15 +461,23 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         title: 'Upload from Gallery',
         subtitle: 'Select a photo from your photo library',
         icon: Icons.file_upload_outlined,
-        enabled: !_picking,
+        enabled: !_picking && !_recognizing,
         onTap: () => _pickPhoto(ImageSource.gallery),
       ),
-      if (_picking) ...[
+      if (_picking || _recognizing) ...[
         const SizedBox(height: 12),
         const LinearProgressIndicator(
           color: AppColors.primary,
           backgroundColor: Colors.white,
         ),
+        if (_recognizing)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Recognizing photo…',
+              style: TextStyle(color: AppColors.muted),
+            ),
+          ),
       ],
       const SizedBox(height: 24),
       OutlinedButton.icon(
@@ -537,7 +525,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       ),
       const SizedBox(height: 16),
       const Text(
-        'Scanner ready - upload a photo to prepare it for recognition.',
+        'Sample scans work offline. Live recognition and translation require an online account.',
         textAlign: TextAlign.center,
         style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.5),
       ),
@@ -881,21 +869,20 @@ class _PresetImage extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge(this.label, {this.color = AppColors.primary});
+  const _Badge(this.label);
   final String label;
-  final Color color;
 
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
     decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.1),
+      color: AppColors.primary.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
       label,
-      style: TextStyle(
-        color: color,
+      style: const TextStyle(
+        color: AppColors.primary,
         fontSize: 9,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.5,
