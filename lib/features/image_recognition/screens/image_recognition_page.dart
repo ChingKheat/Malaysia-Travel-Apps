@@ -47,7 +47,6 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   }
 
   void _saveHistory() {
-
     final entries = List<RecognitionResult>.of(_history);
     _pendingWrite = _pendingWrite.then((_) async {
       await _store.save(entries);
@@ -226,7 +225,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     ),
     const SizedBox(height: 12),
     const Text(
-      'Your photo has been uploaded successfully. Recognition will be connected in the next step, after the Vision service is configured.',
+      'Your photo has been uploaded successfully. You can test the result flow now; live recognition will be connected when the Vision key is available.',
       style: TextStyle(color: AppColors.muted, height: 1.6),
     ),
     const SizedBox(height: 18),
@@ -250,19 +249,24 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           ),
         ],
       ),
+
+      
     ),
     const SizedBox(height: 20),
     SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        onPressed: null,
-        icon: Icon(Icons.document_scanner_outlined),
-        label: Text('Recognition unavailable'),
+        onPressed: () {
+          Navigator.pop(context);
+          _showLocalTestResult();
+        },
+        icon: const Icon(Icons.science_outlined),
+        label: const Text('Run test recognition'),
       ),
     ),
     const SizedBox(height: 8),
     const Text(
-      'Photo recognition will be enabled after the cloud service is connected.',
+      'This uses a prepared catalogue result for testing. It does not analyse the uploaded photo yet.',
       style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
     ),
     const SizedBox(height: 12),
@@ -290,6 +294,14 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     ),
     const SizedBox(height: 24),
   ]);
+
+  void _showLocalTestResult() {
+    if (recognitionPresets.isEmpty) {
+      _notify('No prepared test result is available yet.');
+      return;
+    }
+    _showResult(recognitionPresets.first.sampleResult());
+  }
 
   void _showSheet(List<Widget> children) {
     showModalBottomSheet<void>(
