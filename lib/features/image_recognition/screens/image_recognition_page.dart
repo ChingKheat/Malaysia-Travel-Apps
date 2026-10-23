@@ -217,6 +217,8 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           ),
         ],
       ),
+
+      
     ),
     const SizedBox(height: 20),
     SizedBox(
@@ -229,6 +231,23 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         icon: const Icon(Icons.image_search),
         label: const Text('Recognize photo'),
       ),
+    ),
+    const SizedBox(height: 8),
+    SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.pop(context);
+          _showLocalTestResult();
+        },
+        icon: const Icon(Icons.science_outlined),
+        label: const Text('Run test recognition'),
+      ),
+    ),
+    const SizedBox(height: 8),
+    const Text(
+      'Test recognition uses prepared catalog results to preview the flow.',
+      style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
     ),
     const SizedBox(height: 12),
     Wrap(
@@ -255,6 +274,14 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     ),
     const SizedBox(height: 24),
   ]);
+
+  void _showLocalTestResult() {
+    if (recognitionPresets.isEmpty) {
+      _notify('No prepared test result is available yet.');
+      return;
+    }
+    _showResult(recognitionPresets.first.sampleResult());
+  }
 
   void _showSheet(List<Widget> children) {
     showModalBottomSheet<void>(
