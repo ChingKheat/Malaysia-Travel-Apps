@@ -1,22 +1,20 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
-import 'package:smart_travel_planner/features/places/screens/place_detail_page.dart';
+import 'place_review_page.dart';
+import '../models/place_import_batch.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
-import 'package:smart_travel_planner/features/places/services/place_classifier.dart';
 import 'package:smart_travel_planner/features/admin/services/place_sync_history_service.dart';
 import 'package:smart_travel_planner/features/admin/models/place_sync_record.dart';
 import 'package:smart_travel_planner/features/admin/widgets/place_sync_notice.dart';
 import 'package:smart_travel_planner/features/admin/services/admin_places_repository.dart';
+import 'package:smart_travel_planner/features/places/widgets/google_maps_attribution.dart';
 
 class AdminPlacesScreen extends StatefulWidget {
   const AdminPlacesScreen({super.key});
@@ -52,6 +50,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
 
   List<Map<String, dynamic>> _currentPlaces = [];
   int _dbCount = 0;
+  int _pageOffset = 0;
+  bool _searchBudgetReady = false;
+  String _budgetNotice = 'Checking verified Google allowance…';
   bool _rlsBlocked = false;
   bool _missingReviewColumn = false;
   double _syncProgress = 0.0;
@@ -106,15 +107,6 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     });
   }
 
-  static double _calculatePopularityScore(Map<String, dynamic> item) {
-    final rating = (item['rating'] as num?)?.toDouble() ?? 0.0;
-    final count = (item['user_ratings_total'] as num?)?.toInt() ?? 0;
-    if (count <= 0) return rating * 0.1;
-    if (count < 10) return rating * 0.4;
-    // Standard Bayesian/weighted popularity formula: rating * log10(reviewCount + 10)
-    return rating * (math.log(count + 10) / math.ln10);
-  }
-
   static String _formatReviewCount(int count) {
     if (count >= 1000) {
       return '${(count / 1000).toStringAsFixed(1)}k';
@@ -128,8 +120,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     });
   }
 
-  Future<void> _loadStateData() async {
-    final state = _selectedState;
+  Future<void> _loadStateData({String? forState, int offset = 0}) async {
+    final state = forState ?? _selectedState;
+    if (state != _selectedState) return;
     final generation = ++_listGeneration;
     unawaited(_loadSyncHistory());
     setState(() {
@@ -152,25 +145,33 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     final client = SupabaseConfig.client;
     if (client != null && SupabaseConfig.isConfigured) {
       try {
-        final page = await _places.load(state);
-
-        final list = page.rows
-            .map(
-              (row) => row['name'] == 'Saved Google place'
-                  ? <String, dynamic>{
-                      ...row,
-                      'name': 'Incomplete import — needs review',
-                      'category': 'Country/state not verified',
-                    }
-                  : row,
+        final page = await _places.load(state, offset: offset);
+        if (!mounted ||
+            generation != _listGeneration ||
+            state != _selectedState) {
+          return;
+        }
+        final status = await GooglePlacesService().budgetStatus();
+        final budgets = (status?['budgets'] as List? ?? []).whereType<Map>();
+        final searchBudget = budgets
+            .where(
+              (b) =>
+                  b['sku'] == 'text_search_pro' &&
+                  b['enabled'] == true &&
+                  b['verified_at'] != null &&
+                  (DateTime.tryParse(
+                        b['valid_until']?.toString() ?? '',
+                      )?.isAfter(DateTime.now()) ??
+                      false),
             )
-            .toList();
-        list.sort(
-          (a, b) => _calculatePopularityScore(
-            b,
-          ).compareTo(_calculatePopularityScore(a)),
-        );
+            .firstOrNull;
+        final remaining = searchBudget == null
+            ? 0
+            : ((searchBudget['request_limit'] as num?)?.toInt() ?? 0) -
+                  ((searchBudget['baseline_usage'] as num?)?.toInt() ?? 0) -
+                  ((searchBudget['used_units'] as num?)?.toInt() ?? 0);
 
+        final list = page.rows;
         final hasColumnInDb =
             list.isEmpty ||
             list.any((p) => p.containsKey('user_ratings_total'));
@@ -182,8 +183,15 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         }
         setState(() {
           _currentPlaces = list;
+          _pageOffset = offset;
+          _searchBudgetReady = remaining >= 48;
+          _budgetNotice = remaining >= 48
+              ? '$remaining verified search requests remaining. A full state sync uses up to 48.'
+              : 'Fetch & Sync is blocked until the current Google allowance is verified with at least 48 requests remaining. Saved IDs and schedules remain available.';
           _dbCount = page.totalCount;
-          _missingReviewColumn = !hasColumnInDb;
+          _missingReviewColumn =
+              !hasColumnInDb &&
+              !page.rows.any(PlaceCatalogService.isGoogleReference);
         });
       } catch (e) {
         debugPrint('Error loading places: $e');
@@ -208,6 +216,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         _loadingSyncHistory ||
         _isFetchingList ||
         _placesLoadError != null) {
+      return;
+    }
+    if (!_searchBudgetReady) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_budgetNotice)));
       return;
     }
     final db = SupabaseConfig.client;
@@ -262,74 +276,75 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       _syncProgress = 0.05;
       _syncStatusText = 'Searching Google for $state';
       _syncSubStatusText =
-          'Only place IDs and your selected state are saved. Details and photos stay live.';
+          'Only place IDs, your selected state and app categories are saved. Details and photos stay live.';
     });
     final service = GooglePlacesService();
-    final live = <String, Map<String, dynamic>>{};
+    final batch = PlaceImportBatch(state);
+    final live = batch.rows;
     var searchRequests = 0;
     final categorySpecs = [
       {
         'category': 'Culture',
         'icon': '🏛️',
         'queries': [
-          'top rated museums, art galleries and cultural complexes in $_selectedState, Malaysia',
-          'famous cultural heritage centres, architectural landmarks in $_selectedState, Malaysia',
+          'museums, art galleries and cultural centres in $state, Malaysia',
+          'cultural heritage centres and architectural landmarks in $state, Malaysia',
         ],
       },
       {
         'category': 'Food',
         'icon': '🍜',
         'queries': [
-          'top rated famous local street food, legendary hawker stalls and food courts in $_selectedState, Malaysia',
-          'best authentic restaurants, traditional eateries and famous dining in $_selectedState, Malaysia',
+          'hawker centres and local food courts in $state, Malaysia',
+          'local restaurants and traditional eateries in $state, Malaysia',
         ],
       },
       {
         'category': 'Nature',
         'icon': '🌿',
         'queries': [
-          'top rated national parks, botanical gardens and waterfalls in $_selectedState, Malaysia',
-          'famous scenic beaches, islands, hills and nature lookouts in $_selectedState, Malaysia',
+          'national parks, botanical gardens and waterfalls in $state, Malaysia',
+          'beaches, islands and scenic nature viewpoints in $state, Malaysia',
         ],
       },
       {
         'category': 'Shopping',
         'icon': '🛍️',
         'queries': [
-          'popular shopping malls, department stores and retail complexes in $_selectedState, Malaysia',
-          'famous local markets, handicraft centers and souvenir bazaars in $_selectedState, Malaysia',
+          'shopping malls and department stores in $state, Malaysia',
+          'local markets, handicraft centres and souvenir shops in $state, Malaysia',
         ],
       },
       {
         'category': 'History',
         'icon': '🏰',
         'queries': [
-          'famous UNESCO historical heritage monuments and colonial buildings in $_selectedState, Malaysia',
-          'iconic historic temples, clan houses, forts and memorials in $_selectedState, Malaysia',
+          'historic monuments and colonial buildings in $state, Malaysia',
+          'historic temples, clan houses, forts and memorials in $state, Malaysia',
         ],
       },
       {
         'category': 'Adventure',
         'icon': '🧗',
         'queries': [
-          'popular hiking trails, mountain peaks and forest canopy walks in $_selectedState, Malaysia',
-          'famous theme parks, water parks and adventure eco attractions in $_selectedState, Malaysia',
+          'hiking trails, mountain peaks and canopy walks in $state, Malaysia',
+          'theme parks, water parks and outdoor adventure parks in $state, Malaysia',
         ],
       },
       {
         'category': 'Family',
         'icon': '👨‍👩‍👧',
         'queries': [
-          'family friendly attractions, aquariums, interactive science centres and zoos in $_selectedState, Malaysia',
-          'kid friendly recreation parks and family sightseeing spots in $_selectedState, Malaysia',
+          'aquariums, science centres and zoos in $state, Malaysia',
+          'family recreation parks and children’s attractions in $state, Malaysia',
         ],
       },
       {
         'category': 'Nightlife',
         'icon': '🌙',
         'queries': [
-          'famous vibrant night markets and evening street food bazaars in $_selectedState, Malaysia',
-          'popular evening viewpoints, night waterfront walks and evening spots in $_selectedState, Malaysia',
+          'night markets and evening food bazaars in $state, Malaysia',
+          'evening viewpoints and waterfront walks in $state, Malaysia',
         ],
       },
     ];
@@ -343,6 +358,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             searchRequests++;
             final data = await service.searchPage(
               query: query,
+              state: state,
               pageToken: pageToken,
             );
             if (data == null) {
@@ -351,61 +367,13 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               );
             }
             for (final p in (data['places'] as List? ?? []).whereType<Map>()) {
-              if (AdminPlacesRepository.googleState(
-                    Map<String, dynamic>.from(p),
-                  ) !=
-                  state) {
-                continue;
-              }
-              final id = p['id']?.toString();
-              final location = p['location'] as Map?;
-              final lat = location?['latitude'] as num?;
-              final lng = location?['longitude'] as num?;
-              if (id == null ||
-                  lat == null ||
-                  lng == null ||
-                  !lat.isFinite ||
-                  !lng.isFinite ||
-                  lat < 1 ||
-                  lat > 7.5 ||
-                  lng < 99 ||
-                  lng > 120) {
-                continue;
-              }
-              if (state == 'Kuala Lumpur' &&
-                  (lat < 2.8 || lat > 3.5 || lng < 101.4 || lng > 102.1)) {
-                continue;
-              }
-              final rawCat =
-                  (p['primaryTypeDisplayName'] as Map?)?['text']?.toString() ??
-                  (categorySpecs[c]['category'] as String);
-              final placeName =
-                  (p['displayName'] as Map?)?['text']?.toString() ??
-                  'Name unavailable';
-              final isIndoor =
-                  PlaceClassifier.classify(category: rawCat, name: placeName) ??
-                  ([
-                    'Culture',
-                    'Food',
-                    'Shopping',
-                  ].contains(categorySpecs[c]['category']));
-
-              live[id] = {
-                'place_id': id,
-                'name': placeName,
-                'state': state,
-                'category': rawCat,
-                'rating': p['rating'],
-                'user_ratings_total': p['userRatingCount'],
-                'is_indoor': isIndoor,
-                'photo_url': null,
-                'latitude': lat,
-                'longitude': lng,
-                'operating_hours': p['regularOpeningHours'],
-              };
+              batch.add(
+                Map<String, dynamic>.from(p),
+                categorySpecs[c]['category'] as String,
+              );
             }
             if (!mounted) return;
-            _addLog('Google returned ${live.length} unique places so far.');
+            _addLog(batch.summary);
             pageToken = data['nextPageToken'] as String?;
             if (pageToken == null || pageToken.isEmpty) break;
           }
@@ -415,36 +383,43 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           _syncProgress = (c + 1) / categorySpecs.length;
         });
       }
-      final inserted = await _places.savePlaces(
-        state,
-        live.values,
-        updateExisting: true,
-      );
+      final inserted = await _places.savePlaces(state, live.values);
       // A failed/cancelled search or database batch never advances this date.
       final completed = await _syncHistory.recordSuccess(
         state: state,
         placeCount: live.length,
         requestCount: searchRequests,
       );
-      await _loadStateData();
       if (!mounted) return;
+      final historyError = _syncHistory.lastError;
+      setState(() {
+        _syncStatusText = 'Refreshing the $state database list';
+        _syncSubStatusText = '$inserted new places saved.';
+      });
+      await _loadStateData(forState: state);
+      if (!mounted) return;
+      final skipped = live.length - inserted;
+      final refreshed = _placesLoadError == null;
       setState(() {
         _lastSync = completed;
         _syncHistoryOffline = completed.localOnly;
         _syncProgress = 1;
-        _syncStatusText = '$state import complete';
+        _syncStatusText = refreshed
+            ? '$state database list refreshed'
+            : '$state sync saved. List refresh failed.';
         _syncSubStatusText =
-            '${live.length} places found · $inserted new records added. Existing IDs were kept.';
+            '${batch.summary} · $inserted new · $skipped already saved'
+            '${refreshed ? ' · $_dbCount in database' : '. Tap Refresh to reload the list.'}';
       });
       _addLog(
-        'Saved returned place details. Photos load when you open a place.',
+        'Saved place IDs and app categories. Google details were not stored.',
       );
-      if (_syncHistory.lastError != null) _addLog(_syncHistory.lastError!);
+      if (historyError != null) _addLog(historyError);
     } catch (error) {
       if (mounted) {
         setState(() {
           _syncStatusText = 'Import stopped';
-          _syncSubStatusText = error.toString();
+          _syncSubStatusText = '${batch.summary} · ${error.toString()}';
           _rlsBlocked = error.toString().contains('row-level security');
         });
       }
@@ -515,358 +490,25 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     });
   }
 
-  Future<void> _syncConfirmedSubTables(
-    List<Map<String, dynamic>> places,
-  ) async {
-    final client = http.Client();
-    try {
-      final indoorRows = places
-          .where((p) => p['is_indoor'] == true)
-          .map((p) => {'place_id': p['place_id'], 'is_air_conditioned': true})
-          .toList();
-
-      final outdoorRows = places
-          .where((p) => p['is_indoor'] == false)
-          .map((p) => {'place_id': p['place_id'], 'is_rain_sensitive': true})
-          .toList();
-
-      if (indoorRows.isNotEmpty) {
-        final res = await client.post(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places'),
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-            'Prefer': 'resolution=merge-duplicates',
-          },
-          body: jsonEncode(indoorRows),
-        );
-        if (res.statusCode < 300) {
-          _addLog(
-            '   🏠 Synced ${indoorRows.length} indoor places into indoor_places table.',
-          );
-        } else {
-          _addLog('   ⚠️ Note on indoor_places sync (${res.statusCode})');
-        }
-      }
-
-      if (outdoorRows.isNotEmpty) {
-        final res = await client.post(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places'),
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-            'Prefer': 'resolution=merge-duplicates',
-          },
-          body: jsonEncode(outdoorRows),
-        );
-        if (res.statusCode < 300) {
-          _addLog(
-            '   ☀️ Synced ${outdoorRows.length} outdoor places into outdoor_places table.',
-          );
-        } else {
-          _addLog('   ⚠️ Note on outdoor_places sync (${res.statusCode})');
-        }
-      }
-    } catch (e) {
-      _addLog('   ⚠️ Sub-table sync note: $e');
-    } finally {
-      client.close();
-    }
-  }
-
   Future<void> _autoClassifyPlaces() async {
-    setState(() {
-      _isLoading = true;
-      _logs.clear();
-      _syncProgress = 0.1;
-      _syncStatusText = 'Starting auto-classification for $_selectedState...';
-      _activityState = _selectedState;
-      _syncSubStatusText = 'Fetching places from database';
-    });
-
-    _addLog(
-      '⚡ Starting automatic classification for $_selectedState places...',
-    );
-
-    final client = http.Client();
-    try {
-      final encodedState = Uri.encodeComponent(_selectedState);
-      final getRes = await client.get(
-        Uri.parse(
-          '${SupabaseConfig.supabaseUrl}/rest/v1/places?state=ilike.*$encodedState*&select=place_id,name,category,is_indoor',
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Open Review on a saved place. Load live details, check the suggestion, then confirm its category and setting. No bulk changes are made.',
         ),
-        headers: {
-          'apikey': SupabaseConfig.supabaseAnonKey,
-          'Authorization':
-              'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-        },
-      );
-
-      if (getRes.statusCode != 200) {
-        _addLog('❌ Failed to fetch places: ${getRes.statusCode}');
-        setState(() {
-          _syncStatusText = 'Failed to fetch places';
-          _syncSubStatusText = 'HTTP ${getRes.statusCode}';
-        });
-        return;
-      }
-
-      final places = (jsonDecode(getRes.body) as List<dynamic>)
-          .cast<Map<String, dynamic>>();
-      _addLog(
-        '📋 Loaded ${places.length} places for $_selectedState from database.',
-      );
-
-      int indoorCount = 0;
-      int outdoorCount = 0;
-      int unassignedCount = 0;
-      final updates = <Map<String, dynamic>>[];
-
-      for (final p in places) {
-        final id = p['place_id'] as String;
-        final name = (p['name'] ?? '').toString();
-        final category = (p['category'] ?? '').toString();
-
-        final classified = PlaceClassifier.classify(
-          category: category,
-          name: name,
-        );
-
-        if (classified == true) {
-          indoorCount++;
-        } else if (classified == false) {
-          outdoorCount++;
-        } else {
-          unassignedCount++;
-        }
-
-        if (p['is_indoor'] != classified) {
-          updates.add({'place_id': id, 'is_indoor': classified});
-        }
-      }
-
-      _addLog('📊 Auto-classification breakdown:');
-      _addLog('   🏠 Indoor: $indoorCount');
-      _addLog('   ☀️ Outdoor: $outdoorCount');
-      _addLog('   ❓ Needs Review (Null): $unassignedCount');
-
-      setState(() {
-        _syncProgress = 0.35;
-        _syncStatusText = 'Analyzed ${places.length} places';
-        _syncSubStatusText =
-            '$indoorCount Indoor • $outdoorCount Outdoor • $unassignedCount Review';
-      });
-
-      if (updates.isEmpty) {
-        _addLog(
-          '✨ All places are already up-to-date with classification rules!',
-        );
-      } else {
-        _addLog('💾 Updating ${updates.length} places in Supabase...');
-
-        int updatedCount = 0;
-        for (int uIdx = 0; uIdx < updates.length; uIdx++) {
-          final u = updates[uIdx];
-          final id = u['place_id'] as String;
-          final patchRes = await client.patch(
-            Uri.parse(
-              '${SupabaseConfig.supabaseUrl}/rest/v1/places?place_id=eq.$id',
-            ),
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SupabaseConfig.supabaseAnonKey,
-              'Authorization':
-                  'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-            },
-            body: jsonEncode({'is_indoor': u['is_indoor']}),
-          );
-          if (patchRes.statusCode < 300) {
-            updatedCount++;
-          }
-
-          if (uIdx % 10 == 0 || uIdx == updates.length - 1) {
-            final prog = 0.35 + (0.50 * ((uIdx + 1) / updates.length));
-            setState(() {
-              _syncProgress = prog.clamp(0.35, 0.85);
-              _syncStatusText =
-                  'Updating places in database ($updatedCount/${updates.length})...';
-              _syncSubStatusText = 'Saving indoor/outdoor tags';
-            });
-          }
-        }
-        _addLog('🎉 Successfully auto-classified $updatedCount places!');
-      }
-
-      // Re-sync sub-tables
-      _addLog(
-        '🔄 Synchronizing indoor_places and outdoor_places sub-tables...',
-      );
-      setState(() {
-        _syncProgress = 0.90;
-        _syncStatusText = 'Syncing indoor & outdoor sub-tables...';
-        _syncSubStatusText = 'Updating indoor_places & outdoor_places tables';
-      });
-
-      final allClassified = places.map((p) {
-        final classified = PlaceClassifier.classify(
-          category: (p['category'] ?? '').toString(),
-          name: (p['name'] ?? '').toString(),
-        );
-        return {'place_id': p['place_id'], 'is_indoor': classified};
-      }).toList();
-
-      await _syncConfirmedSubTables(allClassified);
-      _addLog('✅ Auto-classification & sub-table sync complete!');
-
-      GooglePlacesService.clearMemoryCache();
-      await _loadStateData();
-
-      setState(() {
-        _syncProgress = 1.0;
-        _syncStatusText = 'Auto-classification complete! ⚡';
-        _syncSubStatusText =
-            '${updates.length} places updated & sub-tables synchronized';
-      });
-    } catch (e) {
-      _addLog('⚠️ Exception: $e');
-      setState(() {
-        _syncStatusText = 'Classification error';
-        _syncSubStatusText = e.toString();
-      });
-    } finally {
-      client.close();
-      setState(() {
-        _isLoading = false;
-      });
-    }
+      ),
+    );
   }
 
   Future<void> _togglePlaceIndoorOutdoor(Map<String, dynamic> place) async {
-    final currentVal = place['is_indoor'] as bool?;
-    final bool? nextVal;
-    if (currentVal == true) {
-      nextVal = false;
-    } else if (currentVal == false) {
-      nextVal = null;
-    } else {
-      nextVal = true;
-    }
-
-    final id = place['place_id'] as String;
-    final name = place['name'] ?? 'Place';
-
-    setState(() {
-      place['is_indoor'] = nextVal;
-    });
-
-    final client = http.Client();
-    try {
-      // 1. Update places table
-      await client.patch(
-        Uri.parse(
-          '${SupabaseConfig.supabaseUrl}/rest/v1/places?place_id=eq.$id',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SupabaseConfig.supabaseAnonKey,
-          'Authorization':
-              'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-        },
-        body: jsonEncode({'is_indoor': nextVal}),
-      );
-
-      // 2. Update sub-tables
-      if (nextVal == true) {
-        await client.post(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places'),
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-            'Prefer': 'resolution=merge-duplicates',
-          },
-          body: jsonEncode([
-            {'place_id': id, 'is_air_conditioned': true},
-          ]),
-        );
-        await client.delete(
-          Uri.parse(
-            '${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places?place_id=eq.$id',
-          ),
-          headers: {
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-          },
-        );
-      } else if (nextVal == false) {
-        await client.post(
-          Uri.parse('${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places'),
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-            'Prefer': 'resolution=merge-duplicates',
-          },
-          body: jsonEncode([
-            {'place_id': id, 'is_rain_sensitive': true},
-          ]),
-        );
-        await client.delete(
-          Uri.parse(
-            '${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places?place_id=eq.$id',
-          ),
-          headers: {
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-          },
-        );
-      } else {
-        await client.delete(
-          Uri.parse(
-            '${SupabaseConfig.supabaseUrl}/rest/v1/indoor_places?place_id=eq.$id',
-          ),
-          headers: {
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-          },
-        );
-        await client.delete(
-          Uri.parse(
-            '${SupabaseConfig.supabaseUrl}/rest/v1/outdoor_places?place_id=eq.$id',
-          ),
-          headers: {
-            'apikey': SupabaseConfig.supabaseAnonKey,
-            'Authorization':
-                'Bearer ${SupabaseConfig.client?.auth.currentSession?.accessToken ?? ''}',
-          },
-        );
-      }
-
-      final label = nextVal == true
-          ? '🏠 Indoor'
-          : (nextVal == false ? '☀️ Outdoor' : '❓ Needs Review');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$name set to $label'),
-            duration: const Duration(milliseconds: 1500),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error toggling place: $e');
-    } finally {
-      client.close();
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PlaceReviewPage(row: Map<String, dynamic>.from(place)),
+      ),
+    );
+    if (mounted && saved == true) {
+      await _loadStateData(offset: _pageOffset);
     }
   }
 
@@ -1276,7 +918,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Bulk-fetch real tourist attractions, restaurants, and nature spots with Google photos directly into your Supabase database.',
+                  'Manually discover Google places for the selected state. Save IDs and app categories; load current details when needed.',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
@@ -1633,6 +1275,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             const SizedBox(height: 14),
           ],
 
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(_budgetNotice),
+          ),
           // Action Buttons
           Row(
             children: [
@@ -1643,6 +1289,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       _isLoading ||
                           _loadingSyncHistory ||
                           _isFetchingList ||
+                          !_searchBudgetReady ||
                           _placesLoadError != null
                       ? null
                       : _syncPlacesFromGoogle,
@@ -1704,7 +1351,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               onPressed: _isLoading ? null : _autoClassifyPlaces,
               icon: const Icon(Icons.bolt, color: Color(0xFF4F46E5), size: 18),
               label: const Text(
-                '⚡ Auto-Classify Indoor & Outdoor (Schedule Ready)',
+                'How to review categories and settings',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF4F46E5),
@@ -1746,9 +1393,42 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           ),
           const SizedBox(height: 8),
 
-          const Text(
-            'Google Maps',
-            style: TextStyle(fontSize: 12, color: AppColors.muted),
+          GoogleMapsAttribution(
+            attributions: [
+              for (final row in _currentPlaces)
+                ...((row['attributions'] as List?) ?? []).whereType<Map>().map(
+                  (a) => Map<String, dynamic>.from(a),
+                ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                onPressed: _isFetchingList || _isLoading || _pageOffset == 0
+                    ? null
+                    : () => _loadStateData(
+                        offset: (_pageOffset - 20).clamp(0, _dbCount),
+                      ),
+                child: const Text('Previous 20'),
+              ),
+              Flexible(
+                child: Text(
+                  _dbCount == 0
+                      ? '0 places'
+                      : '${_pageOffset + 1}–${(_pageOffset + 20).clamp(0, _dbCount)} of $_dbCount',
+                ),
+              ),
+              TextButton(
+                onPressed:
+                    _isFetchingList ||
+                        _isLoading ||
+                        _pageOffset + 20 >= _dbCount
+                    ? null
+                    : () => _loadStateData(offset: _pageOffset + 20),
+                child: const Text('Next 20'),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           if (_currentPlaces.any(
@@ -1871,27 +1551,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
-                          if (p['place_id']?.toString().startsWith('ChIJ') ??
-                              false)
-                            TextButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PlaceDetailPage(
-                                    stop:
-                                        GooglePlacesService.convertGooglePlaceToStop(
-                                          place:
-                                              PlaceCatalogService.asGoogleShape(
-                                                p,
-                                              ),
-                                          timeRange: '',
-                                          durationLabel: '',
-                                        ),
-                                  ),
-                                ),
-                              ),
-                              child: const Text('Open details & photos'),
+                          TextButton(
+                            onPressed: () => _togglePlaceIndoorOutdoor(p),
+                            child: const Text(
+                              'Review stored data / load live details',
                             ),
+                          ),
                           Wrap(
                             spacing: 6,
                             runSpacing: 4,

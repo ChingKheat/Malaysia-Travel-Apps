@@ -89,6 +89,7 @@ class GooglePlacesService {
     required String query,
     bool isMeal = false,
     int maxResults = 8,
+    bool Function()? shouldContinue,
   }) async {
     final rows = await _catalog.load(state: destinationState);
     final matches = rows
@@ -98,20 +99,93 @@ class GooglePlacesService {
       (a, b) =>
           ((b['rating'] as num?) ?? 0).compareTo((a['rating'] as num?) ?? 0),
     );
-    return matches
-        .take(maxResults)
+    final hydrated = await hydrateRows(
+      matches.take(maxResults.clamp(0, 32)),
+      full: true,
+      limit: 32,
+      shouldContinue: shouldContinue,
+    );
+    return hydrated
+        .where(
+          (r) =>
+              !PlaceCatalogService.isGoogleReference(r) || r['_live'] == true,
+        )
         .map(PlaceCatalogService.asGoogleShape)
         .toList();
   }
 
+  /// Hydrate only a bounded displayed page/candidate pool. Never save responses.
+  Future<List<Map<String, dynamic>>> hydrateRows(
+    Iterable<Map<String, dynamic>> rows, {
+    bool full = false,
+    int limit = 20,
+    bool Function()? shouldContinue,
+  }) async {
+    final selected = rows.take(limit.clamp(0, 32)).toList();
+    final result = <Map<String, dynamic>>[];
+    // Small batches avoid exceeding the per-user burst limit during planning.
+    for (var start = 0; start < selected.length; start += 4) {
+      if (shouldContinue != null && !shouldContinue()) break;
+      final batch = selected.skip(start).take(4);
+      final hydrated = await Future.wait(
+        batch.map((row) async {
+          if (!PlaceCatalogService.isGoogleReference(row)) return row;
+          final details = await fetchDetails(
+            row['place_id'].toString(),
+            basic: !full,
+          );
+          if (details == null) {
+            return {
+              ...PlaceCatalogService.persistentRow(row),
+              '_loadError': lastError ?? 'Place details unavailable',
+            };
+          }
+          return <String, dynamic>{
+            ...row,
+            '_live': true,
+            'name': details.name ?? 'Name unavailable',
+            'category': details.category ?? row['category'],
+            'latitude': details.latitude ?? 0.0,
+            'longitude': details.longitude ?? 0.0,
+            'rating': details.rating,
+            'user_ratings_total': details.reviewCount,
+            'operating_hours': details.hours,
+            'attributions': details.attributions,
+          };
+        }),
+      );
+      result.addAll(hydrated);
+      if (hydrated.every(
+        (r) => PlaceCatalogService.isGoogleReference(r) && r['_live'] != true,
+      )) {
+        result.addAll(
+          selected.skip(start + 4).map(PlaceCatalogService.persistentRow),
+        );
+        break;
+      }
+    }
+    return result;
+  }
+
+  Future<Map<String, dynamic>?> budgetStatus() async {
+    final response = await _request({'operation': 'budget_status'});
+    if (response?.statusCode != 200) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(response!.body) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchPlacesByText({
     required String query,
+    required String state,
     int maxResults = 10,
   }) async {
-    final key = '$_endpoint|${_token ?? ''}|$query|$maxResults';
+    final key = '$_endpoint|${_token ?? ''}|$state|$query|$maxResults';
     final existing = _inFlight[key];
     if (existing != null) return existing;
-    final pending = _search(query, maxResults);
+    final pending = _search(query, state, maxResults);
     _inFlight[key] = pending;
     try {
       return await pending;
@@ -122,9 +196,14 @@ class GooglePlacesService {
 
   Future<List<Map<String, dynamic>>> _search(
     String query,
+    String state,
     int maxResults,
   ) async {
-    final data = await searchPage(query: query, pageSize: maxResults);
+    final data = await searchPage(
+      query: query,
+      state: state,
+      pageSize: maxResults,
+    );
     if (data == null) return [];
     try {
       return (data['places'] as List? ?? [])
@@ -153,12 +232,14 @@ class GooglePlacesService {
 
   Future<Map<String, dynamic>?> searchPage({
     required String query,
+    String? state,
     int pageSize = 20,
     String? pageToken,
   }) async {
     final response = await _request({
       'operation': 'search',
       'query': query,
+      'state': ?state,
       'pageSize': pageSize.clamp(1, 20),
       'pageToken': ?pageToken,
     });
@@ -171,11 +252,15 @@ class GooglePlacesService {
     }
   }
 
-  Future<GooglePlaceDetails?> fetchDetails(String placeId) async {
+  Future<GooglePlaceDetails?> fetchDetails(
+    String placeId, {
+    bool basic = false,
+  }) async {
     if (!RegExp(r'^[A-Za-z0-9_-]{5,255}$').hasMatch(placeId)) return null;
     final response = await _request({
       'operation': 'details',
       'placeId': placeId,
+      'profile': basic ? 'basic' : 'full',
     });
     if (response?.statusCode != 200) return null;
     try {
@@ -331,8 +416,10 @@ class GooglePlacesService {
       duration: durationLabel,
       openingHours: hoursString,
       category: primaryType,
-      dataSource: 'google',
-      googleDetails: GooglePlaceDetails.fromApi(place),
+      dataSource: place['_data_source'] == 'local' ? 'local' : 'google',
+      googleDetails: place['_data_source'] == 'local'
+          ? null
+          : GooglePlaceDetails.fromApi(place),
       tips: [
         rating == null ? 'Rating unavailable' : 'Rating: $rating',
         reviewCount == null

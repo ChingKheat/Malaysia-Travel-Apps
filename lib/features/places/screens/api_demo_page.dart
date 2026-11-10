@@ -12,10 +12,13 @@ import 'package:smart_travel_planner/shared/services/google_route_service.dart';
 import 'package:smart_travel_planner/features/places/services/places_service.dart';
 import 'attraction_detail_page.dart';
 import 'attraction_list_screen.dart';
+import '../widgets/google_maps_attribution.dart';
 import 'package:smart_travel_planner/features/navigation/screens/map_screen.dart';
 
 class ApiDemoPage extends StatefulWidget {
-  const ApiDemoPage({super.key});
+  const ApiDemoPage({super.key, this.isVisible = true});
+
+  final bool isVisible;
 
   @override
   State<ApiDemoPage> createState() => _ApiDemoPageState();
@@ -28,6 +31,12 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   final _locationService = LocationService();
 
   var _loading = true;
+  int _loadGeneration = 0;
+  PlacesPage? _page;
+  bool _loadingMore = false;
+  int _lastOffset = 0;
+  final Set<String> _sources = {};
+  final List<Map<String, dynamic>> _attributions = [];
   var _loadingRoute = false;
   var _selectedView = 0;
   String? _error;
@@ -45,13 +54,18 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     'All',
     '🏛️ Sights',
     '🍔 Food',
+    'Restaurants',
+    'Cafes',
     '🛍️ Shops',
     '🌳 Nature',
   ];
 
+  late final PageController _pageController;
+
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: _selectedView);
     _locationService.addListener(_onLocationChanged);
     _loadAttractions();
   }
@@ -60,6 +74,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   void dispose() {
     _locationService.removeListener(_onLocationChanged);
     _searchController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -69,25 +84,55 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     }
   }
 
-  Future<void> _loadAttractions() async {
+  Future<void> _loadAttractions({
+    bool append = false,
+    bool retry = false,
+  }) async {
+    final generation = ++_loadGeneration;
     setState(() {
-      _loading = true;
+      _loading = !append;
+      _loadingMore = append;
       _error = null;
+      if (!append) {
+        _page = null;
+        _attractions = [];
+        _sources.clear();
+        _attributions.clear();
+      }
     });
 
     try {
       final loc = _locationService.currentLocation;
-      final attractions = await _placesService.fetchPlacesNearLocation(
+      final offset = retry
+          ? _lastOffset
+          : append
+          ? (_page?.nextOffset ?? 0)
+          : 0;
+      _lastOffset = offset;
+      final page = await _placesService.fetchPage(
+        offset: offset,
         latitude: loc.latitude,
         longitude: loc.longitude,
+        shouldContinue: () => mounted && generation == _loadGeneration,
       );
 
+      if (!mounted || generation != _loadGeneration) return;
+
+      final byId = {
+        if (append)
+          for (final item in _attractions) item.xid: item,
+        for (final item in page.items) item.xid: item,
+      };
+      final attractions = byId.values.toList();
       final itinerary = _itineraryService.generateSmartItinerary(
         attractions: attractions,
         startPoint: loc,
       );
 
       setState(() {
+        _page = page;
+        _sources.add(page.source);
+        _attributions.addAll(page.attributions);
         _attractions = attractions;
         _suggestedHighlights = itinerary;
         // Keep user saved places that are in the current area, or start fresh
@@ -102,9 +147,18 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
         if (mounted) setState(() => _route = null);
       }
     } catch (error) {
-      setState(() => _error = error.toString());
+      if (mounted && generation == _loadGeneration) {
+        setState(
+          () => _error = 'Unable to load attractions. Please try again.',
+        );
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && generation == _loadGeneration) {
+        setState(() {
+          _loading = false;
+          _loadingMore = false;
+        });
+      }
     }
   }
 
@@ -154,7 +208,17 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AttractionDetailPage(attraction: attraction),
+        builder: (_) => AttractionDetailPage(
+          attraction: attraction,
+          isSaved: _selectedStops.any((s) => s.xid == attraction.xid),
+          onToggleSaved: (place) {
+            final canToggle =
+                _selectedStops.length < 10 ||
+                _selectedStops.any((s) => s.xid == place.xid);
+            _toggleStop(place);
+            return canToggle;
+          },
+        ),
       ),
     );
   }
@@ -176,6 +240,12 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       if (_selectedCategory == 'All') return true;
 
       final kind = attraction.category.toLowerCase();
+      if (_selectedCategory == 'Restaurants') {
+        return kind.contains('restaurant');
+      }
+      if (_selectedCategory == 'Cafes') {
+        return kind.contains('cafe') || kind.contains('coffee');
+      }
       if (_selectedCategory == '🏛️ Sights') {
         return kind.contains('religion') ||
             kind.contains('cultural') ||
@@ -223,210 +293,222 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     );
   }
 
+  void _onTabTapped(int index) {
+    if (_selectedView == index) return;
+    setState(() => _selectedView = index);
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-          child: Column(
-            children: [
-              // Location Display Selector Bar
-              ListenableBuilder(
-                listenable: _locationService,
-                builder: (context, _) {
-                  return InkWell(
-                    onTap: _showLocationSelectorSheet,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: cardDecoration().copyWith(
-                        color: AppColors.sky,
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _locationService.isUsingRealGps
-                                ? Icons.my_location
-                                : Icons.location_on,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Current Location Area',
-                                  style: TextStyle(
-                                    color: AppColors.muted,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _locationService.currentAreaName,
-                                  style: const TextStyle(
-                                    color: AppColors.ink,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.line),
-                            ),
-                            child: const Text(
-                              'Change',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Search & Filter Box
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (val) => setState(() => _searchQuery = val),
-                      decoration: InputDecoration(
-                        hintText: 'Search attractions...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = '');
-                                },
-                              )
-                            : null,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.line),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-
-              // Category Filter Chips
-              SizedBox(
-                height: 38,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
-                  itemBuilder: (context, index) {
-                    final cat = _categories[index];
-                    final active = _selectedCategory == cat;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: FilterChip(
-                        selected: active,
-                        label: Text(
-                          cat,
-                          style: TextStyle(
-                            color: active ? Colors.white : AppColors.ink,
-                            fontWeight: active
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        selectedColor: AppColors.primary,
-                        checkmarkColor: Colors.white,
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: active ? AppColors.primary : AppColors.line,
-                          ),
-                        ),
-                        onSelected: (val) {
-                          setState(() => _selectedCategory = cat);
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Views Toggle SegmentedButton
-              SegmentedButton<int>(
-                segments: [
-                  const ButtonSegment(
-                    value: 0,
-                    icon: Icon(Icons.list_alt_outlined),
-                    label: Text('List'),
-                  ),
-                  const ButtonSegment(
-                    value: 1,
-                    icon: Icon(Icons.map_outlined),
-                    label: Text('Map'),
-                  ),
-                  ButtonSegment(
-                    value: 2,
-                    icon: Icon(
-                      _selectedStops.isEmpty
-                          ? Icons.bookmark_outline_rounded
-                          : Icons.bookmark_rounded,
-                    ),
-                    label: Text(
-                      _selectedStops.isEmpty
-                          ? 'Saved'
-                          : 'Saved (${_selectedStops.length})',
-                    ),
-                  ),
-                ],
-                selected: {_selectedView},
-                onSelectionChanged: (value) =>
-                    setState(() => _selectedView = value.first),
-              ),
-            ],
-          ),
-        ),
+        _buildTopNavigationBar(),
         Expanded(child: _buildBody()),
       ],
     );
   }
 
+  Widget _buildTopNavigationBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tabWidth = (constraints.maxWidth - 8) / 3;
+          return Container(
+            height: 48,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.sky.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.12),
+              ),
+            ),
+            child: Stack(
+              children: [
+                // Animated sliding indicator pill
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeInOutCubic,
+                  left: _selectedView * tabWidth,
+                  top: 0,
+                  bottom: 0,
+                  width: tabWidth,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Tabs row
+                Row(
+                  children: [
+                    _buildTopTabItem(
+                      index: 0,
+                      label: 'Attractions',
+                      icon: Icons.explore_rounded,
+                    ),
+                    _buildTopTabItem(
+                      index: 1,
+                      label: 'Map View',
+                      icon: Icons.map_rounded,
+                    ),
+                    _buildTopTabItem(
+                      index: 2,
+                      label: 'Saved',
+                      icon: Icons.bookmark_rounded,
+                      badgeCount: _selectedStops.length,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTopTabItem({
+    required int index,
+    required String label,
+    required IconData icon,
+    int? badgeCount,
+  }) {
+    final isSelected = _selectedView == index;
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onTabTapped(index),
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? Colors.white : AppColors.muted,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    style: TextStyle(
+                      fontFamily: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.fontFamily,
+                      fontSize: 13,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: isSelected ? Colors.white : AppColors.muted,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    child: Text(label),
+                  ),
+                ),
+                if (badgeCount != null && badgeCount > 0) ...[
+                  const SizedBox(width: 5),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.25)
+                          : AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      badgeCount.toString(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: isSelected ? Colors.white : AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody() {
+    final filtered = _filteredAttractions;
+
+    return PageView(
+      controller: _pageController,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        _KeepAlivePage(child: _buildAttractionsView(filtered)),
+        _KeepAlivePage(child: _buildMapView(filtered)),
+        _KeepAlivePage(child: _buildSavedView()),
+      ],
+    );
+  }
+
+  Widget _buildMapView(List<Attraction> filtered) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: MapScreen(
+            isVisible: widget.isVisible && _selectedView == 1,
+            attractions: filtered,
+            selectedStops: _selectedStops,
+            route: _route,
+            center: _locationService.currentLocation,
+            onAttractionTap: _openDetails,
+            onToggleStop: _toggleStop,
+          ),
+        ),
+        Positioned(
+          top: 12,
+          left: 20,
+          right: 20,
+          child: _buildLocationSelector(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSavedView() {
+    return _SavedPlacesView(
+      stops: _selectedStops,
+      route: _route,
+      loadingRoute: _loadingRoute,
+      onStopTap: _openDetails,
+      onToggleStop: _toggleStop,
+      onViewOnMap: () => _onTabTapped(1),
+      onExploreMore: () => _onTabTapped(0),
+      onAutoPickHighlights: _autoPickHighlights,
+    );
+  }
+
+  Widget _buildAttractionsView(List<Attraction> filtered) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -435,38 +517,223 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       return _ErrorState(message: _error!, onRetry: _loadAttractions);
     }
 
-    final filtered = _filteredAttractions;
-
-    if (_selectedView == 1) {
-      return MapScreen(
-        attractions: filtered,
-        selectedStops: _selectedStops,
-        route: _route,
-        center: _locationService.currentLocation,
-        onAttractionTap: _openDetails,
-        onToggleStop: _toggleStop,
-      );
-    }
-
-    if (_selectedView == 2) {
-      return _SavedPlacesView(
-        stops: _selectedStops,
-        route: _route,
-        loadingRoute: _loadingRoute,
-        onStopTap: _openDetails,
-        onToggleStop: _toggleStop,
-        onViewOnMap: () => setState(() => _selectedView = 1),
-        onExploreMore: () => setState(() => _selectedView = 0),
-        onAutoPickHighlights: _autoPickHighlights,
-      );
-    }
-
-    return AttractionListScreen(
-      attractions: filtered,
-      selectedStops: _selectedStops,
-      onAttractionTap: _openDetails,
-      onToggleStop: _toggleStop,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          child: Column(
+            children: [
+              _buildLocationSelector(),
+              const SizedBox(height: 12),
+              _buildSearchBar(),
+              const SizedBox(height: 10),
+              _buildCategoryChips(),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text('${_sources.join(' / ')} · ${_page?.notice ?? ""}'),
+        ),
+        Wrap(
+          children: [
+            if (_page?.failure != null && _page!.failure != PlacesFailure.none)
+              TextButton(
+                onPressed: _loadingMore
+                    ? null
+                    : () => _loadAttractions(append: true, retry: true),
+                child: const Text('Retry loaded page'),
+              ),
+            if (_page?.hasMore == true)
+              TextButton(
+                onPressed: _loadingMore
+                    ? null
+                    : () => _loadAttractions(append: true),
+                child: Text(_loadingMore ? 'Loading…' : 'Load next 20 records'),
+              ),
+          ],
+        ),
+        if (_attractions.any((a) => a.googlePlaceId != null))
+          GoogleMapsAttribution(attributions: _attributions),
+        Expanded(
+          child: AttractionListScreen(
+            attractions: filtered,
+            selectedStops: _selectedStops,
+            onAttractionTap: _openDetails,
+            onToggleStop: _toggleStop,
+          ),
+        ),
+      ],
     );
+  }
+
+  Widget _buildLocationSelector() {
+    return ListenableBuilder(
+      listenable: _locationService,
+      builder: (context, _) {
+        return InkWell(
+          onTap: _showLocationSelectorSheet,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: cardDecoration().copyWith(
+              color: AppColors.sky,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.15),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _locationService.isUsingRealGps
+                      ? Icons.my_location
+                      : Icons.location_on,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Current Location Area',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _locationService.currentAreaName,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: const Text(
+                    'Change',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _searchController,
+            onChanged: (val) => setState(() => _searchQuery = val),
+            decoration: InputDecoration(
+              hintText: 'Search loaded attractions...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.line),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    return SizedBox(
+      height: 38,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final cat = _categories[index];
+          final active = _selectedCategory == cat;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FilterChip(
+              selected: active,
+              label: Text(
+                cat,
+                style: TextStyle(
+                  color: active ? Colors.white : AppColors.ink,
+                  fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              selectedColor: AppColors.primary,
+              checkmarkColor: Colors.white,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: active ? AppColors.primary : AppColors.line,
+                ),
+              ),
+              onSelected: (val) {
+                setState(() => _selectedCategory = cat);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _KeepAlivePage extends StatefulWidget {
+  const _KeepAlivePage({required this.child});
+  final Widget child;
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
@@ -1053,11 +1320,7 @@ class _SavedTipsCard extends StatelessWidget {
           const SizedBox(height: 8),
           const Text(
             'Saved places can be viewed on the Map tab to see optimal driving paths, or visit the Plan tab to automatically schedule them into your multi-day trip.',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.muted,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
           ),
         ],
       ),

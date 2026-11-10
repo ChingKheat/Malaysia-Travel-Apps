@@ -1,116 +1,86 @@
-# Admin-synced places and Google services
+# Manual Google discovery and live details
 
-Updated 19 October 2026 (Malaysia).
+Updated 28 October 2026 (Malaysia).
 
-## Normal app flow
+## Admin Database Hub
 
-`PlaceCatalogService` reads admin-synced Supabase places and maintains a persistent,
-project-scoped local copy. Explore, the Saved Places Inspector, itinerary generation
-and saved-day hydration use this catalog. They do not search Google. Empty or
-unreachable catalogs use existing curated local data where available; absent states
-never silently receive Kuala Lumpur's catalog. State caches can also hydrate saved
-itineraries offline. Source names, coordinates, ratings and hours are preserved;
-missing ratings remain unknown. Catalog reads exclude all stored photo URLs.
+Fetch & Sync remains the only production Google Text Search entry point. It
+requires a verified registered administrator, a selected Malaysian state or
+federal territory, and at least 48 verified search units. The 16 area choices,
+eight app categories, duplicate removal and repeat-sync confirmation remain.
+Each query returns up to three pages of 20 results. Country/state validation
+rejects mismatches. Search requests use Pro basic fields; ratings, opening hours,
+photographs and phone/website fields are not requested during discovery.
 
-Admin **Fetch & Sync** is the Google Text Search entry point. The authenticated
-`google-places` Edge Function checks the verified user's protected profile role;
-only admins can search. Regular users can request live details, photos and routes.
-No failed/unauthorized request falls back to a client-side Google key. Google
-values returned during import are saved; country/state checks reject results
-outside the selected state. Names and coordinates are validated before writing.
-Existing importer update behavior is retained; no full import was run during
-this migration fix. The last-success sync notice retains its original behavior.
+The import stores place IDs, the selected state and the app category in places.
+Google records have data_source=google, the explicit name Saved Google place,
+zero placeholder coordinates and no rating, review count, hours or photo URL.
+Database triggers enforce this even for old clients. IDs and foreign keys are
+preserved. Indoor/outdoor classifications are app data and survive migration.
 
-Search requests omit photos and editorial summaries, reducing unnecessary fields.
-Unknown fields stay unknown. Indoor classification, ticket budgets and visit times
-remain app estimates and are not verified Google facts.
+The admin list uses stable 20-row pages with the full database count, including
+records beyond 500. It loads basic details for the displayed page only. A database
+refresh never starts a Google search. Current details can consume their own SKU.
 
-## Photos
+## Normal app flow and offline behaviour
 
-No key-bearing media URLs are saved by future imports. Key parameters were removed
-from 972 existing database photo URLs; place IDs and other place data were retained.
-Verification found zero remaining key-bearing photo URLs across 983 rows.
+PlaceCatalogService reads references and app-owned local records from Supabase.
+Its project-scoped persistent v2 cache stores only sanitized Google references.
+Legacy v1 copies are sanitized and removed on access. Explore starts loading when
+its tab becomes active and requests basic details for at most 20 saved IDs. Next
+and Previous explicitly change the page. No normal screen searches Google.
 
-Opening **details & photos** retrieves current photo references and author
-attributions, then authenticated image bytes through the Edge Function. No image
-or reference is persisted by this photo flow. Google photo HTTP 400 maps to 410;
-the image widget refreshes details and retries once. The admin list does not
-silently download every photograph; open the details screen when photos are needed.
-The list retains real saved names/rating even without live photo access.
+Itinerary generation hydrates up to 20 saved attraction IDs and 12 meal IDs with
+full details for scheduling. Day views hydrate at most 20 IDs with basic details.
+Responses remain in memory. Local itinerary journals and database stop snapshots
+strip provider details while retaining IDs, order, times, user notes and app cost
+estimates. Offline/unverified-budget views show connection-required placeholders;
+existing schedules remain usable and curated local fallbacks remain available.
 
-## Routes and maps
+## Photos and routes
 
-Google Maps replaces the OpenStreetMap widget. Explore uses GoogleRouteService,
-not OpenRouteService. The old class name remains only as a compatibility wrapper
-that delegates to Google. Initial Explore loading uses a labelled estimate;
-selecting route stops can request real Google directions.
+Opening a detail screen requests full current details. Each photograph loads only
+when its Load photo button is pressed. Photo bytes and author attributions stay
+in memory; an expired photo refreshes details and retries once. The server never
+returns a key-bearing photo URL. Google Maps and provider attribution accompany
+live content.
 
-Both route polylines and the scheduler's travel matrix use the authenticated Edge
-Function. Routes has an optional `GOOGLE_ROUTES_API_KEY` server secret, otherwise
-it uses `GOOGLE_BACKEND_API_KEY`, shared with Vision and Translation.
-Points, mode, field masks and
-request sizes are bounded server-side. A matrix is capped at 10×10 elements;
-repeated identical results are reused in memory for 10 minutes. Candidates outside
-the bounded matrix use labelled estimates. Offline/unavailable routes also use
-estimates. No client REST request contains a Google key.
+Routes and route matrices use the same authenticated Edge Function. Matrices are
+bounded to 10 by 10 elements and reserve each origin/destination element. Route
+requests are bounded to five points. Existing short-lived in-memory reuse and
+labelled offline estimates remain. No failure falls back to a client REST key.
 
-Routes API and Maps SDK for Android were enabled in project 127705868516. With
-explicit user approval, SmartTravel's API restriction now allows exactly Places
-API (New), Routes API and Maps SDK for Android. A live one-element matrix returned
-HTTP 200 / ROUTE_EXISTS after this update.
+## Verified allowances
 
-## Platform configuration
+Postgres reserves billable units atomically before every upstream request, shared
+by all Edge Function instances. Separate rows cover search Pro, details Pro,
+details Enterprise, photos, routes Essentials and matrix Essentials. Limits are
+below the published free allowances. Baseline usage is included. Failed/time-out
+requests are conservatively retained in the counter.
 
-- Android: provide `GOOGLE_MAPS_ANDROID_API_KEY` via environment or ignored
-  `android/local.properties`. Gradle injects it into the manifest. The development
-  key was moved out of tracked Dart source into this ignored local file.
-  INTERNET is declared in the main manifest, including release builds. SDK min 24.
-- Web: copy `web/maps-config.example.js` to ignored `web/maps-config.js`; use a
-  dedicated website-restricted Maps JavaScript key. The JavaScript API must be
-  enabled for that key. No web map key was configured by this fix; the list remains
-  usable and the map shows a clear setup message. Do not put a server key here.
-- iOS: copy `ios/Flutter/MapsKeys.example.xcconfig` to ignored
-  `MapsKeys.xcconfig`, set a dedicated bundle-restricted iOS SDK key, and enable
-  Maps SDK for iOS. No iOS key/device/build was available on this Windows host.
-- Unsupported desktop platforms show a setup message while keeping list access.
+New budgets are disabled and unverified. Missing configuration, stale review,
+missing current-month rows and exhausted limits block Google requests. Counters
+do not reset on sync/restart/redeployment. New billing months need verification.
+The mobile app can read an admin status but cannot approve or reserve allowance.
 
-The official Google Maps Flutter plugin is pinned to 2.18.1 for Dart 3.12.2
-compatibility. On this Windows host, per-command `FLUTTER_WINDOWS=false` was used
-for pub/build tooling to avoid unrelated desktop symlink requirements. No global
-Windows/Developer Mode settings were changed. Native plugin installation needs a
-full app restart rather than hot reload; the Android emulator was rebuilt/restarted.
+See maintenance/google_allowance_setup.md for trusted setup, key replacement,
+external/shared-account usage, billing latency and recovery requirements.
 
-API restrictions are configured; application restrictions still need dedicated
-platform keys before production. Do not bind the shared existing server key to
-Android, which would break Edge Function calls. Use separate restricted server,
-Android, web and iOS keys. No key was rotated or new credential created here.
+## Configuration and recovery
 
-## Validation and limits
+Google keys stay in server secrets or dedicated platform map configuration.
+GOOGLE_BACKEND_API_KEY serves Places; GOOGLE_ROUTES_API_KEY optionally overrides
+Routes. Built-in SUPABASE_SERVICE_ROLE_KEY is used only by the Edge Function's
+reservation request. Never expose it in Flutter. The legacy bulk seeder is
+disabled; tracked fixture files now contain references only. Old keys in Git
+history still require replacement and restrictions in Google Cloud.
 
-- Flutter tests: 83 passed, including pagination and persistent offline state caches.
-- Edge Function tests: 11 passed, including admin-only search, auth, photo expiry,
-  redirect safety, route bounds and fixed fields.
-- Android debug and release APK builds passed; release merged manifest verified
-  INTERNET and non-empty Maps SDK metadata without printing key values.
-- Web release build passed. Maps rendering still needs a browser key as above.
-- Analyzer clean after the final refinements.
-- Hosted Edge Function version 4 deployed ACTIVE, using verified Auth requests.
+Maps SDK/JavaScript, Vision, Translation, Weather and Gemini usage is separate
+from this counter. Android, web and iOS keep their existing platform-specific map
+setup; web/iOS still require their dedicated keys where not yet configured.
 
-An attempted signed-in end-to-end check through debugger session extraction was
-rejected by automatic approval review. No session was read. Live signed-in photo
-rendering and a route drawn on the map remain normal device checks; automated
-coverage does not establish that the server secret matches every local key.
-
-No tables, columns, RLS policies, triggers or schema constraints were changed.
-`docs/supabase_schema.sql` remains the database recovery source. Server secrets,
-Edge Function deployment and platform map keys require separate setup on recovery.
-
-## Content retention
-
-This restores the requested manually synced catalog behavior. It does not establish
-permission to store Google-derived content permanently. Place IDs have a storage
-exception; do not assume the same for names, ratings, coordinates, hours or photos.
-Review the applicable Google Maps terms and approved retention before production:
-https://developers.google.com/maps/documentation/places/web-service/policies
-
-No general 30-day storage allowance for all Places fields is claimed.
+The complete recovery source is docs/supabase_schema.sql. It includes the three
+live recognition tables, reference/snapshot sanitizers, budgets, RLS and function
+grants. Edge Function deployment, server secrets and platform map keys require
+separate recovery. No broad 30-day retention allowance is claimed for all Places
+fields. Google IDs can be stored indefinitely; this flow keeps other details live.

@@ -1,4 +1,6 @@
-const fields = 'id,displayName,formattedAddress,addressComponents,location,rating,userRatingCount,regularOpeningHours,primaryTypeDisplayName,types,photos,websiteUri,nationalPhoneNumber,googleMapsUri,attributions';
+export const basicFields = 'id,displayName,formattedAddress,addressComponents,location,primaryTypeDisplayName,types,googleMapsUri,attributions';
+const fields = basicFields+',rating,userRatingCount,regularOpeningHours,photos,websiteUri,nationalPhoneNumber';
+export const states = ['Penang','Kuala Lumpur','Melaka','Selangor','Johor','Perak','Pahang','Sabah','Sarawak','Kedah','Terengganu','Kelantan','Negeri Sembilan','Perlis','Putrajaya','Labuan'];
 const cors = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS','Cache-Control':'no-store'};
 const json = (body,status=200) => Response.json(body,{status,headers:cors});
 
@@ -26,13 +28,19 @@ export function createHandler({env,fetcher=fetch}) {
       const count=usage?.minute===minute?usage.count+1:1;
       requests.set(user.id,{minute,count});
       if(count>90) return json({error:'Too many place requests. Try again shortly.'},429);
-      const key=env('GOOGLE_BACKEND_API_KEY');
-      if(!key) return json({error:'Google Places is not configured on the server'},503);
       let body;
       try { body=await req.json(); } catch { return json({error:'Invalid JSON request'},400); }
       if(!body || typeof body!=='object') return json({error:'Invalid request'},400);
+      if(body.operation==='budget_status') {
+        const profile=await fetcher(`${supabaseUrl}/rest/v1/profiles?user_id=eq.${encodeURIComponent(user.id)}&select=role`,{headers:{Authorization:token,apikey:authKey},signal:AbortSignal.timeout(8000)});
+        if(!profile.ok || (await profile.json())[0]?.role!=='admin') return json({error:'Administrator access required'},403);
+        const budgets=await fetcher(`${supabaseUrl}/rest/v1/google_api_budgets?select=sku,billing_month,request_limit,baseline_usage,used_units,verified_at,valid_until,enabled&order=billing_month.desc`,{headers:{Authorization:token,apikey:authKey},signal:AbortSignal.timeout(8000)});
+        return budgets.ok?json({budgets:await budgets.json()}):json({error:'Usage verification unavailable. Google requests remain blocked.'},503);
+      }
+      const key=env('GOOGLE_BACKEND_API_KEY');
+      if(!key) return json({error:'Google Places is not configured on the server'},503);
       const headers={'X-Goog-Api-Key':key,'Content-Type':'application/json'};
-      let url,options;
+      let url,options,sku,units=1;
       if(body.operation==='matrix' || body.operation==='route') {
         const points=body.points;
         const max=body.operation==='matrix'?10:5;
@@ -42,9 +50,11 @@ export function createHandler({env,fetcher=fetch}) {
         const travelMode=body.mode==='Walking'?'WALK':'DRIVE';
         const routeKey=env('GOOGLE_ROUTES_API_KEY') || key;
         if(body.operation==='matrix') {
+          sku='route_matrix_essentials'; units=points.length*points.length;
           url='https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
           options={method:'POST',headers:{...headers,'X-Goog-Api-Key':routeKey,'X-Goog-FieldMask':'originIndex,destinationIndex,status,condition,distanceMeters,duration'},body:JSON.stringify({origins:points.map(p=>({waypoint:waypoint(p)})),destinations:points.map(p=>({waypoint:waypoint(p)})),travelMode})};
         } else {
+          sku='routes_essentials';
           url='https://routes.googleapis.com/directions/v2:computeRoutes';
           options={method:'POST',headers:{...headers,'X-Goog-Api-Key':routeKey,'X-Goog-FieldMask':'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'},body:JSON.stringify({origin:waypoint(points[0]),destination:waypoint(points.at(-1)),intermediates:points.slice(1,-1).map(waypoint),travelMode,languageCode:'en',units:'METRIC'})};
         }
@@ -52,24 +62,41 @@ export function createHandler({env,fetcher=fetch}) {
         // Only administrators may spend search quota to populate the catalog.
         const profile=await fetcher(`${supabaseUrl}/rest/v1/profiles?user_id=eq.${encodeURIComponent(user.id)}&select=role`,{headers:{Authorization:token,apikey:authKey},signal:AbortSignal.timeout(8000)});
         if(!profile.ok || (await profile.json())[0]?.role!=='admin') return json({error:'Only admins can sync Google places. Browse the saved catalog instead.'},403);
+        if(!states.includes(body.state)) return json({error:'Select a Malaysian state or federal territory'},400);
         if(typeof body.query!=='string' || !body.query.trim() || body.query.length>200) return json({error:'Invalid search query'},400);
         const pageSize=Math.floor(Math.max(1,Math.min(20,Number(body.pageSize)||8)));
         url='https://places.googleapis.com/v1/places:searchText';
-        const searchFields=fields.split(',').filter(f=>f!=='photos');
+        sku='text_search_pro';
+        const searchFields=basicFields.split(',');
         options={method:'POST',headers:{...headers,'X-Goog-FieldMask':searchFields.map(f=>`places.${f}`).join(',')+',nextPageToken'},
           body:JSON.stringify({textQuery:body.query,languageCode:'en',regionCode:'MY',pageSize,
             ...(typeof body.pageToken==='string' && body.pageToken.length<2048?{pageToken:body.pageToken}:{})})};
       } else if(body.operation==='details') {
         if(typeof body.placeId!=='string' || !/^[A-Za-z0-9_-]{5,255}$/.test(body.placeId)) return json({error:'Invalid Google place ID'},400);
+        if(body.profile!=null && !['basic','full'].includes(body.profile)) return json({error:'Invalid detail profile'},400);
+        const basic=body.profile==='basic';
+        sku=basic?'details_pro':'details_enterprise';
         url=`https://places.googleapis.com/v1/places/${encodeURIComponent(body.placeId)}?languageCode=en`;
-        options={headers:{...headers,'X-Goog-FieldMask':fields}};
+        options={headers:{...headers,'X-Goog-FieldMask':basic?basicFields:fields}};
       } else if(body.operation==='photo') {
+        sku='photos';
         // Only Google-provided photo resource paths are accepted; arbitrary URLs cannot be proxied.
         if(typeof body.photoName!=='string' || !/^places\/[A-Za-z0-9_-]{5,255}\/photos\/[A-Za-z0-9_-]{1,4096}$/.test(body.photoName)) return json({error:'Invalid photo resource'},400);
         const width=Math.floor(Math.max(100,Math.min(1600,Number(body.width)||800)));
         url=`https://places.googleapis.com/v1/${body.photoName}/media?maxWidthPx=${width}&skipHttpRedirect=true`;
         options={headers};
       } else return json({error:'Unknown place operation'},400);
+      // Reserve billable units atomically in Postgres, shared by every instance.
+      // Missing, stale, exhausted or unverified budgets fail closed. Never refund
+      // timeouts/errors: Google may have received and billed the request.
+      const serviceKey=env('SUPABASE_SERVICE_ROLE_KEY');
+      if(!serviceKey) return json({error:'Google usage verification is not configured. Saved schedules remain available.'},503);
+      const reservation=await fetcher(`${supabaseUrl}/rest/v1/rpc/reserve_google_api_usage`,{
+        method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${serviceKey}`,apikey:serviceKey},
+        body:JSON.stringify({p_sku:sku,p_units:units}),signal:AbortSignal.timeout(8000),
+      });
+      if(!reservation.ok) return json({error:'Unable to verify Google allowance. No Google request was made.'},503);
+      if(await reservation.json()!==true) return json({error:'Google allowance is unverified, expired or exhausted. Ask an administrator to verify usage in Google Cloud.'},429);
       const upstream=await fetcher(url,{...options,signal:AbortSignal.timeout(12000)});
       if(!upstream.ok) return json({error:body.operation==='photo'?'Photo unavailable; refresh place details':(['matrix','route'].includes(body.operation)?'Google Routes unavailable; showing labelled estimates':'Google Places request failed'),upstreamStatus:upstream.status},body.operation==='photo' && upstream.status===400?410:502);
       if(body.operation==='photo') {

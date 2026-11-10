@@ -62,6 +62,7 @@ void main() {
         expect(jsonDecode(req.body), {
           'operation': 'details',
           'placeId': 'ChIJ123',
+          'profile': 'full',
         });
         return http.Response(
           jsonEncode(fixture()),
@@ -168,7 +169,10 @@ void main() {
       ]) {
         final places = service((_) async => response);
         expect(await places.fetchDetails('ChIJ123'), isNull);
-        expect(await places.fetchPlacesByText(query: 'KL'), isEmpty);
+        expect(
+          await places.fetchPlacesByText(query: 'KL', state: 'Kuala Lumpur'),
+          isEmpty,
+        );
         expect(places.lastError, isNotNull);
       }
       final offline = service(
@@ -201,9 +205,13 @@ void main() {
       });
       final result = await places.fetchPlacesByText(
         query: 'Museums in Kuala Lumpur',
+        state: 'Kuala Lumpur',
       );
       expect(result.single['id'], 'ChIJ123');
-      await places.fetchPlacesByText(query: 'Museums in Kuala Lumpur');
+      await places.fetchPlacesByText(
+        query: 'Museums in Kuala Lumpur',
+        state: 'Kuala Lumpur',
+      );
       expect(count, 2);
     },
   );
@@ -297,6 +305,9 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      expect(operations, isEmpty);
+      await tester.tap(find.text('Load photo'));
       await tester.pumpAndSettle();
       expect(operations, ['photo', 'details', 'photo']);
       expect(find.text('Photo: New photographer'), findsOneWidget);

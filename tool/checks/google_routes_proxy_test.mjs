@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHandler} from '../../supabase/functions/google-places/handler.mjs';
-const config={SUPABASE_URL:'https://db.test',SUPABASE_ANON_KEY:'public',GOOGLE_BACKEND_API_KEY:'server-only'};
+const config={SUPABASE_URL:'https://db.test',SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'budget-server-only',GOOGLE_BACKEND_API_KEY:'server-only'};
 const req=body=>new Request('https://app.test',{method:'POST',headers:{Authorization:'Bearer signed-in','Content-Type':'application/json'},body:JSON.stringify(body)});
 const points=[{latitude:3.1,longitude:101.7},{latitude:3.2,longitude:101.8}];
 function setup(role='admin',secrets={}) {
@@ -10,6 +10,7 @@ function setup(role='admin',secrets={}) {
   calls.push({url,options});
   if(url.endsWith('/auth/v1/user'))return Response.json({id:'user'});
   if(url.includes('/rest/v1/profiles?'))return Response.json([{role}]);
+  if(url.endsWith('/rpc/reserve_google_api_usage'))return Response.json(true);
   return Response.json([{condition:'ROUTE_EXISTS',duration:'120s'}]);
  }});
  return {handler,calls};
@@ -44,6 +45,8 @@ test('Matrix validates coordinates, caps billable elements, and fixes the field 
  assert.equal(call.options.headers['X-Goog-Api-Key'],'server-only');
  assert.equal(call.url.includes('server-only'),false);
  assert.equal(JSON.parse(call.options.body).origins.length,2);
+ const reservation=calls.at(-2);
+ assert.deepEqual(JSON.parse(reservation.options.body),{p_sku:'route_matrix_essentials',p_units:4});
 });
 test('Compute route sends bounded ordered stops without exposing a key',async()=>{
  const {handler,calls}=setup();

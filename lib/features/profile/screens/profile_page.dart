@@ -18,12 +18,35 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
 
+  Future<void> _editProfile() async {
+    final user = _authService.currentUser;
+    if (user == null) return;
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => _EditProfileDialog(initialName: user.name),
+    );
+    if (!mounted || name == null) return;
+    if (name.trim().isEmpty) {
+      showDemoSnackBar(context, AuthService.m2NameRequired);
+      return;
+    }
+    final saved = await _authService.updateProfile(name: name);
+    if (!mounted) return;
+    setState(() {});
+    showDemoSnackBar(
+      context,
+      saved ? AuthService.m1ProfileUpdated : AuthService.m3ProfileSaveError,
+    );
+  }
+
   void _handleLogout() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out of your travel profile?'),
+        content: const Text(
+          'Are you sure you want to log out of your travel profile?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -89,8 +112,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       CircleAvatar(
                         radius: 54,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.1,
+                        ),
                         backgroundImage: NetworkImage(user.avatarUrl),
+                        onBackgroundImageError: (_, _) {},
                       ),
                       Container(
                         padding: const EdgeInsets.all(6),
@@ -127,16 +153,29 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 12),
                   // Nationality & Travel Style Badges
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      _buildBadge(user.nationality, Colors.blue.shade50, Colors.blue.shade700),
-                      const SizedBox(width: 8),
-                      _buildBadge(user.travelStyle, Colors.purple.shade50, Colors.purple.shade700),
-                      if (user.isAdmin) ...[
-                        const SizedBox(width: 8),
-                        _buildBadge('👑 Admin', const Color(0xFFFEF3C7), const Color(0xFFB45309)),
-                      ],
+                      _buildBadge(
+                        user.nationality,
+                        Colors.blue.shade50,
+                        Colors.blue.shade700,
+                      ),
+
+                      _buildBadge(
+                        user.travelStyle,
+                        Colors.purple.shade50,
+                        Colors.purple.shade700,
+                      ),
+                      if (user.isAdmin)
+                        _buildBadge(
+                          '👑 Admin',
+                          const Color(0xFFFEF3C7),
+                          const Color(0xFFB45309),
+                        ),
                     ],
                   ),
                 ],
@@ -188,38 +227,73 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   _buildListTile(
+                    icon: Icons.edit_outlined,
+                    title: 'Edit Profile',
+                    subtitle: 'Change your full name',
+                    onTap: _editProfile,
+                  ),
+                  const Divider(height: 1, color: AppColors.line, indent: 56),
+                  _buildListTile(
                     icon: Icons.language,
                     title: 'App Language',
                     subtitle: 'English (United States)',
                     onTap: () => showDemoSheet(
                       context,
                       title: 'Language Support',
-                      body: 'Our app supports English, Malay (Bahasa Melayu), and Chinese (简体中文). You can update your language preferences anytime.',
+                      body:
+                          'Our app supports English, Malay (Bahasa Melayu), and Chinese (简体中文). You can update your language preferences anytime.',
                       icon: Icons.translate,
                     ),
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
-                  SwitchListTile(
-                    value: _notificationsEnabled,
-                    onChanged: (val) {
-                      setState(() => _notificationsEnabled = val);
-                      demoHaptic();
-                    },
-                    secondary: const Icon(Icons.notifications_outlined, color: AppColors.primary),
-                    title: const Text('Push Notifications', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                    activeThumbColor: AppColors.primary,
+                  Material(
+                    color: Colors.transparent,
+                    child: SwitchListTile(
+                      value: _notificationsEnabled,
+                      onChanged: (val) {
+                        setState(() => _notificationsEnabled = val);
+                        demoHaptic();
+                      },
+                      secondary: const Icon(
+                        Icons.notifications_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text(
+                        'Push Notifications',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      activeThumbColor: AppColors.primary,
+                    ),
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
-                  SwitchListTile(
-                    value: _darkModeEnabled,
-                    onChanged: (val) {
-                      setState(() => _darkModeEnabled = val);
-                      demoHaptic();
-                      showDemoSnackBar(context, 'Dark mode is not supported in the demo version.');
-                    },
-                    secondary: const Icon(Icons.dark_mode_outlined, color: AppColors.primary),
-                    title: const Text('Dark Mode', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                    activeThumbColor: AppColors.primary,
+                  Material(
+                    color: Colors.transparent,
+                    child: SwitchListTile(
+                      value: _darkModeEnabled,
+                      onChanged: (val) {
+                        setState(() => _darkModeEnabled = val);
+                        demoHaptic();
+                        showDemoSnackBar(
+                          context,
+                          'Dark mode is not supported in the demo version.',
+                        );
+                      },
+                      secondary: const Icon(
+                        Icons.dark_mode_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text(
+                        'Dark Mode',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      activeThumbColor: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
@@ -250,7 +324,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: () => showDemoSheet(
                       context,
                       title: 'About App',
-                      body: 'This app is a prototype designed for a Final Year Project to showcase automated route scheduling and map visualization in Malaysia.',
+                      body:
+                          'This app is a prototype designed for a Final Year Project to showcase automated route scheduling and map visualization in Malaysia.',
                       icon: Icons.info,
                     ),
                   ),
@@ -262,7 +337,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: () => showDemoSheet(
                       context,
                       title: 'Privacy & Terms',
-                      body: 'By using this app, you agree to our terms of service. No real personal data is collected or sent to any server.',
+                      body:
+                          'By using this app, you agree to our terms of service. No real personal data is collected or sent to any server.',
                       icon: Icons.description,
                     ),
                   ),
@@ -300,11 +376,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: const Icon(Icons.logout, color: Colors.redAccent),
                 label: const Text(
                   'Log Out',
-                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.redAccent, width: 1.2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
               ),
             ),
@@ -316,7 +397,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildBadge(String text, Color bgColor, Color textColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
@@ -383,22 +464,33 @@ class _ProfilePageState extends State<ProfilePage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: CircleAvatar(
-        radius: 18,
-        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-        child: Icon(icon, color: AppColors.primary, size: 18),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: CircleAvatar(
+          radius: 18,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+          child: Icon(icon, color: AppColors.primary, size: 18),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: AppColors.ink,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 14,
+          color: AppColors.muted,
+        ),
+        onTap: onTap,
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.ink),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(fontSize: 12, color: AppColors.muted),
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.muted),
-      onTap: onTap,
     );
   }
 
@@ -443,10 +535,15 @@ class _ProfilePageState extends State<ProfilePage> {
             label: const Text('Login as Admin'),
             onPressed: () async {
               Navigator.pop(ctx);
-              final res = await AuthService().login('chingkheat@example.com', 'SafeP@ss123!');
+              final res = await AuthService().login(
+                'chingkheat@example.com',
+                'SafeP@ss123!',
+              );
               if (res && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logged in as Administrator (Ching Kheat)')),
+                  const SnackBar(
+                    content: Text('Logged in as Administrator (Ching Kheat)'),
+                  ),
                 );
                 Navigator.push(
                   context,
@@ -459,4 +556,50 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+}
+
+class _EditProfileDialog extends StatefulWidget {
+  const _EditProfileDialog({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_EditProfileDialog> createState() => _EditProfileDialogState();
+}
+
+class _EditProfileDialogState extends State<_EditProfileDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Edit profile'),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      textCapitalization: TextCapitalization.words,
+      decoration: const InputDecoration(labelText: 'Full name'),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, _controller.text),
+        child: const Text('Save'),
+      ),
+    ],
+  );
 }

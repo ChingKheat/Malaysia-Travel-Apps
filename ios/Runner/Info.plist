@@ -30,6 +30,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo to identify Malaysian landmarks and food.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Show your current location on the Explore map while you use the app.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Select a photo to identify Malaysian landmarks and food.</string>
 	<key>UIApplicationSceneManifest</key>

@@ -97,7 +97,8 @@ class ItineraryStop {
   /// Converts a database stop into a UI-renderable TravelStop
   TravelStop toTravelStop() {
     if (snapshot != null) return snapshot!;
-    if (placeId.startsWith('ChIJ') ||
+    if (placeId.startsWith('ChI') ||
+        placeName == 'Saved Google place' ||
         photoUrl.contains('places.googleapis.com')) {
       return TravelStop.fromJson({
         'data_source': 'google',

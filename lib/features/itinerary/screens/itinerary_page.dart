@@ -15,6 +15,7 @@ import 'package:smart_travel_planner/features/itinerary/services/supabase_itiner
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/shared/services/weather_service.dart';
 import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
+import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 
 import 'package:smart_travel_planner/shared/widgets/demo_tap.dart';
@@ -624,9 +625,22 @@ class _ItineraryPageState extends State<ItineraryPage> {
       day,
     ).where((s) => s.isGooglePlace && s.placeId != null);
     final ids = stops.map((s) => s.placeId).toSet();
-    final rows = await PlaceCatalogService().load();
+    final references = await PlaceCatalogService().load();
+    final rows = await GooglePlacesService().hydrateRows(
+      references.where((r) => ids.contains(r['place_id'])),
+      limit: 20,
+      shouldContinue: () =>
+          mounted &&
+          generation == _detailsGeneration &&
+          uid == AuthService().currentUser?.uid &&
+          key == '$_tripKey:$_selectedDay',
+    );
     final details = rows
-        .where((r) => ids.contains(r['place_id']))
+        .where(
+          (r) =>
+              ids.contains(r['place_id']) &&
+              (!PlaceCatalogService.isGoogleReference(r) || r['_live'] == true),
+        )
         .map(
           (r) =>
               GooglePlaceDetails.fromApi(PlaceCatalogService.asGoogleShape(r)),

@@ -28,6 +28,11 @@ class Attraction {
   final String? photoUrl;
 
   LatLng get point => LatLng(latitude, longitude);
+  String? get googlePlaceId => xid.startsWith('google_')
+      ? xid.substring(7)
+      : xid.startsWith('ChI')
+      ? xid
+      : null;
 
   Attraction copyWith({
     String? description,
@@ -85,9 +90,12 @@ class Attraction {
     required double centerLat,
     required double centerLon,
   }) {
-    final id = json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final id =
+        json['id']?.toString() ??
+        DateTime.now().millisecondsSinceEpoch.toString();
     final displayName = json['displayName'];
-    final name = (displayName is Map ? displayName['text'] as String? : null) ??
+    final name =
+        (displayName is Map ? displayName['text'] as String? : null) ??
         (json['name'] as String?) ??
         'Local Spot';
 
@@ -96,14 +104,17 @@ class Attraction {
     final lon = (location['longitude'] as num?)?.toDouble() ?? centerLon;
 
     final primaryTypeDisplayName = json['primaryTypeDisplayName'];
-    final category = (primaryTypeDisplayName is Map ? primaryTypeDisplayName['text'] as String? : null) ??
+    final category =
+        (primaryTypeDisplayName is Map
+            ? primaryTypeDisplayName['text'] as String?
+            : null) ??
         _formatGoogleType((json['types'] as List?)?.firstOrNull?.toString()) ??
         'Tourism, Sights';
 
     final editorialSummary = json['editorialSummary'];
-    final description = (editorialSummary is Map ? editorialSummary['text'] as String? : null) ??
-        (json['formattedAddress'] as String?) ??
-        'Points of interest in Malaysia';
+    final description = (editorialSummary is Map
+        ? editorialSummary['text'] as String?
+        : null);
 
     final distance = const Distance().as(
       LengthUnit.Meter,
@@ -112,13 +123,14 @@ class Attraction {
     );
 
     final rating = (json['rating'] as num?)?.toDouble();
-    final userRatingsTotal = (json['userRatingCount'] as num?)?.toInt() ??
+    final userRatingsTotal =
+        (json['userRatingCount'] as num?)?.toInt() ??
         (json['user_ratings_total'] as num?)?.toInt();
     final isIndoor = json['is_indoor'] as bool?;
     final photoUrl = json['photo_url'] as String?;
 
     return Attraction(
-      xid: 'google_$id',
+      xid: json['_data_source'] == 'local' ? id : 'google_$id',
       name: name,
       latitude: lat,
       longitude: lon,
@@ -137,7 +149,9 @@ class Attraction {
     return type
         .replaceAll('_', ' ')
         .split(' ')
-        .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+        .map(
+          (w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '',
+        )
         .join(' ');
   }
 

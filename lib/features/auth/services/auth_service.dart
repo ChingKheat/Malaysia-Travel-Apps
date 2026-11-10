@@ -9,12 +9,14 @@ class RegisterResult {
   final String message;
   final UserModel? user;
   final Set<String> emptyFields;
+  final bool requiresEmailConfirmation;
 
   RegisterResult({
     required this.success,
     required this.message,
     this.user,
     this.emptyFields = const {},
+    this.requiresEmailConfirmation = false,
   });
 }
 
@@ -63,7 +65,10 @@ class AuthService extends ChangeNotifier {
       client.auth.onAuthStateChange.listen((data) async {
         final session = data.session;
         if (session != null && session.user.id != _currentUser?.uid) {
-          await _loadProfileFromSupabase(session.user.id, session.user.email ?? '');
+          await _loadProfileFromSupabase(
+            session.user.id,
+            session.user.email ?? '',
+          );
         } else if (session == null && _currentUser != null && !_isGuest) {
           _currentUser = null;
           notifyListeners();
@@ -90,29 +95,41 @@ class AuthService extends ChangeNotifier {
   Map<String, Map<String, dynamic>> get firestoreUsers => _inMemoryUsers;
 
   // Standard UC100 Messages (M1 to M7)
-  static const String m1AccountCreated = 'Account created successfully! Redirecting to homepage...';
-  static const String m2MandatoryFields = 'Please complete all mandatory registration fields.';
-  static const String m3InvalidEmail = 'Please enter a valid email address (e.g., user@example.com).';
+  static const String m1AccountCreated =
+      'Account created successfully! Redirecting to homepage...';
+  static const String m2MandatoryFields =
+      'Please complete all mandatory registration fields.';
+  static const String m3InvalidEmail =
+      'Please enter a valid email address (e.g., user@example.com).';
   static const String m4WeakPassword =
       'Password must contain at least 8 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character.';
-  static const String m5PasswordMismatch = 'Password and Confirm Password do not match. Please re-enter.';
+  static const String m5PasswordMismatch =
+      'Password and Confirm Password do not match. Please re-enter.';
   static const String m6EmailAlreadyRegistered =
       'This email address has already been registered. Please log in or use another email address.';
   static const String m7ConnectionTimeout =
-      'Network connection timeout. Unable to reach authentication service. Please try again.';
+      'Registration timed out. Check your email for a confirmation message before trying again, as your account may have been created.';
 
   // Standard UC200 Messages (M1 to M6)
-  static const String m1LoginSuccess = 'Login successful. Redirecting to homepage...';
-  static const String m2LoginMandatory = 'Please enter your email address and password.';
-  static const String m3LoginInvalidEmail = 'Please enter a valid email address.';
-  static const String m4InvalidCredentials = 'The email address or password is incorrect. Please try again.';
-  static const String m5ServiceUnavailable = 'Authentication service is currently unavailable. Please try again later.';
-  static const String m6RequestTimeout = 'The login request timed out. Please check your network and try again.';
+  static const String m1LoginSuccess =
+      'Login successful. Redirecting to homepage...';
+  static const String m2LoginMandatory =
+      'Please enter your email address and password.';
+  static const String m3LoginInvalidEmail =
+      'Please enter a valid email address.';
+  static const String m4InvalidCredentials =
+      'The email address or password is incorrect. Please try again.';
+  static const String m5ServiceUnavailable =
+      'Authentication service is currently unavailable. Please try again later.';
+  static const String m6RequestTimeout =
+      'The login request timed out. Please check your network and try again.';
 
   // UC300 Messages
   static const String m1ProfileUpdated = 'Profile updated successfully!';
-  static const String m2NameRequired = 'Full Name field cannot be empty. Please enter your name.';
-  static const String m3ProfileSaveError = 'Unable to save profile changes. Please check your network and try again.';
+  static const String m2NameRequired =
+      'Full Name field cannot be empty. Please enter your name.';
+  static const String m3ProfileSaveError =
+      'Unable to save profile changes. Please check your network and try again.';
 
   void _seedInitialUser({
     required String uid,
@@ -127,7 +144,8 @@ class AuthService extends ChangeNotifier {
       name: name,
       email: cleanEmail,
       createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
       nationality: 'Malaysia 🇲🇾',
       travelStyle: 'Cultural Explorer',
       tripsPlanned: 12,
@@ -143,7 +161,9 @@ class AuthService extends ChangeNotifier {
   /// Automatically synchronizes/upserts user profile into Supabase `public.profiles` (Table 4.2)
   Future<void> _ensureSupabaseProfile(UserModel user) async {
     final client = SupabaseConfig.client;
-    if (client != null && client.auth.currentUser?.id == user.uid && !_isGuest) {
+    if (client != null &&
+        client.auth.currentUser?.id == user.uid &&
+        !_isGuest) {
       try {
         await client
             .from('profiles')
@@ -160,7 +180,9 @@ class AuthService extends ChangeNotifier {
   /// C2: Valid Email Format Regex
   static bool isValidEmail(String email) {
     if (email.trim().isEmpty) return false;
-    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
     return emailRegex.hasMatch(email.trim());
   }
 
@@ -169,7 +191,8 @@ class AuthService extends ChangeNotifier {
   static bool hasUppercase(String pwd) => RegExp(r'[A-Z]').hasMatch(pwd);
   static bool hasLowercase(String pwd) => RegExp(r'[a-z]').hasMatch(pwd);
   static bool hasDigit(String pwd) => RegExp(r'[0-9]').hasMatch(pwd);
-  static bool hasSpecialChar(String pwd) => RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(pwd);
+  static bool hasSpecialChar(String pwd) =>
+      RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(pwd);
 
   static bool isStrongPassword(String pwd) {
     return hasMinLength(pwd) &&
@@ -208,10 +231,7 @@ class AuthService extends ChangeNotifier {
     if (!isValidEmail(email)) {
       _isLoading = false;
       notifyListeners();
-      return LoginResult(
-        success: false,
-        message: m3LoginInvalidEmail,
-      );
+      return LoginResult(success: false, message: m3LoginInvalidEmail);
     }
 
     final cleanEmail = email.trim().toLowerCase();
@@ -226,7 +246,10 @@ class AuthService extends ChangeNotifier {
 
         final user = authResponse.user;
         if (user != null) {
-          final loadedUser = await _loadProfileFromSupabase(user.id, user.email ?? cleanEmail);
+          final loadedUser = await _loadProfileFromSupabase(
+            user.id,
+            user.email ?? cleanEmail,
+          );
           _isGuest = false;
           _isLoading = false;
           notifyListeners();
@@ -237,22 +260,13 @@ class AuthService extends ChangeNotifier {
           );
         }
       } on AuthException {
-        // If credentials match local seeded store (or offline/test mode), fallback smoothly
-        if (_userPasswords[cleanEmail] != password) {
-          _isLoading = false;
-          notifyListeners();
-          return LoginResult(
-            success: false,
-            message: m4InvalidCredentials,
-          );
-        }
+        _isLoading = false;
+        notifyListeners();
+        return LoginResult(success: false, message: m4InvalidCredentials);
       } on TimeoutException {
         _isLoading = false;
         notifyListeners();
-        return LoginResult(
-          success: false,
-          message: m6RequestTimeout,
-        );
+        return LoginResult(success: false, message: m6RequestTimeout);
       } catch (_) {
         // Fall back to local verification if network error or Supabase down
       }
@@ -264,10 +278,7 @@ class AuthService extends ChangeNotifier {
     if (expectedPassword == null || expectedPassword != password) {
       _isLoading = false;
       notifyListeners();
-      return LoginResult(
-        success: false,
-        message: m4InvalidCredentials,
-      );
+      return LoginResult(success: false, message: m4InvalidCredentials);
     }
 
     final uid = _emailToUid[cleanEmail]!;
@@ -334,30 +345,21 @@ class AuthService extends ChangeNotifier {
     if (!isValidEmail(email)) {
       _isLoading = false;
       notifyListeners();
-      return RegisterResult(
-        success: false,
-        message: m3InvalidEmail,
-      );
+      return RegisterResult(success: false, message: m3InvalidEmail);
     }
 
     // C3: Password policy
     if (!isStrongPassword(password)) {
       _isLoading = false;
       notifyListeners();
-      return RegisterResult(
-        success: false,
-        message: m4WeakPassword,
-      );
+      return RegisterResult(success: false, message: m4WeakPassword);
     }
 
     // C4: Password confirmation
     if (password != confirmPassword) {
       _isLoading = false;
       notifyListeners();
-      return RegisterResult(
-        success: false,
-        message: m5PasswordMismatch,
-      );
+      return RegisterResult(success: false, message: m5PasswordMismatch);
     }
 
     final cleanEmail = email.trim().toLowerCase();
@@ -366,10 +368,7 @@ class AuthService extends ChangeNotifier {
     if (_userPasswords.containsKey(cleanEmail)) {
       _isLoading = false;
       notifyListeners();
-      return RegisterResult(
-        success: false,
-        message: m6EmailAlreadyRegistered,
-      );
+      return RegisterResult(success: false, message: m6EmailAlreadyRegistered);
     }
 
     // Try Supabase Auth if configured (FR100_3 to FR100_8)
@@ -386,12 +385,23 @@ class AuthService extends ChangeNotifier {
 
         final user = authResponse.user;
         if (user != null) {
+          if (authResponse.session == null) {
+            _isLoading = false;
+            notifyListeners();
+            return RegisterResult(
+              success: true,
+              requiresEmailConfirmation: true,
+              message:
+                  'If this email can be registered, check your inbox to confirm it, then log in.',
+            );
+          }
           final newUser = UserModel(
             uid: user.id,
             name: name.trim(),
             email: cleanEmail,
             createdAt: DateTime.now(),
-            avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
+            avatarUrl:
+                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
             nationality: 'Malaysia 🇲🇾',
             travelStyle: 'Smart Traveler',
             tripsPlanned: 0,
@@ -401,7 +411,10 @@ class AuthService extends ChangeNotifier {
 
           // Save to profiles table
           try {
-            await client.from('profiles').upsert(newUser.toSupabaseMap());
+            await client
+                .from('profiles')
+                .upsert(newUser.toSupabaseMap())
+                .timeout(const Duration(seconds: 5));
           } catch (_) {}
 
           _currentUser = newUser;
@@ -416,8 +429,7 @@ class AuthService extends ChangeNotifier {
           );
         }
       } on AuthException catch (e) {
-        if (e.message.toLowerCase().contains('already registered') ||
-            e.statusCode == '422') {
+        if (e.message.toLowerCase().contains('already registered')) {
           _isLoading = false;
           notifyListeners();
           return RegisterResult(
@@ -425,17 +437,21 @@ class AuthService extends ChangeNotifier {
             message: m6EmailAlreadyRegistered,
           );
         }
-        // Fall back to local in-memory registration for offline/test environments
+        _isLoading = false;
+        notifyListeners();
+        return RegisterResult(success: false, message: m5ServiceUnavailable);
       } on TimeoutException {
         _isLoading = false;
         notifyListeners();
-        return RegisterResult(
-          success: false,
-          message: m7ConnectionTimeout,
-        );
+        return RegisterResult(success: false, message: m7ConnectionTimeout);
       } catch (_) {
-        // Fall back to local mock
+        _isLoading = false;
+        notifyListeners();
+        return RegisterResult(success: false, message: m5ServiceUnavailable);
       }
+      _isLoading = false;
+      notifyListeners();
+      return RegisterResult(success: false, message: m5ServiceUnavailable);
     }
 
     // Fallback: Local in-memory registration
@@ -449,7 +465,8 @@ class AuthService extends ChangeNotifier {
       name: name.trim(),
       email: cleanEmail,
       createdAt: createdAt,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
       nationality: 'Malaysia 🇲🇾',
       travelStyle: 'Smart Traveler',
       tripsPlanned: 0,
@@ -490,21 +507,28 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     final client = SupabaseConfig.client;
-    if (client != null && SupabaseConfig.isConfigured) {
+    if (client != null &&
+        SupabaseConfig.isConfigured &&
+        client.auth.currentUser?.id == user.uid) {
       try {
-        final updateMap = <String, dynamic>{
-          'full_name': name.trim(),
-        };
+        final updateMap = <String, dynamic>{'full_name': name.trim()};
         if (preferredLanguage != null) {
           updateMap['preferred_language'] = preferredLanguage;
         }
 
-        await client
+        final updated = await client
             .from('profiles')
             .update(updateMap)
             .eq('user_id', user.uid)
+            .select('user_id')
+            .maybeSingle()
             .timeout(const Duration(seconds: 10));
-      } catch (_) {}
+        if (updated == null) throw StateError('Profile was not updated');
+      } catch (_) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     }
 
     // Update in-memory state
@@ -522,6 +546,9 @@ class AuthService extends ChangeNotifier {
       preferredLanguage: preferredLanguage ?? user.preferredLanguage,
       role: user.role,
     );
+    if (_inMemoryUsers.containsKey(user.uid)) {
+      _inMemoryUsers[user.uid] = _currentUser!.toFirestore();
+    }
 
     _isLoading = false;
     notifyListeners();
@@ -571,7 +598,8 @@ class AuthService extends ChangeNotifier {
       name: 'Guest Traveler',
       email: 'guest@smarttravel.my',
       createdAt: DateTime.now(),
-      avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80',
       nationality: 'International 🌍',
       travelStyle: 'Backpacker',
       tripsPlanned: 1,

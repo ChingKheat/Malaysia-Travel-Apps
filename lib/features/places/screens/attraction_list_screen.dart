@@ -94,7 +94,8 @@ class ModernAttractionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final (catColor, catIcon, catLabel) = _getCategoryMeta(attraction.category);
     final resolvedPhoto = _resolvePhotoUrl(attraction);
-    final hasValidPhoto = resolvedPhoto != null && resolvedPhoto.startsWith('http');
+    final hasValidPhoto =
+        resolvedPhoto != null && resolvedPhoto.startsWith('http');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -124,9 +125,8 @@ class ModernAttractionCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left Visual Thumbnail (80 x 80)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: SizedBox(
@@ -147,192 +147,156 @@ class ModernAttractionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Center Content Details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Top Row: Category Chip & Indoor/Outdoor tag
                       Row(
                         children: [
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2.5,
+                          Expanded(
+                            child: Text(
+                              attraction.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.ink,
+                                height: 1.3,
                               ),
-                              decoration: BoxDecoration(
-                                color: catColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: onToggle,
+                            isSelected: selected,
+                            tooltip: selected
+                                ? 'Remove ${attraction.name} from Saved'
+                                : 'Save ${attraction.name}',
+                            icon: const Icon(Icons.bookmark_border_rounded),
+                            selectedIcon: const Icon(Icons.bookmark_rounded),
+                            iconSize: 24,
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                              padding: const EdgeInsets.all(12),
+                              visualDensity: VisualDensity.standard,
+                              backgroundColor: selected
+                                  ? AppColors.primary
+                                  : AppColors.primary.withValues(alpha: 0.08),
+                              foregroundColor: selected
+                                  ? Colors.white
+                                  : AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _buildTag(
+                            label: catLabel,
+                            icon: catIcon,
+                            color: catColor,
+                            backgroundColor: catColor.withValues(alpha: 0.1),
+                          ),
+                          if (attraction.isIndoor != null)
+                            _buildTag(
+                              label: attraction.isIndoor!
+                                  ? 'Indoor'
+                                  : 'Outdoor',
+                              icon: attraction.isIndoor!
+                                  ? Icons.apartment_rounded
+                                  : Icons.wb_sunny_outlined,
+                              color: attraction.isIndoor!
+                                  ? const Color(0xFF1D4ED8)
+                                  : const Color(0xFFB45309),
+                              backgroundColor: attraction.isIndoor!
+                                  ? const Color(0xFFEFF6FF)
+                                  : const Color(0xFFFEF3C7),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (attraction.rating != null)
+                            Text.rich(
+                              TextSpan(
                                 children: [
-                                  Icon(catIcon, size: 11, color: catColor),
-                                  const SizedBox(width: 3.5),
-                                  Flexible(
-                                    child: Text(
-                                      catLabel,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: catColor,
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w700,
+                                  const WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(right: 2),
+                                      child: Icon(
+                                        Icons.star_rounded,
+                                        size: 16,
+                                        color: Color(0xFFF59E0B),
                                       ),
                                     ),
                                   ),
+                                  TextSpan(
+                                    text: attraction.rating!.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.ink,
+                                    ),
+                                  ),
+                                  if (attraction.userRatingsTotal != null &&
+                                      attraction.userRatingsTotal! > 0)
+                                    TextSpan(
+                                      text:
+                                          ' (${_formatReviews(attraction.userRatingsTotal!)})',
+                                    ),
                                 ],
                               ),
-                            ),
-                          ),
-                          if (attraction.isIndoor != null) ...[
-                            const SizedBox(width: 5),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: attraction.isIndoor!
-                                    ? const Color(0xFFEFF6FF)
-                                    : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                attraction.isIndoor! ? '🏢 Indoor' : '🌤️ Outdoor',
-                                style: TextStyle(
-                                  color: attraction.isIndoor!
-                                      ? const Color(0xFF1D4ED8)
-                                      : const Color(0xFFB45309),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-
-                      // Title
-                      Text(
-                        attraction.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.ink,
-                          height: 1.22,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-
-                      // Rating & Distance Row
-                      Row(
-                        children: [
-                          if (attraction.rating != null) ...[
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 15,
-                              color: Color(0xFFF59E0B),
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              attraction.rating!.toStringAsFixed(1),
+                              semanticsLabel:
+                                  'Rated ${attraction.rating!.toStringAsFixed(1)} out of 5'
+                                  '${attraction.userRatingsTotal != null && attraction.userRatingsTotal! > 0 ? ', ${attraction.userRatingsTotal} reviews' : ''}',
                               style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.ink,
-                              ),
-                            ),
-                            if (attraction.userRatingsTotal != null &&
-                                attraction.userRatingsTotal! > 0)
-                              Text(
-                                ' (${_formatReviews(attraction.userRatingsTotal!)})',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.muted,
-                                ),
-                              ),
-                            const Text(
-                              ' • ',
-                              style: TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                          const Icon(
-                            Icons.near_me_outlined,
-                            size: 12,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 2.5),
-                          Expanded(
-                            child: Text(
-                              _distanceLabel(attraction.distanceMeters),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                height: 1.4,
                                 color: AppColors.muted,
                               ),
+                            ),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                const WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: Padding(
+                                    padding: EdgeInsets.only(right: 3),
+                                    child: Icon(
+                                      Icons.near_me_outlined,
+                                      size: 14,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: _distanceLabel(
+                                    attraction.distanceMeters,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              height: 1.4,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.muted,
                             ),
                           ),
                         ],
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // Right Action Pill Button (+ Add / ✓ Added)
-                GestureDetector(
-                  onTap: onToggle,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6.5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? AppColors.primary
-                          : AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.primary.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          selected
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_add_outlined,
-                          size: 14,
-                          color: selected ? Colors.white : AppColors.primary,
-                        ),
-                        const SizedBox(width: 3.5),
-                        Text(
-                          selected ? 'Saved' : 'Save',
-                          style: TextStyle(
-                            color: selected ? Colors.white : AppColors.primary,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -343,14 +307,44 @@ class ModernAttractionCard extends StatelessWidget {
     );
   }
 
+  Widget _buildTag({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color backgroundColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                height: 1.3,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFallbackThumbnail(Color catColor, IconData catIcon) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            catColor.withValues(alpha: 0.85),
-            catColor,
-          ],
+          colors: [catColor.withValues(alpha: 0.85), catColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -411,15 +405,13 @@ class ModernAttractionCard extends StatelessWidget {
         kind.contains('sights')) {
       return (const Color(0xFF7C3AED), Icons.castle_rounded, 'Sight');
     }
-    final raw =
-        category.isEmpty ? 'Attraction' : category.split(',').first.trim();
-    final cleanLabel =
-        raw.toLowerCase() == 'tourist attraction' ? 'Attraction' : raw;
-    return (
-      AppColors.primary,
-      Icons.place_rounded,
-      cleanLabel,
-    );
+    final raw = category.isEmpty
+        ? 'Attraction'
+        : category.split(',').first.trim();
+    final cleanLabel = raw.toLowerCase() == 'tourist attraction'
+        ? 'Attraction'
+        : raw;
+    return (AppColors.primary, Icons.place_rounded, cleanLabel);
   }
 
   static String _formatReviews(int count) {

@@ -88,7 +88,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
         onRouteTap: () => _goToTab(1),
         onAssistantTap: () => _goToTab(4),
       ),
-      const ApiDemoPage(),
+      ApiDemoPage(isVisible: _selectedIndex == 1 && !_myTripsOpen),
       ImageRecognitionPage(
         key: ValueKey(
           'recognition:${AuthService().currentUser?.uid ?? 'guest'}',
