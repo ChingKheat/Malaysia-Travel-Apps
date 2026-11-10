@@ -28,13 +28,13 @@ void main() {
       await _withApp(tester, () async {
         for (final entry in {
           'Explore': 'Explore Malaysia',
-          'Recognize': 'Image Recognition',
+          'Scan': 'Image Recognition',
           'Plan': 'Plan Your Trip',
           'AI': 'Trip Assistant',
         }.entries) {
           await tester.tap(_tab(entry.key));
           await tester.pumpAndSettle();
-          if (entry.key == 'Recognize') {
+          if (entry.key == 'Scan') {
             expect(find.text(entry.value), findsOneWidget);
             expect(find.byTooltip('Notifications'), findsNothing);
           } else {
