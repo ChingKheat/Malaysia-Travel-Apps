@@ -17,7 +17,8 @@ class UserModel {
     required this.name,
     required this.email,
     required this.createdAt,
-    this.avatarUrl = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
+    this.avatarUrl =
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
     this.nationality = 'Malaysia 🇲🇾',
     this.travelStyle = 'Cultural Explorer',
     this.tripsPlanned = 0,
@@ -39,14 +40,19 @@ class UserModel {
       createdAt: data['created_at'] != null
           ? DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()
           : data['createdAt'] != null
-              ? DateTime.tryParse(data['createdAt'].toString()) ?? DateTime.now()
-              : DateTime.now(),
-      avatarUrl: data['avatar_url'] ?? data['avatarUrl'] ?? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
+          ? DateTime.tryParse(data['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      avatarUrl:
+          data['avatar_url'] ??
+          data['avatarUrl'] ??
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
       nationality: data['nationality'] ?? 'Malaysia 🇲🇾',
-      travelStyle: data['travel_style'] ?? data['travelStyle'] ?? 'Cultural Explorer',
+      travelStyle:
+          data['travel_style'] ?? data['travelStyle'] ?? 'Cultural Explorer',
       tripsPlanned: data['trips_planned'] ?? data['tripsPlanned'] ?? 0,
       placesVisited: data['places_visited'] ?? data['placesVisited'] ?? 0,
-      memberSince: data['member_since'] ?? data['memberSince'] ?? 'Recent Member',
+      memberSince:
+          data['member_since'] ?? data['memberSince'] ?? 'Recent Member',
       preferredLanguage: data['preferred_language'] ?? 'en',
       role: data['role']?.toString() ?? 'user',
     );
@@ -85,6 +91,8 @@ class UserModel {
       'tripsPlanned': tripsPlanned,
       'placesVisited': placesVisited,
       'memberSince': memberSince,
+      'preferred_language': preferredLanguage,
+      'role': role,
     };
   }
 }

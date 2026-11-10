@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
+import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
 
 class AdminPlacesPage {
   const AdminPlacesPage({required this.rows, required this.totalCount});
@@ -9,6 +10,24 @@ class AdminPlacesPage {
 
 /// Database-only operations; these never request Google data.
 class AdminPlacesRepository {
+  static const supportedStates = [
+    'Penang',
+    'Kuala Lumpur',
+    'Melaka',
+    'Selangor',
+    'Johor',
+    'Perak',
+    'Pahang',
+    'Sabah',
+    'Sarawak',
+    'Kedah',
+    'Terengganu',
+    'Kelantan',
+    'Negeri Sembilan',
+    'Perlis',
+    'Putrajaya',
+    'Labuan',
+  ];
   static String? googleState(Map<String, dynamic> place) {
     const aliases = {
       'pulau pinang': 'Penang',
@@ -19,8 +38,10 @@ class AdminPlacesRepository {
       'wilayah persekutuan kuala lumpur': 'Kuala Lumpur',
       'kuala lumpur': 'Kuala Lumpur',
       'putrajaya': 'Putrajaya',
+      'federal territory of putrajaya': 'Putrajaya',
       'wilayah persekutuan putrajaya': 'Putrajaya',
       'labuan': 'Labuan',
+      'federal territory of labuan': 'Labuan',
       'wilayah persekutuan labuan': 'Labuan',
       'selangor': 'Selangor',
       'johor': 'Johor',
@@ -64,18 +85,18 @@ class AdminPlacesRepository {
       SupabaseConfig.client ??
       (throw StateError('Database unavailable'));
 
-  Future<AdminPlacesPage> load(String state) async {
+  Future<AdminPlacesPage> load(String state, {int offset = 0}) async {
     final response = await _db
         .from('places')
         .select()
         .eq('state', state)
-        .order('rating', ascending: false)
-        .limit(500)
+        .order('place_id')
+        .range(offset, offset + 19)
         .count(CountOption.exact);
     return AdminPlacesPage(rows: response.data, totalCount: response.count);
   }
 
-  /// Preserve API values; reject incomplete responses before any database write.
+  /// Validate live discovery, then keep only the ID and app-owned grouping.
   static Map<String, dynamic> importRow(
     String state,
     Map<String, dynamic> place,
@@ -104,25 +125,27 @@ class AdminPlacesRepository {
     }
     return {
       'place_id': id,
-      'name': name,
+      'data_source': 'google',
+      'name': 'Saved Google place',
       'state': state,
-      'category': place['category'] ?? 'Category unavailable',
-      'latitude': lat,
-      'longitude': lng,
-      'rating': place['rating'],
-      'user_ratings_total': place['user_ratings_total'],
-      'operating_hours': place['operating_hours'],
+      'category':
+          PlaceCatalogService.appCategories.contains(place['app_category'])
+          ? place['app_category']
+          : 'Attraction',
+      'latitude': 0.0,
+      'longitude': 0.0,
+      'rating': null,
+      'user_ratings_total': null,
+      'operating_hours': null,
       // Photos are retrieved on demand through the authenticated service.
       'photo_url': null,
-      'is_indoor': place['is_indoor'],
     };
   }
 
   Future<int> savePlaces(
     String state,
-    Iterable<Map<String, dynamic>> places, {
-    bool updateExisting = false,
-  }) async {
+    Iterable<Map<String, dynamic>> places,
+  ) async {
     final unique = <String, Map<String, dynamic>>{};
     for (final place in places) {
       final row = importRow(state, place);
@@ -133,17 +156,44 @@ class AdminPlacesRepository {
     for (var start = 0; start < values.length; start += 40) {
       final end = (start + 40).clamp(0, values.length);
       final rows = values.sublist(start, end);
-      final added = await _db
-          .from('places')
-          .upsert(
-            rows,
-            onConflict: 'place_id',
-            ignoreDuplicates: !updateExisting,
-          )
-          .select('place_id');
-      // PostgREST returns only inserted rows when duplicates are ignored.
-      inserted += added.length;
+      try {
+        final added = await _db
+            .from('places')
+            .upsert(rows, onConflict: 'place_id', ignoreDuplicates: true)
+            .select('place_id');
+        // PostgREST returns only inserted rows when duplicates are ignored.
+        inserted += added.length;
+      } catch (_) {
+        throw StateError(
+          'Import interrupted: $inserted inserts confirmed; ${values.length - start} records unconfirmed. Earlier batches remain saved. Retry safely; existing IDs are preserved.',
+        );
+      }
     }
     return inserted;
+  }
+
+  Future<void> saveReview(
+    Map<String, dynamic> original,
+    String category,
+    bool? indoor,
+  ) async {
+    if (!PlaceCatalogService.appCategories.contains(category)) {
+      throw const FormatException('Invalid app category');
+    }
+    var query = _db
+        .from('places')
+        .update({'category': category, 'is_indoor': indoor})
+        .eq('place_id', original['place_id'])
+        .eq('state', original['state'])
+        .eq('category', original['category']);
+    query = original['is_indoor'] == null
+        ? query.isFilter('is_indoor', null)
+        : query.eq('is_indoor', original['is_indoor']);
+    final rows = await query.select('place_id');
+    if (rows.length != 1) {
+      throw StateError(
+        'Record changed or permission denied. Refresh before reviewing again.',
+      );
+    }
   }
 }

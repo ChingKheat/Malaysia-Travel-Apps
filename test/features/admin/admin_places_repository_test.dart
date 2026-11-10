@@ -78,11 +78,11 @@ void main() {
       ...place('id'),
       'rating': null,
       'user_ratings_total': null,
-        'photo_url': 'https://places.googleapis.com/photo?key=never-store-this',
+      'photo_url': 'https://places.googleapis.com/photo?key=never-store-this',
     });
     expect(row['rating'], isNull);
     expect(row['user_ratings_total'], isNull);
-      expect(row['photo_url'], isNull);
+    expect(row['photo_url'], isNull);
   });
   test(
     'Database count uses the full server total rather than the displayed page size',
@@ -93,7 +93,7 @@ void main() {
         httpClient: MockClient((request) async {
           expect(request.url.path, '/rest/v1/places');
           expect(request.url.queryParameters['state'], 'eq.Selangor');
-          expect(request.url.queryParameters['limit'], '500');
+          expect(request.url.queryParameters['limit'], '20');
           expect(request.headers['prefer'], contains('count=exact'));
           return http.Response(
             jsonEncode([
@@ -133,15 +133,13 @@ void main() {
           final rows = jsonDecode(request.body) as List;
           expect(rows.length, requests == 1 ? 40 : 5);
           expect(rows.every((row) => row['state'] == 'Selangor'), true);
-          expect(rows.first['name'], startsWith('Actual place'));
-          expect(rows.first['latitude'], 3.1);
-          expect(rows.first['longitude'], 101.5);
-          expect(rows.first['rating'], 4.2);
-          expect(rows.first['user_ratings_total'], 17);
-          expect(
-            rows.first['operating_hours']['weekdayDescriptions'],
-            isNotEmpty,
-          );
+          expect(rows.first['name'], 'Saved Google place');
+          expect(rows.first['data_source'], 'google');
+          expect(rows.first['latitude'], 0);
+          expect(rows.first['longitude'], 0);
+          expect(rows.first['rating'], isNull);
+          expect(rows.first['user_ratings_total'], isNull);
+          expect(rows.first['operating_hours'], isNull);
           // Existing IDs are ignored; API search results are not all new inserts.
           return http.Response(
             jsonEncode(
@@ -188,7 +186,13 @@ void main() {
       );
       await expectLater(
         repository.savePlaces('Johor', [place('new-place')]),
-        throwsA(isA<PostgrestException>()),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'partial progress',
+            contains('0 inserts confirmed'),
+          ),
+        ),
       );
     },
   );

@@ -104,12 +104,14 @@ class SmartItineraryService {
             destinationState: destination,
             query: 'tourist attractions in $destination Malaysia',
             maxResults: 20,
+            shouldContinue: () => generation == _generation,
           ),
           service.fetchPlacesWithDatabaseCache(
             destinationState: destination,
             query: 'local restaurants in $destination Malaysia',
             isMeal: true,
             maxResults: 12,
+            shouldContinue: () => generation == _generation,
           ),
         ]);
         candidates = [

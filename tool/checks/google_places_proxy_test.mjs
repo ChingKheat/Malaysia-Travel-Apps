@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHandler } from '../../supabase/functions/google-places/handler.mjs';
+import { createHandler, states } from '../../supabase/functions/google-places/handler.mjs';
 
-const config = {SUPABASE_URL:'https://example.supabase.co', SUPABASE_ANON_KEY:'public-test-key', GOOGLE_BACKEND_API_KEY:'private-server-test-key'};
+const config = {SUPABASE_URL:'https://example.supabase.co', SUPABASE_ANON_KEY:'public-test-key', SUPABASE_SERVICE_ROLE_KEY:'server-budget-key', GOOGLE_BACKEND_API_KEY:'private-server-test-key'};
 const request = (body, auth='Bearer registered-session') => new Request('https://app.test/google-places', {
   method:'POST',headers:{'content-type':'application/json',...(auth?{authorization:auth}:{})}, body:JSON.stringify(body),
 });
@@ -12,6 +12,7 @@ function setup(responder, overrides={}) {
     calls.push({url,options});
     if(url.endsWith('/auth/v1/user')) return Response.json({id:'registered-user',is_anonymous:false});
     if(url.includes('/rest/v1/profiles?')) return Response.json([{role:'admin'}]);
+    if(url.endsWith('/rpc/reserve_google_api_usage')) return Response.json(true);
     return responder(url,options);
   }});
   return {handler,calls};
@@ -48,11 +49,12 @@ test('Places uses the shared backend secret and ignores the removed secret name'
 });
 test('Search uses fixed fields and server headers; preserves real values and pagination',async()=>{
   const {handler,calls}=setup(()=>Response.json({places:[{id:'ChIJ123',rating:4.2,userRatingCount:0}],nextPageToken:'page2'}));
-  const result=await handler(request({operation:'search',query:'Museums in Kuala Lumpur',pageSize:100,fieldMask:'*'}));
-  const google=calls[2];
+  const result=await handler(request({operation:'search',state:'Kuala Lumpur',query:'Museums in Kuala Lumpur',pageSize:100,fieldMask:'*'}));
+  const google=calls.at(-1);
   assert.equal(JSON.parse(google.options.body).pageSize,20);
   assert.equal(google.options.headers['X-Goog-Api-Key'],config.GOOGLE_BACKEND_API_KEY);
-  assert.ok(google.options.headers['X-Goog-FieldMask'].includes('places.regularOpeningHours'));
+  assert.ok(!google.options.headers['X-Goog-FieldMask'].includes('places.regularOpeningHours'));
+  assert.ok(!google.options.headers['X-Goog-FieldMask'].includes('places.rating'));
   assert.ok(google.options.headers['X-Goog-FieldMask'].includes('places.addressComponents'));
   assert.ok(!google.url.includes(config.GOOGLE_BACKEND_API_KEY));
   assert.equal(result.headers.get('cache-control'),'no-store');
@@ -80,13 +82,13 @@ test('Photo fetch never forwards API key to the image host and returns only byte
   });
   const result=await handler(request({operation:'photo',photoName:'places/ChIJ123/photos/ABC123'}));
   assert.equal(result.status,200);assert.deepEqual([...new Uint8Array(await result.arrayBuffer())],[1,2,3]);
-  assert.equal(calls.length,3);assert.equal(result.headers.get('cache-control'),'no-store');
+  assert.equal(calls.length,4);assert.equal(result.headers.get('cache-control'),'no-store');
 });
 test('Rejects unexpected photo destinations and maps expired references to 410',async()=>{
   for(const photoUri of ['http://lh3.googleusercontent.com/image','https://evil.test/image', 'https://googleusercontent.com.evil.test/image']) {
     const {handler,calls}=setup(()=>Response.json({photoUri}));
     assert.equal((await handler(request({operation:'photo',photoName:'places/ChIJ123/photos/ABC123'}))).status,502);
-    assert.equal(calls.length,2);
+    assert.equal(calls.length,3);
   }
   const {handler}=setup(()=>new Response('expired',{status:400}));
   assert.equal((await handler(request({operation:'photo',photoName:'places/ChIJ123/photos/ABC123'}))).status,410);
@@ -98,6 +100,73 @@ test('Upstream errors do not disclose Google response bodies or secrets',async()
 });
 test('Rate limit bounds repeated authenticated calls per instance',async()=>{
   const {handler}=setup(()=>Response.json({places:[]}));
-  for(let i=0;i<90;i++) assert.equal((await handler(request({operation:'search',query:'KL'}))).status,200);
-  assert.equal((await handler(request({operation:'search',query:'KL'}))).status,429);
+  for(let i=0;i<90;i++) assert.equal((await handler(request({operation:'search',query:'KL',state:'Kuala Lumpur'}))).status,200);
+  assert.equal((await handler(request({operation:'search',query:'KL',state:'Kuala Lumpur'}))).status,429);
+});
+
+test('All 16 Malaysian areas are accepted and unknown areas spend no quota',async()=>{
+  assert.equal(states.length,16);
+  const {handler,calls}=setup(()=>Response.json({places:[]}));
+  for(const state of states) assert.equal((await handler(request({operation:'search',state,query:`Attractions in ${state}`}))).status,200);
+  const before=calls.filter(c=>c.url.endsWith('/rpc/reserve_google_api_usage')).length;
+  assert.equal((await handler(request({operation:'search',state:'Singapore',query:'attractions'}))).status,400);
+  assert.equal(calls.filter(c=>c.url.endsWith('/rpc/reserve_google_api_usage')).length,before);
+});
+
+test('Basic and full details reserve the matching SKU with fixed masks',async()=>{
+  const {handler,calls}=setup(()=>Response.json({id:'ChIJ123'}));
+  for(const profile of ['basic','full']) {
+    assert.equal((await handler(request({operation:'details',placeId:'ChIJ123',profile}))).status,200);
+    const reservation=calls.at(-2);
+    assert.deepEqual(JSON.parse(reservation.options.body),{p_sku:profile==='basic'?'details_pro':'details_enterprise',p_units:1});
+    assert.equal(calls.at(-1).options.headers['X-Goog-FieldMask'].includes('rating'),profile==='full');
+    assert.equal(reservation.options.headers.apikey,config.SUPABASE_SERVICE_ROLE_KEY);
+    assert.equal(calls.at(-1).options.headers.apikey,undefined);
+  }
+});
+
+test('Unverified, exhausted and unavailable budgets never call Google',async()=>{
+  for(const budgetResponse of [()=>Response.json(false),()=>new Response('',{status:503}),()=>{throw Error('offline');}]) {
+    let googleCalls=0;
+    const handler=createHandler({env:n=>config[n],fetcher:async(url)=>{
+      if(url.endsWith('/auth/v1/user'))return Response.json({id:'registered'});
+      if(url.endsWith('/rpc/reserve_google_api_usage'))return budgetResponse();
+      googleCalls++;throw Error('Google must not be called');
+    }});
+    assert.ok([429,502,503].includes((await handler(request({operation:'details',placeId:'ChIJ123'}))).status));
+    assert.equal(googleCalls,0);
+  }
+  const {handler,calls}=setup(()=>{throw Error('unexpected');},{SUPABASE_SERVICE_ROLE_KEY:undefined});
+  assert.equal((await handler(request({operation:'details',placeId:'ChIJ123'}))).status,503);
+  assert.equal(calls.length,1);
+});
+
+test('Concurrent independent instances share the reservation gate',async()=>{
+  let used=0,googleCalls=0;
+  const fetcher=async(url,options)=>{
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:'registered-user'});
+    if(url.endsWith('/rpc/reserve_google_api_usage')) {
+      const units=JSON.parse(options.body).p_units;
+      if(used+units>2)return Response.json(false);
+      used+=units;return Response.json(true);
+    }
+    googleCalls++;return Response.json({id:'ChIJ123'});
+  };
+  const first=createHandler({env:n=>config[n],fetcher});
+  const second=createHandler({env:n=>config[n],fetcher});
+  const results=await Promise.all(Array.from({length:10},(_,i)=>(i%2?first:second)(request({operation:'details',placeId:'ChIJ123'}))));
+  assert.equal(results.filter(r=>r.status===200).length,2);
+  assert.equal(results.filter(r=>r.status===429).length,8);
+  assert.equal(used,2);assert.equal(googleCalls,2);
+});
+
+test('Budget status is admin-only and never spends Google allowance',async()=>{
+  const {handler,calls}=setup(()=>Response.json([{sku:'text_search_pro',enabled:false}]));
+  assert.equal((await handler(request({operation:'budget_status'}))).status,200);
+  assert.ok(calls.every(c=>!c.url.includes('googleapis.com') && !c.url.includes('/rpc/')));
+  const denied=createHandler({env:n=>config[n],fetcher:async(url)=>{
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:'registered'});
+    return Response.json([{role:'user'}]);
+  }});
+  assert.equal((await denied(request({operation:'budget_status'}))).status,403);
 });

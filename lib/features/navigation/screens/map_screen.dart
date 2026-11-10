@@ -17,6 +17,7 @@ class MapScreen extends StatefulWidget {
     required this.onAttractionTap,
     required this.onToggleStop,
     this.center,
+    this.isVisible = true,
   });
 
   final List<Attraction> attractions;
@@ -25,6 +26,7 @@ class MapScreen extends StatefulWidget {
   final ValueChanged<Attraction> onAttractionTap;
   final ValueChanged<Attraction> onToggleStop;
   final LatLng? center;
+  final bool isVisible;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -32,8 +34,13 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late final Future<bool> _ready = ensureGoogleMapReady();
+
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) {
+      return const SizedBox.shrink();
+    }
+
     final attractions = widget.attractions;
     final selectedStops = widget.selectedStops;
     final route = widget.route;

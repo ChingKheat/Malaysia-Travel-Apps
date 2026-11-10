@@ -25,12 +25,13 @@ class GooglePlaceImage extends StatefulWidget {
 class _GooglePlaceImageState extends State<GooglePlaceImage> {
   Uint8List? _bytes;
   late GooglePlacePhoto _photo;
-  bool _loading = true;
+  bool _loading = false;
+  bool _requested = false;
   int _generation = 0;
   @override
   void initState() {
     super.initState();
-    _load();
+    _photo = widget.photo;
   }
 
   @override
@@ -38,15 +39,22 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.photo.name != widget.photo.name ||
         oldWidget.placeId != widget.placeId) {
-      _load();
+      _generation++;
+      _photo = widget.photo;
+      _bytes = null;
+      _loading = false;
+      _requested = false;
     }
   }
 
   Future<void> _load() async {
     final generation = ++_generation;
-    _photo = widget.photo;
-    _bytes = null;
-    _loading = true;
+    setState(() {
+      _photo = widget.photo;
+      _bytes = null;
+      _loading = true;
+      _requested = true;
+    });
     final result = await widget.service.fetchPhotoResult(_photo);
     var bytes = result.bytes;
     // A photo reference can expire. Ask Google for new details and retry once.
@@ -85,7 +93,22 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _bytes == null
-            ? const Center(child: Text('Photo unavailable'))
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_requested) const Text('Photo unavailable'),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      child: FilledButton.icon(
+                        onPressed: _load,
+                        icon: const Icon(Icons.photo),
+                        label: Text(_requested ? 'Retry photo' : 'Load photo'),
+                      ),
+                    ),
+                  ],
+                ),
+              )
             : Image.memory(
                 _bytes!,
                 fit: BoxFit.cover,

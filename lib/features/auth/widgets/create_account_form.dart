@@ -38,6 +38,15 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
     setState(() {});
   }
 
+  void _clearValidationError(String field) {
+    if (_errorMessage == null && !_highlightedEmptyFields.contains(field))
+      return;
+    setState(() {
+      _errorMessage = null;
+      _highlightedEmptyFields.remove(field);
+    });
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -49,11 +58,12 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   }
 
   void _handleRegister() async {
+    if (_isLoading) return;
     demoHaptic();
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _highlightedEmptyFields.clear();
+      _highlightedEmptyFields = {};
     });
 
     final result = await _authService.registerUser(
@@ -69,15 +79,37 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
       _isLoading = false;
       if (!result.success) {
         _errorMessage = result.message;
-        _highlightedEmptyFields = result.emptyFields;
+        _highlightedEmptyFields = Set.of(result.emptyFields);
       }
     });
 
     if (result.success) {
+      if (result.requiresEmailConfirmation) {
+        _nameController.clear();
+        _emailController.clear();
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Check your email'),
+            content: const Text(
+              'If this email can be registered, a confirmation email will be sent. Open the link in that email, then return here and log in. You are not signed in yet.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
       // Display M1 SnackBar
       showDemoSnackBar(
         context,
-        AuthService.m1AccountCreated,
+        result.message,
         icon: Icons.check_circle_outline,
       );
       widget.onSuccess?.call();
@@ -122,7 +154,11 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 22),
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.red.shade700,
+                    size: 22,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -146,6 +182,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           const SizedBox(height: 6),
           TextField(
             controller: _nameController,
+            onChanged: (_) => _clearValidationError('name'),
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
               hint: 'e.g. Ali Bin Ahmad',
@@ -160,6 +197,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           const SizedBox(height: 6),
           TextField(
             controller: _emailController,
+            onChanged: (_) => _clearValidationError('email'),
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
@@ -175,6 +213,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           const SizedBox(height: 6),
           TextField(
             controller: _passwordController,
+            onChanged: (_) => _clearValidationError('password'),
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
@@ -183,10 +222,13 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               isError: _highlightedEmptyFields.contains('password'),
               suffix: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.muted,
                 ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
           ),
@@ -212,11 +254,23 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _buildRuleItem('At least 8 characters', AuthService.hasMinLength(pwd)),
-                _buildRuleItem('One uppercase letter (A-Z)', AuthService.hasUppercase(pwd)),
-                _buildRuleItem('One lowercase letter (a-z)', AuthService.hasLowercase(pwd)),
+                _buildRuleItem(
+                  'At least 8 characters',
+                  AuthService.hasMinLength(pwd),
+                ),
+                _buildRuleItem(
+                  'One uppercase letter (A-Z)',
+                  AuthService.hasUppercase(pwd),
+                ),
+                _buildRuleItem(
+                  'One lowercase letter (a-z)',
+                  AuthService.hasLowercase(pwd),
+                ),
                 _buildRuleItem('One number (0-9)', AuthService.hasDigit(pwd)),
-                _buildRuleItem('One special character (!@#\$%^&*)', AuthService.hasSpecialChar(pwd)),
+                _buildRuleItem(
+                  'One special character (!@#\$%^&*)',
+                  AuthService.hasSpecialChar(pwd),
+                ),
               ],
             ),
           ),
@@ -227,6 +281,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           const SizedBox(height: 6),
           TextField(
             controller: _confirmPasswordController,
+            onChanged: (_) => _clearValidationError('confirmPassword'),
             obscureText: _obscureConfirmPassword,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleRegister(),
@@ -236,10 +291,14 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               isError: _highlightedEmptyFields.contains('confirmPassword'),
               suffix: IconButton(
                 icon: Icon(
-                  _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscureConfirmPassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.muted,
                 ),
-                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                onPressed: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                ),
               ),
             ),
           ),
@@ -259,12 +318,17 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                   child: FilledButton(
                     onPressed: _handleRegister,
                     style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       backgroundColor: AppColors.primary,
                     ),
                     child: const Text(
                       'Register Account',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -284,11 +348,19 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                 initiallyExpanded: false,
                 title: Row(
                   children: const [
-                    Icon(Icons.bug_report_outlined, size: 18, color: AppColors.primary),
+                    Icon(
+                      Icons.bug_report_outlined,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'UC100 Flow Testing Tools',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.ink,
+                      ),
                     ),
                   ],
                 ),
@@ -308,30 +380,52 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                           runSpacing: 6,
                           children: [
                             ActionChip(
-                              avatar: const Icon(Icons.mark_email_read_outlined, size: 16),
-                              label: const Text('Fill Valid Form', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.mark_email_read_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Fill Valid Form',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
                                 _nameController.text = 'Smart Tourist';
-                                _emailController.text = 'tourist_${DateTime.now().millisecondsSinceEpoch}@example.com';
+                                _emailController.text =
+                                    'tourist_${DateTime.now().millisecondsSinceEpoch}@example.com';
                                 _passwordController.text = 'SafeP@ss123!';
-                                _confirmPasswordController.text = 'SafeP@ss123!';
+                                _confirmPasswordController.text =
+                                    'SafeP@ss123!';
                                 setState(() => _errorMessage = null);
                               },
                             ),
                             ActionChip(
-                              avatar: const Icon(Icons.email_outlined, size: 16),
-                              label: const Text('Test A5 (Email Exists)', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.email_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Test A5 (Email Exists)',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
                                 _nameController.text = 'Duplicate User';
-                                _emailController.text = 'chingkheat@example.com';
+                                _emailController.text =
+                                    'chingkheat@example.com';
                                 _passwordController.text = 'SafeP@ss123!';
-                                _confirmPasswordController.text = 'SafeP@ss123!';
+                                _confirmPasswordController.text =
+                                    'SafeP@ss123!';
                                 setState(() => _errorMessage = null);
                               },
                             ),
                             ActionChip(
-                              avatar: const Icon(Icons.lock_open_outlined, size: 16),
-                              label: const Text('Test A3 (Weak Pwd)', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.lock_open_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Test A3 (Weak Pwd)',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
                                 _nameController.text = 'Ali Ahmad';
                                 _emailController.text = 'ali@example.com';
@@ -341,13 +435,20 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                               },
                             ),
                             ActionChip(
-                              avatar: const Icon(Icons.compare_arrows_outlined, size: 16),
-                              label: const Text('Test A4 (Mismatch)', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.compare_arrows_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Test A4 (Mismatch)',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
                                 _nameController.text = 'Ali Ahmad';
                                 _emailController.text = 'ali@example.com';
                                 _passwordController.text = 'SafeP@ss123!';
-                                _confirmPasswordController.text = 'DifferentPass123!';
+                                _confirmPasswordController.text =
+                                    'DifferentPass123!';
                                 setState(() => _errorMessage = null);
                               },
                             ),
@@ -370,10 +471,17 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
       children: [
         Text(
           text,
-          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.ink),
+          style: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink,
+          ),
         ),
         if (isMandatory)
-          const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          const Text(
+            ' *',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
       ],
     );
   }
@@ -386,7 +494,11 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   }) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: isError ? Colors.red : AppColors.muted, size: 20),
+      prefixIcon: Icon(
+        icon,
+        color: isError ? Colors.red : AppColors.muted,
+        size: 20,
+      ),
       suffixIcon: suffix,
       filled: true,
       fillColor: isError ? Colors.red.shade50 : Colors.grey.shade50,
@@ -397,11 +509,16 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: isError ? Colors.red.shade400 : AppColors.line),
+        borderSide: BorderSide(
+          color: isError ? Colors.red.shade400 : AppColors.line,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: isError ? Colors.red : AppColors.primary, width: 2),
+        borderSide: BorderSide(
+          color: isError ? Colors.red : AppColors.primary,
+          width: 2,
+        ),
       ),
     );
   }

@@ -33,6 +33,7 @@ class _LoginFormState extends State<LoginForm> {
   }
 
   void _handleLogin() async {
+    if (_isLoading) return;
     demoHaptic();
     setState(() {
       _isLoading = true;
@@ -101,7 +102,11 @@ class _LoginFormState extends State<LoginForm> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.error_outline_rounded, color: Colors.red.shade700, size: 22),
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.red.shade700,
+                    size: 22,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -149,10 +154,13 @@ class _LoginFormState extends State<LoginForm> {
               isError: _highlightedEmptyFields.contains('password'),
               suffix: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.muted,
                 ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
           ),
@@ -172,12 +180,17 @@ class _LoginFormState extends State<LoginForm> {
                   child: FilledButton(
                     onPressed: _handleLogin,
                     style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       backgroundColor: AppColors.primary,
                     ),
                     child: const Text(
                       'Log In',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -197,11 +210,19 @@ class _LoginFormState extends State<LoginForm> {
                 initiallyExpanded: false,
                 title: Row(
                   children: const [
-                    Icon(Icons.bug_report_outlined, size: 18, color: AppColors.primary),
+                    Icon(
+                      Icons.bug_report_outlined,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'UC200 Flow Testing Tools',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.ink,
+                      ),
                     ),
                   ],
                 ),
@@ -221,17 +242,30 @@ class _LoginFormState extends State<LoginForm> {
                           runSpacing: 6,
                           children: [
                             ActionChip(
-                              avatar: const Icon(Icons.mark_email_read_outlined, size: 16),
-                              label: const Text('Fill Valid Credentials', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.mark_email_read_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Fill Valid Credentials',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
-                                _emailController.text = 'chingkheat@example.com';
+                                _emailController.text =
+                                    'chingkheat@example.com';
                                 _passwordController.text = 'SafeP@ss123!';
                                 setState(() => _errorMessage = null);
                               },
                             ),
                             ActionChip(
-                              avatar: const Icon(Icons.email_outlined, size: 16),
-                              label: const Text('Test A1 (Empty Fields)', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.email_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Test A1 (Empty Fields)',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
                                 _emailController.text = '';
                                 _passwordController.text = '';
@@ -239,8 +273,14 @@ class _LoginFormState extends State<LoginForm> {
                               },
                             ),
                             ActionChip(
-                              avatar: const Icon(Icons.lock_open_outlined, size: 16),
-                              label: const Text('Test A2 (Invalid Email)', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.lock_open_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Test A2 (Invalid Email)',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
                                 _emailController.text = 'invalid-email-format';
                                 _passwordController.text = 'SafeP@ss123!';
@@ -248,19 +288,33 @@ class _LoginFormState extends State<LoginForm> {
                               },
                             ),
                             ActionChip(
-                              avatar: const Icon(Icons.compare_arrows_outlined, size: 16),
-                              label: const Text('Test A3 (Wrong Password)', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.compare_arrows_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Test A3 (Wrong Password)',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
-                                _emailController.text = 'chingkheat@example.com';
+                                _emailController.text =
+                                    'chingkheat@example.com';
                                 _passwordController.text = 'WrongPassword999!';
                                 setState(() => _errorMessage = null);
                               },
                             ),
                             ActionChip(
-                              avatar: const Icon(Icons.person_search_outlined, size: 16),
-                              label: const Text('Test A3 (No Account)', style: TextStyle(fontSize: 11)),
+                              avatar: const Icon(
+                                Icons.person_search_outlined,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Test A3 (No Account)',
+                                style: TextStyle(fontSize: 11),
+                              ),
                               onPressed: () {
-                                _emailController.text = 'unknown_tourist@example.com';
+                                _emailController.text =
+                                    'unknown_tourist@example.com';
                                 _passwordController.text = 'SafeP@ss123!';
                                 setState(() => _errorMessage = null);
                               },
@@ -284,10 +338,17 @@ class _LoginFormState extends State<LoginForm> {
       children: [
         Text(
           text,
-          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.ink),
+          style: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink,
+          ),
         ),
         if (isMandatory)
-          const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          const Text(
+            ' *',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
       ],
     );
   }
@@ -300,7 +361,11 @@ class _LoginFormState extends State<LoginForm> {
   }) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: isError ? Colors.red : AppColors.muted, size: 20),
+      prefixIcon: Icon(
+        icon,
+        color: isError ? Colors.red : AppColors.muted,
+        size: 20,
+      ),
       suffixIcon: suffix,
       filled: true,
       fillColor: isError ? Colors.red.shade50 : Colors.grey.shade50,
@@ -311,11 +376,16 @@ class _LoginFormState extends State<LoginForm> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: isError ? Colors.red.shade400 : AppColors.line),
+        borderSide: BorderSide(
+          color: isError ? Colors.red.shade400 : AppColors.line,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: isError ? Colors.red : AppColors.primary, width: 2),
+        borderSide: BorderSide(
+          color: isError ? Colors.red : AppColors.primary,
+          width: 2,
+        ),
       ),
     );
   }

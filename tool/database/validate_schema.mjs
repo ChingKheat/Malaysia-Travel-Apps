@@ -42,8 +42,15 @@ try {
       COMMIT;
     `);
   }
+  if (process.argv.includes('--legacy-duplicates')) await db.exec(await readFile('docs/database/legacy_subtype_cleanup.sql', 'utf8'));
   await db.exec(sql);
+  const inventorySql=await readFile('tool/database/schema_inventory.sql','utf8');
+  const before=(await db.query(inventorySql)).rows;
+  await db.exec("INSERT INTO public.places(place_id,name,state,category,latitude,longitude) VALUES ('recovery-sentinel','User-owned sample','Penang','Culture',5.4,100.3)");
   await db.exec(sql);
+  assert.deepEqual((await db.query(inventorySql)).rows,before);
+  assert.equal((await db.query("SELECT name FROM public.places WHERE place_id='recovery-sentinel'")).rows[0].name,'User-owned sample');
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM public.places WHERE place_id LIKE 'poi_%'")).rows[0].n,0);
   console.log('PASS: recovery schema executes twice');
   assert.equal((await db.query("SELECT relrowsecurity FROM pg_class WHERE oid='recovery.place_subtype_duplicates'::regclass")).rows[0].relrowsecurity,true);
   if (process.argv.includes('--legacy-duplicates')) {
@@ -66,16 +73,17 @@ try {
       DROP INDEX public.idx_unique_indoor_place_id;
       INSERT INTO public.indoor_places(place_id,max_capacity) VALUES ('legacy-indoor',300);
     `);
-    await assert.rejects(db.exec(sql), /another table references its rows/);
+    await assert.rejects(db.exec(await readFile('docs/database/legacy_subtype_cleanup.sql', 'utf8')), /another table references its rows/);
     await db.exec('ROLLBACK');
     assert.equal((await db.query("SELECT * FROM public.indoor_places WHERE place_id='legacy-indoor'")).rows.length,2);
     assert.equal((await db.query('SELECT * FROM public.test_subtype_reference')).rows.length,1);
     assert.equal((await db.query('SELECT * FROM recovery.place_subtype_duplicates')).rows.length,5);
     await db.exec('DROP TABLE public.test_subtype_reference');
+    await db.exec(await readFile('docs/database/legacy_subtype_cleanup.sql', 'utf8'));
     await db.exec(sql);
     console.log('PASS: unknown references abort the transaction and preserve original rows');
   }
-  await db.exec(`GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO anon,authenticated;`);
+  // Use the recovery schema's own grants; do not mask missing API permissions.
   const a='10000000-0000-4000-8000-000000000001';
   const b='10000000-0000-4000-8000-000000000002';
   await db.query(`INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES
@@ -144,6 +152,22 @@ try {
   assert.equal((await db.query('SELECT * FROM public.place_sync_status')).rows.length,0);
   await assert.rejects(db.query("SELECT * FROM public.record_place_sync('Penang',999,1)"));
   await asUser('', 'anon');
-  assert.equal((await db.query('SELECT * FROM public.place_sync_status')).rows.length,0);
+  await assert.rejects(db.query('SELECT * FROM public.place_sync_status'));
   console.log('PASS: sync history is admin-only, uses server time, updates by state and rejects invalid counts');
+  const insertPlace="INSERT INTO public.places(place_id,name,state,category,latitude,longitude,is_indoor) VALUES ('ChITestReview','Live name','Penang','Culture',5.4,100.3,true)";
+  await assert.rejects(db.exec(insertPlace));
+  await asUser(b); await assert.rejects(db.exec(insertPlace));
+  await asUser(a); await db.exec(insertPlace);
+  assert.equal((await db.query("SELECT name FROM public.places WHERE place_id='ChITestReview'")).rows[0].name,'Saved Google place');
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM public.indoor_places WHERE place_id='ChITestReview'")).rows[0].n,1);
+  await db.exec("UPDATE public.places SET is_indoor=false WHERE place_id='ChITestReview'");
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM public.indoor_places WHERE place_id='ChITestReview'")).rows[0].n,0);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM public.outdoor_places WHERE place_id='ChITestReview'")).rows[0].n,1);
+  await db.exec("UPDATE public.places SET is_indoor=NULL WHERE place_id='ChITestReview'");
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM public.outdoor_places WHERE place_id='ChITestReview'")).rows[0].n,0);
+  await asUser(b);
+  assert.equal((await db.query("UPDATE public.places SET category='Food' WHERE place_id='ChITestReview' RETURNING place_id")).rows.length,0);
+  await db.exec('RESET ROLE');
+  await db.exec(await readFile('tool/checks/google_usage_database_test.sql','utf8'));
+  console.log('PASS: admin-only review, trigger-owned subtypes, Google sanitization and allowance limits');
 } finally { await db.close(); }

@@ -8,6 +8,7 @@ import 'package:smart_travel_planner/features/itinerary/services/supabase_itiner
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/features/home/widgets/trip_cards.dart';
 import 'package:smart_travel_planner/features/places/screens/api_retrieval_screen.dart';
+import 'package:smart_travel_planner/features/home/widgets/popular_attractions_section.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -164,6 +165,8 @@ class _HomePageState extends State<HomePage> {
         HeroPanel(onSearchTap: widget.onPlanTap),
         const SizedBox(height: 18),
 
+        PopularAttractionsSection(onSeeAllTap: widget.onRouteTap),
+        const SizedBox(height: 18),
         _MyTripsCard(onTap: widget.onItineraryTap),
         const SizedBox(height: 18),
 
