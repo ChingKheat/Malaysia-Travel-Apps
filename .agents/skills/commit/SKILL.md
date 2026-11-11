@@ -114,10 +114,10 @@ flutter analyze --no-pub
 flutter test --no-pub
 ```
 
-- If `flutter analyze` has errors or `flutter test` fails:
-  - Investigate and fix issues introduced by the merge or local changes.
-  - Re-run `flutter analyze --no-pub` and `flutter test --no-pub` after fixes.
-  - **Do NOT push broken code to `main`.** If pre-existing unrelated failures or environment blockers remain, report the exact failure details to the user and ask before pushing to `main`.
+- If `flutter analyze` has errors or tests fail:
+  - Investigate and fix any analyzer errors or test failures introduced by the merge or your local changes, then re-run `flutter analyze --no-pub` and `flutter test --no-pub`.
+  - **Do NOT push broken code to `main`.**
+  - However, if `flutter analyze --no-pub` passes cleanly and **all failures are strictly pre-existing unrelated or live-backend environment failures** (verified unchanged from before your changes/merge), proceed with pushing `<branch>` and `main` so the workflow completes in one pass, and clearly list those pre-existing failures in the final report.
 
 ---
 
