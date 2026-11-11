@@ -1,0 +1,1656 @@
+{
+  "@@locale": "en",
+  "appLanguage": "App Language",
+  "languageChanged": "Language changed.",
+  "languageSessionOnly": "Language changed for this session. Could not save your preference.",
+  "home": "Home",
+  "explore": "Explore",
+  "recognize": "Recognize",
+  "plan": "Plan",
+  "ai": "AI",
+  "back": "Back",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "clear": "Clear",
+  "close": "Close",
+  "done": "Done",
+  "retry": "Retry",
+  "tryAgain": "Try Again",
+  "ok": "OK",
+  "gotIt": "Got it",
+  "dismiss": "Dismiss",
+  "change": "Change",
+  "details": "Details",
+  "about": "About",
+  "unavailable": "Unavailable",
+  "information": "Information",
+  "ready": "Ready",
+  "stop": "Stop",
+  "open": "Open",
+  "all": "All",
+  "allValue": "All ({arg0})",
+  "@allValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveChanges": "Save Changes",
+  "readMore": "Read more",
+  "readLess": "Read less",
+  "viewAll": "View All",
+  "seeAll": "See All",
+  "viewOnMap": "View on Map",
+  "openInGoogleMaps": "Open in Google Maps",
+  "sharePlace": "Share place",
+  "copyAddress": "Copy address",
+  "addressCopiedToClipboard": "Address copied to clipboard!",
+  "address": "Address",
+  "addressUnavailable": "Address unavailable",
+  "descriptionUnavailable": "Description unavailable.",
+  "detailsUnavailable": "Details unavailable",
+  "placeDetailsAreUnavailable": "Place details are unavailable.",
+  "nameUnavailable": "Name unavailable",
+  "phone": "Phone",
+  "phoneUnavailable": "Phone unavailable",
+  "website": "Website",
+  "websiteUnavailable": "Website unavailable",
+  "rating": "Rating",
+  "ratingUnavailable": "Rating unavailable",
+  "reviews": "Reviews",
+  "reviewCountUnavailable": "Review count unavailable",
+  "openingHours": "Opening hours",
+  "openingHoursUnavailableCheckBeforeVisiting": "Opening hours unavailable. Check before visiting.",
+  "operatingHoursMayVaryDuringPublicHolidaysOrSpecialEvents": "Operating hours may vary during public holidays or special events.",
+  "hoursUnverified": "Hours unverified",
+  "photoUnavailable": "Photo unavailable",
+  "loadPhoto": "Load photo",
+  "retryPhoto": "Retry photo",
+  "photoValue": "Photo: {arg0}",
+  "@photoValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "source": "Source",
+  "indoor": "Indoor",
+  "outdoor": "Outdoor",
+  "attraction": "Attraction",
+  "attractions": "Attractions",
+  "food": "Food",
+  "shopping": "Shopping",
+  "culture": "Culture",
+  "nature": "Nature",
+  "adventure": "Adventure",
+  "family": "Family",
+  "museum": "Museum",
+  "sight": "Sight",
+  "science": "Science",
+  "nightlife": "Nightlife",
+  "landmarks": "Landmarks",
+  "nearby": "Nearby",
+  "popular": "Popular",
+  "airConditioned": "Air-conditioned",
+  "comfortableFootwearAdvised": "Comfortable footwear advised",
+  "welcomeBack": "Welcome Back",
+  "selamatDatang": "Welcome!",
+  "smartTravelPlanning": "Smart Travel\nPlanning",
+  "smartTravelPlanner": "Smart Travel Planner",
+  "smartTravelPlanning2": "Smart Travel Planning",
+  "yourSmartTravelCompanionInMalaysia": "Your Smart Travel Companion\nin Malaysia",
+  "autoSmartScheduling": "Auto Smart Scheduling",
+  "planTheBestRouteForYou": "Plan the best route for you",
+  "realTimeUpdates": "Real-time Updates",
+  "weatherTrafficOpeningHours": "Weather, traffic & opening hours",
+  "multiLanguageSupport": "Multi-language Support",
+  "getStarted": "Get Started",
+  "logInSignUp": "Log In / Sign Up",
+  "logIn": "Log In",
+  "createAccount": "Create Account",
+  "registerAccount": "Register Account",
+  "logOut": "Log Out",
+  "malaysiaTravelPortal": "Malaysia Travel Portal",
+  "accessAiItinerariesWeatherAlertsAndSmartRouteOptimization": "Access AI itineraries, weather alerts, and smart route optimization.",
+  "signInToManageYourMalaysiaTravelPlans": "Sign in to manage your Malaysia travel plans.",
+  "registerAsANewTouristToPlanYourPersonalizedTripsInMalaysia": "Register as a new tourist to plan your personalized trips in Malaysia.",
+  "emailAddress": "Email Address",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "fullName": "Full Name",
+  "fullName2": "Full name",
+  "enterYourPassword": "Enter your password",
+  "enterStrongPassword": "Enter strong password",
+  "reEnterPassword": "Re-enter password",
+  "eGAliBinAhmad": "e.g. Ali Bin Ahmad",
+  "eGTouristExampleCom": "e.g. tourist@example.com",
+  "pleaseEnterYourEmail": "Please enter your email",
+  "pleaseEnterAValidEmail": "Please enter a valid email",
+  "pleaseEnterYourPassword": "Please enter your password",
+  "passwordMustBeAtLeast6Characters": "Password must be at least 6 characters",
+  "passwordStrengthPolicyC3": "Password Strength Policy (C3):",
+  "atLeast8Characters": "At least 8 characters",
+  "oneLowercaseLetterAZ": "One lowercase letter (a-z)",
+  "oneUppercaseLetterAZ": "One uppercase letter (A-Z)",
+  "oneNumber09": "One number (0-9)",
+  "oneSpecialCharacter": "One special character (!@#$%^&*)",
+  "checkYourEmail": "Check your email",
+  "ifThisEmailCanBeRegisteredAConfirmationEmailWillBeSentOpenTheLinkInThatEmailThenReturnHere": "If this email can be registered, a confirmation email will be sent. Open the link in that email, then return here and log in. You are not signed in yet.",
+  "loggedInAsGuestTraveler": "Logged in as Guest Traveler!",
+  "successfullyLoggedOut": "Successfully logged out.",
+  "myProfile": "My Profile",
+  "noActiveProfileFound": "No active profile found.",
+  "accountSettings": "Account Settings",
+  "editProfile": "Edit Profile",
+  "editProfile2": "Edit profile",
+  "changeYourFullName": "Change your full name",
+  "areYouSureYouWantToLogOutOfYourTravelProfile": "Are you sure you want to log out of your travel profile?",
+  "pushNotifications": "Push Notifications",
+  "darkMode": "Dark Mode",
+  "darkModeIsNotSupportedInTheDemoVersion": "Dark mode is not supported in the demo version.",
+  "privacyTerms": "Privacy & Terms",
+  "privacyPolicyTerms": "Privacy Policy & Terms",
+  "aboutApp": "About App",
+  "aboutSmartTravelPlanner": "About Smart Travel Planner",
+  "tripsPlanned": "Trips Planned",
+  "placesVisited": "Places Visited",
+  "traveler": "Traveler",
+  "smartTourist": "Smart Tourist",
+  "exploreMalaysia": "Explore Malaysia",
+  "discoverAttractionsPlaces": "Discover attractions & places",
+  "imageRecognition": "Image Recognition",
+  "imageRecognition2": "Image recognition",
+  "discoverMalaysiaThroughYourCamera": "Discover Malaysia through your camera",
+  "planYourTrip": "Plan Your Trip",
+  "tellUsYourPreferences": "Tell us your preferences",
+  "tripAssistant": "Trip Assistant",
+  "aiHelpTranslationAndWeatherAlerts": "AI help, translation and weather alerts",
+  "helloValue": "Hello, {arg0}!",
+  "@helloValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeBackValue": "Welcome back, {arg0}!",
+  "@welcomeBackValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "whereWouldYouLikeToExploreToday": "Where would you like to explore today?",
+  "whereToNext": "Where to next?",
+  "popularAttractions": "Popular Attractions",
+  "topMustVisitDestinationsInMalaysia": "Top must-visit destinations in Malaysia",
+  "browseAttractions": "Browse Attractions",
+  "myTrips": "My Trips",
+  "viewSavedItinerariesAndYourCurrentPlan": "View saved itineraries and your current plan",
+  "viewItinerary": "View Itinerary",
+  "viewNearby": "View Nearby",
+  "aiItinerary": "AI itinerary",
+  "routeOptimizer": "Route optimizer",
+  "weatherUpdates": "Weather updates",
+  "budgetFilter": "Budget filter",
+  "multiLanguage": "Multi-language",
+  "offlineMode": "Offline mode",
+  "itineraryLabelsReadyInEnglishMalayAndChinese": "Itinerary labels ready in English, Malay and Chinese.",
+  "aTripThatFitsYou": "A trip that fits you",
+  "whereAndWhenWouldYouLikeToGo": "Where and when would you like to go?",
+  "chooseYourDatesDailyPaceAndFavouriteThingsToDo": "Choose your dates, daily pace, and favourite things to do.",
+  "destination": "Destination",
+  "travelDates": "Travel dates",
+  "selectTravelDates": "Select travel dates",
+  "selectTravelDates2": "Select Travel Dates",
+  "selectDestination": "Select Destination",
+  "selectState": "Select State",
+  "yourDailyPace": "Your daily pace",
+  "dailyStartTime": "Daily Start Time",
+  "dailyEndTime": "Daily End Time",
+  "selectTime": "Select Time",
+  "chooseASuggestedSchedule": "Choose a suggested schedule",
+  "setAsideTimeForAttractionsMealsAndGettingAround": "Set aside time for attractions, meals, and getting around.",
+  "relaxed": "Relaxed",
+  "standard": "Standard",
+  "full": "Full",
+  "plannedDuration": "Planned duration",
+  "makeItYourKindOfTrip": "Make it your kind of trip",
+  "interests": "Interests",
+  "pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou": "Pick one or more interests. We’ll use these to find places for you.",
+  "chooseYourDailyBudget": "Choose your daily budget",
+  "dailyBudget": "Daily budget",
+  "budget": "Budget",
+  "low": "Low",
+  "medium": "Medium",
+  "high": "High",
+  "underRm150": "Under RM150",
+  "overRm300": "Over RM300",
+  "perPersonIncludingMealsAttractionTicketsAndLocalTransport": "Per person, including meals, attraction tickets, and local transport.",
+  "gettingAround": "Getting around",
+  "chooseHowYouWillTravelBetweenPlaces": "Choose how you will travel between places.",
+  "driving": "Driving",
+  "walking": "Walking",
+  "transit": "Transit",
+  "publicTransport": "Public Transport",
+  "exploreFurtherByCarOrEHailing": "Explore further by car or e-hailing.",
+  "enjoyNearbyPlacesAtAWalkingPace": "Enjoy nearby places at a walking pace.",
+  "generateMyItinerary": "Generate My Itinerary",
+  "generating": "Generating…",
+  "buildingItineraryFromSavedPlaces": "Building itinerary from saved places…",
+  "checkYourTripPreferences": "Check your trip preferences",
+  "chooseADestination": "Choose a destination.",
+  "chooseYourTravelDates": "Choose your travel dates.",
+  "chooseATime": "Choose a time.",
+  "chooseAtLeastOneInterest": "Choose at least one interest.",
+  "chooseADailyBudget": "Choose a daily budget.",
+  "chooseATravelMode": "Choose a travel mode.",
+  "transitPlanningIsNotAvailableYetChooseDrivingOrWalkingToGenerateYourTrip": "Transit planning is not available yet. Choose driving or walking to generate your trip.",
+  "itineraryGeneratedOpeningPreview": "Itinerary generated — opening preview.",
+  "myItinerary": "My Itinerary",
+  "yourValueItineraryIsReady": "Your {arg0} Itinerary is Ready!",
+  "@yourValueItineraryIsReady": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveItinerary": "Save Itinerary",
+  "tripDetails": "Trip Details",
+  "tripDetails2": "Trip details",
+  "travelTime": "Travel Time",
+  "estCost": "Est. Cost",
+  "estDistance": "Est. Distance",
+  "estVisit": "Est. Visit",
+  "dayValue": "Day {arg0}",
+  "@dayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "dayValueTheme": "Day {arg0} Theme",
+  "@dayValueTheme": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "dayRoute": "Day Route",
+  "day1Plan": "Day 1 Plan",
+  "editDayValue": "Edit Day {arg0}",
+  "@editDayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "editDayValueSchedule": "Edit Day {arg0} Schedule",
+  "@editDayValueSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "regenerate": "Regenerate",
+  "regenerateItinerary": "Regenerate itinerary",
+  "regenerateItinerary2": "Regenerate itinerary?",
+  "yourCurrentUnsavedChangesWillBeReplacedSavedTripsWillRemainAvailable": "Your current unsaved changes will be replaced. Saved trips will remain available.",
+  "completeTripPreferencesInPlanBeforeRegenerating": "Complete trip preferences in Plan before regenerating.",
+  "deleteItinerary": "Delete Itinerary?",
+  "areYouSureYouWantToDeleteValue": "Are you sure you want to delete \"{arg0}\"?",
+  "@areYouSureYouWantToDeleteValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteOrClearItinerary": "Delete or clear itinerary",
+  "unableToDeleteThisItinerary": "Unable to delete this itinerary.",
+  "unableToSaveItineraryChangesOnThisDevice": "Unable to save itinerary changes on this device.",
+  "noItinerariesYet": "No Itineraries Yet",
+  "noActiveTripPlanned": "No Active Trip Planned",
+  "youHaveNoActiveOrSavedTripsSetYourTravelPreferencesToGenerateASmartDayByDaySchedule": "You have no active or saved trips. Set your travel preferences to generate a smart day-by-day schedule.",
+  "tapToPlanYourSmartSchedule": "Tap to plan your smart schedule",
+  "tapToViewScheduleDetails": "Tap to view schedule & details",
+  "activeGeneratedPlan": "Active Generated Plan",
+  "activePlannedTrip": "Active Planned Trip",
+  "activeItinerary": "ACTIVE ITINERARY",
+  "activeTripPlanCleared": "Active trip plan cleared",
+  "clearActivePlan": "Clear Active Plan?",
+  "areYouSureYouWantToClearYourCurrentGeneratedTripAndResetToDefault": "Are you sure you want to clear your current generated trip and reset to default?",
+  "addStop": "Add Stop",
+  "addStopToDaySchedule": "Add Stop to Day Schedule",
+  "addToPlan": "Add to Plan",
+  "addToMyItinerary": "Add to My Itinerary",
+  "addToTravelPlan": "Add to Travel Plan",
+  "addToWishlist": "Add to Wishlist",
+  "selectAnAttractionToAppendToYourDayRoute": "Select an attraction to append to your day route",
+  "removeStop": "Remove stop",
+  "swapAttraction": "Swap Attraction",
+  "swapAttraction2": "Swap attraction",
+  "dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces": "Drag items by the handle to reorder. Tap Swap to replace with indoor places.",
+  "anItineraryDayMustHaveAtLeast1Stop": "An itinerary day must have at least 1 stop.",
+  "duplicateStopToday": "Duplicate stop today",
+  "inOtherDay": "In other day",
+  "duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave": "Duplicate attractions detected today. Please remove or swap them to save.",
+  "cannotSaveThisOrderExceedsDailyHoursOpeningHoursBudgetOrWeatherConstraints": "Cannot save: this order exceeds daily hours, opening hours, budget, or weather constraints.",
+  "cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop": "Cannot save: \"{arg0}\" appears multiple times today. Please remove or swap the duplicate stop.",
+  "@cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary": "Cannot save: \"{arg0}\" is already scheduled on another day of this itinerary.",
+  "@cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "connectToRefreshGooglePlaceLocationsBeforeSavingScheduleChanges": "Connect to refresh Google place locations before saving schedule changes.",
+  "stopReorderedScheduleTimesAutomaticallyAdjusted": "Stop reordered. Schedule times automatically adjusted.",
+  "removedValueTimesUpdated": "Removed \"{arg0}\". Times updated.",
+  "@removedValueTimesUpdated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "addedValueToDayValue": "Added {arg0} to Day {arg1}",
+  "@addedValueToDayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "swappedValueWithValue": "Swapped \"{arg0}\" with \"{arg1}\"",
+  "@swappedValueWithValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "dayValuePlanUpdatedValueStops": "Day {arg0} plan updated ({arg1} stops)",
+  "@dayValuePlanUpdatedValueStops": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "replacingValueValue": "Replacing \"{arg0}\" ({arg1})",
+  "@replacingValueValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "rainForecastedTodaySwappingToAnIndoorAttractionIsRecommended": "Rain forecasted today. Swapping to an Indoor attraction is recommended.",
+  "goodWeatherTodayYouCanKeepItIndoorOrSwapToAnOutdoorSight": "Good weather today! You can keep it indoor or swap to an outdoor sight.",
+  "scheduledTime": "Scheduled time",
+  "scheduledVisit": "Scheduled visit",
+  "suggestedTime": "Suggested time",
+  "indoorActivity": "Indoor activity",
+  "outdoorSight": "Outdoor sight",
+  "indoorAttractionWeatherSafe": "Indoor attraction • Weather safe",
+  "outdoorSightseeing": "Outdoor sightseeing",
+  "rainProofBackup": "Rain-proof backup",
+  "valueDays": "{arg0} Days",
+  "@valueDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDaysItinerary": "{arg0} days itinerary",
+  "@valueDaysItinerary": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHoursOfSightseeingPerDay": "{arg0} hours of sightseeing per day",
+  "@valueHoursOfSightseeingPerDay": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHoursValueMinutesOfSightseeingPerDay": "{arg0} hours {arg1} minutes of sightseeing per day",
+  "@valueHoursValueMinutesOfSightseeingPerDay": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueMin": "{arg0} min",
+  "@valueMin": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueH": "{arg0} h",
+  "@valueH": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHValueMin": "{arg0} h {arg1} min",
+  "@valueHValueMin": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueStopsRmValueEstimated": "{arg0} stops • RM {arg1} estimated",
+  "@valueStopsRmValueEstimated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "aboveRmvalueTotal": "Above ~RM{arg0} total",
+  "@aboveRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "upToRmvalueTotal": "Up to ~RM{arg0} total",
+  "@upToRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "rmvalueRmvalueTotal": "~RM{arg0} – RM{arg1} total",
+  "@rmvalueRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "routeMap": "Route Map",
+  "mapView": "Map View",
+  "reCenter": "Re-center",
+  "optimizeRoute": "Optimize Route",
+  "optimizedOrder": "Optimized order",
+  "optimizingRoute": "Optimizing route…",
+  "calculatingRouteEstimate": "Calculating route estimate...",
+  "tapMapPinsToViewPlaceDetails": "Tap map pins to view place details",
+  "select25LocationsToDrawARoute": "Select 2-5 locations to draw a route",
+  "mapCenteredOnYourCurrentLocation": "Map centered on your current location.",
+  "unableToOpenGoogleMaps": "Unable to open Google Maps.",
+  "unableToOpenThisLink": "Unable to open this link.",
+  "googleMapsIsNotConfiguredForThisPlatformYetYourSavedPlacesRemainAvailableInTheList": "Google Maps is not configured for this platform yet. Your saved places remain available in the list.",
+  "valueKmValueStops": "{arg0} km • {arg1} stops",
+  "@valueKmValueStops": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueStops2": "~{arg0} km • {arg1} stops",
+  "@valueKmValueStops2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmAway": "{arg0} km away",
+  "@valueKmAway": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueMAway": "{arg0} m away",
+  "@valueMAway": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueMinWalk": "{arg0} km • ~{arg1} min walk",
+  "@valueKmValueMinWalk": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "routeEstValueKmValueMinDriving": "Route est: {arg0} km • ~{arg1} min driving",
+  "@routeEstValueKmValueMinDriving": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "searchCityDestination": "Search City / Destination",
+  "searchAttractionsFoodCulture": "Search attractions, food, culture...",
+  "searchResults": "Search Results",
+  "searchInThisArea": "Search in this area",
+  "chooseState": "Choose State",
+  "chooseAreaCity": "Choose Area / City",
+  "exploreNewLocation": "Explore New Location",
+  "currentDestination": "CURRENT DESTINATION",
+  "resetSearchFilters": "Reset Search & Filters",
+  "noPlacesFound": "No Places Found",
+  "noSavedPlacesYet": "No Saved Places Yet",
+  "noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm": "No attractions match \"{arg0}\". Try checking for typos or searching a broader term.",
+  "@noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noAttractionsMatchThisFilterInThisCity": "No attractions match this filter in this city.",
+  "noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation": "No spots found in this category near {arg0}. Try choosing another category or selecting a new location.",
+  "@noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "unableToLoadAttractionsPleaseTryAgain": "Unable to load attractions. Please try again.",
+  "unableToLoadDetailsRetry": "Unable to load details. Retry.",
+  "saved": "Saved",
+  "savedAttractions": "Saved Attractions",
+  "yourSavedPlaces": "Your Saved Places",
+  "saveAttraction": "Save attraction",
+  "removeFromSaved": "Remove from saved",
+  "savedListCanHoldUpTo10Attractions": "Saved list can hold up to 10 attractions.",
+  "savedValueToYourList": "Saved \"{arg0}\" to your list.",
+  "@savedValueToYourList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "removedValueFromSaved": "Removed \"{arg0}\" from Saved.",
+  "@removedValueFromSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "removedFromSavedPlaces": "Removed from saved places",
+  "savedToFavoritePlaces": "Saved to favorite places",
+  "browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist": "Browse attractions in {arg0} and tap \"Save\" to build your personalized travel wishlist.",
+  "@browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "savedPlacesCanBeViewedOnTheMapTabToSeeOptimalDrivingPathsOrVisitThePlanTabToAutomaticallyS": "Saved places can be viewed on the Map tab to see optimal driving paths, or visit the Plan tab to automatically schedule them into your multi-day trip.",
+  "topIconicSpotsInValue": "Top iconic spots in {arg0}",
+  "@topIconicSpotsInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "topMalaysianAttraction": "Top Malaysian Attraction",
+  "malaysianIconicAttraction": "Malaysian Iconic Attraction",
+  "mustVisitHighlights": "Must-Visit Highlights",
+  "travelerTipsGoodToKnow": "Traveler Tips & Good to Know",
+  "helpfulTips": "Helpful Tips",
+  "activityStatus": "Activity Status",
+  "entry": "Entry",
+  "curatedSpotsWithin5Km": "Curated spots within 5 km",
+  "text5KmRadius": "5 km radius",
+  "exploreSpot": "Explore spot",
+  "viewPlaceDetails": "View place details",
+  "liveGoogleInformation": "Live Google information",
+  "livePlaceDetailsUnavailable": "Live place details unavailable.",
+  "showingAvailablePlaceInformation": "Showing available place information.",
+  "googlePlacesUnavailable": "Google Places unavailable",
+  "attractionDetailsMapLinkCopiedToClipboard": "Attraction details & map link copied to clipboard!",
+  "valueReviews": "({arg0} reviews)",
+  "@valueReviews": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueReviews2": "{arg0} reviews",
+  "@valueReviews2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingValue5": "Rating: {arg0} / 5",
+  "@ratingValue5": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valuePlaces": "{arg0} places",
+  "@valuePlaces": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "text0Places": "0 places",
+  "valueSpots": "{arg0} spots",
+  "@valueSpots": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueItems": "{arg0} items",
+  "@valueItems": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueItems2": "{arg0} Items",
+  "@valueItems2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "matchingValue": "Matching \"{arg0}\"",
+  "@matchingValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "askPlacesFoodWeatherOrPlans": "Ask places, food, weather, or plans...",
+  "sendPrompt": "Send Prompt",
+  "geminiIsThinking": "Gemini is thinking...",
+  "gemini15FlashMalaysianTravelAi": "Gemini 1.5 Flash • Malaysian Travel AI",
+  "assistantResponseLanguage": "Assistant response language",
+  "selectLanguage": "Select Language",
+  "assistantLanguageSetToValue": "Assistant language set to {arg0}.",
+  "@assistantLanguageSetToValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearChatHistory": "Clear Chat History?",
+  "thisWillResetYourConversationWithTheTravelAssistant": "This will reset your conversation with the travel assistant.",
+  "chatHistoryCleared": "Chat history cleared.",
+  "resetConversation": "Reset Conversation",
+  "voiceSearch": "Voice Search",
+  "voiceTravelAssistant": "Voice Travel Assistant",
+  "trySpokenQuery": "Try Spoken Query",
+  "isItGoingToRainInKlToday": "🌧️ Is it going to rain in KL today?",
+  "bestHalalFoodNearBukitBintang": "🍜 Best Halal food near Bukit Bintang",
+  "culturalEtiquetteForBatuCaves": "🏛️ Cultural etiquette for Batu Caves",
+  "howToGetFromKlSentralToKlcc": "🚇 How to get from KL Sentral to KLCC",
+  "usefulMalayTravelPhrases": "🗣️ Useful Malay travel phrases",
+  "topIndoorShoppingAndMuseums": "🛍️ Top indoor shopping and museums",
+  "valueRain": "{arg0}% Rain",
+  "@valueRain": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "scanner": "Scanner",
+  "history": "History",
+  "historyValue": "History ({arg0})",
+  "@historyValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "demoResults": "Demo Results",
+  "discoverALandmarkOrALocalDish": "Discover a landmark or a local dish",
+  "chooseAPhotoReviewItThenIdentifyWhatYouSee": "Choose a photo, review it, then identify what you see.",
+  "takePhoto": "Take Photo",
+  "uploadFromGallery": "Upload from Gallery",
+  "launchYourCameraToCaptureALandmarkOrFood": "Launch your camera to capture a landmark or food",
+  "selectAPhotoFromYourPhotoLibrary": "Select a photo from your photo library",
+  "yourPhotoIsReady": "Your photo is ready",
+  "photoPreview": "PHOTO PREVIEW",
+  "samplePreview": "SAMPLE PREVIEW",
+  "photoPreviewUnavailable": "Photo preview unavailable",
+  "recognizePhoto": "Recognize photo",
+  "recognizingPhoto": "Recognizing photo…",
+  "retakePhoto": "Retake Photo",
+  "chooseAnother": "Choose Another",
+  "readyToDiscoverWhatYouFound": "Ready to discover what you found?",
+  "forTheBestResultUseOneClearLandmarkOrDishKeepItCentredAndAvoidBlurryOrVeryDarkPhotos": "For the best result, use one clear landmark or dish, keep it centred, and avoid blurry or very dark photos.",
+  "forBetterAccuracyKeepTheLandmarkOrFoodDishWellLitAndCentered": "For better accuracy, keep the landmark or food dish well-lit and centered.",
+  "sampleScansWorkOfflineLiveRecognitionAndTranslationRequireAnOnlineAccount": "Sample scans work offline. Live recognition and translation require an online account.",
+  "onlyResultTextIsSavedInYourLocalHistoryThePhotoIsNotStoredByTheApp": "Only result text is saved in your local history; the photo is not stored by the app.",
+  "recognizeSendsThisPhotoToGoogleVisionThroughOurSecureService": "Recognize sends this photo to Google Vision through our secure service. ",
+  "cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample": "Camera or photo library unavailable. Check access in Settings or try a sample.",
+  "restartTheAppToEnableTheCameraAndPhotoLibrary": "Restart the app to enable the camera and photo library.",
+  "thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample": "This photo could not be opened. Try another photo or a sample.",
+  "chooseAPhotoSmallerThan4Mb": "Choose a photo smaller than 4 MB.",
+  "imageRecognitionIsTemporarilyUnavailableTryASample": "Image recognition is temporarily unavailable. Try a sample.",
+  "recentScans": "Recent scans",
+  "noScansYet": "No scans yet",
+  "yourCompletedRecognitionResultsWillAppearHereDemoResultsStaySeparateHistoryIsCurrentlyStor": "Your completed recognition results will appear here. Demo results stay separate. History is currently stored on this device.",
+  "clearHistory": "Clear history",
+  "clearScanHistory": "Clear scan history?",
+  "removeAllScanResultsSavedOnThisDeviceThisCannotBeUndone": "Remove all scan results saved on this device? This cannot be undone.",
+  "goToScanner": "Go to Scanner",
+  "tryPreparedRecognitionResults": "Try prepared recognition results",
+  "browsePreparedLandmarkAndFoodResultsToUnderstandWhatTheFinishedRecognitionScreenWillShow": "Browse prepared landmark and food results to understand what the finished recognition screen will show.",
+  "thisIsAPreparedDemoResultItHasNotAnalysedYourUploadedPhotoAndIsNotAddedToScanHistory": "This is a prepared demo result. It has not analysed your uploaded photo and is not added to scan history.",
+  "noPreparedTestResultIsAvailableYet": "No prepared test result is available yet.",
+  "runTestRecognition": "Run test recognition",
+  "testRecognitionUsesPreparedCatalogResultsToPreviewTheFlow": "Test recognition uses prepared catalog results to preview the flow.",
+  "viewDemoResult": "View demo result",
+  "viewDemoResults": "View demo results",
+  "exploreThisResult": "Explore this result",
+  "detectedLabels": "Detected labels",
+  "visionConfidenceValue": "Vision confidence {arg0}%",
+  "@visionConfidenceValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "identificationUsesVisionDetectionsGuideDescriptionsComeFromTheAppSCuratedCatalog": "Identification uses Vision detections. Guide descriptions come from the app’s curated catalog.",
+  "resultLanguage": "Result language",
+  "translating": "Translating…",
+  "machineTranslatedTextTheOriginalEnglishResultStaysInYourHistory": "Machine-translated text. The original English result stays in your history.",
+  "translationIsUnavailableYourOriginalResultIsStillAvailable": "Translation is unavailable. Your original result is still available.",
+  "findRestaurants": "Find Restaurants",
+  "chooseARestaurantBeforeAddingThisDishToYourTravelPlan": "Choose a restaurant before adding this dish to your travel plan.",
+  "theseActionsWillBeAvailableWhenLiveRecognitionAndTourismDetailsAreConnected": "These actions will be available when live recognition and tourism details are connected.",
+  "availableAfterSetup": "Available after setup",
+  "afterLiveRecognitionIsConnectedSuccessfulScansWillBeSavedHereAutomatically": "After live recognition is connected, successful scans will be saved here automatically.",
+  "adults": "Adults",
+  "children": "Children",
+  "seniors": "Seniors",
+  "travelers": "Travelers",
+  "addTravelers": "Add travelers",
+  "addMore": "Add More",
+  "selectPlannedItinerary": "Select Planned Itinerary",
+  "switchBetweenYourActiveTripsAndCustomGeneratedPlans": "Switch between your active trips and custom generated plans",
+  "smartScheduleDailyStops": "Smart schedule & daily stops",
+  "autoSmartSchedulingForTouristsInMalaysia": "Auto smart scheduling for tourists in Malaysia",
+  "smartItineraryScheduling": "Smart Itinerary Scheduling",
+  "valueAdultvalue": "{arg0} Adult{arg1}",
+  "@valueAdultvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueChildvalue": "{arg0} Child{arg1}",
+  "@valueChildvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSeniorvalue": "{arg0} Senior{arg1}",
+  "@valueSeniorvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueAddedToYourPlanDraft": "{arg0} added to your plan draft!",
+  "@valueAddedToYourPlanDraft": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueAddedToYourDay2ScheduleDraft": "{arg0} added to your Day 2 schedule draft!",
+  "@valueAddedToYourDay2ScheduleDraft": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "showingDayValuePlanForValue": "Showing Day {arg0} Plan for {arg1}",
+  "@showingDayValuePlanForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "switchedToValueValueDays": "Switched to {arg0} ({arg1} Days)",
+  "@switchedToValueValueDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "swapToIndoorValue": "Swap to indoor: {arg0}",
+  "@swapToIndoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "rainSafeScheduleAppliedValueSwappedInForAfternoon": "Rain-safe schedule applied: {arg0} swapped in for afternoon.",
+  "@rainSafeScheduleAppliedValueSwappedInForAfternoon": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "builtA3DayKlPlanWithFoodAndShoppingStops": "Built a 3-day KL plan with food and shopping stops.",
+  "reorderedStopsToSaveAbout45MinutesOfTravelTime": "Reordered stops to save about 45 minutes of travel time.",
+  "rainAfter3PmIndoorBackupStopsAddedAutomatically": "Rain after 3 PM — indoor backup stops added automatically.",
+  "dailySpendKeptWithinYourRm150300MediumBudget": "Daily spend kept within your RM150–300 medium budget.",
+  "mapsAndItineraryCachedForUseWithoutMobileData": "Maps and itinerary cached for use without mobile data.",
+  "routeOptimizedTravelTimeReducedBy45Minutes": "Route optimized — travel time reduced by 45 minutes.",
+  "notifications": "Notifications",
+  "thisAppIsAPrototypeDesignedForAFinalYearProjectToShowcaseAutomatedRouteSchedulingAndMapVis": "This app is a prototype designed for a Final Year Project to showcase automated route scheduling and map visualization in Malaysia.",
+  "readOurTermsOfService": "Read our terms of service",
+  "byUsingThisAppYouAgreeToOurTermsOfServiceNoRealPersonalDataIsCollectedOrSentToAnyServer": "By using this app, you agree to our terms of service. No real personal data is collected or sent to any server.",
+  "enterYourCredentialsToManageYourMalaysiaTrips": "Enter your credentials to manage your Malaysia trips.",
+  "invalidEmailOrPasswordMin6Chars": "Invalid email or password (min 6 chars)",
+  "listeningForVoiceCommandsInEnglishMalayOrChineseTapBelowToSendASampleSpokenQuery": "Listening for voice commands in English, Malay, or Chinese...\n\nTap below to send a sample spoken query.",
+  "recommend2IndoorSpotsIfItRainsNearKlccThisAfternoon": "Recommend 2 indoor spots if it rains near KLCC this afternoon.",
+  "accountCreatedSuccessfullyRedirectingToHomepage": "Account created successfully! Redirecting to homepage...",
+  "pleaseCompleteAllMandatoryRegistrationFields": "Please complete all mandatory registration fields.",
+  "pleaseEnterAValidEmailAddressEGUserExampleCom": "Please enter a valid email address (e.g., user@example.com).",
+  "passwordMustContainAtLeast8CharactersIncluding1Uppercase1Lowercase1NumberAnd1SpecialCharac": "Password must contain at least 8 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character.",
+  "passwordAndConfirmPasswordDoNotMatchPleaseReEnter": "Password and Confirm Password do not match. Please re-enter.",
+  "thisEmailAddressHasAlreadyBeenRegisteredPleaseLogInOrUseAnotherEmailAddress": "This email address has already been registered. Please log in or use another email address.",
+  "registrationTimedOutCheckYourEmailForAConfirmationMessageBeforeTryingAgainAsYourAccountMay": "Registration timed out. Check your email for a confirmation message before trying again, as your account may have been created.",
+  "loginSuccessfulRedirectingToHomepage": "Login successful. Redirecting to homepage...",
+  "pleaseEnterYourEmailAddressAndPassword": "Please enter your email address and password.",
+  "pleaseEnterAValidEmailAddress": "Please enter a valid email address.",
+  "theEmailAddressOrPasswordIsIncorrectPleaseTryAgain": "The email address or password is incorrect. Please try again.",
+  "authenticationServiceIsCurrentlyUnavailablePleaseTryAgainLater": "Authentication service is currently unavailable. Please try again later.",
+  "theLoginRequestTimedOutPleaseCheckYourNetworkAndTryAgain": "The login request timed out. Please check your network and try again.",
+  "profileUpdatedSuccessfully": "Profile updated successfully!",
+  "fullNameFieldCannotBeEmptyPleaseEnterYourName": "Full Name field cannot be empty. Please enter your name.",
+  "unableToSaveProfileChangesPleaseCheckYourNetworkAndTryAgain": "Unable to save profile changes. Please check your network and try again.",
+  "tripPreferencesRecordedSuccessfullyGeneratingYourItinerary": "Trip preferences recorded successfully. Generating your itinerary.",
+  "pleaseCompleteAllMandatoryTripPreferenceFields": "Please complete all mandatory trip-preference fields.",
+  "pleaseEnterOrSelectAValidDestination": "Please enter or select a valid destination.",
+  "pleaseSelectAValidNumberOfTravelDays": "Please select a valid number of travel days.",
+  "dailyEndTimeMustBeLaterThanDailyStartTime": "Daily end time must be later than daily start time.",
+  "pleaseSelectAtLeastOneTravelInterest": "Please select at least one travel interest.",
+  "pleaseSelectAValidEstimatedBudgetCategory": "Please select a valid estimated budget category.",
+  "theSelectedTravelModeIsNotSupportedPleaseSelectDrivingOrWalking": "The selected travel mode is not supported. Please select Driving or Walking.",
+  "authenticationRequiredPleaseLogInToSaveYourItinerary": "Authentication required. Please log in to save your itinerary.",
+  "deletedOnThisDeviceCloudSyncIsPending": "Deleted on this device. Cloud sync is pending.",
+  "adminDatabaseHub": "Admin Database Hub",
+  "adminHubAccess": "Admin Hub Access",
+  "adminAccessTapToLogInAsAdmin": "Admin access (Tap to log in as admin)",
+  "loginAsAdmin": "Login as Admin",
+  "loggedInAsAdministratorChingKheat": "Logged in as Administrator (Ching Kheat)",
+  "theAdminDatabaseHubRequiresAdministratorPrivilegesToFetchSyncAndImportPlacesFromGoogle": "The Admin Database Hub requires administrator privileges to fetch, sync, and import places from Google.",
+  "secretDataSeederPortal": "Secret Data Seeder Portal",
+  "secretPortalToFetchSyncPlaces": "Secret portal to fetch & sync places",
+  "signInAsAnAdministrator": "Sign in as an administrator.",
+  "signInAsAnAdministratorToImportGooglePlaceIds": "Sign in as an administrator to import Google place IDs.",
+  "text1SelectDestinationState": "1. Select Destination State",
+  "discoverNewPlaces": "Discover new places",
+  "discoveringMorePlaces": "Discovering more places…",
+  "discoverMorePlacesInValue": "Discover More Places in {arg0}",
+  "@discoverMorePlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "discoveringNewPlacesExistingRecordsArePreservedUseUpdateSavedPlacesToRefreshTheirDetails": "Discovering new places. Existing records are preserved; use Update saved places to refresh their details.",
+  "updateSavedPlaces": "Update saved places",
+  "updateSavedPlacesInValue": "Update saved places in {arg0}",
+  "@updateSavedPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAllSavedPlaces": "Update all saved places",
+  "startANewUpdateOfAllSavedPlaces": "Start a new update of all saved places",
+  "refreshHoursRatingsNamesAndLocationsForAllSavedPlacesDiscoverNewPlacesBelowOnlyAddsNewIds": "Refresh hours, ratings, names and locations for all saved places. Discover new places below only adds new IDs.",
+  "updatesEverySavedGooglePlaceInThisStateIncludingOpeningHoursRatingsNameAndLocationYourCate": "Updates every saved Google place in this state, including opening hours, ratings, name and location. Your categories and indoor/outdoor choices stay unchanged.",
+  "usesTheFullDetailsAllowanceKeepThisPageOpenLeavingPausesTheUpdateProgressIsSavedOnThisDevi": "Uses the full-details allowance. Keep this page open. Leaving pauses the update; progress is saved on this device. A successful response with no opening hours marks them unknown.",
+  "pauseUpdate": "Pause update",
+  "resumeUpdate": "Resume update",
+  "pausing": "Pausing…",
+  "updating": "Updating…",
+  "retryPlacesWithIssues": "Retry places with issues",
+  "review": "Review",
+  "needsReview": "Needs review",
+  "placesNeedingReview": "Places needing review",
+  "reviewSavedPlace": "Review saved place",
+  "reviewStoredDataLoadLiveDetails": "Review stored data / load live details",
+  "incompleteImportNeedsReview": "Incomplete import — needs review",
+  "appCategory": "App category",
+  "setting": "Setting",
+  "confirmedSetting": "Confirmed setting",
+  "confirmAndSaveReview": "Confirm and save review",
+  "onlyAppCategoryAndSettingAreSavedExistingGoogleDetailsAreNotStored": "Only app category and setting are saved. Existing Google details are not stored.",
+  "loadRetryLiveDetails": "Load / retry live details",
+  "loadLiveDetailsToSeeTheNameAndAddress": "Load live details to see the name and address.",
+  "googleTypeValue": "Google type: {arg0}",
+  "@googleTypeValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified": "Setting suggestion: {arg0} — confirm using your knowledge; this is not verified.",
+  "@settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "howToReviewCategoriesAndSettings": "How to review categories and settings",
+  "openReviewOnASavedPlaceLoadLiveDetailsCheckTheSuggestionThenConfirmItsCategoryAndSettingNo": "Open Review on a saved place. Load live details, check the suggestion, then confirm its category and setting. No bulk changes are made.",
+  "savedPlacesInspector": "Saved Places Inspector",
+  "viewAdminSyncedPlacesInspectSavedData": "View admin-synced places & inspect saved data",
+  "storedDatabaseInformation": "Stored database information",
+  "databaseUnavailableReconnectToCheckYourSavedPlaces": "Database unavailable. Reconnect to check your saved places.",
+  "unableToReadSavedPlacesRefreshTheDatabaseListBeforeStartingAnotherImport": "Unable to read saved places. Refresh the database list before starting another import.",
+  "savedPlacesAreUnavailableTryAgainLater": "Saved places are unavailable. Try again later.",
+  "savedPlaceIdsAndAppCategoriesGoogleDetailsWereNotStored": "Saved place IDs and app categories. Google details were not stored.",
+  "savedGooglePlace": "Saved Google place",
+  "placesInDatabaseValue": "Places in Database ({arg0})",
+  "@placesInDatabaseValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "placesInValue": "Places in {arg0}",
+  "@placesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noPlacesStoredForValueYet": "No places stored for {arg0} yet.",
+  "@noPlacesStoredForValueYet": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noSavedPlacesFoundInValue": "No saved places found in {arg0}.",
+  "@noSavedPlacesFoundInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "databaseCountForValue": "Database Count for {arg0}:",
+  "@databaseCountForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingDatabaseSchema": "Checking database schema...",
+  "readingSavedDatabase": "Reading saved database...",
+  "refreshingTheValueDatabaseList": "Refreshing the {arg0} database list",
+  "@refreshingTheValueDatabaseList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDatabaseListRefreshed": "{arg0} database list refreshed",
+  "@valueDatabaseListRefreshed": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingSyncHistoryForValue": "Checking sync history for {arg0}…",
+  "@checkingSyncHistoryForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingVerifiedGoogleAllowance": "Checking verified Google allowance…",
+  "checking": "Checking…",
+  "keepExistingData": "Keep existing data",
+  "syncAgain": "Sync again",
+  "syncValueAgain": "Sync {arg0} again?",
+  "@syncValueAgain": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "syncingPlaces": "Syncing places...",
+  "syncing": "Syncing...",
+  "lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst": "Last successful sync: {arg0} ({arg1}).\n\nSyncing again will use Google API quota. You can keep the existing data instead.",
+  "@lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "thisStateAlreadyHasStoredPlacesButItsPreviousSyncTimeWasNotRecordedSyncingAgainWillUseGoog": "This state already has stored places, but its previous sync time was not recorded. Syncing again will use Google API quota.",
+  "thisStateHasNoSavedRecordsSyncingItWillUseGoogleApiQuota": "This state has no saved records. Syncing it will use Google API quota.",
+  "olderImportsHaveNoRecordedDateCheckTheExistingPlacesBeforeSyncingAgain": "Older imports have no recorded date. Check the existing places before syncing again.",
+  "someOlderImportsHaveUnverifiedCountriesOrStatesTheseAreMarkedForReviewRepeatingTheFullSync": "Some older imports have unverified countries or states. These are marked for review; repeating the full sync will not repair them.",
+  "showingSavedHistoryCloudHistoryIsUnavailable": "Showing saved history; cloud history is unavailable.",
+  "timestampSavedOnThisDeviceOnly": "Timestamp saved on this device only.",
+  "fetchSyncIsBlockedUntilTheCurrentGoogleAllowanceIsVerifiedWithAtLeast48RequestsRemainingSa": "Fetch & Sync is blocked until the current Google allowance is verified with at least 48 requests remaining. Saved IDs and schedules remain available.",
+  "pendingSyncTapFetchAndSave": "Pending sync — tap Fetch and save",
+  "fetchAndSaveThisPage": "Fetch and save this page",
+  "fetchSaveFailedValue": "Fetch/save failed: {arg0}",
+  "@fetchSaveFailedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "fetching": "Fetching...",
+  "loadingNames": "Loading names…",
+  "loadsUpTo20NamesFromGoogleUsingTheCurrentAllowance": "Loads up to 20 names from Google using the current allowance.",
+  "previous20": "Previous 20",
+  "next20": "Next 20",
+  "importStopped": "Import stopped",
+  "manuallyDiscoverGooglePlacesForTheSelectedStateSaveIdsAndAppCategoriesLoadCurrentDetailsWh": "Manually discover Google places for the selected state. Save IDs and app categories; load current details when needed.",
+  "queryingTopPlacesInValue": "Querying top places in {arg0}…",
+  "@queryingTopPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "searchingGoogleForValue": "Searching Google for {arg0}",
+  "@searchingGoogleForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearValuePlaces": "Clear {arg0} Places?",
+  "@clearValuePlaces": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase": "This will delete all cached places for {arg0} from the Supabase database.",
+  "@thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearingPlacesForValue": "Clearing places for {arg0}...",
+  "@clearingPlacesForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "deletingRecordsFromSupabase": "Deleting records from Supabase",
+  "allCachedPlacesForValueRemoved": "All cached places for {arg0} removed",
+  "@allCachedPlacesForValueRemoved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDeletingPlaces": "Error deleting places",
+  "errorLoadingPlacesValue": "Error loading places: {arg0}",
+  "@errorLoadingPlacesValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "batchCacheRealPhotos": "Batch Cache Real Photos",
+  "cacheTop30Photos": "Cache Top 30 Photos",
+  "cachingPhotos": "Caching photos…",
+  "cachingRealPhotos0Value": "Caching real photos (0/{arg0})…",
+  "@cachingRealPhotos0Value": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "cachedValueOfValueInspectedValueTarget": "Cached {arg0} of {arg1} inspected ({arg2} target)…",
+  "@cachedValueOfValueInspectedValueTarget": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "finishedValueRealPhotosCachedToSupabaseStorage": "Finished! {arg0} real photos cached to Supabase Storage.",
+  "@finishedValueRealPhotosCachedToSupabaseStorage": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "pausedPhotoCachingCachedValuePhotos": "Paused photo caching. Cached {arg0} photos.",
+  "@pausedPhotoCachingCachedValuePhotos": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "photoCachingFailedValue": "Photo caching failed: {arg0}",
+  "@photoCachingFailedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsOfficialGooglePhotosForTopPlacesAndSavesThemToSupabaseStoragePlacesAlreadyCachedA": "Downloads official Google photos for top places and saves them to Supabase Storage. Places already cached are skipped automatically to conserve your API quota.",
+  "autoSaveTop5Highlights": "Auto-Save Top 5 Highlights",
+  "savedValueTopHighlightsToYourList": "Saved {arg0} top highlights to your list!",
+  "@savedValueTopHighlightsToYourList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "retrieve": "Retrieve",
+  "retrievedPlaces": "Retrieved Places",
+  "noPlacesRetrievedYet": "No places retrieved yet.",
+  "liveGooglePlacesApiActiveForMalaysia": "Live Google Places API active for Malaysia",
+  "rawJsonOutput": "Raw JSON Output",
+  "hideRawLogs": "Hide Raw Logs",
+  "viewRawTerminalLogsValueLines": "View Raw Terminal Logs ({arg0} lines)",
+  "@viewRawTerminalLogsValueLines": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "selectADestinationInMalaysiaOrSimulateGpsPositions": "Select a destination in Malaysia or simulate GPS positions.",
+  "mockDeviceCoordinatesInMalaysia": "Mock Device coordinates in Malaysia",
+  "detectedStateValue": "Detected state: {arg0}",
+  "@detectedStateValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "text13StatesKl": "13 States + KL",
+  "simulateGps": "📍 Simulate GPS",
+  "browseStates": "🗺️ Browse States",
+  "indoor2": "🏠 Indoor",
+  "indoor3": "🏢 Indoor",
+  "outdoor2": "☀️ Outdoor",
+  "topRated": "✨ Top Rated",
+  "sights": "🏛️ Sights",
+  "nature2": "🌳 Nature",
+  "food2": "🍔 Food",
+  "cafes": "☕ Cafes",
+  "shops": "🛍️ Shops",
+  "admin": "👑 Admin",
+  "review2": "❓ Review",
+  "indoorValue": "🏛️ Indoor ({arg0})",
+  "@indoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "outdoorValue": "🏞️ Outdoor ({arg0})",
+  "@outdoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueUpdatedValueNeedReviewValueRemaining": "{arg0} updated · {arg1} need review · {arg2} remaining",
+  "@valueUpdatedValueNeedReviewValueRemaining": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "uc100FlowTestingTools": "UC100 Flow Testing Tools",
+  "uc200FlowTestingTools": "UC200 Flow Testing Tools",
+  "uc300FlowTestingTools": "UC300 Flow Testing Tools",
+  "quicklyTestMessagesM1M6AlternativeFlowsA1A3": "Quickly test messages M1–M6 & alternative flows A1–A3",
+  "quicklyTestMessagesM1M6AlternativeFlowsA1A5": "Quickly test messages M1–M6 & alternative flows A1–A5",
+  "quicklyTestMessagesM1M8AlternativeFlowsA1A7": "Quickly test messages M1–M8 & alternative flows A1–A7",
+  "fillValidCredentials": "Fill Valid Credentials",
+  "fillValidForm": "Fill Valid Form",
+  "testA1EmptyFields": "Test A1 (Empty Fields)",
+  "testA2BadDestination": "Test A2 (Bad Destination)",
+  "testA2InvalidEmail": "Test A2 (Invalid Email)",
+  "testA3InvalidDays": "Test A3 (Invalid Days)",
+  "testA3NoAccount": "Test A3 (No Account)",
+  "testA3WeakPwd": "Test A3 (Weak Pwd)",
+  "testA3WrongPassword": "Test A3 (Wrong Password)",
+  "testA4BadTimeRange": "Test A4 (Bad Time Range)",
+  "testA4Mismatch": "Test A4 (Mismatch)",
+  "testA5EmailExists": "Test A5 (Email Exists)",
+  "testA5NoInterests": "Test A5 (No Interests)",
+  "testA7Transit": "Test A7 (Transit)",
+  "recognizeSendsThisPhotoToGoogleVisionThroughOurSecureServiceOnlyResultTextIsSavedInYourLoc": "Recognize sends this photo to Google Vision through our secure service. Only result text is saved in your local history; the photo is not stored by the app.",
+  "skipPlaceValueAndContinue": "Skip place ({arg0}) and continue",
+  "@skipPlaceValueAndContinue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueTopPicks": "{arg0} Top Picks",
+  "@valueTopPicks": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueCustomSchedule": "{arg0} Custom Schedule",
+  "@valueCustomSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSmartSchedule": "{arg0} Smart Schedule",
+  "@valueSmartSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDayValueHighlights": "{arg0} Day {arg1} Highlights",
+  "@valueDayValueHighlights": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueYourScheduledTimeRemainsSaved": "{arg0} Your scheduled time remains saved.",
+  "@valueYourScheduledTimeRemainsSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueMinvalue": "{arg0} km • {arg1} min{arg2}",
+  "@valueKmValueMinvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueLastSyncedValue": "{arg0} — last synced {arg1}",
+  "@valueLastSyncedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSyncTimeNotRecorded": "{arg0} — sync time not recorded",
+  "@valueSyncTimeNotRecorded": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValueSavedInValue": "{arg0} {arg1} saved in {arg2}",
+  "@valueValueSavedInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp": "{arg0}\n{arg1} places found · {arg2} search requests in that sync.\nReview the existing places before using more API quota.",
+  "@valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValueOfValue": "{arg0}–{arg1} of {arg2}",
+  "@valueValueOfValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryValueLocationValueValue": "Category: {arg0}\nLocation: ({arg1}, {arg2})",
+  "@categoryValueLocationValueValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "alreadyRanItTapToRefreshDismiss": "Already Ran It? Tap to Refresh & Dismiss",
+  "demoInfoTapLogInToSignInWithPreFilledTestUser": "Demo Info: Tap Log In to sign in with pre-filled test user.",
+  "missingReviewCountColumnInSupabase": "Missing Review Count Column in Supabase",
+  "placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE": "Places in {arg0} are currently saved without review counts. To rank by Popularity Score and display reviews (e.g. 12.4k), run this in Supabase SQL Editor and tap Fetch & Sync again:",
+  "@placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "sqlCommandCopiedToClipboard": "SQL command copied to clipboard!",
+  "supabaseRowLevelSecurityRlsLocked": "Supabase Row-Level Security (RLS) Locked",
+  "toAllowSavingPlacesRunThis1LineCommandInYourSupabaseSqlEditor": "To allow saving places, run this 1-line command in your Supabase SQL Editor:",
+  "text8Am10Pm": "8 AM – 10 PM",
+  "text9Am6Pm": "9 AM – 6 PM",
+  "text9Am9Pm": "9 AM – 9 PM",
+  "estimatedForValueDaysPerPerson": "Estimated for {arg0} days · per person",
+  "@estimatedForValueDaysPerPerson": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde": "• Weather alert: light rain expected after 3 PM.\n• Route updated: Jalan Alor moved earlier to avoid crowds.\n• Reminder: Batu Caves opens at 7:00 AM tomorrow.",
+  "here": "here",
+  "thisArea": "this area",
+  "forecastUnavailable": "Forecast unavailable",
+  "outdoorFriendly": "Outdoor Friendly",
+  "highRainRiskIndoorRecommended": "High Rain Risk (Indoor Recommended)",
+  "scatteredShowersCarryUmbrella": "Scattered Showers (Carry Umbrella)",
+  "partlyCloudy": "Partly Cloudy",
+  "noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours": "No additional places fit this day. Try fewer days or wider daily hours.",
+  "forecastUnavailableForThisDateWeatherFilteringWasNotApplied": "Forecast unavailable for this date; weather filtering was not applied.",
+  "travelTimesAreDistanceBasedEstimates": "Travel times are distance-based estimates.",
+  "someOpeningHoursAreUnverifiedConfirmBeforeVisiting": "Some opening hours are unverified. Confirm before visiting.",
+  "costsArePlanningEstimatesExcludingAccommodationAndTravelToTheFirstStop": "Costs are planning estimates, excluding accommodation and travel to the first stop.",
+  "itinerarySavedSuccessfullyToYourProfile": "Itinerary saved successfully to your profile!",
+  "savedOnThisDeviceCloudSyncIsPending": "Saved on this device. Cloud sync is pending.",
+  "unableToSaveItineraryOnThisDevicePleaseTryAgain": "Unable to save itinerary on this device. Please try again.",
+  "savedItineraryLoadedSuccessfully": "Saved itinerary loaded successfully.",
+  "youHaveNoSavedTripsYetTapPlanATripToGenerateYourFirstItinerary": "You have no saved trips yet. Tap \"Plan a Trip\" to generate your first itinerary!",
+  "unableToLoadSavedTripsPleaseTryAgain": "Unable to load saved trips. Please try again.",
+  "savedTripCouldNotBeFound": "Saved trip could not be found.",
+  "allSavedPlacesUpdated": "All saved places updated.",
+  "passFinishedWithIssuesRetryToReviewFailedPlaces": "Pass finished with issues. Retry to review failed places.",
+  "pausedResumeToContinueFromTheNextPlace": "Paused. Resume to continue from the next place.",
+  "unableToSaveProgressStopAndRetryBeforeContinuing": "Unable to save progress. Stop and retry before continuing.",
+  "skippedByAdministratorExistingDataPreserved": "Skipped by administrator; existing data preserved.",
+  "skippedValueResumeToContinueUpdatingPlacesInValue": "Skipped {arg0}. Resume to continue updating places in {arg1}.",
+  "@skippedValueResumeToContinueUpdatingPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "googlePlaceUnavailableValueExistingDataPreserved": "Google place unavailable ({arg0}); existing data preserved.",
+  "@googlePlaceUnavailableValueExistingDataPreserved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueResumeToRetryValue": "{arg0} Resume to retry {arg1}.",
+  "@valueResumeToRetryValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "thisStateIsAlreadyUpdating": "This state is already updating.",
+  "stoppedBeforeRefreshStarted": "Stopped before refresh started.",
+  "returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue": "Returned {arg0} · state accepted {arg1} · unique {arg2} · wrong state {arg3} · invalid {arg4} · category review {arg5}",
+  "@returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      },
+      "arg3": {
+        "type": "String"
+      },
+      "arg4": {
+        "type": "String"
+      },
+      "arg5": {
+        "type": "String"
+      }
+    }
+  },
+  "landmark": "landmark",
+  "dish": "dish",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "pleaseEnterATravelQuestionOrTapASuggestion": "Please enter a travel question or tap a suggestion.",
+  "promptIsTooShortPleaseBeMoreSpecific": "Prompt is too short. Please be more specific.",
+  "activeSmartItinerary": "Active Smart Itinerary",
+  "text3DaysPersonalizedSchedule": "3 days personalized schedule",
+  "text5DaysCulturalSchedule": "5 days cultural schedule",
+  "text7DaysIslandSchedule": "7 days island schedule",
+  "heritageStreetArtRoute": "Heritage & Street Art Route",
+  "beachNatureExcursion": "Beach & Nature Excursion",
+  "estimatedFor1DayPerPerson": "Estimated for 1 day · per person"
+}

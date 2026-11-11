@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/features/admin/models/place_sync_record.dart';
 
@@ -37,25 +38,41 @@ class PlaceSyncNotice extends StatelessWidget {
               children: [
                 Text(
                   loading
-                      ? 'Checking sync history for $state…'
+                      ? context.l10n.checkingSyncHistoryForValue(
+                          (state).toString(),
+                        )
                       : history == null
-                      ? '$state — sync time not recorded'
-                      : '$state — last synced ${history.ageLabel(now ?? DateTime.now())}',
+                      ? context.l10n.valueSyncTimeNotRecorded(
+                          (state).toString(),
+                        )
+                      : context.l10n.valueLastSyncedValue(
+                          (state).toString(),
+                          (history.ageLabel(now ?? DateTime.now())).toString(),
+                        ),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 if (!loading)
                   Text(
                     history == null
-                        ? 'Older imports have no recorded date. Check the existing places before syncing again.'
-                        : '${history.malaysiaDateLabel}\n${history.placeCount} places found · ${history.requestCount} search requests in that sync.\nReview the existing places before using more API quota.',
+                        ? context
+                              .l10n
+                              .olderImportsHaveNoRecordedDateCheckTheExistingPlacesBeforeSyncingAgain
+                        : context.l10n
+                              .valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp(
+                                (history.malaysiaDateLabel).toString(),
+                                (history.placeCount).toString(),
+                                (history.requestCount).toString(),
+                              ),
                   ),
                 if (!loading && (offline || history?.localOnly == true)) ...[
                   const SizedBox(height: 4),
                   Text(
                     history?.localOnly == true
-                        ? 'Timestamp saved on this device only.'
-                        : 'Showing saved history; cloud history is unavailable.',
+                        ? context.l10n.timestampSavedOnThisDeviceOnly
+                        : context
+                              .l10n
+                              .showingSavedHistoryCloudHistoryIsUnavailable,
                   ),
                 ],
               ],

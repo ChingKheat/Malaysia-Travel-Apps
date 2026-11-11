@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
+import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -41,7 +43,7 @@ class TripCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    trip.title,
+                    context.tripTitle(trip),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -50,12 +52,12 @@ class TripCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    trip.date,
+                    context.tripDate(trip),
                     style: const TextStyle(color: AppColors.muted),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    trip.detail,
+                    context.tr(trip.detail),
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
@@ -99,7 +101,7 @@ class SavedTripCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    trip.title,
+                    context.tripTitle(trip),
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       color: AppColors.ink,
@@ -107,12 +109,12 @@ class SavedTripCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    trip.date,
+                    context.tripDate(trip),
                     style: const TextStyle(color: AppColors.muted),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    trip.detail,
+                    context.tr(trip.detail),
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,

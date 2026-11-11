@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -74,8 +75,8 @@ class _LoginFormState extends State<LoginForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Welcome Back',
+          Text(
+            context.l10n.welcomeBack,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w900,
@@ -83,8 +84,8 @@ class _LoginFormState extends State<LoginForm> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Sign in to manage your Malaysia travel plans.',
+          Text(
+            context.l10n.signInToManageYourMalaysiaTravelPlans,
             style: TextStyle(fontSize: 14, color: AppColors.muted),
           ),
           const SizedBox(height: 20),
@@ -110,7 +111,7 @@ class _LoginFormState extends State<LoginForm> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      _errorMessage!,
+                      context.tr(_errorMessage!),
                       style: TextStyle(
                         color: Colors.red.shade900,
                         fontSize: 13.5,
@@ -126,14 +127,14 @@ class _LoginFormState extends State<LoginForm> {
           ],
 
           // Field 1: Email Address
-          _buildLabel('Email Address', isMandatory: true),
+          _buildLabel(context.l10n.emailAddress, isMandatory: true),
           const SizedBox(height: 6),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
-              hint: 'e.g. tourist@example.com',
+              hint: context.l10n.eGTouristExampleCom,
               icon: Icons.email_outlined,
               isError: _highlightedEmptyFields.contains('email'),
             ),
@@ -141,7 +142,7 @@ class _LoginFormState extends State<LoginForm> {
           const SizedBox(height: 16),
 
           // Field 2: Password
-          _buildLabel('Password', isMandatory: true),
+          _buildLabel(context.l10n.password, isMandatory: true),
           const SizedBox(height: 6),
           TextField(
             controller: _passwordController,
@@ -149,10 +150,13 @@ class _LoginFormState extends State<LoginForm> {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleLogin(),
             decoration: _inputDecoration(
-              hint: 'Enter your password',
+              hint: context.l10n.enterYourPassword,
               icon: Icons.lock_outline,
               isError: _highlightedEmptyFields.contains('password'),
               suffix: IconButton(
+                tooltip: _obscurePassword
+                    ? context.l10n.showPassword
+                    : context.l10n.hidePassword,
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_off_outlined
@@ -185,8 +189,8 @@ class _LoginFormState extends State<LoginForm> {
                       ),
                       backgroundColor: AppColors.primary,
                     ),
-                    child: const Text(
-                      'Log In',
+                    child: Text(
+                      context.l10n.logIn,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -209,25 +213,27 @@ class _LoginFormState extends State<LoginForm> {
               child: ExpansionTile(
                 initiallyExpanded: false,
                 title: Row(
-                  children: const [
+                  children: [
                     Icon(
                       Icons.bug_report_outlined,
                       size: 18,
                       color: AppColors.primary,
                     ),
                     SizedBox(width: 8),
-                    Text(
-                      'UC200 Flow Testing Tools',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.ink,
+                    Flexible(
+                      child: Text(
+                        context.l10n.uc200FlowTestingTools,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.ink,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                subtitle: const Text(
-                  'Quickly test messages M1–M6 & alternative flows A1–A3',
+                subtitle: Text(
+                  context.l10n.quicklyTestMessagesM1M6AlternativeFlowsA1A3,
                   style: TextStyle(fontSize: 11, color: AppColors.muted),
                 ),
                 children: [
@@ -246,8 +252,8 @@ class _LoginFormState extends State<LoginForm> {
                                 Icons.mark_email_read_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Fill Valid Credentials',
+                              label: Text(
+                                context.l10n.fillValidCredentials,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -262,8 +268,8 @@ class _LoginFormState extends State<LoginForm> {
                                 Icons.email_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Test A1 (Empty Fields)',
+                              label: Text(
+                                context.l10n.testA1EmptyFields,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -277,8 +283,8 @@ class _LoginFormState extends State<LoginForm> {
                                 Icons.lock_open_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Test A2 (Invalid Email)',
+                              label: Text(
+                                context.l10n.testA2InvalidEmail,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -292,8 +298,8 @@ class _LoginFormState extends State<LoginForm> {
                                 Icons.compare_arrows_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Test A3 (Wrong Password)',
+                              label: Text(
+                                context.l10n.testA3WrongPassword,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -308,8 +314,8 @@ class _LoginFormState extends State<LoginForm> {
                                 Icons.person_search_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Test A3 (No Account)',
+                              label: Text(
+                                context.l10n.testA3NoAccount,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -336,12 +342,14 @@ class _LoginFormState extends State<LoginForm> {
   Widget _buildLabel(String text, {bool isMandatory = false}) {
     return Row(
       children: [
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.ink,
+        Flexible(
+          child: Text(
+            context.tr(text),
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
           ),
         ),
         if (isMandatory)

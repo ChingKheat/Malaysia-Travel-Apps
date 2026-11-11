@@ -1,7 +1,8 @@
+import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 
 /// Resolves high-resolution representative photo URLs for attractions.
-/// Prioritizes explicit photo URLs, matches specific Malaysian landmarks,
+/// Prioritizes real Supabase Storage photos, matches specific Malaysian landmarks,
 /// and falls back gracefully to category-based photography.
 class AttractionImageResolver {
   const AttractionImageResolver._();
@@ -10,6 +11,15 @@ class AttractionImageResolver {
     final direct = attraction.photoUrl?.split('|').firstOrNull?.trim();
     if (direct != null && direct.startsWith('http')) return direct;
 
+    final placeId = attraction.googlePlaceId;
+    if (placeId != null && placeId.isNotEmpty && SupabaseConfig.isConfigured) {
+      return '${SupabaseConfig.supabaseUrl}/storage/v1/object/public/place-photos/$placeId.jpg';
+    }
+
+    return resolveFallbackPhotoUrl(attraction);
+  }
+
+  static String? resolveFallbackPhotoUrl(Attraction attraction) {
     final name = attraction.name.toLowerCase();
     final cat = attraction.category.toLowerCase();
 
@@ -106,10 +116,21 @@ class AttractionImageResolver {
         cat.contains('landmark') ||
         cat.contains('monument') ||
         cat.contains('historic') ||
-        cat.contains('tower')) {
+        cat.contains('tower') ||
+        cat.contains('attraction') ||
+        cat.contains('history')) {
       return 'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=500&auto=format&fit=crop&q=75';
     }
+    if (cat.contains('family') ||
+        cat.contains('adventure') ||
+        cat.contains('entertainment') ||
+        cat.contains('theme park')) {
+      return 'https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?w=500&auto=format&fit=crop&q=75';
+    }
+    if (cat.contains('night') || cat.contains('bar') || cat.contains('club')) {
+      return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=75';
+    }
 
-    return null;
+    return 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=500&auto=format&fit=crop&q=75';
   }
 }

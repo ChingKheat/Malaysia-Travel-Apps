@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -28,7 +29,9 @@ List<Attraction> _buildDefaultPopularList() {
 
   final result = <Attraction>[];
   for (final xid in targetXids) {
-    final match = curatedMalaysianAttractions.where((a) => a.xid == xid).firstOrNull;
+    final match = curatedMalaysianAttractions
+        .where((a) => a.xid == xid)
+        .firstOrNull;
     if (match != null) {
       result.add(match);
     }
@@ -114,7 +117,9 @@ class PopularAttractionsSection extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+                            color: const Color(
+                              0xFF6366F1,
+                            ).withValues(alpha: 0.25),
                             blurRadius: 8,
                             offset: const Offset(0, 3),
                           ),
@@ -127,12 +132,12 @@ class PopularAttractionsSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Popular Attractions',
+                            context.l10n.popularAttractions,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -144,7 +149,7 @@ class PopularAttractionsSection extends StatelessWidget {
                           ),
                           SizedBox(height: 1),
                           Text(
-                            'Top must-visit destinations in Malaysia',
+                            context.l10n.topMustVisitDestinationsInMalaysia,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -165,16 +170,19 @@ class PopularAttractionsSection extends StatelessWidget {
                 onTap: onSeeAllTap,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'See All',
+                        context.l10n.seeAll,
                         style: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w800,
@@ -270,7 +278,10 @@ class PopularAttractionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photoUrl = AttractionImageResolver.resolvePhotoUrl(attraction);
+    final direct = attraction.photoUrl?.split('|').firstOrNull?.trim();
+    final photoUrl = (direct != null && direct.startsWith('http'))
+        ? direct
+        : AttractionImageResolver.resolvePhotoUrl(attraction);
     final stateName = _resolveState(attraction);
     final cleanCategory = _cleanCategory(attraction.category);
     final categoryIcon = _categoryIcon(attraction.category);
@@ -310,7 +321,8 @@ class PopularAttractionCard extends StatelessWidget {
               Image.network(
                 photoUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _FallbackGradient(icon: categoryIcon),
+                errorBuilder: (_, _, _) =>
+                    _FallbackGradient(icon: categoryIcon),
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
                   return _FallbackGradient(icon: categoryIcon);
@@ -372,7 +384,10 @@ class PopularAttractionCard extends StatelessWidget {
                   // State Badge
                   Flexible(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7.5,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.45),
                         borderRadius: BorderRadius.circular(16),
@@ -410,7 +425,10 @@ class PopularAttractionCard extends StatelessWidget {
 
                   // Rating Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.45),
                       borderRadius: BorderRadius.circular(16),
@@ -454,7 +472,10 @@ class PopularAttractionCard extends StatelessWidget {
                 children: [
                   // Category Tag with Vibrant Gradient
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3.5,
+                    ),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
@@ -462,7 +483,9 @@ class PopularAttractionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(7),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6366F1).withValues(alpha: 0.35),
+                          color: const Color(
+                            0xFF6366F1,
+                          ).withValues(alpha: 0.35),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -471,14 +494,10 @@ class PopularAttractionCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          categoryIcon,
-                          size: 10.5,
-                          color: Colors.white,
-                        ),
+                        Icon(categoryIcon, size: 10.5, color: Colors.white),
                         const SizedBox(width: 4),
                         Text(
-                          cleanCategory.toUpperCase(),
+                          context.tr(cleanCategory).toUpperCase(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
@@ -517,10 +536,10 @@ class PopularAttractionCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
                           Text(
-                            'Explore spot',
+                            context.l10n.exploreSpot,
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 11,
@@ -583,13 +602,7 @@ class _FallbackGradient extends StatelessWidget {
           colors: [Color(0xFF1E3A8A), Color(0xFF4338CA), Color(0xFF6D28D9)],
         ),
       ),
-      child: Center(
-        child: Icon(
-          icon,
-          color: Colors.white60,
-          size: 40,
-        ),
-      ),
+      child: Center(child: Icon(icon, color: Colors.white60, size: 40)),
     );
   }
 }

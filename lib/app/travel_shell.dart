@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -121,13 +122,13 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                     child: _selectedIndex == 2
-                        ? const Align(
+                        ? Align(
                             alignment: Alignment.centerLeft,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Image Recognition',
+                                  context.l10n.imageRecognition,
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w900,
@@ -136,7 +137,9 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Discover Malaysia through your camera',
+                                  context
+                                      .l10n
+                                      .discoverMalaysiaThroughYourCamera,
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: AppColors.muted,
@@ -198,7 +201,7 @@ class TravelBottomNavigation extends StatelessWidget {
         selected: selected,
         button: true,
         child: Tooltip(
-          message: tooltip ?? label,
+          message: context.tr(tooltip ?? label),
           child: InkWell(
             key: key,
             onTap: () => onSelected(index),
@@ -206,6 +209,7 @@ class TravelBottomNavigation extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
@@ -225,9 +229,9 @@ class TravelBottomNavigation extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    context.tr(label),
+                    textAlign: TextAlign.center,
+                    softWrap: true,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -247,53 +251,55 @@ class TravelBottomNavigation extends StatelessWidget {
       child: SafeArea(
         top: false,
         minimum: const EdgeInsets.symmetric(horizontal: 8),
-        child: SizedBox(
-          height: 72,
-          child: Row(
-            children: [
-              Expanded(
-                child: item(
-                  0,
-                  Icons.home_outlined,
-                  'Home',
-                  selectedIcon: Icons.home,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: item(
+                    0,
+                    Icons.home_outlined,
+                    'Home',
+                    selectedIcon: Icons.home,
+                  ),
                 ),
-              ),
-              Expanded(
-                child: item(
-                  1,
-                  Icons.travel_explore_outlined,
-                  'Explore',
-                  selectedIcon: Icons.travel_explore,
+                Expanded(
+                  child: item(
+                    1,
+                    Icons.travel_explore_outlined,
+                    'Explore',
+                    selectedIcon: Icons.travel_explore,
+                  ),
                 ),
-              ),
-              Expanded(
-                child: item(
-                  2,
-                  Icons.document_scanner_outlined,
-                  'Recognize',
-                  selectedIcon: Icons.document_scanner,
-                  key: const ValueKey('scan-navigation-button'),
-                  tooltip: 'Image recognition',
+                Expanded(
+                  child: item(
+                    2,
+                    Icons.document_scanner_outlined,
+                    'Recognize',
+                    selectedIcon: Icons.document_scanner,
+                    key: const ValueKey('scan-navigation-button'),
+                    tooltip: context.l10n.imageRecognition2,
+                  ),
                 ),
-              ),
-              Expanded(
-                child: item(
-                  3,
-                  Icons.event_note_outlined,
-                  'Plan',
-                  selectedIcon: Icons.event_note,
+                Expanded(
+                  child: item(
+                    3,
+                    Icons.event_note_outlined,
+                    'Plan',
+                    selectedIcon: Icons.event_note,
+                  ),
                 ),
-              ),
-              Expanded(
-                child: item(
-                  4,
-                  Icons.smart_toy_outlined,
-                  'AI',
-                  selectedIcon: Icons.smart_toy,
+                Expanded(
+                  child: item(
+                    4,
+                    Icons.smart_toy_outlined,
+                    'AI',
+                    selectedIcon: Icons.smart_toy,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

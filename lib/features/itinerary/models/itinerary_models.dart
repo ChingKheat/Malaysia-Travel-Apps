@@ -285,6 +285,9 @@ class Itinerary {
 
     return SavedTrip(
       title: title,
+      startsOn: dailySchedules.isEmpty
+          ? createdAt
+          : dailySchedules.first.scheduleDate,
       date:
           '${(dailySchedules.isEmpty ? createdAt : dailySchedules.first.scheduleDate).day} ${_monthName((dailySchedules.isEmpty ? createdAt : dailySchedules.first.scheduleDate).month)} ${(dailySchedules.isEmpty ? createdAt : dailySchedules.first.scheduleDate).year} ($daysCount Days)',
       detail:

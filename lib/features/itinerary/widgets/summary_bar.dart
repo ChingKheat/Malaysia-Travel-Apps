@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -19,22 +20,25 @@ class SummaryBar extends StatelessWidget {
         children: [
           Expanded(
             child: SummaryItem(
-              title: 'Travel Time',
-              value:
-                  '${stops.fold<int>(0, (sum, s) => sum + s.travelMinutes)} min',
+              title: context.l10n.travelTime,
+              value: context.l10n.valueMin(
+                context.localNumber(
+                  stops.fold<int>(0, (sum, s) => sum + s.travelMinutes),
+                ),
+              ),
             ),
           ),
           Expanded(
             child: SummaryItem(
-              title: 'Est. Distance',
+              title: context.l10n.estDistance,
               value:
                   '~${SmartItineraryService.calculateRouteDistanceKm(stops)} km',
             ),
           ),
           Expanded(
             child: SummaryItem(
-              title: 'Est. Cost',
-              value: 'RM ${SchedulingEngine.cost(stops).toStringAsFixed(0)}',
+              title: context.l10n.estCost,
+              value: context.money(SchedulingEngine.cost(stops)),
             ),
           ),
         ],
@@ -55,7 +59,7 @@ class SummaryItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          title,
+          context.tr(title),
           style: const TextStyle(color: AppColors.muted, fontSize: 11),
         ),
         const SizedBox(height: 4),

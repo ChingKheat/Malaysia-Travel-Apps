@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
@@ -13,9 +14,9 @@ class RoutePage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       children: [
-        const AppHeader(
-          title: 'Route Map',
-          subtitle: 'Tap map pins to view place details',
+        AppHeader(
+          title: context.l10n.routeMap,
+          subtitle: context.l10n.tapMapPinsToViewPlaceDetails,
         ),
         const SizedBox(height: 18),
         const MockMap(),
@@ -25,24 +26,24 @@ class RoutePage extends StatelessWidget {
         FilledButton.icon(
           onPressed: () => runDemoLoadingAction(
             context,
-            loadingLabel: 'Optimizing route…',
+            loadingLabel: context.l10n.optimizingRoute,
             successMessage:
-                'Route optimized — travel time reduced by 45 minutes.',
+                context.l10n.routeOptimizedTravelTimeReducedBy45Minutes,
             icon: Icons.route_outlined,
           ),
           icon: const Icon(Icons.route_outlined),
-          label: const Text('Optimize Route'),
+          label: Text(context.l10n.optimizeRoute),
           style: primaryFilledButtonStyle(),
         ),
         const SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: () => showDemoSnackBar(
             context,
-            'Map centered on your current location.',
+            context.l10n.mapCenteredOnYourCurrentLocation,
             icon: Icons.my_location,
           ),
           icon: const Icon(Icons.my_location),
-          label: const Text('Re-center'),
+          label: Text(context.l10n.reCenter),
           style: demoOutlinedButtonStyle(),
         ),
       ],

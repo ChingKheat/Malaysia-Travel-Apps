@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -69,7 +70,7 @@ class StopCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    stop.time,
+                    context.scheduledTime(stop.time),
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,

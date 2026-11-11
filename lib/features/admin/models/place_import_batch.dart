@@ -22,6 +22,7 @@ class PlaceImportBatch {
       'latitude': location?['latitude'],
       'longitude': location?['longitude'],
       'app_category': category,
+      'attributions': p['attributions'] ?? [],
     };
     try {
       AdminPlacesRepository.importRow(state, row);

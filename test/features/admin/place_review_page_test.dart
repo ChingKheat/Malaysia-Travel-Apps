@@ -77,6 +77,8 @@ void main() {
         250,
         scrollable: scrollable,
       );
+      await tester.ensureVisible(find.text('Load / retry live details'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Load / retry live details'));
       await tester.pumpAndSettle();
       expect(google.loads, 1);

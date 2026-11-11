@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -18,8 +19,8 @@ class MyTripsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(onPressed: onBackTap),
-        title: const Text(
-          'My Trips',
+        title: Text(
+          context.l10n.myTrips,
           style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
         backgroundColor: Colors.white,

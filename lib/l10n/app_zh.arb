@@ -1,0 +1,1656 @@
+{
+  "@@locale": "zh",
+  "appLanguage": "应用语言",
+  "languageChanged": "语言已更改。",
+  "languageSessionOnly": "本次使用的语言已更改，但无法保存偏好设置。",
+  "home": "首页",
+  "explore": "探索",
+  "recognize": "识别",
+  "plan": "规划",
+  "ai": "AI",
+  "back": "返回",
+  "cancel": "取消",
+  "save": "保存",
+  "delete": "删除",
+  "clear": "清除",
+  "close": "关闭",
+  "done": "完成",
+  "retry": "重试",
+  "tryAgain": "再试一次",
+  "ok": "确定",
+  "gotIt": "知道了",
+  "dismiss": "关闭",
+  "change": "更改",
+  "details": "详情",
+  "about": "简介",
+  "unavailable": "暂不可用",
+  "information": "信息",
+  "ready": "就绪",
+  "stop": "停止",
+  "open": "打开",
+  "all": "全部",
+  "allValue": "全部（{arg0}）",
+  "@allValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveChanges": "保存更改",
+  "readMore": "展开",
+  "readLess": "收起",
+  "viewAll": "查看全部",
+  "seeAll": "查看全部",
+  "viewOnMap": "在地图上查看",
+  "openInGoogleMaps": "在 Google Maps 中打开",
+  "sharePlace": "分享地点",
+  "copyAddress": "复制地址",
+  "addressCopiedToClipboard": "地址已复制！",
+  "address": "地址",
+  "addressUnavailable": "暂无地址",
+  "descriptionUnavailable": "暂无介绍。",
+  "detailsUnavailable": "暂无详情",
+  "placeDetailsAreUnavailable": "地点详情暂不可用。",
+  "nameUnavailable": "暂无名称",
+  "phone": "电话",
+  "phoneUnavailable": "暂无电话",
+  "website": "网站",
+  "websiteUnavailable": "暂无网站",
+  "rating": "评分",
+  "ratingUnavailable": "暂无评分",
+  "reviews": "评价",
+  "reviewCountUnavailable": "暂无评价数量",
+  "openingHours": "营业时间",
+  "openingHoursUnavailableCheckBeforeVisiting": "暂无营业时间，请在到访前确认。",
+  "operatingHoursMayVaryDuringPublicHolidaysOrSpecialEvents": "公共假期或特别活动期间，营业时间可能有所变动。",
+  "hoursUnverified": "营业时间未核实",
+  "photoUnavailable": "暂无照片",
+  "loadPhoto": "加载照片",
+  "retryPhoto": "重新加载照片",
+  "photoValue": "照片：{arg0}",
+  "@photoValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "source": "来源",
+  "indoor": "室内",
+  "outdoor": "室外",
+  "attraction": "景点",
+  "attractions": "景点",
+  "food": "美食",
+  "shopping": "购物",
+  "culture": "文化",
+  "nature": "自然",
+  "adventure": "探险",
+  "family": "亲子",
+  "museum": "博物馆",
+  "sight": "景观",
+  "science": "科学",
+  "nightlife": "夜生活",
+  "landmarks": "地标",
+  "nearby": "附近",
+  "popular": "热门",
+  "airConditioned": "有空调",
+  "comfortableFootwearAdvised": "建议穿舒适的鞋子",
+  "welcomeBack": "欢迎回来",
+  "selamatDatang": "欢迎！",
+  "smartTravelPlanning": "智能旅行\n规划",
+  "smartTravelPlanner": "智能旅行规划",
+  "smartTravelPlanning2": "智能旅行规划",
+  "yourSmartTravelCompanionInMalaysia": "您在马来西亚的\n智能旅行伙伴",
+  "autoSmartScheduling": "自动智能排程",
+  "planTheBestRouteForYou": "为您规划最佳路线",
+  "realTimeUpdates": "实时更新",
+  "weatherTrafficOpeningHours": "天气、交通与营业时间",
+  "multiLanguageSupport": "多语言支持",
+  "getStarted": "开始探索",
+  "logInSignUp": "登录 / 注册",
+  "logIn": "登录",
+  "createAccount": "创建账户",
+  "registerAccount": "注册账户",
+  "logOut": "退出登录",
+  "malaysiaTravelPortal": "马来西亚旅游平台",
+  "accessAiItinerariesWeatherAlertsAndSmartRouteOptimization": "使用 AI 行程、天气提醒和智能路线优化。",
+  "signInToManageYourMalaysiaTravelPlans": "登录以管理您的马来西亚旅行计划。",
+  "registerAsANewTouristToPlanYourPersonalizedTripsInMalaysia": "注册账户，规划专属的马来西亚旅程。",
+  "emailAddress": "电子邮箱",
+  "password": "密码",
+  "confirmPassword": "确认密码",
+  "fullName": "全名",
+  "fullName2": "全名",
+  "enterYourPassword": "请输入密码",
+  "enterStrongPassword": "请输入高强度密码",
+  "reEnterPassword": "请再次输入密码",
+  "eGAliBinAhmad": "例如：Ali Bin Ahmad",
+  "eGTouristExampleCom": "例如：tourist@example.com",
+  "pleaseEnterYourEmail": "请输入电子邮箱",
+  "pleaseEnterAValidEmail": "请输入有效的电子邮箱",
+  "pleaseEnterYourPassword": "请输入密码",
+  "passwordMustBeAtLeast6Characters": "密码至少需要 6 个字符",
+  "passwordStrengthPolicyC3": "密码强度要求（C3）：",
+  "atLeast8Characters": "至少 8 个字符",
+  "oneLowercaseLetterAZ": "一个小写字母（a-z）",
+  "oneUppercaseLetterAZ": "一个大写字母（A-Z）",
+  "oneNumber09": "一个数字（0-9）",
+  "oneSpecialCharacter": "一个特殊字符（!@#$%^&*）",
+  "checkYourEmail": "请查看邮箱",
+  "ifThisEmailCanBeRegisteredAConfirmationEmailWillBeSentOpenTheLinkInThatEmailThenReturnHere": "若此邮箱可以注册，您将收到确认邮件。请打开邮件中的链接，再返回此处登录。您目前尚未登录。",
+  "loggedInAsGuestTraveler": "已作为访客登录！",
+  "successfullyLoggedOut": "已成功退出登录。",
+  "myProfile": "我的资料",
+  "noActiveProfileFound": "未找到当前用户资料。",
+  "accountSettings": "账户设置",
+  "editProfile": "编辑资料",
+  "editProfile2": "编辑资料",
+  "changeYourFullName": "更改您的全名",
+  "areYouSureYouWantToLogOutOfYourTravelProfile": "确定要退出登录吗？",
+  "pushNotifications": "推送通知",
+  "darkMode": "深色模式",
+  "darkModeIsNotSupportedInTheDemoVersion": "演示版本暂不支持深色模式。",
+  "privacyTerms": "隐私与条款",
+  "privacyPolicyTerms": "隐私政策与条款",
+  "aboutApp": "关于应用",
+  "aboutSmartTravelPlanner": "关于智能旅行规划",
+  "tripsPlanned": "已规划行程",
+  "placesVisited": "已到访地点",
+  "traveler": "旅行者",
+  "smartTourist": "智能旅行者",
+  "exploreMalaysia": "探索马来西亚",
+  "discoverAttractionsPlaces": "发现景点与好去处",
+  "imageRecognition": "图像识别",
+  "imageRecognition2": "图像识别",
+  "discoverMalaysiaThroughYourCamera": "通过镜头探索马来西亚",
+  "planYourTrip": "规划您的旅程",
+  "tellUsYourPreferences": "告诉我们您的偏好",
+  "tripAssistant": "旅行助手",
+  "aiHelpTranslationAndWeatherAlerts": "AI 协助、翻译与天气提醒",
+  "helloValue": "您好，{arg0}！",
+  "@helloValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeBackValue": "欢迎回来，{arg0}！",
+  "@welcomeBackValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "whereWouldYouLikeToExploreToday": "今天想去哪里探索？",
+  "whereToNext": "下一站去哪里？",
+  "popularAttractions": "热门景点",
+  "topMustVisitDestinationsInMalaysia": "马来西亚必游目的地",
+  "browseAttractions": "浏览景点",
+  "myTrips": "我的行程",
+  "viewSavedItinerariesAndYourCurrentPlan": "查看已保存的行程与当前计划",
+  "viewItinerary": "查看行程",
+  "viewNearby": "查看附近",
+  "aiItinerary": "AI 行程",
+  "routeOptimizer": "路线优化",
+  "weatherUpdates": "天气更新",
+  "budgetFilter": "预算筛选",
+  "multiLanguage": "多语言",
+  "offlineMode": "离线模式",
+  "itineraryLabelsReadyInEnglishMalayAndChinese": "行程标签支持英语、马来语和中文。",
+  "aTripThatFitsYou": "为您量身规划的旅程",
+  "whereAndWhenWouldYouLikeToGo": "您想何时去哪里？",
+  "chooseYourDatesDailyPaceAndFavouriteThingsToDo": "选择日期、每日节奏和喜欢的活动。",
+  "destination": "目的地",
+  "travelDates": "旅行日期",
+  "selectTravelDates": "选择旅行日期",
+  "selectTravelDates2": "选择旅行日期",
+  "selectDestination": "选择目的地",
+  "selectState": "选择州属",
+  "yourDailyPace": "您的每日节奏",
+  "dailyStartTime": "每日开始时间",
+  "dailyEndTime": "每日结束时间",
+  "selectTime": "选择时间",
+  "chooseASuggestedSchedule": "选择建议的时间安排",
+  "setAsideTimeForAttractionsMealsAndGettingAround": "为景点、用餐与交通预留时间。",
+  "relaxed": "轻松",
+  "standard": "标准",
+  "full": "充实",
+  "plannedDuration": "计划时长",
+  "makeItYourKindOfTrip": "打造您的专属旅程",
+  "interests": "兴趣",
+  "pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou": "选择一项或多项兴趣，我们将为您推荐合适的地点。",
+  "chooseYourDailyBudget": "选择每日预算",
+  "dailyBudget": "每日预算",
+  "budget": "预算",
+  "low": "低",
+  "medium": "中",
+  "high": "高",
+  "underRm150": "低于 RM150",
+  "overRm300": "超过 RM300",
+  "perPersonIncludingMealsAttractionTicketsAndLocalTransport": "每人预算，包括餐饮、景点门票与当地交通。",
+  "gettingAround": "出行方式",
+  "chooseHowYouWillTravelBetweenPlaces": "选择地点之间的出行方式。",
+  "driving": "驾车",
+  "walking": "步行",
+  "transit": "公共交通",
+  "publicTransport": "公共交通",
+  "exploreFurtherByCarOrEHailing": "驾车或乘坐网约车，探索更远的地方。",
+  "enjoyNearbyPlacesAtAWalkingPace": "以步行的节奏探索附近地点。",
+  "generateMyItinerary": "生成我的行程",
+  "generating": "正在生成…",
+  "buildingItineraryFromSavedPlaces": "正在根据已保存地点生成行程…",
+  "checkYourTripPreferences": "请检查旅行偏好",
+  "chooseADestination": "请选择目的地。",
+  "chooseYourTravelDates": "请选择旅行日期。",
+  "chooseATime": "请选择时间。",
+  "chooseAtLeastOneInterest": "请至少选择一项兴趣。",
+  "chooseADailyBudget": "请选择每日预算。",
+  "chooseATravelMode": "请选择出行方式。",
+  "transitPlanningIsNotAvailableYetChooseDrivingOrWalkingToGenerateYourTrip": "公共交通规划暂不可用，请选择驾车或步行生成行程。",
+  "itineraryGeneratedOpeningPreview": "行程已生成，正在打开预览。",
+  "myItinerary": "我的行程",
+  "yourValueItineraryIsReady": "您的{arg0}行程已准备好！",
+  "@yourValueItineraryIsReady": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveItinerary": "保存行程",
+  "tripDetails": "行程详情",
+  "tripDetails2": "行程详情",
+  "travelTime": "交通时间",
+  "estCost": "预计费用",
+  "estDistance": "预计距离",
+  "estVisit": "预计游览时间",
+  "dayValue": "第 {arg0} 天",
+  "@dayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "dayValueTheme": "第 {arg0} 天主题",
+  "@dayValueTheme": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "dayRoute": "当日路线",
+  "day1Plan": "第 1 天计划",
+  "editDayValue": "编辑第 {arg0} 天",
+  "@editDayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "editDayValueSchedule": "编辑第 {arg0} 天行程",
+  "@editDayValueSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "regenerate": "重新生成",
+  "regenerateItinerary": "重新生成行程",
+  "regenerateItinerary2": "重新生成行程？",
+  "yourCurrentUnsavedChangesWillBeReplacedSavedTripsWillRemainAvailable": "当前未保存的更改将被替换，已保存的行程仍会保留。",
+  "completeTripPreferencesInPlanBeforeRegenerating": "请先在规划页面完善旅行偏好，再重新生成。",
+  "deleteItinerary": "删除行程？",
+  "areYouSureYouWantToDeleteValue": "确定要删除“{arg0}”吗？",
+  "@areYouSureYouWantToDeleteValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteOrClearItinerary": "删除或清空行程",
+  "unableToDeleteThisItinerary": "无法删除此行程。",
+  "unableToSaveItineraryChangesOnThisDevice": "无法在此设备上保存行程更改。",
+  "noItinerariesYet": "暂无行程",
+  "noActiveTripPlanned": "暂无当前旅行计划",
+  "youHaveNoActiveOrSavedTripsSetYourTravelPreferencesToGenerateASmartDayByDaySchedule": "您还没有当前或已保存的行程，请设置旅行偏好来生成智能每日安排。",
+  "tapToPlanYourSmartSchedule": "点击规划智能行程",
+  "tapToViewScheduleDetails": "点击查看安排与详情",
+  "activeGeneratedPlan": "当前生成计划",
+  "activePlannedTrip": "当前旅行计划",
+  "activeItinerary": "当前行程",
+  "activeTripPlanCleared": "当前旅行计划已清除",
+  "clearActivePlan": "清除当前计划？",
+  "areYouSureYouWantToClearYourCurrentGeneratedTripAndResetToDefault": "确定要清除当前生成的行程并恢复默认设置吗？",
+  "addStop": "添加地点",
+  "addStopToDaySchedule": "在当日行程中添加地点",
+  "addToPlan": "添加到计划",
+  "addToMyItinerary": "添加到我的行程",
+  "addToTravelPlan": "添加到旅行计划",
+  "addToWishlist": "添加到愿望清单",
+  "selectAnAttractionToAppendToYourDayRoute": "选择要添加到当日路线的景点",
+  "removeStop": "移除地点",
+  "swapAttraction": "替换景点",
+  "swapAttraction2": "替换景点",
+  "dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces": "拖动手柄调整顺序，点击替换以选择室内地点。",
+  "anItineraryDayMustHaveAtLeast1Stop": "每天的行程至少需要一个地点。",
+  "duplicateStopToday": "当日地点重复",
+  "inOtherDay": "已安排在其他日期",
+  "duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave": "当日存在重复景点，请移除或替换后保存。",
+  "cannotSaveThisOrderExceedsDailyHoursOpeningHoursBudgetOrWeatherConstraints": "无法保存：此顺序不符合每日时长、营业时间、预算或天气限制。",
+  "cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop": "无法保存：“{arg0}”在当日重复，请移除或替换重复地点。",
+  "@cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary": "无法保存：“{arg0}”已安排在此行程的其他日期。",
+  "@cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "connectToRefreshGooglePlaceLocationsBeforeSavingScheduleChanges": "请连接网络更新 Google 地点位置后，再保存行程更改。",
+  "stopReorderedScheduleTimesAutomaticallyAdjusted": "地点顺序已调整，行程时间已自动更新。",
+  "removedValueTimesUpdated": "已移除“{arg0}”，时间已更新。",
+  "@removedValueTimesUpdated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "addedValueToDayValue": "已将 {arg0} 添加到第 {arg1} 天",
+  "@addedValueToDayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "swappedValueWithValue": "已将“{arg0}”替换为“{arg1}”",
+  "@swappedValueWithValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "dayValuePlanUpdatedValueStops": "第 {arg0} 天计划已更新（{arg1} 个地点）",
+  "@dayValuePlanUpdatedValueStops": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "replacingValueValue": "正在替换“{arg0}”（{arg1}）",
+  "@replacingValueValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "rainForecastedTodaySwappingToAnIndoorAttractionIsRecommended": "今天预计有雨，建议替换为室内景点。",
+  "goodWeatherTodayYouCanKeepItIndoorOrSwapToAnOutdoorSight": "今天天气不错！您可以保留室内活动，或换成室外景点。",
+  "scheduledTime": "计划时间",
+  "scheduledVisit": "计划游览",
+  "suggestedTime": "建议时间",
+  "indoorActivity": "室内活动",
+  "outdoorSight": "室外景点",
+  "indoorAttractionWeatherSafe": "室内景点 · 不受天气影响",
+  "outdoorSightseeing": "户外观光",
+  "rainProofBackup": "雨天备选",
+  "valueDays": "{arg0} 天",
+  "@valueDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDaysItinerary": "{arg0} 天行程",
+  "@valueDaysItinerary": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHoursOfSightseeingPerDay": "每日游览 {arg0} 小时",
+  "@valueHoursOfSightseeingPerDay": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHoursValueMinutesOfSightseeingPerDay": "每日游览 {arg0} 小时 {arg1} 分钟",
+  "@valueHoursValueMinutesOfSightseeingPerDay": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueMin": "{arg0} 分钟",
+  "@valueMin": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueH": "{arg0} 小时",
+  "@valueH": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHValueMin": "{arg0} 小时 {arg1} 分钟",
+  "@valueHValueMin": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueStopsRmValueEstimated": "{arg0} 个地点 · 预计 RM {arg1}",
+  "@valueStopsRmValueEstimated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "aboveRmvalueTotal": "总计约 RM{arg0} 以上",
+  "@aboveRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "upToRmvalueTotal": "总计最高约 RM{arg0}",
+  "@upToRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "rmvalueRmvalueTotal": "总计约 RM{arg0} – RM{arg1}",
+  "@rmvalueRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "routeMap": "路线地图",
+  "mapView": "地图视图",
+  "reCenter": "重新定位",
+  "optimizeRoute": "优化路线",
+  "optimizedOrder": "优化顺序",
+  "optimizingRoute": "正在优化路线…",
+  "calculatingRouteEstimate": "正在估算路线…",
+  "tapMapPinsToViewPlaceDetails": "点击地图标记查看地点详情",
+  "select25LocationsToDrawARoute": "选择 2–5 个地点绘制路线",
+  "mapCenteredOnYourCurrentLocation": "地图已定位到您的当前位置。",
+  "unableToOpenGoogleMaps": "无法打开 Google Maps。",
+  "unableToOpenThisLink": "无法打开此链接。",
+  "googleMapsIsNotConfiguredForThisPlatformYetYourSavedPlacesRemainAvailableInTheList": "此平台尚未配置 Google Maps，已保存地点仍可在列表中查看。",
+  "valueKmValueStops": "{arg0} 公里 · {arg1} 个地点",
+  "@valueKmValueStops": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueStops2": "约 {arg0} 公里 · {arg1} 个地点",
+  "@valueKmValueStops2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmAway": "相距 {arg0} 公里",
+  "@valueKmAway": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueMAway": "相距 {arg0} 米",
+  "@valueMAway": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueMinWalk": "{arg0} 公里 · 步行约 {arg1} 分钟",
+  "@valueKmValueMinWalk": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "routeEstValueKmValueMinDriving": "路线估计：{arg0} 公里 · 驾车约 {arg1} 分钟",
+  "@routeEstValueKmValueMinDriving": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "searchCityDestination": "搜索城市 / 目的地",
+  "searchAttractionsFoodCulture": "搜索景点、美食、文化…",
+  "searchResults": "搜索结果",
+  "searchInThisArea": "搜索此区域",
+  "chooseState": "选择州属",
+  "chooseAreaCity": "选择区域 / 城市",
+  "exploreNewLocation": "探索新地点",
+  "currentDestination": "当前目的地",
+  "resetSearchFilters": "重置搜索与筛选",
+  "noPlacesFound": "未找到地点",
+  "noSavedPlacesYet": "暂无已保存地点",
+  "noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm": "没有符合“{arg0}”的景点，请检查拼写或尝试更广泛的关键词。",
+  "@noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noAttractionsMatchThisFilterInThisCity": "此城市暂无符合筛选条件的景点。",
+  "noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation": "{arg0} 附近暂无此类地点，请选择其他类别或位置。",
+  "@noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "unableToLoadAttractionsPleaseTryAgain": "无法加载景点，请重试。",
+  "unableToLoadDetailsRetry": "无法加载详情，请重试。",
+  "saved": "已保存",
+  "savedAttractions": "已保存景点",
+  "yourSavedPlaces": "您保存的地点",
+  "saveAttraction": "保存景点",
+  "removeFromSaved": "取消保存",
+  "savedListCanHoldUpTo10Attractions": "最多可保存 10 个景点。",
+  "savedValueToYourList": "已将“{arg0}”保存到列表。",
+  "@savedValueToYourList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "removedValueFromSaved": "已取消保存“{arg0}”。",
+  "@removedValueFromSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "removedFromSavedPlaces": "已取消保存地点",
+  "savedToFavoritePlaces": "已添加到收藏地点",
+  "browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist": "浏览 {arg0} 的景点，点击“保存”建立专属旅行愿望清单。",
+  "@browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "savedPlacesCanBeViewedOnTheMapTabToSeeOptimalDrivingPathsOrVisitThePlanTabToAutomaticallyS": "在地图页查看已保存地点的驾车路线，或前往规划页自动安排多日行程。",
+  "topIconicSpotsInValue": "{arg0} 的标志性景点",
+  "@topIconicSpotsInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "topMalaysianAttraction": "马来西亚热门景点",
+  "malaysianIconicAttraction": "马来西亚标志性景点",
+  "mustVisitHighlights": "必游亮点",
+  "travelerTipsGoodToKnow": "旅行贴士与须知",
+  "helpfulTips": "实用贴士",
+  "activityStatus": "活动状态",
+  "entry": "门票",
+  "curatedSpotsWithin5Km": "5 公里内的精选地点",
+  "text5KmRadius": "5 公里范围",
+  "exploreSpot": "探索地点",
+  "viewPlaceDetails": "查看地点详情",
+  "liveGoogleInformation": "Google 实时信息",
+  "livePlaceDetailsUnavailable": "实时地点详情暂不可用。",
+  "showingAvailablePlaceInformation": "正在显示可用的地点信息。",
+  "googlePlacesUnavailable": "Google Places 暂不可用",
+  "attractionDetailsMapLinkCopiedToClipboard": "景点详情与地图链接已复制！",
+  "valueReviews": "（{arg0} 条评价）",
+  "@valueReviews": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueReviews2": "{arg0} 条评价",
+  "@valueReviews2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingValue5": "评分：{arg0} / 5",
+  "@ratingValue5": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valuePlaces": "{arg0} 个地点",
+  "@valuePlaces": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "text0Places": "0 个地点",
+  "valueSpots": "{arg0} 个地点",
+  "@valueSpots": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueItems": "{arg0} 项",
+  "@valueItems": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueItems2": "{arg0} 项",
+  "@valueItems2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "matchingValue": "匹配“{arg0}”",
+  "@matchingValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "askPlacesFoodWeatherOrPlans": "询问景点、美食、天气或计划…",
+  "sendPrompt": "发送问题",
+  "geminiIsThinking": "Gemini 正在思考…",
+  "gemini15FlashMalaysianTravelAi": "Gemini 1.5 Flash · 马来西亚旅行 AI",
+  "assistantResponseLanguage": "助手回复语言",
+  "selectLanguage": "选择语言",
+  "assistantLanguageSetToValue": "助手回复语言已设为 {arg0}。",
+  "@assistantLanguageSetToValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearChatHistory": "清除聊天记录？",
+  "thisWillResetYourConversationWithTheTravelAssistant": "这将重置您与旅行助手的对话。",
+  "chatHistoryCleared": "聊天记录已清除。",
+  "resetConversation": "重置对话",
+  "voiceSearch": "语音搜索",
+  "voiceTravelAssistant": "语音旅行助手",
+  "trySpokenQuery": "尝试语音提问",
+  "isItGoingToRainInKlToday": "🌧️ 吉隆坡今天会下雨吗？",
+  "bestHalalFoodNearBukitBintang": "🍜 武吉免登附近有哪些清真美食？",
+  "culturalEtiquetteForBatuCaves": "🏛️ 参观黑风洞有哪些文化礼仪？",
+  "howToGetFromKlSentralToKlcc": "🚇 如何从 KL Sentral 前往 KLCC？",
+  "usefulMalayTravelPhrases": "🗣️ 实用马来语旅行用语",
+  "topIndoorShoppingAndMuseums": "🛍️ 推荐室内购物场所与博物馆",
+  "valueRain": "降雨概率 {arg0}%",
+  "@valueRain": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "scanner": "扫描",
+  "history": "历史",
+  "historyValue": "历史（{arg0}）",
+  "@historyValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "demoResults": "演示结果",
+  "discoverALandmarkOrALocalDish": "识别地标或当地美食",
+  "chooseAPhotoReviewItThenIdentifyWhatYouSee": "选择照片并确认，然后识别照片中的内容。",
+  "takePhoto": "拍照",
+  "uploadFromGallery": "从相册上传",
+  "launchYourCameraToCaptureALandmarkOrFood": "打开相机拍摄地标或美食",
+  "selectAPhotoFromYourPhotoLibrary": "从相册选择照片",
+  "yourPhotoIsReady": "照片已准备好",
+  "photoPreview": "照片预览",
+  "samplePreview": "示例预览",
+  "photoPreviewUnavailable": "照片预览不可用",
+  "recognizePhoto": "识别照片",
+  "recognizingPhoto": "正在识别照片…",
+  "retakePhoto": "重新拍照",
+  "chooseAnother": "选择其他照片",
+  "readyToDiscoverWhatYouFound": "准备好探索您的发现了吗？",
+  "forTheBestResultUseOneClearLandmarkOrDishKeepItCentredAndAvoidBlurryOrVeryDarkPhotos": "为获得最佳效果，请将一个清晰的地标或菜品放在画面中央，避免模糊或过暗的照片。",
+  "forBetterAccuracyKeepTheLandmarkOrFoodDishWellLitAndCentered": "为提高准确率，请保持光线充足，并将地标或菜品置于画面中央。",
+  "sampleScansWorkOfflineLiveRecognitionAndTranslationRequireAnOnlineAccount": "示例扫描可离线使用，实时识别与翻译需要在线账户。",
+  "onlyResultTextIsSavedInYourLocalHistoryThePhotoIsNotStoredByTheApp": "本地历史仅保存结果文字，应用不会保存照片。",
+  "recognizeSendsThisPhotoToGoogleVisionThroughOurSecureService": "识别时会通过我们的安全服务将此照片发送至 Google Vision。",
+  "cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample": "相机或相册不可用，请在设置中检查权限，或尝试示例。",
+  "restartTheAppToEnableTheCameraAndPhotoLibrary": "请重启应用以启用相机与相册。",
+  "thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample": "无法打开此照片，请选择其他照片或尝试示例。",
+  "chooseAPhotoSmallerThan4Mb": "请选择小于 4 MB 的照片。",
+  "imageRecognitionIsTemporarilyUnavailableTryASample": "图像识别暂不可用，请尝试示例。",
+  "recentScans": "最近识别",
+  "noScansYet": "暂无识别记录",
+  "yourCompletedRecognitionResultsWillAppearHereDemoResultsStaySeparateHistoryIsCurrentlyStor": "完成的识别结果会显示在这里，演示结果单独展示。历史记录目前保存在此设备上。",
+  "clearHistory": "清除历史",
+  "clearScanHistory": "清除识别历史？",
+  "removeAllScanResultsSavedOnThisDeviceThisCannotBeUndone": "删除此设备上保存的所有识别结果？此操作无法撤销。",
+  "goToScanner": "前往扫描",
+  "tryPreparedRecognitionResults": "尝试预设识别结果",
+  "browsePreparedLandmarkAndFoodResultsToUnderstandWhatTheFinishedRecognitionScreenWillShow": "浏览预设地标和美食结果，了解识别结果的呈现方式。",
+  "thisIsAPreparedDemoResultItHasNotAnalysedYourUploadedPhotoAndIsNotAddedToScanHistory": "这是预设演示结果，未分析您上传的照片，也不会加入识别历史。",
+  "noPreparedTestResultIsAvailableYet": "暂无预设测试结果。",
+  "runTestRecognition": "运行测试识别",
+  "testRecognitionUsesPreparedCatalogResultsToPreviewTheFlow": "测试识别使用预设目录结果来演示流程。",
+  "viewDemoResult": "查看演示结果",
+  "viewDemoResults": "查看演示结果",
+  "exploreThisResult": "探索此结果",
+  "detectedLabels": "识别标签",
+  "visionConfidenceValue": "Vision 置信度 {arg0}%",
+  "@visionConfidenceValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "identificationUsesVisionDetectionsGuideDescriptionsComeFromTheAppSCuratedCatalog": "识别基于 Vision 检测，导览介绍来自应用的精选目录。",
+  "resultLanguage": "结果语言",
+  "translating": "正在翻译…",
+  "machineTranslatedTextTheOriginalEnglishResultStaysInYourHistory": "此为机器翻译，英文原始结果仍保留在历史记录中。",
+  "translationIsUnavailableYourOriginalResultIsStillAvailable": "翻译暂不可用，原始结果仍可查看。",
+  "findRestaurants": "查找餐厅",
+  "chooseARestaurantBeforeAddingThisDishToYourTravelPlan": "请先选择餐厅，再将这道美食添加到旅行计划。",
+  "theseActionsWillBeAvailableWhenLiveRecognitionAndTourismDetailsAreConnected": "连接实时识别与旅游详情后，即可使用这些操作。",
+  "availableAfterSetup": "设置完成后可用",
+  "afterLiveRecognitionIsConnectedSuccessfulScansWillBeSavedHereAutomatically": "连接实时识别后，成功的识别结果将自动保存在这里。",
+  "adults": "成人",
+  "children": "儿童",
+  "seniors": "长者",
+  "travelers": "同行人数",
+  "addTravelers": "添加同行人员",
+  "addMore": "添加更多",
+  "selectPlannedItinerary": "选择已规划行程",
+  "switchBetweenYourActiveTripsAndCustomGeneratedPlans": "切换当前行程与自定义生成计划",
+  "smartScheduleDailyStops": "智能行程与每日地点",
+  "autoSmartSchedulingForTouristsInMalaysia": "为马来西亚游客提供自动智能排程",
+  "smartItineraryScheduling": "智能行程安排",
+  "valueAdultvalue": "{arg0} 位成人{arg1}",
+  "@valueAdultvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueChildvalue": "{arg0} 位儿童{arg1}",
+  "@valueChildvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSeniorvalue": "{arg0} 位长者{arg1}",
+  "@valueSeniorvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueAddedToYourPlanDraft": "已将 {arg0} 添加到计划草稿！",
+  "@valueAddedToYourPlanDraft": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueAddedToYourDay2ScheduleDraft": "已将 {arg0} 添加到第 2 天行程草稿！",
+  "@valueAddedToYourDay2ScheduleDraft": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "showingDayValuePlanForValue": "正在显示 {arg1} 的第 {arg0} 天计划",
+  "@showingDayValuePlanForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "switchedToValueValueDays": "已切换至 {arg0}（{arg1} 天）",
+  "@switchedToValueValueDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "swapToIndoorValue": "替换为室内景点：{arg0}",
+  "@swapToIndoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "rainSafeScheduleAppliedValueSwappedInForAfternoon": "已应用雨天行程：下午活动已替换为 {arg0}。",
+  "@rainSafeScheduleAppliedValueSwappedInForAfternoon": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "builtA3DayKlPlanWithFoodAndShoppingStops": "已生成包含美食与购物地点的吉隆坡三日计划。",
+  "reorderedStopsToSaveAbout45MinutesOfTravelTime": "已调整地点顺序，节省约 45 分钟交通时间。",
+  "rainAfter3PmIndoorBackupStopsAddedAutomatically": "下午 3 点后有雨，已自动添加室内备选地点。",
+  "dailySpendKeptWithinYourRm150300MediumBudget": "每日花费保持在 RM150–300 的中等预算内。",
+  "mapsAndItineraryCachedForUseWithoutMobileData": "地图与行程已缓存，可在无移动数据时使用。",
+  "routeOptimizedTravelTimeReducedBy45Minutes": "路线已优化，交通时间减少 45 分钟。",
+  "notifications": "通知",
+  "thisAppIsAPrototypeDesignedForAFinalYearProjectToShowcaseAutomatedRouteSchedulingAndMapVis": "本应用是毕业设计原型，用于展示马来西亚旅行路线自动安排与地图可视化。",
+  "readOurTermsOfService": "阅读服务条款",
+  "byUsingThisAppYouAgreeToOurTermsOfServiceNoRealPersonalDataIsCollectedOrSentToAnyServer": "使用本应用即表示您同意服务条款。不会收集真实个人数据或将其发送至服务器。",
+  "enterYourCredentialsToManageYourMalaysiaTrips": "请输入登录信息，管理您的马来西亚行程。",
+  "invalidEmailOrPasswordMin6Chars": "邮箱或密码无效（至少 6 个字符）",
+  "listeningForVoiceCommandsInEnglishMalayOrChineseTapBelowToSendASampleSpokenQuery": "正在聆听英语、马来语或中文语音指令…\n\n点击下方发送示例语音问题。",
+  "recommend2IndoorSpotsIfItRainsNearKlccThisAfternoon": "如果今天下午 KLCC 附近下雨，请推荐两个室内地点。",
+  "accountCreatedSuccessfullyRedirectingToHomepage": "账户已创建！正在前往首页…",
+  "pleaseCompleteAllMandatoryRegistrationFields": "请填写所有必填注册信息。",
+  "pleaseEnterAValidEmailAddressEGUserExampleCom": "请输入有效的电子邮箱（例如 user@example.com）。",
+  "passwordMustContainAtLeast8CharactersIncluding1Uppercase1Lowercase1NumberAnd1SpecialCharac": "密码至少需要 8 个字符，包含一个大写字母、一个小写字母、一个数字和一个特殊字符。",
+  "passwordAndConfirmPasswordDoNotMatchPleaseReEnter": "两次输入的密码不一致，请重新输入。",
+  "thisEmailAddressHasAlreadyBeenRegisteredPleaseLogInOrUseAnotherEmailAddress": "此邮箱已注册，请登录或使用其他邮箱。",
+  "registrationTimedOutCheckYourEmailForAConfirmationMessageBeforeTryingAgainAsYourAccountMay": "注册超时。账户可能已创建，请先检查确认邮件，再尝试注册。",
+  "loginSuccessfulRedirectingToHomepage": "登录成功，正在前往首页…",
+  "pleaseEnterYourEmailAddressAndPassword": "请输入邮箱和密码。",
+  "pleaseEnterAValidEmailAddress": "请输入有效的电子邮箱。",
+  "theEmailAddressOrPasswordIsIncorrectPleaseTryAgain": "邮箱或密码不正确，请重试。",
+  "authenticationServiceIsCurrentlyUnavailablePleaseTryAgainLater": "身份验证服务暂不可用，请稍后重试。",
+  "theLoginRequestTimedOutPleaseCheckYourNetworkAndTryAgain": "登录请求超时，请检查网络后重试。",
+  "profileUpdatedSuccessfully": "资料已更新！",
+  "fullNameFieldCannotBeEmptyPleaseEnterYourName": "全名不能为空，请输入您的姓名。",
+  "unableToSaveProfileChangesPleaseCheckYourNetworkAndTryAgain": "无法保存资料更改，请检查网络后重试。",
+  "tripPreferencesRecordedSuccessfullyGeneratingYourItinerary": "旅行偏好已记录，正在生成行程。",
+  "pleaseCompleteAllMandatoryTripPreferenceFields": "请填写所有必填旅行偏好。",
+  "pleaseEnterOrSelectAValidDestination": "请输入或选择有效目的地。",
+  "pleaseSelectAValidNumberOfTravelDays": "请选择有效的旅行天数。",
+  "dailyEndTimeMustBeLaterThanDailyStartTime": "每日结束时间必须晚于开始时间。",
+  "pleaseSelectAtLeastOneTravelInterest": "请至少选择一项旅行兴趣。",
+  "pleaseSelectAValidEstimatedBudgetCategory": "请选择有效的预算类别。",
+  "theSelectedTravelModeIsNotSupportedPleaseSelectDrivingOrWalking": "不支持所选出行方式，请选择驾车或步行。",
+  "authenticationRequiredPleaseLogInToSaveYourItinerary": "请先登录，再保存行程。",
+  "deletedOnThisDeviceCloudSyncIsPending": "已从此设备删除，正在等待云端同步。",
+  "adminDatabaseHub": "管理员数据库中心",
+  "adminHubAccess": "管理员中心访问",
+  "adminAccessTapToLogInAsAdmin": "管理员入口（点击登录）",
+  "loginAsAdmin": "以管理员身份登录",
+  "loggedInAsAdministratorChingKheat": "已以管理员身份登录（Ching Kheat）",
+  "theAdminDatabaseHubRequiresAdministratorPrivilegesToFetchSyncAndImportPlacesFromGoogle": "从 Google 获取、同步和导入地点需要管理员权限。",
+  "secretDataSeederPortal": "数据导入入口",
+  "secretPortalToFetchSyncPlaces": "获取与同步地点的入口",
+  "signInAsAnAdministrator": "请以管理员身份登录。",
+  "signInAsAnAdministratorToImportGooglePlaceIds": "请以管理员身份登录以导入 Google 地点 ID。",
+  "text1SelectDestinationState": "1. 选择目的地州属",
+  "discoverNewPlaces": "发现新地点",
+  "discoveringMorePlaces": "正在发现更多地点…",
+  "discoverMorePlacesInValue": "发现 {arg0} 的更多地点",
+  "@discoverMorePlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "discoveringNewPlacesExistingRecordsArePreservedUseUpdateSavedPlacesToRefreshTheirDetails": "正在发现新地点。现有记录会保留；请使用“更新已保存地点”刷新详情。",
+  "updateSavedPlaces": "更新已保存地点",
+  "updateSavedPlacesInValue": "更新 {arg0} 的已保存地点",
+  "@updateSavedPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAllSavedPlaces": "更新全部已保存地点",
+  "startANewUpdateOfAllSavedPlaces": "重新更新全部已保存地点",
+  "refreshHoursRatingsNamesAndLocationsForAllSavedPlacesDiscoverNewPlacesBelowOnlyAddsNewIds": "刷新所有已保存地点的营业时间、评分、名称与位置。下方“发现新地点”仅添加新的 ID。",
+  "updatesEverySavedGooglePlaceInThisStateIncludingOpeningHoursRatingsNameAndLocationYourCate": "更新此州属内所有已保存 Google 地点的营业时间、评分、名称与位置。类别及室内外设置保持不变。",
+  "usesTheFullDetailsAllowanceKeepThisPageOpenLeavingPausesTheUpdateProgressIsSavedOnThisDevi": "使用完整详情配额。请保持此页面打开；离开将暂停更新，进度保存在此设备上。若成功响应未含营业时间，将标记为未知。",
+  "pauseUpdate": "暂停更新",
+  "resumeUpdate": "继续更新",
+  "pausing": "正在暂停…",
+  "updating": "正在更新…",
+  "retryPlacesWithIssues": "重试有问题的地点",
+  "review": "审核",
+  "needsReview": "需要审核",
+  "placesNeedingReview": "待审核地点",
+  "reviewSavedPlace": "审核已保存地点",
+  "reviewStoredDataLoadLiveDetails": "查看已存数据 / 加载实时详情",
+  "incompleteImportNeedsReview": "导入不完整，需要审核",
+  "appCategory": "应用类别",
+  "setting": "场所环境",
+  "confirmedSetting": "已确认环境",
+  "confirmAndSaveReview": "确认并保存审核",
+  "onlyAppCategoryAndSettingAreSavedExistingGoogleDetailsAreNotStored": "仅保存应用类别与场所环境，不存储现有 Google 详情。",
+  "loadRetryLiveDetails": "加载 / 重试实时详情",
+  "loadLiveDetailsToSeeTheNameAndAddress": "加载实时详情以查看名称和地址。",
+  "googleTypeValue": "Google 类型：{arg0}",
+  "@googleTypeValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified": "环境建议：{arg0}，请根据实际情况确认，此建议尚未核实。",
+  "@settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "howToReviewCategoriesAndSettings": "如何审核类别与环境",
+  "openReviewOnASavedPlaceLoadLiveDetailsCheckTheSuggestionThenConfirmItsCategoryAndSettingNo": "打开已保存地点的审核页，加载实时详情，检查建议并确认类别与环境。不会进行批量更改。",
+  "savedPlacesInspector": "已保存地点查看器",
+  "viewAdminSyncedPlacesInspectSavedData": "查看管理员同步的地点与已存数据",
+  "storedDatabaseInformation": "数据库已存信息",
+  "databaseUnavailableReconnectToCheckYourSavedPlaces": "数据库暂不可用，请重新连接以查看已保存地点。",
+  "unableToReadSavedPlacesRefreshTheDatabaseListBeforeStartingAnotherImport": "无法读取已保存地点，请先刷新数据库列表，再开始新的导入。",
+  "savedPlacesAreUnavailableTryAgainLater": "已保存地点暂不可用，请稍后重试。",
+  "savedPlaceIdsAndAppCategoriesGoogleDetailsWereNotStored": "已保存地点 ID 与应用类别，未存储 Google 详情。",
+  "savedGooglePlace": "已保存的 Google 地点",
+  "placesInDatabaseValue": "数据库地点（{arg0}）",
+  "@placesInDatabaseValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "placesInValue": "{arg0} 的地点",
+  "@placesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noPlacesStoredForValueYet": "尚未保存 {arg0} 的地点。",
+  "@noPlacesStoredForValueYet": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noSavedPlacesFoundInValue": "未找到 {arg0} 的已保存地点。",
+  "@noSavedPlacesFoundInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "databaseCountForValue": "{arg0} 的数据库数量：",
+  "@databaseCountForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingDatabaseSchema": "正在检查数据库结构…",
+  "readingSavedDatabase": "正在读取已存数据库…",
+  "refreshingTheValueDatabaseList": "正在刷新 {arg0} 的数据库列表",
+  "@refreshingTheValueDatabaseList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDatabaseListRefreshed": "已刷新 {arg0} 的数据库列表",
+  "@valueDatabaseListRefreshed": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingSyncHistoryForValue": "正在检查 {arg0} 的同步历史…",
+  "@checkingSyncHistoryForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingVerifiedGoogleAllowance": "正在检查已核实的 Google 配额…",
+  "checking": "正在检查…",
+  "keepExistingData": "保留现有数据",
+  "syncAgain": "再次同步",
+  "syncValueAgain": "再次同步 {arg0}？",
+  "@syncValueAgain": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "syncingPlaces": "正在同步地点…",
+  "syncing": "正在同步…",
+  "lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst": "上次成功同步：{arg0}（{arg1}）。\n\n再次同步会消耗 Google API 配额，您也可以保留现有数据。",
+  "@lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "thisStateAlreadyHasStoredPlacesButItsPreviousSyncTimeWasNotRecordedSyncingAgainWillUseGoog": "此州属已有保存地点，但未记录上次同步时间。再次同步会消耗 Google API 配额。",
+  "thisStateHasNoSavedRecordsSyncingItWillUseGoogleApiQuota": "此州属暂无保存记录，同步会消耗 Google API 配额。",
+  "olderImportsHaveNoRecordedDateCheckTheExistingPlacesBeforeSyncingAgain": "旧导入记录没有日期，请在再次同步前检查现有地点。",
+  "someOlderImportsHaveUnverifiedCountriesOrStatesTheseAreMarkedForReviewRepeatingTheFullSync": "部分旧导入记录的国家或州属未经核实，已标记待审核；重复完整同步无法修复它们。",
+  "showingSavedHistoryCloudHistoryIsUnavailable": "正在显示已存历史，云端历史暂不可用。",
+  "timestampSavedOnThisDeviceOnly": "时间戳仅保存在此设备上。",
+  "fetchSyncIsBlockedUntilTheCurrentGoogleAllowanceIsVerifiedWithAtLeast48RequestsRemainingSa": "需确认 Google 配额至少剩余 48 次请求，才能获取与同步。已保存的 ID 与行程仍可使用。",
+  "pendingSyncTapFetchAndSave": "等待同步，点击获取并保存",
+  "fetchAndSaveThisPage": "获取并保存此页",
+  "fetchSaveFailedValue": "获取或保存失败：{arg0}",
+  "@fetchSaveFailedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "fetching": "正在获取…",
+  "loadingNames": "正在加载名称…",
+  "loadsUpTo20NamesFromGoogleUsingTheCurrentAllowance": "使用当前配额从 Google 加载最多 20 个名称。",
+  "previous20": "前 20 个",
+  "next20": "后 20 个",
+  "importStopped": "导入已停止",
+  "manuallyDiscoverGooglePlacesForTheSelectedStateSaveIdsAndAppCategoriesLoadCurrentDetailsWh": "手动发现所选州属的 Google 地点，保存 ID 与应用类别，需要时加载最新详情。",
+  "queryingTopPlacesInValue": "正在查询 {arg0} 的热门地点…",
+  "@queryingTopPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "searchingGoogleForValue": "正在通过 Google 搜索 {arg0}",
+  "@searchingGoogleForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearValuePlaces": "清空 {arg0} 的地点？",
+  "@clearValuePlaces": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase": "这将从 Supabase 数据库删除 {arg0} 的所有缓存地点。",
+  "@thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearingPlacesForValue": "正在清空 {arg0} 的地点…",
+  "@clearingPlacesForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "deletingRecordsFromSupabase": "正在从 Supabase 删除记录",
+  "allCachedPlacesForValueRemoved": "已删除 {arg0} 的全部缓存地点",
+  "@allCachedPlacesForValueRemoved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDeletingPlaces": "删除地点时出错",
+  "errorLoadingPlacesValue": "加载地点时出错：{arg0}",
+  "@errorLoadingPlacesValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "batchCacheRealPhotos": "批量缓存真实照片",
+  "cacheTop30Photos": "缓存前 30 张照片",
+  "cachingPhotos": "正在缓存照片…",
+  "cachingRealPhotos0Value": "正在缓存真实照片（0/{arg0}）…",
+  "@cachingRealPhotos0Value": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "cachedValueOfValueInspectedValueTarget": "已检查 {arg1} 个并缓存 {arg0} 个（目标 {arg2}）…",
+  "@cachedValueOfValueInspectedValueTarget": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "finishedValueRealPhotosCachedToSupabaseStorage": "完成！已将 {arg0} 张真实照片缓存至 Supabase Storage。",
+  "@finishedValueRealPhotosCachedToSupabaseStorage": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "pausedPhotoCachingCachedValuePhotos": "照片缓存已暂停，已缓存 {arg0} 张照片。",
+  "@pausedPhotoCachingCachedValuePhotos": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "photoCachingFailedValue": "照片缓存失败：{arg0}",
+  "@photoCachingFailedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsOfficialGooglePhotosForTopPlacesAndSavesThemToSupabaseStoragePlacesAlreadyCachedA": "下载热门地点的官方 Google 照片并保存至 Supabase Storage。已缓存地点会自动跳过，以节省 API 配额。",
+  "autoSaveTop5Highlights": "自动保存前 5 个精选地点",
+  "savedValueTopHighlightsToYourList": "已将 {arg0} 个精选地点保存到列表！",
+  "@savedValueTopHighlightsToYourList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "retrieve": "获取",
+  "retrievedPlaces": "已获取地点",
+  "noPlacesRetrievedYet": "尚未获取地点。",
+  "liveGooglePlacesApiActiveForMalaysia": "马来西亚 Google Places API 已启用",
+  "rawJsonOutput": "原始 JSON 输出",
+  "hideRawLogs": "隐藏原始日志",
+  "viewRawTerminalLogsValueLines": "查看原始终端日志（{arg0} 行）",
+  "@viewRawTerminalLogsValueLines": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "selectADestinationInMalaysiaOrSimulateGpsPositions": "选择马来西亚目的地或模拟 GPS 位置。",
+  "mockDeviceCoordinatesInMalaysia": "马来西亚模拟设备坐标",
+  "detectedStateValue": "检测到州属：{arg0}",
+  "@detectedStateValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "text13StatesKl": "13 个州属 + 吉隆坡",
+  "simulateGps": "📍 模拟 GPS",
+  "browseStates": "🗺️ 浏览州属",
+  "indoor2": "🏠 室内",
+  "indoor3": "🏢 室内",
+  "outdoor2": "☀️ 室外",
+  "topRated": "✨ 高评分",
+  "sights": "🏛️ 景点",
+  "nature2": "🌳 自然",
+  "food2": "🍔 美食",
+  "cafes": "☕ 咖啡馆",
+  "shops": "🛍️ 购物",
+  "admin": "👑 管理员",
+  "review2": "❓ 审核",
+  "indoorValue": "🏛️ 室内（{arg0}）",
+  "@indoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "outdoorValue": "🏞️ 室外（{arg0}）",
+  "@outdoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueUpdatedValueNeedReviewValueRemaining": "已更新 {arg0} 个 · 待审核 {arg1} 个 · 剩余 {arg2} 个",
+  "@valueUpdatedValueNeedReviewValueRemaining": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "uc100FlowTestingTools": "UC100 流程测试工具",
+  "uc200FlowTestingTools": "UC200 流程测试工具",
+  "uc300FlowTestingTools": "UC300 流程测试工具",
+  "quicklyTestMessagesM1M6AlternativeFlowsA1A3": "快速测试消息 M1–M6 与备选流程 A1–A3",
+  "quicklyTestMessagesM1M6AlternativeFlowsA1A5": "快速测试消息 M1–M6 与备选流程 A1–A5",
+  "quicklyTestMessagesM1M8AlternativeFlowsA1A7": "快速测试消息 M1–M8 与备选流程 A1–A7",
+  "fillValidCredentials": "填入有效登录信息",
+  "fillValidForm": "填入有效表单",
+  "testA1EmptyFields": "测试 A1（空字段）",
+  "testA2BadDestination": "测试 A2（无效目的地）",
+  "testA2InvalidEmail": "测试 A2（无效邮箱）",
+  "testA3InvalidDays": "测试 A3（无效天数）",
+  "testA3NoAccount": "测试 A3（无账户）",
+  "testA3WeakPwd": "测试 A3（弱密码）",
+  "testA3WrongPassword": "测试 A3（错误密码）",
+  "testA4BadTimeRange": "测试 A4（无效时间范围）",
+  "testA4Mismatch": "测试 A4（不匹配）",
+  "testA5EmailExists": "测试 A5（邮箱已存在）",
+  "testA5NoInterests": "测试 A5（未选兴趣）",
+  "testA7Transit": "测试 A7（公共交通）",
+  "recognizeSendsThisPhotoToGoogleVisionThroughOurSecureServiceOnlyResultTextIsSavedInYourLoc": "识别时会通过我们的安全服务将照片发送至 Google Vision。本地历史仅保存结果文字，应用不会保存照片。",
+  "skipPlaceValueAndContinue": "跳过地点（{arg0}）并继续",
+  "@skipPlaceValueAndContinue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueTopPicks": "{arg0} 个精选地点",
+  "@valueTopPicks": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueCustomSchedule": "{arg0} 自定义行程",
+  "@valueCustomSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSmartSchedule": "{arg0} 智能行程",
+  "@valueSmartSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDayValueHighlights": "{arg0} 第 {arg1} 天亮点",
+  "@valueDayValueHighlights": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueYourScheduledTimeRemainsSaved": "{arg0} 已安排的时间仍会保留。",
+  "@valueYourScheduledTimeRemainsSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueMinvalue": "{arg0} 公里 · {arg1} 分钟{arg2}",
+  "@valueKmValueMinvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueLastSyncedValue": "{arg0} — 上次同步于 {arg1}",
+  "@valueLastSyncedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSyncTimeNotRecorded": "{arg0} — 未记录同步时间",
+  "@valueSyncTimeNotRecorded": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValueSavedInValue": "已在 {arg2} 保存 {arg0} {arg1}",
+  "@valueValueSavedInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp": "{arg0}\n该次同步找到 {arg1} 个地点，使用 {arg2} 次搜索请求。\n消耗更多 API 配额前，请先检查现有地点。",
+  "@valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValueOfValue": "第 {arg0}–{arg1} 项，共 {arg2} 项",
+  "@valueValueOfValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryValueLocationValueValue": "类别：{arg0}\n位置：（{arg1}，{arg2}）",
+  "@categoryValueLocationValueValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "alreadyRanItTapToRefreshDismiss": "已执行？点击刷新并关闭",
+  "demoInfoTapLogInToSignInWithPreFilledTestUser": "演示信息：点击登录以使用预填的测试账户。",
+  "missingReviewCountColumnInSupabase": "Supabase 缺少评价数量列",
+  "placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE": "{arg0} 的地点尚未保存评价数量。要按热度排序并显示评价数（例如 12.4k），请在 Supabase SQL Editor 中执行此语句，然后再次点击获取与同步：",
+  "@placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "sqlCommandCopiedToClipboard": "SQL 命令已复制！",
+  "supabaseRowLevelSecurityRlsLocked": "Supabase 行级安全（RLS）已锁定",
+  "toAllowSavingPlacesRunThis1LineCommandInYourSupabaseSqlEditor": "要允许保存地点，请在 Supabase SQL Editor 中执行此单行命令：",
+  "text8Am10Pm": "上午 8 点至晚上 10 点",
+  "text9Am6Pm": "上午 9 点至下午 6 点",
+  "text9Am9Pm": "上午 9 点至晚上 9 点",
+  "estimatedForValueDaysPerPerson": "预计 {arg0} 天 · 每人",
+  "@estimatedForValueDaysPerPerson": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde": "• 天气提醒：下午 3 点后预计有小雨。\n• 路线更新：已提前安排阿罗街，避开人潮。\n• 提醒：黑风洞明天上午 7 点开放。",
+  "here": "这里",
+  "thisArea": "此区域",
+  "forecastUnavailable": "天气预报暂不可用",
+  "outdoorFriendly": "适合户外活动",
+  "highRainRiskIndoorRecommended": "降雨风险高（建议室内活动）",
+  "scatteredShowersCarryUmbrella": "局部阵雨（请带伞）",
+  "partlyCloudy": "局部多云",
+  "noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours": "当天没有更多符合条件的地点，请减少天数或延长每日活动时间。",
+  "forecastUnavailableForThisDateWeatherFilteringWasNotApplied": "此日期暂无天气预报，未应用天气筛选。",
+  "travelTimesAreDistanceBasedEstimates": "交通时间为基于距离的估算。",
+  "someOpeningHoursAreUnverifiedConfirmBeforeVisiting": "部分营业时间尚未核实，请在到访前确认。",
+  "costsArePlanningEstimatesExcludingAccommodationAndTravelToTheFirstStop": "费用为规划估算，不含住宿及前往首站的交通费。",
+  "itinerarySavedSuccessfullyToYourProfile": "行程已保存到您的账户！",
+  "savedOnThisDeviceCloudSyncIsPending": "已保存在此设备上，等待云端同步。",
+  "unableToSaveItineraryOnThisDevicePleaseTryAgain": "无法在此设备保存行程，请重试。",
+  "savedItineraryLoadedSuccessfully": "已加载保存的行程。",
+  "youHaveNoSavedTripsYetTapPlanATripToGenerateYourFirstItinerary": "您还没有已保存的行程，点击“规划旅行”生成第一份行程！",
+  "unableToLoadSavedTripsPleaseTryAgain": "无法加载已保存行程，请重试。",
+  "savedTripCouldNotBeFound": "未找到已保存的行程。",
+  "allSavedPlacesUpdated": "全部已保存地点已更新。",
+  "passFinishedWithIssuesRetryToReviewFailedPlaces": "本轮已完成，但存在问题。请重试以检查失败的地点。",
+  "pausedResumeToContinueFromTheNextPlace": "已暂停，继续后将从下一个地点开始。",
+  "unableToSaveProgressStopAndRetryBeforeContinuing": "无法保存进度，请停止并重试后再继续。",
+  "skippedByAdministratorExistingDataPreserved": "管理员已跳过，现有数据已保留。",
+  "skippedValueResumeToContinueUpdatingPlacesInValue": "已跳过 {arg0}，继续后将更新 {arg1} 的地点。",
+  "@skippedValueResumeToContinueUpdatingPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "googlePlaceUnavailableValueExistingDataPreserved": "Google 地点不可用（{arg0}），现有数据已保留。",
+  "@googlePlaceUnavailableValueExistingDataPreserved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueResumeToRetryValue": "{arg0} 继续以重试 {arg1}。",
+  "@valueResumeToRetryValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "thisStateIsAlreadyUpdating": "此州属正在更新中。",
+  "stoppedBeforeRefreshStarted": "已在更新开始前停止。",
+  "returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue": "返回 {arg0} · 州属匹配 {arg1} · 唯一地点 {arg2} · 州属错误 {arg3} · 无效 {arg4} · 类别待审 {arg5}",
+  "@returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      },
+      "arg3": {
+        "type": "String"
+      },
+      "arg4": {
+        "type": "String"
+      },
+      "arg5": {
+        "type": "String"
+      }
+    }
+  },
+  "landmark": "地标",
+  "dish": "菜品",
+  "showPassword": "显示密码",
+  "hidePassword": "隐藏密码",
+  "pleaseEnterATravelQuestionOrTapASuggestion": "请输入旅行问题，或点击建议。",
+  "promptIsTooShortPleaseBeMoreSpecific": "问题太短，请描述得更具体。",
+  "activeSmartItinerary": "当前智能行程",
+  "text3DaysPersonalizedSchedule": "3 天个性化行程",
+  "text5DaysCulturalSchedule": "5 天文化行程",
+  "text7DaysIslandSchedule": "7 天海岛行程",
+  "heritageStreetArtRoute": "文化遗产与街头艺术路线",
+  "beachNatureExcursion": "海滩与自然之旅",
+  "estimatedFor1DayPerPerson": "预计 1 天 · 每人"
+}

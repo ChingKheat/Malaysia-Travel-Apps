@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -12,7 +13,7 @@ import 'package:smart_travel_planner/shared/services/google_route_service.dart';
 import 'package:smart_travel_planner/features/places/services/places_service.dart';
 import 'attraction_detail_page.dart';
 import 'attraction_list_screen.dart';
-import '../widgets/google_maps_attribution.dart';
+import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/navigation/screens/map_screen.dart';
 
 class ApiDemoPage extends StatefulWidget {
@@ -54,8 +55,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     'All',
     '🏛️ Sights',
     '🍔 Food',
-    'Restaurants',
-    'Cafes',
+    '☕ Cafes',
     '🛍️ Shops',
     '🌳 Nature',
   ];
@@ -226,7 +226,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   void _showSnack(String message) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(SnackBar(content: Text(context.tr(message))));
   }
 
   // Filtered attractions based on search and category
@@ -240,13 +240,9 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       if (_selectedCategory == 'All') return true;
 
       final kind = attraction.category.toLowerCase();
-      if (_selectedCategory == 'Restaurants') {
-        return kind.contains('restaurant');
-      }
-      if (_selectedCategory == 'Cafes') {
-        return kind.contains('cafe') || kind.contains('coffee');
-      }
-      if (_selectedCategory == '🏛️ Sights') {
+      final cat = _selectedCategory.toLowerCase();
+
+      if (cat.contains('sight') || cat.contains('culture')) {
         return kind.contains('religion') ||
             kind.contains('cultural') ||
             kind.contains('historic') ||
@@ -257,21 +253,29 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
             kind.contains('temple') ||
             kind.contains('museum');
       }
-      if (_selectedCategory == '🍔 Food') {
+      if (cat.contains('food') ||
+          cat.contains('dining') ||
+          cat.contains('restaurant')) {
         return kind.contains('food') ||
             kind.contains('cafe') ||
             kind.contains('restaurant') ||
             kind.contains('dish') ||
-            kind.contains('eat');
+            kind.contains('eat') ||
+            kind.contains('hawker') ||
+            kind.contains('dining') ||
+            kind.contains('bakery');
       }
-      if (_selectedCategory == '🛍️ Shops') {
+      if (cat.contains('cafe') || cat.contains('coffee')) {
+        return kind.contains('cafe') || kind.contains('coffee');
+      }
+      if (cat.contains('shop') || cat.contains('market')) {
         return kind.contains('shop') ||
             kind.contains('mall') ||
             kind.contains('market') ||
             kind.contains('store') ||
             kind.contains('shopping');
       }
-      if (_selectedCategory == '🌳 Nature') {
+      if (cat.contains('nature') || cat.contains('park')) {
         return kind.contains('natural') ||
             kind.contains('park') ||
             kind.contains('nature') ||
@@ -360,17 +364,17 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                   children: [
                     _buildTopTabItem(
                       index: 0,
-                      label: 'Attractions',
+                      label: context.l10n.attractions,
                       icon: Icons.explore_rounded,
                     ),
                     _buildTopTabItem(
                       index: 1,
-                      label: 'Map View',
+                      label: context.l10n.mapView,
                       icon: Icons.map_rounded,
                     ),
                     _buildTopTabItem(
                       index: 2,
-                      label: 'Saved',
+                      label: context.l10n.saved,
                       icon: Icons.bookmark_rounded,
                       badgeCount: _selectedStops.length,
                     ),
@@ -395,7 +399,10 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _onTabTapped(index),
+          onTap: () {
+            demoHaptic();
+            _onTabTapped(index);
+          },
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: Row(
@@ -422,7 +429,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    child: Text(label),
+                    child: Text(context.tr(label)),
                   ),
                 ),
                 if (badgeCount != null && badgeCount > 0) ...[
@@ -520,45 +527,36 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
           child: Column(
             children: [
               _buildLocationSelector(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _buildSearchBar(),
               const SizedBox(height: 10),
               _buildCategoryChips(),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text('${_sources.join(' / ')} · ${_page?.notice ?? ""}'),
-        ),
-        Wrap(
-          children: [
-            if (_page?.failure != null && _page!.failure != PlacesFailure.none)
-              TextButton(
-                onPressed: _loadingMore
-                    ? null
-                    : () => _loadAttractions(append: true, retry: true),
-                child: const Text('Retry loaded page'),
-              ),
-            if (_page?.hasMore == true)
-              TextButton(
-                onPressed: _loadingMore
-                    ? null
-                    : () => _loadAttractions(append: true),
-                child: Text(_loadingMore ? 'Loading…' : 'Load next 20 records'),
-              ),
-          ],
-        ),
-        if (_attractions.any((a) => a.googlePlaceId != null))
-          GoogleMapsAttribution(attributions: _attributions),
         Expanded(
           child: AttractionListScreen(
             attractions: filtered,
             selectedStops: _selectedStops,
+            highlights: _suggestedHighlights,
+            hasMore: _page?.hasMore == true,
+            loadingMore: _loadingMore,
+            onLoadMore: () => _loadAttractions(append: true),
+            attributions: _attributions,
+            currentAreaName: _locationService.currentAreaName,
+            selectedCategory: _selectedCategory,
+            searchQuery: _searchQuery,
+            onClearFilters: () {
+              setState(() {
+                _searchQuery = '';
+                _searchController.clear();
+                _selectedCategory = 'All';
+              });
+            },
             onAttractionTap: _openDetails,
             onToggleStop: _toggleStop,
           ),
@@ -571,70 +569,140 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     return ListenableBuilder(
       listenable: _locationService,
       builder: (context, _) {
-        return InkWell(
-          onTap: _showLocationSelectorSheet,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: cardDecoration().copyWith(
-              color: AppColors.sky,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.15),
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              demoHaptic();
+              _showLocationSelectorSheet();
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.16),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _locationService.isUsingRealGps
-                      ? Icons.my_location
-                      : Icons.location_on,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Current Location Area',
-                        style: TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary,
+                          AppColors.primary.withValues(alpha: 0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _locationService.currentAreaName,
-                        style: const TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.line),
-                  ),
-                  child: const Text(
-                    'Change',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _locationService.isUsingRealGps
+                          ? Icons.my_location_rounded
+                          : Icons.location_on_rounded,
+                      color: Colors.white,
+                      size: 19,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              context.l10n.currentDestination,
+                              style: TextStyle(
+                                color: AppColors.muted,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                context.l10n.text5KmRadius,
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _locationService.currentAreaName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.sky,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.l10n.change,
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(width: 2),
+                        Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -643,72 +711,123 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   }
 
   Widget _buildSearchBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            onChanged: (val) => setState(() => _searchQuery = val),
-            decoration: InputDecoration(
-              hintText: 'Search loaded attractions...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                    )
-                  : null,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.line),
-              ),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _searchQuery.isNotEmpty
+              ? AppColors.primary
+              : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) => setState(() => _searchQuery = val),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.ink,
+        ),
+        decoration: InputDecoration(
+          hintText: context.l10n.searchAttractionsFoodCulture,
+          hintStyle: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF94A3B8),
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            size: 20,
+            color: AppColors.primary,
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          isDense: true,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
           ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildCategoryChips() {
     return SizedBox(
       height: 38,
-      child: ListView.builder(
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
         itemCount: _categories.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final cat = _categories[index];
           final active = _selectedCategory == cat;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: FilterChip(
-              selected: active,
-              label: Text(
-                cat,
-                style: TextStyle(
-                  color: active ? Colors.white : AppColors.ink,
-                  fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-              selectedColor: AppColors.primary,
-              checkmarkColor: Colors.white,
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: active ? AppColors.primary : AppColors.line,
-                ),
-              ),
-              onSelected: (val) {
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                demoHaptic();
                 setState(() => _selectedCategory = cat);
               },
+              borderRadius: BorderRadius.circular(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: active ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: active ? AppColors.primary : const Color(0xFFE2E8F0),
+                    width: 1.2,
+                  ),
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.28),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                ),
+                child: Center(
+                  child: Text(
+                    context.tr(cat),
+                    style: TextStyle(
+                      color: active ? Colors.white : AppColors.ink,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ),
+              ),
             ),
           );
         },
@@ -780,8 +899,8 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Explore New Location',
+          Text(
+            context.l10n.exploreNewLocation,
             style: TextStyle(
               color: AppColors.ink,
               fontSize: 22,
@@ -789,8 +908,8 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Select a destination in Malaysia or simulate GPS positions.',
+          Text(
+            context.l10n.selectADestinationInMalaysiaOrSimulateGpsPositions,
             style: TextStyle(color: AppColors.muted, fontSize: 13),
           ),
           const SizedBox(height: 18),
@@ -800,9 +919,9 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
             children: [
               Expanded(
                 child: ChoiceChip(
-                  label: const Center(
+                  label: Center(
                     child: Text(
-                      '🗺️ Browse States',
+                      context.l10n.browseStates,
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -822,9 +941,9 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
               const SizedBox(width: 10),
               Expanded(
                 child: ChoiceChip(
-                  label: const Center(
+                  label: Center(
                     child: Text(
-                      '📍 Simulate GPS',
+                      context.l10n.simulateGps,
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -848,8 +967,8 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
           // Tab content
           if (_selectedTab == 0) ...[
             // State dropdown
-            const Text(
-              'Choose State',
+            Text(
+              context.l10n.chooseState,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
@@ -890,8 +1009,8 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
             const SizedBox(height: 16),
 
             // Area/City dropdown
-            const Text(
-              'Choose Area / City',
+            Text(
+              context.l10n.chooseAreaCity,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
@@ -949,13 +1068,13 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
                     Navigator.pop(context);
                   }
                 },
-                child: const Text('Search in this area'),
+                child: Text(context.l10n.searchInThisArea),
               ),
             ),
           ] else ...[
             // GPS Options list
-            const Text(
-              'Mock Device coordinates in Malaysia',
+            Text(
+              context.l10n.mockDeviceCoordinatesInMalaysia,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
@@ -1055,8 +1174,8 @@ class _SavedPlacesView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'No Saved Places Yet',
+              Text(
+                context.l10n.noSavedPlacesYet,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -1065,7 +1184,10 @@ class _SavedPlacesView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Browse attractions in ${LocationService().currentAreaName} and tap "Save" to build your personalized travel wishlist.',
+                context.l10n
+                    .browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist(
+                      (LocationService().currentAreaName).toString(),
+                    ),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 13,
@@ -1077,7 +1199,7 @@ class _SavedPlacesView extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onExploreMore,
                 icon: const Icon(Icons.travel_explore, size: 18),
-                label: const Text('Browse Attractions'),
+                label: Text(context.l10n.browseAttractions),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(
@@ -1093,7 +1215,7 @@ class _SavedPlacesView extends StatelessWidget {
               TextButton.icon(
                 onPressed: onAutoPickHighlights,
                 icon: const Icon(Icons.auto_awesome, size: 16),
-                label: const Text('Auto-Save Top 5 Highlights'),
+                label: Text(context.l10n.autoSaveTop5Highlights),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   textStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -1148,8 +1270,8 @@ class _SavedPlacesView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Your Saved Places',
+                        Text(
+                          context.l10n.yourSavedPlaces,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -1158,7 +1280,11 @@ class _SavedPlacesView extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${stops.length} ${stops.length == 1 ? 'place' : 'places'} saved in ${LocationService().currentAreaName}',
+                          context.l10n.valueValueSavedInValue(
+                            (stops.length).toString(),
+                            (stops.length == 1 ? 'place' : 'places').toString(),
+                            (LocationService().currentAreaName).toString(),
+                          ),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 12,
@@ -1177,7 +1303,7 @@ class _SavedPlacesView extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: onViewOnMap,
                       icon: const Icon(Icons.map_outlined, size: 16),
-                      label: const Text('View on Map'),
+                      label: Text(context.l10n.viewOnMap),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: BorderSide(
@@ -1195,7 +1321,7 @@ class _SavedPlacesView extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: onExploreMore,
                       icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add More'),
+                      label: Text(context.l10n.addMore),
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.primary,
@@ -1230,8 +1356,14 @@ class _SavedPlacesView extends StatelessWidget {
                       Expanded(
                         child: Text(
                           loadingRoute
-                              ? 'Calculating route estimate...'
-                              : 'Route est: ${route?.distanceKm.toStringAsFixed(1) ?? '0.0'} km • ~${route?.durationMinutes.round() ?? 0} min driving',
+                              ? context.l10n.calculatingRouteEstimate
+                              : context.l10n.routeEstValueKmValueMinDriving(
+                                  (route?.distanceKm.toStringAsFixed(1) ??
+                                          '0.0')
+                                      .toString(),
+                                  (route?.durationMinutes.round() ?? 0)
+                                      .toString(),
+                                ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -1252,8 +1384,8 @@ class _SavedPlacesView extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Saved Attractions',
+            Text(
+              context.l10n.savedAttractions,
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 color: AppColors.ink,
@@ -1261,7 +1393,7 @@ class _SavedPlacesView extends StatelessWidget {
               ),
             ),
             Text(
-              '${stops.length} items',
+              context.l10n.valueItems((stops.length).toString()),
               style: const TextStyle(
                 color: AppColors.muted,
                 fontSize: 12,
@@ -1275,7 +1407,7 @@ class _SavedPlacesView extends StatelessWidget {
         // List of Cards
         ...stops.map((attraction) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 16),
             child: ModernAttractionCard(
               attraction: attraction,
               selected: true,
@@ -1304,11 +1436,11 @@ class _SavedTipsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
+            children: [
               Icon(Icons.lightbulb_outline, size: 18, color: AppColors.primary),
               SizedBox(width: 6),
               Text(
-                'Smart Itinerary Scheduling',
+                context.l10n.smartItineraryScheduling,
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 13.5,
@@ -1318,8 +1450,10 @@ class _SavedTipsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Saved places can be viewed on the Map tab to see optimal driving paths, or visit the Plan tab to automatically schedule them into your multi-day trip.',
+          Text(
+            context
+                .l10n
+                .savedPlacesCanBeViewedOnTheMapTabToSeeOptimalDrivingPathsOrVisitThePlanTabToAutomaticallyS,
             style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
           ),
         ],
@@ -1344,9 +1478,12 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Icon(Icons.cloud_off, color: AppColors.primary, size: 42),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
+            Text(context.tr(message), textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Try Again')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.tryAgain),
+            ),
           ],
         ),
       ),

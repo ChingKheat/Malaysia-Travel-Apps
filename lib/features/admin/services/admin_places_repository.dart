@@ -96,7 +96,7 @@ class AdminPlacesRepository {
     return AdminPlacesPage(rows: response.data, totalCount: response.count);
   }
 
-  /// Validate live discovery, then keep only the ID and app-owned grouping.
+  /// Validate live discovery and store fetched fields alongside app grouping.
   static Map<String, dynamic> importRow(
     String state,
     Map<String, dynamic> place,
@@ -126,19 +126,24 @@ class AdminPlacesRepository {
     return {
       'place_id': id,
       'data_source': 'google',
-      'name': 'Saved Google place',
+      'name': name.trim(),
       'state': state,
       'category':
           PlaceCatalogService.appCategories.contains(place['app_category'])
           ? place['app_category']
           : 'Attraction',
-      'latitude': 0.0,
-      'longitude': 0.0,
-      'rating': null,
-      'user_ratings_total': null,
-      'operating_hours': null,
-      // Photos are retrieved on demand through the authenticated service.
-      'photo_url': null,
+      'latitude': lat,
+      'longitude': lng,
+      'rating': place['rating'],
+      'user_ratings_total': place['user_ratings_total'],
+      'operating_hours': place['operating_hours'],
+      'google_attributions': place['attributions'] ?? [],
+      // Retain clean Supabase Storage or non-key URLs; reject dynamic Google key URLs.
+      'photo_url': place['photo_url'] != null &&
+              !place['photo_url'].toString().contains('places.googleapis.com') &&
+              !place['photo_url'].toString().contains('key=')
+          ? place['photo_url'].toString()
+          : null,
     };
   }
 
@@ -170,6 +175,59 @@ class AdminPlacesRepository {
       }
     }
     return inserted;
+  }
+
+  /// Refresh existing records without changing their reviewed grouping.
+  Future<int> saveFetchedRows(
+    String state,
+    Iterable<Map<String, dynamic>> rows,
+  ) async {
+    var saved = 0;
+    for (final row in rows.where((r) => r['_live'] == true)) {
+      if (googleState({'addressComponents': row['_addressComponents']}) !=
+          state) {
+        continue;
+      }
+      final values = importRow(state, row);
+      values.remove('place_id');
+      values.remove('state');
+      values.remove('category');
+      // Basic details do not include these fields; never erase prior full details.
+      if (row['_fullDetails'] != true) {
+        values.remove('rating');
+        values.remove('user_ratings_total');
+        values.remove('operating_hours');
+      }
+      if (row['_fullDetails'] != true) {
+        values.removeWhere((key, value) => value == null);
+      }
+      values['google_fetched_at'] = DateTime.now().toUtc().toIso8601String();
+      try {
+        final updated = await _db
+            .from('places')
+            .update(values)
+            .eq('place_id', row['place_id'])
+            .eq('state', state)
+            .select('place_id,name,latitude,longitude');
+        if (updated.length != 1 ||
+            updated.single['name'] != values['name'] ||
+            ((updated.single['latitude'] as num) - (values['latitude'] as num))
+                    .abs() >
+                1e-9 ||
+            ((updated.single['longitude'] as num) -
+                        (values['longitude'] as num))
+                    .abs() >
+                1e-9) {
+          throw StateError('Database did not retain fetched details');
+        }
+        saved++;
+      } catch (_) {
+        throw StateError(
+          '$saved records saved before refresh failed. Retry to continue.',
+        );
+      }
+    }
+    return saved;
   }
 
   Future<void> saveReview(

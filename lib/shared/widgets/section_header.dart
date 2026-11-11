@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -20,7 +21,7 @@ class SectionHeader extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            title,
+            context.tr(title),
             style: const TextStyle(
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
@@ -32,7 +33,7 @@ class SectionHeader extends StatelessWidget {
           TextButton(
             onPressed: onTap,
             child: Text(
-              action!,
+              context.tr(action!),
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
           ),

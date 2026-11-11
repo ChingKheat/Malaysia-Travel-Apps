@@ -314,4 +314,20 @@ void main() {
       expect(find.text('Photo: Original photographer'), findsNothing);
     },
   );
+  test('Propagates upstreamStatus from proxy error responses', () async {
+    final places = service((req) async {
+      return http.Response(
+        jsonEncode({
+          'error': 'Google Places request failed',
+          'upstreamStatus': 404,
+        }),
+        502,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final details = await places.fetchDetails('ChIJUnknown');
+    expect(details, isNull);
+    expect(places.lastStatusCode, 404);
+    expect(places.lastError, 'Google Places request failed');
+  });
 }

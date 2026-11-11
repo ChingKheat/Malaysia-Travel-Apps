@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -19,7 +21,7 @@ class TripDetailPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF7F8FD),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('Trip Details'),
+        title: Text(context.l10n.tripDetails),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -33,7 +35,7 @@ class TripDetailPage extends StatelessWidget {
                 const Icon(Icons.card_travel, color: Colors.white, size: 34),
                 const SizedBox(height: 14),
                 Text(
-                  trip.title,
+                  context.tripTitle(trip),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 26,
@@ -42,7 +44,7 @@ class TripDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  trip.date,
+                  context.tripDate(trip),
                   style: const TextStyle(color: Color(0xFFE7EAFF)),
                 ),
               ],
@@ -51,24 +53,24 @@ class TripDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           _TripMeta(
             icon: Icons.place_outlined,
-            label: 'Destination',
+            label: context.l10n.destination,
             value: trip.destination,
           ),
           _TripMeta(
             icon: Icons.payments_outlined,
-            label: 'Budget',
-            value: trip.budget,
+            label: context.l10n.budget,
+            value: context.tr(trip.budget),
           ),
           _TripMeta(
             icon: Icons.favorite_outline,
-            label: 'Interests',
-            value: trip.interests.join(', '),
+            label: context.l10n.interests,
+            value: trip.interests.map(context.tr).join(', '),
           ),
           const SizedBox(height: 16),
           const SummaryBar(),
           const SizedBox(height: 18),
-          const Text(
-            'Day 1 Plan',
+          Text(
+            context.l10n.day1Plan,
             style: TextStyle(
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
@@ -111,7 +113,10 @@ class _TripMeta extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.primary),
           const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+          Text(
+            context.tr(label),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
           const Spacer(),
           Flexible(
             child: Text(

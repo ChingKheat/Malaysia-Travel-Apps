@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -84,7 +86,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     });
     showDemoSnackBar(
       context,
-      'Stop reordered. Schedule times automatically adjusted.',
+      context.l10n.stopReorderedScheduleTimesAutomaticallyAdjusted,
       icon: Icons.swap_vert,
     );
   }
@@ -93,7 +95,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     if (_stops.length <= 1) {
       showDemoSnackBar(
         context,
-        'An itinerary day must have at least 1 stop.',
+        context.l10n.anItineraryDayMustHaveAtLeast1Stop,
         icon: Icons.warning_amber_rounded,
       );
       return;
@@ -105,7 +107,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     });
     showDemoSnackBar(
       context,
-      'Removed "${deleted.title}". Times updated.',
+      context.l10n.removedValueTimesUpdated((deleted.title).toString()),
       icon: Icons.delete_outline,
     );
   }
@@ -338,8 +340,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Swap Attraction',
+                              Text(
+                                context.l10n.swapAttraction,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
@@ -347,7 +349,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                 ),
                               ),
                               Text(
-                                'Replacing "${current.title}" (${isCurrentlyIndoor ? "Indoor" : "Outdoor"})',
+                                context.l10n.replacingValueValue(
+                                  (current.title).toString(),
+                                  (isCurrentlyIndoor ? "Indoor" : "Outdoor")
+                                      .toString(),
+                                ),
                                 style: const TextStyle(
                                   color: AppColors.muted,
                                   fontSize: 12,
@@ -375,7 +381,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFFDE68A)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(
                               Icons.umbrella_outlined,
@@ -385,7 +391,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Rain forecasted today. Swapping to an Indoor attraction is recommended.',
+                                context
+                                    .l10n
+                                    .rainForecastedTodaySwappingToAnIndoorAttractionIsRecommended,
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
@@ -408,7 +416,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFBBF7D0)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(
                               Icons.wb_sunny_outlined,
@@ -418,7 +426,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Good weather today! You can keep it indoor or swap to an outdoor sight.',
+                                context
+                                    .l10n
+                                    .goodWeatherTodayYouCanKeepItIndoorOrSwapToAnOutdoorSight,
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
@@ -434,21 +444,31 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     Row(
                       children: [
                         ChoiceChip(
-                          label: Text('All (${allInDest.length})'),
+                          label: Text(
+                            context.l10n.allValue(
+                              (allInDest.length).toString(),
+                            ),
+                          ),
                           selected: activeFilter == 'All',
                           onSelected: (_) =>
                               setModalState(() => activeFilter = 'All'),
                         ),
                         const SizedBox(width: 8),
                         ChoiceChip(
-                          label: Text('🏛️ Indoor ($indoorCount)'),
+                          label: Text(
+                            context.l10n.indoorValue((indoorCount).toString()),
+                          ),
                           selected: activeFilter == 'Indoor',
                           onSelected: (_) =>
                               setModalState(() => activeFilter = 'Indoor'),
                         ),
                         const SizedBox(width: 8),
                         ChoiceChip(
-                          label: Text('🏞️ Outdoor ($outdoorCount)'),
+                          label: Text(
+                            context.l10n.outdoorValue(
+                              (outdoorCount).toString(),
+                            ),
+                          ),
                           selected: activeFilter == 'Outdoor',
                           onSelected: (_) =>
                               setModalState(() => activeFilter = 'Outdoor'),
@@ -460,11 +480,13 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     // Attraction list
                     Flexible(
                       child: displayedList.isEmpty
-                          ? const Padding(
+                          ? Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
                               child: Center(
                                 child: Text(
-                                  'No attractions match this filter in this city.',
+                                  context
+                                      .l10n
+                                      .noAttractionsMatchThisFilterInThisCity,
                                   style: TextStyle(
                                     color: AppColors.muted,
                                     fontSize: 13,
@@ -573,7 +595,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
                                     showDemoSnackBar(
                                       context,
-                                      'Swapped "${current.title}" with "${c.name}"',
+                                      context.l10n.swappedValueWithValue(
+                                        (current.title).toString(),
+                                        (c.name).toString(),
+                                      ),
                                       icon: Icons.swap_horiz,
                                     );
                                   },
@@ -615,7 +640,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(
                       Icons.add_location_alt_outlined,
@@ -623,7 +648,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                     ),
                     SizedBox(width: 10),
                     Text(
-                      'Add Stop to Day Schedule',
+                      context.l10n.addStopToDaySchedule,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
@@ -633,8 +658,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Select an attraction to append to your day route',
+                Text(
+                  context.l10n.selectAnAttractionToAppendToYourDayRoute,
                   style: TextStyle(color: AppColors.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 14),
@@ -727,7 +752,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
                           showDemoSnackBar(
                             context,
-                            'Added ${c.name} to Day ${widget.dayNumber}',
+                            context.l10n.addedValueToDayValue(
+                              (c.name).toString(),
+                              (widget.dayNumber).toString(),
+                            ),
                             icon: Icons.add_circle,
                           );
                         },
@@ -749,7 +777,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     )) {
       showDemoSnackBar(
         context,
-        'Connect to refresh Google place locations before saving schedule changes.',
+        context
+            .l10n
+            .connectToRefreshGooglePlaceLocationsBeforeSavingScheduleChanges,
         icon: Icons.wifi,
       );
       return;
@@ -760,7 +790,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         if (_isSameStop(_stops[i], _stops[j])) {
           showDemoSnackBar(
             context,
-            'Cannot save: "${_stops[i].title}" appears multiple times today. Please remove or swap the duplicate stop.',
+            context.l10n
+                .cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop(
+                  (_stops[i].title).toString(),
+                ),
             icon: Icons.error_outline,
           );
           return;
@@ -775,7 +808,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
           widget.otherDaysStops.any((o) => _isSameStop(stop, o))) {
         showDemoSnackBar(
           context,
-          'Cannot save: "${stop.title}" is already scheduled on another day of this itinerary.',
+          context.l10n
+              .cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary(
+                (stop.title).toString(),
+              ),
           icon: Icons.error_outline,
         );
         return;
@@ -807,7 +843,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       setState(() => _isSaving = false);
       showDemoSnackBar(
         context,
-        'Cannot save: this order exceeds daily hours, opening hours, budget, or weather constraints.',
+        context
+            .l10n
+            .cannotSaveThisOrderExceedsDailyHoursOpeningHoursBudgetOrWeatherConstraints,
         icon: Icons.error_outline,
       );
       return;
@@ -851,7 +889,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         setState(() => _isSaving = false);
         showDemoSnackBar(
           context,
-          'Unable to save itinerary changes on this device.',
+          context.l10n.unableToSaveItineraryChangesOnThisDevice,
           icon: Icons.error_outline,
         );
         return;
@@ -880,7 +918,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(
-          'Edit Day ${widget.dayNumber} Schedule',
+          context.l10n.editDayValueSchedule((widget.dayNumber).toString()),
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
         elevation: 0,
@@ -901,7 +939,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       ),
                     )
                   : const Icon(Icons.check, size: 18),
-              label: const Text('Save'),
+              label: Text(context.l10n.save),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -933,7 +971,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '$distanceKm km • ${_stops.length} stops',
+                            context.l10n.valueKmValueStops(
+                              (distanceKm).toString(),
+                              (_stops.length).toString(),
+                            ),
                             style: const TextStyle(
                               color: AppColors.ink,
                               fontSize: 13.5,
@@ -954,7 +995,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          forecast.suitabilityBadge,
+                          context.tr(forecast.suitabilityBadge),
                           style: TextStyle(
                             color: forecast.badgeColor,
                             fontSize: 11.5,
@@ -965,13 +1006,15 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Row(
+                Row(
                   children: [
                     Icon(Icons.info_outline, size: 14, color: AppColors.muted),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Drag items by the handle to reorder. Tap Swap to replace with indoor places.',
+                        context
+                            .l10n
+                            .dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces,
                         style: TextStyle(
                           color: AppColors.muted,
                           fontSize: 11.5,
@@ -989,7 +1032,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               color: const Color(0xFFFFFBEB),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
@@ -999,7 +1042,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Duplicate attractions detected today. Please remove or swap them to save.',
+                      context
+                          .l10n
+                          .duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1113,7 +1158,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                             Row(
                               children: [
                                 Text(
-                                  stop.time,
+                                  context.scheduledTime(stop.time),
                                   style: const TextStyle(
                                     color: AppColors.muted,
                                     fontSize: 11.5,
@@ -1133,7 +1178,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    isIndoor ? 'Indoor' : 'Outdoor',
+                                    isIndoor
+                                        ? context.l10n.indoor
+                                        : context.l10n.outdoor,
                                     style: TextStyle(
                                       color: isIndoor
                                           ? Colors.blue
@@ -1159,7 +1206,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                     color: const Color(0xFFFDE68A),
                                   ),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
@@ -1170,7 +1217,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                     SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
-                                        'Duplicate stop today',
+                                        context.l10n.duplicateStopToday,
                                         style: TextStyle(
                                           color: Color(0xFFB45309),
                                           fontSize: 10,
@@ -1197,7 +1244,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                     color: const Color(0xFFBFDBFE),
                                   ),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
@@ -1208,7 +1255,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                     SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
-                                        'In other day',
+                                        context.l10n.inOtherDay,
                                         style: TextStyle(
                                           color: Color(0xFF1D4ED8),
                                           fontSize: 10,
@@ -1228,7 +1275,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
                       // Action 1: Swap Attraction
                       IconButton(
-                        tooltip: 'Swap attraction',
+                        tooltip: context.l10n.swapAttraction2,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
                           minWidth: 36,
@@ -1257,7 +1304,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
                       // Action 2: Delete Stop
                       IconButton(
-                        tooltip: 'Remove stop',
+                        tooltip: context.l10n.removeStop,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
                           minWidth: 36,
@@ -1297,7 +1344,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               child: OutlinedButton.icon(
                 onPressed: _showAddStopSheet,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Stop'),
+                label: Text(context.l10n.addStop),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -1311,7 +1358,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               child: FilledButton.icon(
                 onPressed: _isSaving ? null : _saveAndReturn,
                 icon: const Icon(Icons.check_circle_outline, size: 18),
-                label: const Text('Save Changes'),
+                label: Text(context.l10n.saveChanges),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 12),

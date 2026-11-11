@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -55,14 +56,14 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
     } catch (_) {}
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open this link.')),
+        SnackBar(content: Text(context.l10n.unableToOpenThisLink)),
       );
     }
   }
 
   Widget _field(String label, String value, {VoidCallback? onTap}) => Card(
     child: ListTile(
-      title: Text(label),
+      title: Text(context.tr(label)),
       subtitle: Text(value),
       onTap: onTap,
       trailing: onTap == null ? null : const Icon(Icons.open_in_new, size: 18),
@@ -84,8 +85,15 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
-                    Text('$_error Your scheduled time remains saved.'),
-                    TextButton(onPressed: _refresh, child: const Text('Retry')),
+                    Text(
+                      context.l10n.valueYourScheduledTimeRemainsSaved(
+                        (_error).toString(),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _refresh,
+                      child: Text(context.l10n.retry),
+                    ),
                   ],
                 ),
               ),
@@ -107,15 +115,15 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
               _stop.primaryPhotoUrl!,
               height: 220,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const SizedBox(
+              errorBuilder: (_, _, _) => SizedBox(
                 height: 120,
-                child: Center(child: Text('Photo unavailable')),
+                child: Center(child: Text(context.l10n.photoUnavailable)),
               ),
             )
           else
-            const SizedBox(
+            SizedBox(
               height: 140,
-              child: Center(child: Text('Photo unavailable')),
+              child: Center(child: Text(context.l10n.photoUnavailable)),
             ),
           Text(
             _stop.title,
@@ -159,7 +167,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
               FilledButton.icon(
                 onPressed: () => _open(details!.mapsUri),
                 icon: const Icon(Icons.directions),
-                label: const Text('Open in Google Maps'),
+                label: Text(context.l10n.openInGoogleMaps),
               ),
             ...?details?.attributions.map(
               (a) => _field(

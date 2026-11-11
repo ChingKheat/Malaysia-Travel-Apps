@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -46,7 +48,9 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Your $destination Itinerary is Ready!',
+                  context.l10n.yourValueItineraryIsReady(
+                    (destination).toString(),
+                  ),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 26,
@@ -56,7 +60,9 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  SmartItineraryService.dayWarnings.values.toSet().join(' '),
+                  context.itineraryWarnings(
+                    SmartItineraryService.dayWarnings.values.toSet().join(' '),
+                  ),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.muted, height: 1.4),
                 ),
@@ -97,7 +103,7 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
                         ),
                       ),
                       Text(
-                        stop.time,
+                        context.scheduledTime(stop.time),
                         style: const TextStyle(
                           color: AppColors.muted,
                           fontWeight: FontWeight.w600,
@@ -115,7 +121,7 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
               widget.onViewItinerary();
             },
             icon: const Icon(Icons.list_alt),
-            label: const Text('View Itinerary'),
+            label: Text(context.l10n.viewItinerary),
             style: primaryFilledButtonStyle(),
           ),
           const SizedBox(height: 10),
@@ -181,7 +187,9 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
                         .saveItinerary(
                           itineraryId: TripPreferencesService.activeItineraryId,
                           preferences: userPrefs,
-                          title: '$destination Custom Schedule',
+                          title: context.l10n.valueCustomSchedule(
+                            (destination).toString(),
+                          ),
                           destinationState: destination,
                           totalCost: totalCost,
                           dailySchedules: dailySchedules,
@@ -203,7 +211,7 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
                     }
                   },
             icon: const Icon(Icons.cloud_upload_outlined),
-            label: const Text('Save Itinerary'),
+            label: Text(context.l10n.saveItinerary),
             style: demoOutlinedButtonStyle(),
           ),
         ],

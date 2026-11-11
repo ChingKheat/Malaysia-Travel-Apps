@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -155,7 +156,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message),
+          content: Text(context.tr(message)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -172,28 +173,29 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         height: 240,
         width: double.infinity,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => const SizedBox(
+        errorBuilder: (_, _, _) => SizedBox(
           height: 160,
-          child: Center(child: Text('Photo preview unavailable')),
+          child: Center(child: Text(context.l10n.photoPreviewUnavailable)),
         ),
       ),
     ),
     const SizedBox(height: 20),
     const _Badge('PHOTO PREVIEW'),
     const SizedBox(height: 14),
-    const Text(
-      'Your photo is ready',
+    Text(
+      context.l10n.yourPhotoIsReady,
       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
     ),
     const SizedBox(height: 6),
-    const Text(
-      'Ready to discover what you found?',
+    Text(
+      context.l10n.readyToDiscoverWhatYouFound,
       style: TextStyle(color: AppColors.muted, fontSize: 14),
     ),
     const SizedBox(height: 12),
-    const Text(
-      'Recognize sends this photo to Google Vision through our secure service. '
-      'Only result text is saved in your local history; the photo is not stored by the app.',
+    Text(
+      context
+          .l10n
+          .recognizeSendsThisPhotoToGoogleVisionThroughOurSecureServiceOnlyResultTextIsSavedInYourLoc,
       style: TextStyle(color: AppColors.muted, height: 1.6),
     ),
     const SizedBox(height: 16),
@@ -204,21 +206,21 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.16)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.auto_awesome_outlined, color: AppColors.primary, size: 20),
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'For the best result, use one clear landmark or dish, keep it centred, and avoid blurry or very dark photos.',
+              context
+                  .l10n
+                  .forTheBestResultUseOneClearLandmarkOrDishKeepItCentredAndAvoidBlurryOrVeryDarkPhotos,
               style: TextStyle(color: AppColors.ink, fontSize: 12, height: 1.5),
             ),
           ),
         ],
       ),
-
-      
     ),
     const SizedBox(height: 20),
     SizedBox(
@@ -229,7 +231,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           unawaited(_recognize(bytes));
         },
         icon: const Icon(Icons.image_search),
-        label: const Text('Recognize photo'),
+        label: Text(context.l10n.recognizePhoto),
       ),
     ),
     const SizedBox(height: 8),
@@ -241,12 +243,12 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           _showLocalTestResult();
         },
         icon: const Icon(Icons.science_outlined),
-        label: const Text('Run test recognition'),
+        label: Text(context.l10n.runTestRecognition),
       ),
     ),
     const SizedBox(height: 8),
-    const Text(
-      'Test recognition uses prepared catalog results to preview the flow.',
+    Text(
+      context.l10n.testRecognitionUsesPreparedCatalogResultsToPreviewTheFlow,
       style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
     ),
     const SizedBox(height: 12),
@@ -260,7 +262,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
             _pickPhoto(ImageSource.camera);
           },
           icon: const Icon(Icons.photo_camera_outlined),
-          label: const Text('Retake Photo'),
+          label: Text(context.l10n.retakePhoto),
         ),
         OutlinedButton.icon(
           onPressed: () {
@@ -268,7 +270,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
             _pickPhoto(ImageSource.gallery);
           },
           icon: const Icon(Icons.photo_library_outlined),
-          label: const Text('Choose Another'),
+          label: Text(context.l10n.chooseAnother),
         ),
       ],
     ),
@@ -311,7 +313,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () => Navigator.pop(sheetContext),
-                    child: const Text('Done'),
+                    child: Text(context.l10n.done),
                   ),
                 ),
               ],
@@ -327,22 +329,22 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
-        title: const Text(
-          'Clear scan history?',
+        title: Text(
+          context.l10n.clearScanHistory,
           style: TextStyle(color: AppColors.ink),
         ),
-        content: const Text(
-          'Remove all scan results saved on this device? This cannot be undone.',
+        content: Text(
+          context.l10n.removeAllScanResultsSavedOnThisDeviceThisCannotBeUndone,
           style: TextStyle(color: AppColors.muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Clear'),
+            child: Text(context.l10n.clear),
           ),
         ],
       ),
@@ -434,8 +436,8 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     key: const PageStorageKey('recognition-scanner'),
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
     children: [
-      const Text(
-        'Discover a landmark or a local dish',
+      Text(
+        context.l10n.discoverALandmarkOrALocalDish,
         style: TextStyle(
           fontSize: 21,
           height: 1.3,
@@ -443,14 +445,14 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         ),
       ),
       const SizedBox(height: 10),
-      const Text(
-        'Choose a photo, review it, then identify what you see.',
+      Text(
+        context.l10n.chooseAPhotoReviewItThenIdentifyWhatYouSee,
         style: TextStyle(fontSize: 13, height: 1.6, color: AppColors.muted),
       ),
       const SizedBox(height: 20),
       _SourceCard(
-        title: 'Take Photo',
-        subtitle: 'Launch your camera to capture a landmark or food',
+        title: context.l10n.takePhoto,
+        subtitle: context.l10n.launchYourCameraToCaptureALandmarkOrFood,
         icon: Icons.photo_camera_outlined,
         prominent: true,
         enabled: !_picking && !_recognizing,
@@ -458,8 +460,8 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       ),
       const SizedBox(height: 12),
       _SourceCard(
-        title: 'Upload from Gallery',
-        subtitle: 'Select a photo from your photo library',
+        title: context.l10n.uploadFromGallery,
+        subtitle: context.l10n.selectAPhotoFromYourPhotoLibrary,
         icon: Icons.file_upload_outlined,
         enabled: !_picking && !_recognizing,
         onTap: () => _pickPhoto(ImageSource.gallery),
@@ -471,10 +473,10 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           backgroundColor: Colors.white,
         ),
         if (_recognizing)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 8),
             child: Text(
-              'Recognizing photo…',
+              context.l10n.recognizingPhoto,
               style: TextStyle(color: AppColors.muted),
             ),
           ),
@@ -483,13 +485,13 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       OutlinedButton.icon(
         onPressed: () => setState(() => _tab = 1),
         icon: const Icon(Icons.collections_outlined),
-        label: const Text('View demo results'),
+        label: Text(context.l10n.viewDemoResults),
       ),
       const SizedBox(height: 20),
       Container(
         padding: const EdgeInsets.all(16),
         decoration: _panelDecoration(),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -502,7 +504,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Helpful Tips',
+                    context.l10n.helpfulTips,
                     style: TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
@@ -513,7 +515,9 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
             ),
             SizedBox(height: 8),
             Text(
-              'For better accuracy, keep the landmark or food dish well-lit and centered.',
+              context
+                  .l10n
+                  .forBetterAccuracyKeepTheLandmarkOrFoodDishWellLitAndCentered,
               style: TextStyle(
                 fontSize: 12,
                 height: 1.6,
@@ -524,8 +528,10 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         ),
       ),
       const SizedBox(height: 16),
-      const Text(
-        'Sample scans work offline. Live recognition and translation require an online account.',
+      Text(
+        context
+            .l10n
+            .sampleScansWorkOfflineLiveRecognitionAndTranslationRequireAnOnlineAccount,
         textAlign: TextAlign.center,
         style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.5),
       ),
@@ -540,13 +546,15 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       key: const PageStorageKey('recognition-presets'),
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
       children: [
-        const Text(
-          'Try prepared recognition results',
+        Text(
+          context.l10n.tryPreparedRecognitionResults,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Browse prepared landmark and food results to understand what the finished recognition screen will show.',
+        Text(
+          context
+              .l10n
+              .browsePreparedLandmarkAndFoodResultsToUnderstandWhatTheFinishedRecognitionScreenWillShow,
           style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.6),
         ),
         const SizedBox(height: 16),
@@ -609,11 +617,11 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          const Row(
+                          Row(
                             children: [
                               Expanded(
                                 child: Text(
-                                  'View demo result',
+                                  context.l10n.viewDemoResult,
                                   style: TextStyle(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w700,
@@ -646,22 +654,24 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     children: [
       Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
-              'Recent scans',
+              context.l10n.recentScans,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
           ),
           if (_history.isNotEmpty)
             TextButton(
               onPressed: _clearHistory,
-              child: const Text('Clear history'),
+              child: Text(context.l10n.clearHistory),
             ),
         ],
       ),
       const SizedBox(height: 10),
-      const Text(
-        'Your completed recognition results will appear here. Demo results stay separate. History is currently stored on this device.',
+      Text(
+        context
+            .l10n
+            .yourCompletedRecognitionResultsWillAppearHereDemoResultsStaySeparateHistoryIsCurrentlyStor,
         style: TextStyle(color: AppColors.muted, fontSize: 13),
       ),
       const SizedBox(height: 24),
@@ -673,13 +683,15 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
             children: [
               const Icon(Icons.history, size: 44, color: AppColors.primary),
               const SizedBox(height: 18),
-              const Text(
-                'No scans yet',
+              Text(
+                context.l10n.noScansYet,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'After live recognition is connected, successful scans will be saved here automatically.',
+              Text(
+                context
+                    .l10n
+                    .afterLiveRecognitionIsConnectedSuccessfulScansWillBeSavedHereAutomatically,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.muted, height: 1.6),
               ),
@@ -690,7 +702,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Go to Scanner'),
+                child: Text(context.l10n.goToScanner),
               ),
             ],
           ),
@@ -880,7 +892,7 @@ class _Badge extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
-      label,
+      context.tr(label),
       style: const TextStyle(
         color: AppColors.primary,
         fontSize: 9,

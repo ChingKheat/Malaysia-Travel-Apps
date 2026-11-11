@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS public.places (
 ALTER TABLE public.places ADD COLUMN IF NOT EXISTS is_indoor BOOLEAN;
 
 ALTER TABLE public.places ADD COLUMN IF NOT EXISTS user_ratings_total INTEGER DEFAULT 0;
+ALTER TABLE public.places ADD COLUMN IF NOT EXISTS google_fetched_at TIMESTAMPTZ;
+ALTER TABLE public.places ADD COLUMN IF NOT EXISTS google_attributions JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS public.indoor_places (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -298,10 +300,19 @@ BEGIN
      OR NEW.photo_url LIKE '%places.googleapis.com%'
      OR (TG_OP = 'UPDATE' AND OLD.data_source = 'google') THEN
     NEW.data_source := 'google';
-    NEW.name := 'Saved Google place';
-    NEW.latitude := 0; NEW.longitude := 0;
-    NEW.rating := NULL; NEW.user_ratings_total := NULL;
-    NEW.operating_hours := NULL; NEW.photo_url := NULL;
+    -- Reject key-bearing or dynamic Google proxy URLs. Retain clean Supabase Storage or custom URLs.
+    IF NEW.photo_url LIKE '%places.googleapis.com%' OR NEW.photo_url LIKE '%key=%' THEN
+      NEW.photo_url := NULL;
+    END IF;
+    IF NEW.name <> 'Saved Google place' AND NEW.latitude BETWEEN 1 AND 7.5
+       AND NEW.longitude BETWEEN 99 AND 120 THEN
+      IF TG_OP = 'INSERT' THEN
+        NEW.google_fetched_at := clock_timestamp();
+      ELSIF NEW.name IS DISTINCT FROM OLD.name OR NEW.latitude IS DISTINCT FROM OLD.latitude
+         OR NEW.longitude IS DISTINCT FROM OLD.longitude OR NEW.google_fetched_at IS DISTINCT FROM OLD.google_fetched_at THEN
+        NEW.google_fetched_at := clock_timestamp();
+      END IF;
+    END IF;
     IF NEW.category NOT IN ('Attraction','Culture','Food','Nature','Shopping','History','Adventure','Family','Nightlife') THEN
       NEW.category := 'Attraction';
     END IF;
@@ -378,6 +389,19 @@ DROP TRIGGER IF EXISTS sanitize_google_itinerary_stop ON public.itinerary_stops;
 
 CREATE TRIGGER sanitize_google_itinerary_stop BEFORE INSERT OR UPDATE ON public.itinerary_stops
 FOR EACH ROW EXECUTE FUNCTION public.sanitize_google_itinerary_stop();
+
+CREATE OR REPLACE VIEW public.places_directory WITH (security_invoker = true) AS
+SELECT place_id, COALESCE(NULLIF(state,''),'待确认') AS state,
+COALESCE(NULLIF(category,''),'待审核') AS category,
+CASE WHEN is_indoor IS TRUE THEN '室内' WHEN is_indoor IS FALSE THEN '室外' ELSE '待审核' END AS setting,
+CASE WHEN name='Saved Google place' THEN '等待 Google 资料同步'
+ELSE COALESCE(NULLIF(name,''),'名称待补充') END AS display_label,
+CASE WHEN latitude IS NULL OR longitude IS NULL OR (latitude=0 AND longitude=0) THEN '位置待确认'
+ELSE '已有位置' END AS location_status
+FROM public.places;
+REVOKE ALL ON public.places_directory FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.places_directory TO authenticated, service_role;
+COMMENT ON VIEW public.places_directory IS 'Readable catalog; live Google details are loaded in the app. Underlying places RLS applies.';
 
 -- 5. Permissions and row-level policies
 
@@ -576,5 +600,36 @@ FROM (VALUES ('text_search_pro',4000),('details_pro',4000),
   ('details_enterprise',800),('photos',800),('routes_essentials',8000),
   ('route_matrix_essentials',8000)) AS defaults(sku,cap)
 ON CONFLICT DO NOTHING;
+
+-- 7. Supabase Storage: Public Bucket for Place Photos
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('place-photos', 'place-photos', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Access for Place Photos'
+  ) THEN
+    CREATE POLICY "Public Access for Place Photos"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'place-photos');
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Allow Upload to Place Photos'
+  ) THEN
+    CREATE POLICY "Allow Upload to Place Photos"
+    ON storage.objects FOR INSERT
+    TO authenticated, service_role, anon
+    WITH CHECK (bucket_id = 'place-photos');
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Allow Update to Place Photos'
+  ) THEN
+    CREATE POLICY "Allow Update to Place Photos"
+    ON storage.objects FOR UPDATE
+    TO authenticated, service_role, anon
+    USING (bucket_id = 'place-photos');
+  END IF;
+END $$;
 
 COMMIT;

@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import '../../places/models/google_place_details.dart';
 import '../../places/services/google_places_service.dart';
@@ -5,6 +6,7 @@ import '../../places/services/place_catalog_service.dart';
 import '../../places/services/place_classifier.dart';
 import '../../places/widgets/google_place_image.dart';
 import '../../places/widgets/google_maps_attribution.dart';
+import '../../places/services/place_photo_storage_service.dart';
 import '../services/admin_places_repository.dart';
 
 class PlaceReviewPage extends StatefulWidget {
@@ -48,6 +50,13 @@ class _PlaceReviewPageState extends State<PlaceReviewPage> {
             ? _google.lastError ?? 'Details unavailable'
             : null;
       });
+      if (details != null && details.photos.isNotEmpty) {
+        PlacePhotoStorageService.syncPhotoToStorage(
+          placeId: details.id,
+          googleService: _google,
+          photo: details.photos.first,
+        );
+      }
     } catch (_) {
       if (mounted) setState(() => _error = 'Unable to load details. Retry.');
     } finally {
@@ -86,49 +95,59 @@ class _PlaceReviewPageState extends State<PlaceReviewPage> {
             name: _details!.name ?? '',
           );
     return Scaffold(
-      appBar: AppBar(title: const Text('Review saved place')),
+      appBar: AppBar(title: Text(context.l10n.reviewSavedPlace)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            'Stored database information',
+            context.l10n.storedDatabaseInformation,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           SelectableText(
             'ID: ${widget.row['place_id']}\nState: ${widget.row['state']}\nCategory: ${widget.row['category']}',
           ),
-          const Text(
-            'Google references store IDs only. Zero coordinates are placeholders, not the location.',
-          ),
+          Text(context.l10n.loadLiveDetailsToSeeTheNameAndAddress),
           const SizedBox(height: 20),
           Text(
-            'Live Google information',
+            context.l10n.liveGoogleInformation,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           FilledButton(
             onPressed: _busy ? null : _load,
-            child: const Text('Load / retry live details'),
+            child: Text(context.l10n.loadRetryLiveDetails),
           ),
           if (_busy) const LinearProgressIndicator(),
           if (_error != null)
             Text(
-              _error!,
+              context.tr(_error!),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           if (_details != null) ...[
             Text(_details!.name ?? 'Name unavailable'),
             Text(_details!.address ?? 'Address unavailable'),
-            Text('Google type: ${_details!.category ?? 'Unknown'}'),
+            Text(
+              context.l10n.googleTypeValue(
+                (_details!.category ?? 'Unknown').toString(),
+              ),
+            ),
             GoogleMapsAttribution(attributions: _details!.attributions),
             Text(
-              'Detected state: ${AdminPlacesRepository.googleState(_details!.data) ?? 'Unverified'}',
+              context.l10n.detectedStateValue(
+                (AdminPlacesRepository.googleState(_details!.data) ??
+                        'Unverified')
+                    .toString(),
+              ),
             ),
             Text(
-              'Setting suggestion: ${suggestion == null
-                  ? 'Needs review'
-                  : suggestion
-                  ? 'Indoor'
-                  : 'Outdoor'} — confirm using your knowledge; this is not verified.',
+              context.l10n
+                  .settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified(
+                    (suggestion == null
+                            ? 'Needs review'
+                            : suggestion
+                            ? 'Indoor'
+                            : 'Outdoor')
+                        .toString(),
+                  ),
             ),
             ..._details!.photos.asMap().entries.map(
               (e) => GooglePlaceImage(
@@ -143,31 +162,36 @@ class _PlaceReviewPageState extends State<PlaceReviewPage> {
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _category,
-            decoration: const InputDecoration(labelText: 'App category'),
-            items: {
-              ...PlaceCatalogService.appCategories,
-              _category,
-            }.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+            decoration: InputDecoration(labelText: context.l10n.appCategory),
+            items: {...PlaceCatalogService.appCategories, _category}
+                .map(
+                  (c) => DropdownMenuItem(value: c, child: Text(context.tr(c))),
+                )
+                .toList(),
             onChanged: _busy ? null : (v) => setState(() => _category = v!),
           ),
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _setting,
-            decoration: const InputDecoration(labelText: 'Confirmed setting'),
-            items: [
-              'Needs review',
-              'Indoor',
-              'Outdoor',
-            ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+            decoration: InputDecoration(
+              labelText: context.l10n.confirmedSetting,
+            ),
+            items: ['Needs review', 'Indoor', 'Outdoor']
+                .map(
+                  (c) => DropdownMenuItem(value: c, child: Text(context.tr(c))),
+                )
+                .toList(),
             onChanged: _busy ? null : (v) => setState(() => _setting = v!),
           ),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: _busy ? null : _save,
-            child: const Text('Confirm and save review'),
+            child: Text(context.l10n.confirmAndSaveReview),
           ),
-          const Text(
-            'Only app category and setting are saved. Existing Google details are not stored.',
+          Text(
+            context
+                .l10n
+                .onlyAppCategoryAndSettingAreSavedExistingGoogleDetailsAreNotStored,
           ),
         ],
       ),

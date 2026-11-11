@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
@@ -86,13 +87,15 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(label: Text(widget.result.kind.toUpperCase())),
+                Chip(label: Text(context.tr(widget.result.kind).toUpperCase())),
                 if (widget.result.isSample)
-                  const Chip(label: Text('SAMPLE PREVIEW')),
+                  Chip(label: Text(context.l10n.samplePreview)),
                 if (widget.result.confidence != null)
                   Chip(
                     label: Text(
-                      'Vision confidence ${(widget.result.confidence! * 100).round()}%',
+                      context.l10n.visionConfidenceValue(
+                        ((widget.result.confidence! * 100).round()).toString(),
+                      ),
                     ),
                   ),
               ],
@@ -116,8 +119,8 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             ),
             if (_display.labels.isNotEmpty) ...[
               const SizedBox(height: 16),
-              const Text(
-                'Detected labels',
+              Text(
+                context.l10n.detectedLabels,
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
@@ -131,8 +134,8 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             ],
             const SizedBox(height: 20),
             InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Result language',
+              decoration: InputDecoration(
+                labelText: context.l10n.resultLanguage,
                 border: OutlineInputBorder(),
               ),
               child: DropdownButtonHideUnderline(
@@ -152,24 +155,33 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
               const SizedBox(height: 12),
               const LinearProgressIndicator(),
               const SizedBox(height: 6),
-              const Text('Translating…'),
+              Text(context.l10n.translating),
             ],
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
+              Text(
+                context.tr(_error!),
+                style: const TextStyle(color: Colors.red),
+              ),
             ],
             if (_language != 'en') ...[
               const SizedBox(height: 10),
-              const Text(
-                'Machine-translated text. The original English result stays in your history.',
+              Text(
+                context
+                    .l10n
+                    .machineTranslatedTextTheOriginalEnglishResultStaysInYourHistory,
                 style: TextStyle(color: AppColors.muted, fontSize: 12),
               ),
             ],
             const SizedBox(height: 16),
             Text(
               widget.result.isSample
-                  ? 'This is a prepared demo result. It has not analysed your uploaded photo and is not added to scan history.'
-                  : 'Identification uses Vision detections. Guide descriptions come from the app’s curated catalog.',
+                  ? context
+                        .l10n
+                        .thisIsAPreparedDemoResultItHasNotAnalysedYourUploadedPhotoAndIsNotAddedToScanHistory
+                  : context
+                        .l10n
+                        .identificationUsesVisionDetectionsGuideDescriptionsComeFromTheAppSCuratedCatalog,
               style: const TextStyle(
                 color: AppColors.muted,
                 fontSize: 12,
@@ -177,14 +189,20 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Explore this result',
+            Text(
+              context.l10n.exploreThisResult,
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'These actions will be available when live recognition and tourism details are connected.',
-              style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+            Text(
+              context
+                  .l10n
+                  .theseActionsWillBeAvailableWhenLiveRecognitionAndTourismDetailsAreConnected,
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -192,38 +210,43 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
               runSpacing: 8,
               children: [
                 Tooltip(
-                  message: 'Available after setup',
+                  message: context.l10n.availableAfterSetup,
                   child: OutlinedButton.icon(
                     onPressed: null,
                     icon: const Icon(Icons.favorite_border, size: 18),
-                    label: const Text('Add to Wishlist'),
+                    label: Text(context.l10n.addToWishlist),
                   ),
                 ),
                 Tooltip(
-                  message: 'Available after setup',
+                  message: context.l10n.availableAfterSetup,
                   child: OutlinedButton.icon(
                     onPressed: null,
                     icon: const Icon(Icons.near_me_outlined, size: 18),
                     label: Text(
-                      _display.kind == 'food' ? 'Find Restaurants' : 'View Nearby',
+                      _display.kind == 'food'
+                          ? context.l10n.findRestaurants
+                          : context.l10n.viewNearby,
                     ),
                   ),
                 ),
                 if (_display.kind != 'food') ...[
                   Tooltip(
-                    message: 'Available after setup',
+                    message: context.l10n.availableAfterSetup,
                     child: OutlinedButton.icon(
                       onPressed: null,
                       icon: const Icon(Icons.map_outlined, size: 18),
-                      label: const Text('View on Map'),
+                      label: Text(context.l10n.viewOnMap),
                     ),
                   ),
                   Tooltip(
-                    message: 'Available after setup',
+                    message: context.l10n.availableAfterSetup,
                     child: OutlinedButton.icon(
                       onPressed: null,
-                      icon: const Icon(Icons.event_available_outlined, size: 18),
-                      label: const Text('Add to Travel Plan'),
+                      icon: const Icon(
+                        Icons.event_available_outlined,
+                        size: 18,
+                      ),
+                      label: Text(context.l10n.addToTravelPlan),
                     ),
                   ),
                 ],
@@ -231,9 +254,15 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             ),
             if (_display.kind == 'food') ...[
               const SizedBox(height: 12),
-              const Text(
-                'Choose a restaurant before adding this dish to your travel plan.',
-                style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+              Text(
+                context
+                    .l10n
+                    .chooseARestaurantBeforeAddingThisDishToYourTravelPlan,
+                style: TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
               ),
             ],
             const SizedBox(height: 20),
@@ -246,7 +275,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Done'),
+                child: Text(context.l10n.done),
               ),
             ),
           ],

@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:smart_travel_planner/shared/services/map_bootstrap.dart';
@@ -62,11 +63,13 @@ class _MapScreenState extends State<MapScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.data != true) {
-              return const Center(
+              return Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'Google Maps is not configured for this platform yet. Your saved places remain available in the list.',
+                    context
+                        .l10n
+                        .googleMapsIsNotConfiguredForThisPlatformYetYourSavedPlacesRemainAvailableInTheList,
                   ),
                 ),
               );
@@ -131,8 +134,13 @@ class _MapScreenState extends State<MapScreen> {
                 Expanded(
                   child: Text(
                     route == null
-                        ? 'Select 2-5 locations to draw a route'
-                        : '${route.distanceKm.toStringAsFixed(1)} km • ${route.durationMinutes.round()} min${route.isFallback ? ' • distance estimate' : ''}',
+                        ? context.l10n.select25LocationsToDrawARoute
+                        : context.l10n.valueKmValueMinvalue(
+                            (route.distanceKm.toStringAsFixed(1)).toString(),
+                            (route.durationMinutes.round()).toString(),
+                            (route.isFallback ? ' • distance estimate' : '')
+                                .toString(),
+                          ),
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),

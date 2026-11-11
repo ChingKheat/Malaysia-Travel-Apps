@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -94,20 +95,20 @@ class TravelersSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = [
       _TravelerCountRow(
-        label: 'Adults',
+        label: context.l10n.adults,
         controller: adultsController,
         hintText: '0',
         showIcon: true,
       ),
       const Divider(height: 1, color: AppColors.line),
       _TravelerCountRow(
-        label: 'Seniors',
+        label: context.l10n.seniors,
         controller: seniorsController,
         hintText: '0',
       ),
       const Divider(height: 1, color: AppColors.line),
       _TravelerCountRow(
-        label: 'Children',
+        label: context.l10n.children,
         controller: childrenController,
         hintText: '0',
       ),
@@ -159,13 +160,17 @@ class _TravelerCountRow extends StatelessWidget {
       child: Row(
         children: [
           if (showIcon) ...[
-            const Icon(Icons.group_outlined, color: AppColors.primary, size: 20),
+            const Icon(
+              Icons.group_outlined,
+              color: AppColors.primary,
+              size: 20,
+            ),
             const SizedBox(width: 12),
           ] else
             const SizedBox(width: 32),
           Expanded(
             child: Text(
-              label,
+              context.tr(label),
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppColors.ink,
@@ -220,7 +225,7 @@ class FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      text,
+      context.tr(text),
       style: const TextStyle(
         fontWeight: FontWeight.w900,
         color: AppColors.ink,

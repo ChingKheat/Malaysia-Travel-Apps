@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/services.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -17,7 +18,7 @@ void showDemoSnackBar(BuildContext context, String message, {IconData? icon}) {
               Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 10),
             ],
-            Expanded(child: Text(message)),
+            Expanded(child: Text(context.tr(message))),
           ],
         ),
         behavior: SnackBarBehavior.floating,
@@ -59,12 +60,12 @@ Future<void> showDemoSheet(
             const SizedBox(height: 12),
           ],
           Text(
-            title,
+            context.tr(title),
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           Text(
-            body,
+            context.tr(body),
             style: const TextStyle(color: AppColors.muted, height: 1.45),
           ),
           const SizedBox(height: 18),
@@ -73,7 +74,7 @@ Future<void> showDemoSheet(
             child: FilledButton(
               onPressed: () => Navigator.pop(context),
               style: primaryFilledButtonStyle(),
-              child: Text(actionLabel),
+              child: Text(context.tr(actionLabel)),
             ),
           ),
         ],
@@ -105,7 +106,7 @@ Future<void> runDemoLoadingAction(
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              loadingLabel,
+              context.tr(loadingLabel),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),

@@ -133,13 +133,13 @@ void main() {
           final rows = jsonDecode(request.body) as List;
           expect(rows.length, requests == 1 ? 40 : 5);
           expect(rows.every((row) => row['state'] == 'Selangor'), true);
-          expect(rows.first['name'], 'Saved Google place');
+          expect(rows.first['name'], startsWith('Actual place'));
           expect(rows.first['data_source'], 'google');
-          expect(rows.first['latitude'], 0);
-          expect(rows.first['longitude'], 0);
-          expect(rows.first['rating'], isNull);
-          expect(rows.first['user_ratings_total'], isNull);
-          expect(rows.first['operating_hours'], isNull);
+          expect(rows.first['latitude'], 3.1);
+          expect(rows.first['longitude'], 101.5);
+          expect(rows.first['rating'], 4.2);
+          expect(rows.first['user_ratings_total'], 17);
+          expect(rows.first['operating_hours'], isNotNull);
           // Existing IDs are ignored; API search results are not all new inserts.
           return http.Response(
             jsonEncode(

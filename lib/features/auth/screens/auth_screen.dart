@@ -1,4 +1,6 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/shared/widgets/language_selector.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/auth/widgets/create_account_form.dart';
@@ -14,7 +16,8 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -50,9 +53,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             child: Image.network(
               'https://images.unsplash.com/photo-1596436889106-be35e843f974?q=80&w=800&auto=format&fit=crop',
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: const Color(0xFF1E1B4B),
-              ),
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: const Color(0xFF1E1B4B)),
             ),
           ),
           Positioned.fill(
@@ -77,21 +79,30 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               children: [
                 // Top App Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
                         onPressed: () => Navigator.maybePop(context),
-                        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-                        tooltip: 'Back',
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        tooltip: context.l10n.back,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Smart Travel Planner',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          context.l10n.smartTravelPlanner,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -101,44 +112,56 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 const SizedBox(height: 12),
 
                 // Hero Branding Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                if (MediaQuery.sizeOf(context).height > 650 &&
+                    MediaQuery.textScalerOf(context).scale(14) <= 20)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.explore,
+                                color: Colors.white,
+                                size: 24,
+                              ),
                             ),
-                            child: const Icon(Icons.explore, color: Colors.white, size: 24),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Malaysia Travel Portal',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                context.l10n.malaysiaTravelPortal,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Access AI itineraries, weather alerts, and smart route optimization.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.75),
-                          fontSize: 13.5,
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          context
+                              .l10n
+                              .accessAiItinerariesWeatherAlertsAndSmartRouteOptimization,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 13.5,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
                 const SizedBox(height: 20),
 
@@ -156,6 +179,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     child: Column(
                       children: [
                         const SizedBox(height: 12),
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: LanguageButton(),
+                        ),
                         // Drag Handle
                         Container(
                           width: 44,
@@ -171,10 +198,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24.0),
                           child: Container(
-                            height: 48,
+                            height:
+                                48 +
+                                (MediaQuery.textScalerOf(context).scale(14) -
+                                        14) *
+                                    2,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9), // Light slate gray background
+                              color: const Color(
+                                0xFFF1F5F9,
+                              ), // Light slate gray background
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: TabBar(
@@ -183,13 +216,17 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                               dividerColor: Colors.transparent,
                               indicatorPadding: EdgeInsets.zero,
                               labelPadding: EdgeInsets.zero,
-                              overlayColor: WidgetStateProperty.all(Colors.transparent),
+                              overlayColor: WidgetStateProperty.all(
+                                Colors.transparent,
+                              ),
                               indicator: BoxDecoration(
                                 color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -205,9 +242,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
-                              tabs: const [
-                                Tab(text: 'Log In'),
-                                Tab(text: 'Create Account'),
+                              tabs: [
+                                Tab(text: context.l10n.logIn),
+                                Tab(text: context.l10n.createAccount),
                               ],
                             ),
                           ),

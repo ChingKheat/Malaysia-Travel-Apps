@@ -27,6 +27,7 @@ class GooglePlacesService {
   final String? accessToken;
   final String _endpoint;
   String? lastError;
+  int? lastStatusCode;
   static bool get isAvailable =>
       (!AuthService().isGuest &&
       SupabaseConfig.client?.auth.currentSession?.user.id ==
@@ -44,6 +45,7 @@ class GooglePlacesService {
           ? SupabaseConfig.client?.auth.currentSession?.accessToken
           : null);
   Future<http.Response?> _request(Map<String, dynamic> body) async {
+    lastStatusCode = null;
     final token = _token;
     if (token == null) {
       lastError =
@@ -62,12 +64,18 @@ class GooglePlacesService {
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 20));
+      lastStatusCode = response.statusCode;
       if (response.statusCode != 200) {
         lastError = 'Place service unavailable (${response.statusCode}).';
         try {
-          lastError =
-              (jsonDecode(response.body) as Map)['error']?.toString() ??
-              lastError;
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map) {
+            lastError = decoded['error']?.toString() ?? lastError;
+            final upstream = decoded['upstreamStatus'];
+            if (upstream is int) {
+              lastStatusCode = upstream;
+            }
+          }
         } catch (_) {}
         return response;
       }
@@ -134,15 +142,31 @@ class GooglePlacesService {
             row['place_id'].toString(),
             basic: !full,
           );
-          if (details == null) {
+          final lat = details?.latitude;
+          final lng = details?.longitude;
+          final validLocation =
+              lat != null &&
+              lng != null &&
+              lat.isFinite &&
+              lng.isFinite &&
+              lat.abs() <= 90 &&
+              lng.abs() <= 180 &&
+              (lat != 0 || lng != 0);
+          if (details == null ||
+              details.name?.trim().isNotEmpty != true ||
+              !validLocation) {
             return {
               ...PlaceCatalogService.persistentRow(row),
-              '_loadError': lastError ?? 'Place details unavailable',
+              '_loadError': details == null
+                  ? lastError ?? 'Place details unavailable'
+                  : 'Google did not return a usable name and location. Retry later.',
             };
           }
           return <String, dynamic>{
             ...row,
             '_live': true,
+            '_fullDetails': full,
+            '_addressComponents': details.data['addressComponents'],
             'name': details.name ?? 'Name unavailable',
             'category': details.category ?? row['category'],
             'latitude': details.latitude ?? 0.0,

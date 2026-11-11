@@ -25,6 +25,30 @@ Map<String, dynamic> reference(int i) => {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  test('Missing and zero locations never become usable live places', () async {
+    for (final location in [
+      null,
+      {'latitude': 0, 'longitude': 0},
+    ]) {
+      GooglePlacesService.clearMemoryCache();
+      final service = GooglePlacesService(
+        accessToken: 'test',
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode({
+              'id': 'ChIJtest0',
+              'displayName': {'text': 'Museum'},
+              'location': location,
+            }),
+            200,
+          ),
+        ),
+      );
+      final rows = await service.hydrateRows([reference(0)]);
+      expect(rows.single['_live'], isNot(true));
+      expect(rows.single['_loadError'], contains('usable name and location'));
+    }
+  });
   test('Leaving a page cancels additional detail batches', () async {
     var active = true;
     var requests = 0;
@@ -119,7 +143,14 @@ void main() {
           expect(body['operation'], 'details');
           expect(body['profile'], 'full');
           requests++;
-          return http.Response(jsonEncode({'id': body['placeId']}), 200);
+          return http.Response(
+            jsonEncode({
+              'id': body['placeId'],
+              'displayName': {'text': 'Live place'},
+              'location': {'latitude': 5.4, 'longitude': 100.3},
+            }),
+            200,
+          );
         }),
       );
       expect(

@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -115,18 +117,20 @@ class _ItineraryPageState extends State<ItineraryPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Regenerate itinerary?'),
-        content: const Text(
-          'Your current unsaved changes will be replaced. Saved trips will remain available.',
+        title: Text(context.l10n.regenerateItinerary2),
+        content: Text(
+          context
+              .l10n
+              .yourCurrentUnsavedChangesWillBeReplacedSavedTripsWillRemainAvailable,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Regenerate'),
+            child: Text(context.l10n.regenerate),
           ),
         ],
       ),
@@ -140,7 +144,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
     if (!validation.success) {
       showDemoSnackBar(
         context,
-        'Complete trip preferences in Plan before regenerating.',
+        context.l10n.completeTripPreferencesInPlanBeforeRegenerating,
       );
       return;
     }
@@ -216,6 +220,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
       list.add(
         SavedTrip(
           title: '${userPrefs.destination} Custom Schedule',
+          isGenerated: true,
           date: 'Active Generated Plan',
           detail: '$days days itinerary',
           destination: '${userPrefs.destination}, Malaysia',
@@ -265,7 +270,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
     if (_availableTrips.isNotEmpty) {
       showDemoSnackBar(
         context,
-        'Showing Day ${index + 1} Plan for ${_currentTrip.title}',
+        context.l10n.showingDayValuePlanForValue(
+          (index + 1).toString(),
+          (_currentTrip.title).toString(),
+        ),
         icon: Icons.calendar_today_outlined,
       );
     }
@@ -289,12 +297,12 @@ class _ItineraryPageState extends State<ItineraryPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(Icons.folder_open, color: AppColors.primary),
                     SizedBox(width: 10),
                     Text(
-                      'Select Planned Itinerary',
+                      context.l10n.selectPlannedItinerary,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
@@ -304,8 +312,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Switch between your active trips and custom generated plans',
+                Text(
+                  context
+                      .l10n
+                      .switchBetweenYourActiveTripsAndCustomGeneratedPlans,
                   style: TextStyle(color: AppColors.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
@@ -329,7 +339,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
                             _loadWeatherForDay(0);
                             showDemoSnackBar(
                               context,
-                              'Switched to ${trip.title} (${trip.totalDays} Days)',
+                              context.l10n.switchedToValueValueDays(
+                                (trip.title).toString(),
+                                (trip.totalDays).toString(),
+                              ),
                               icon: Icons.swap_horiz,
                             );
                           }
@@ -370,7 +383,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      trip.title,
+                                      context.tripTitle(trip),
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
                                         fontSize: 15,
@@ -381,7 +394,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
-                                      '${trip.destination} • ${trip.date}',
+                                      '${trip.destination} • ${context.tripDate(trip)}',
                                       style: const TextStyle(
                                         color: AppColors.muted,
                                         fontSize: 12,
@@ -407,7 +420,9 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                   ),
                                 ),
                                 child: Text(
-                                  '${trip.totalDays} Days',
+                                  context.l10n.valueDays(
+                                    (trip.totalDays).toString(),
+                                  ),
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -440,7 +455,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                     color: Colors.redAccent,
                                     size: 20,
                                   ),
-                                  tooltip: 'Delete or clear itinerary',
+                                  tooltip: context.l10n.deleteOrClearItinerary,
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
                                     minWidth: 32,
@@ -467,20 +482,22 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                               16,
                                             ),
                                           ),
-                                          title: const Text(
-                                            'Clear Active Plan?',
+                                          title: Text(
+                                            context.l10n.clearActivePlan,
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          content: const Text(
-                                            'Are you sure you want to clear your current generated trip and reset to default?',
+                                          content: Text(
+                                            context
+                                                .l10n
+                                                .areYouSureYouWantToClearYourCurrentGeneratedTripAndResetToDefault,
                                           ),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(ctx, false),
-                                              child: const Text('Cancel'),
+                                              child: Text(context.l10n.cancel),
                                             ),
                                             FilledButton(
                                               style: FilledButton.styleFrom(
@@ -489,7 +506,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                               ),
                                               onPressed: () =>
                                                   Navigator.pop(ctx, true),
-                                              child: const Text('Clear'),
+                                              child: Text(context.l10n.clear),
                                             ),
                                           ],
                                         ),
@@ -509,7 +526,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                         });
                                         showDemoSnackBar(
                                           this.context,
-                                          'Active trip plan cleared',
+                                          this
+                                              .context
+                                              .l10n
+                                              .activeTripPlanCleared,
                                           icon: Icons.refresh,
                                         );
                                       }
@@ -523,20 +543,23 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                               16,
                                             ),
                                           ),
-                                          title: const Text(
-                                            'Delete Itinerary?',
+                                          title: Text(
+                                            context.l10n.deleteItinerary,
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                           content: Text(
-                                            'Are you sure you want to delete "${trip.title}"?',
+                                            context.l10n
+                                                .areYouSureYouWantToDeleteValue(
+                                                  (trip.title).toString(),
+                                                ),
                                           ),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(ctx, false),
-                                              child: const Text('Cancel'),
+                                              child: Text(context.l10n.cancel),
                                             ),
                                             FilledButton(
                                               style: FilledButton.styleFrom(
@@ -545,7 +568,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                               ),
                                               onPressed: () =>
                                                   Navigator.pop(ctx, true),
-                                              child: const Text('Delete'),
+                                              child: Text(context.l10n.delete),
                                             ),
                                           ],
                                         ),
@@ -589,7 +612,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                           deleted
                                               ? SupabaseItineraryService()
                                                     .lastOperationMessage
-                                              : 'Unable to delete this itinerary.',
+                                              : this
+                                                    .context
+                                                    .l10n
+                                                    .unableToDeleteThisItinerary,
                                           icon: deleted
                                               ? Icons.delete_outline
                                               : Icons.error_outline,
@@ -733,8 +759,8 @@ class _ItineraryPageState extends State<ItineraryPage> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'No Itineraries Yet',
+            Text(
+              context.l10n.noItinerariesYet,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -742,8 +768,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'You have no active or saved trips. Set your travel preferences to generate a smart day-by-day schedule.',
+            Text(
+              context
+                  .l10n
+                  .youHaveNoActiveOrSavedTripsSetYourTravelPreferencesToGenerateASmartDayByDaySchedule,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -755,7 +783,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
             ElevatedButton.icon(
               onPressed: widget.onPlanTap,
               icon: const Icon(Icons.add_location_alt_outlined),
-              label: const Text('Plan Your Trip'),
+              label: Text(context.l10n.planYourTrip),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -794,7 +822,9 @@ class _ItineraryPageState extends State<ItineraryPage> {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
-              SmartItineraryService.dayWarnings[_selectedDay]!,
+              context.itineraryWarnings(
+                SmartItineraryService.dayWarnings[_selectedDay]!,
+              ),
               style: const TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ),
@@ -835,8 +865,8 @@ class _ItineraryPageState extends State<ItineraryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'ACTIVE ITINERARY',
+                      Text(
+                        context.l10n.activeItinerary,
                         style: TextStyle(
                           color: AppColors.muted,
                           fontSize: 10,
@@ -846,7 +876,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        trip.title,
+                        context.tripTitle(trip),
                         style: const TextStyle(
                           color: AppColors.ink,
                           fontSize: 15,
@@ -856,7 +886,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        '${trip.destination} • ${trip.date}',
+                        '${trip.destination} • ${context.tripDate(trip)}',
                         style: const TextStyle(
                           color: AppColors.muted,
                           fontSize: 12,
@@ -883,7 +913,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '$totalDays Days',
+                        context.l10n.valueDays((totalDays).toString()),
                         style: const TextStyle(
                           color: AppColors.primary,
                           fontSize: 12,
@@ -916,7 +946,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
             itemBuilder: (context, index) {
               final isSelected = _selectedDay == index;
               return DayPill(
-                label: 'Day ${index + 1}',
+                label: context.l10n.dayValue((index + 1).toString()),
                 active: isSelected,
                 onTap: () => _selectDay(index),
               );
@@ -948,7 +978,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Day ${_selectedDay + 1} Theme',
+                      context.l10n.dayValueTheme((_selectedDay + 1).toString()),
                       style: const TextStyle(
                         color: AppColors.muted,
                         fontSize: 11,
@@ -959,7 +989,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
                     Text(
                       stops.isNotEmpty
                           ? stops.take(3).map((s) => s.title).join(' • ')
-                          : '${trip.destination} Day ${_selectedDay + 1} Highlights',
+                          : context.l10n.valueDayValueHighlights(
+                              (trip.destination).toString(),
+                              (_selectedDay + 1).toString(),
+                            ),
                       style: const TextStyle(
                         color: AppColors.ink,
                         fontSize: 13.5,
@@ -992,7 +1025,11 @@ class _ItineraryPageState extends State<ItineraryPage> {
         TextButton.icon(
           onPressed: _isRegenerating ? null : _regenerate,
           icon: const Icon(Icons.refresh),
-          label: Text(_isRegenerating ? 'Generating…' : 'Regenerate itinerary'),
+          label: Text(
+            _isRegenerating
+                ? context.l10n.generating
+                : context.l10n.regenerateItinerary,
+          ),
         ),
         const SizedBox(height: 14),
         Row(
@@ -1048,13 +1085,18 @@ class _ItineraryPageState extends State<ItineraryPage> {
                     });
                     showDemoSnackBar(
                       context,
-                      'Day ${_selectedDay + 1} plan updated (${updatedStops.length} stops)',
+                      context.l10n.dayValuePlanUpdatedValueStops(
+                        (_selectedDay + 1).toString(),
+                        (updatedStops.length).toString(),
+                      ),
                       icon: Icons.check_circle_outline,
                     );
                   }
                 },
                 icon: const Icon(Icons.edit_calendar_outlined),
-                label: Text('Edit Day ${_selectedDay + 1}'),
+                label: Text(
+                  context.l10n.editDayValue((_selectedDay + 1).toString()),
+                ),
                 style: demoOutlinedButtonStyle(),
               ),
             ),
@@ -1168,7 +1210,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                         }
                       },
                 icon: const Icon(Icons.bookmark_add_outlined),
-                label: const Text('Save Itinerary'),
+                label: Text(context.l10n.saveItinerary),
                 style: primaryFilledButtonStyle(),
               ),
             ),
@@ -1221,8 +1263,8 @@ class _ItineraryPageState extends State<ItineraryPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Day Route',
+                          Text(
+                            context.l10n.dayRoute,
                             style: TextStyle(
                               color: AppColors.muted,
                               fontSize: 11,
@@ -1231,7 +1273,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '~$distanceKm km • ${stops.length} stops',
+                            context.l10n.valueKmValueStops2(
+                              (distanceKm).toString(),
+                              (stops.length).toString(),
+                            ),
                             style: const TextStyle(
                               color: AppColors.ink,
                               fontSize: 13,
@@ -1375,7 +1420,7 @@ class DayPill extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            label,
+            context.tr(label),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: active ? Colors.white : const Color(0xFF151A3A),

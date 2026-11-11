@@ -1,9 +1,11 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'place_review_page.dart';
+import 'place_details_refresh_page.dart';
 import '../models/place_import_batch.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
@@ -15,6 +17,8 @@ import 'package:smart_travel_planner/features/admin/models/place_sync_record.dar
 import 'package:smart_travel_planner/features/admin/widgets/place_sync_notice.dart';
 import 'package:smart_travel_planner/features/admin/services/admin_places_repository.dart';
 import 'package:smart_travel_planner/features/places/widgets/google_maps_attribution.dart';
+import 'package:smart_travel_planner/shared/models/attraction.dart';
+import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
 
 class AdminPlacesScreen extends StatefulWidget {
   const AdminPlacesScreen({super.key});
@@ -46,6 +50,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
   String _selectedState = 'Penang';
   bool _isLoading = false;
   bool _isFetchingList = false;
+  bool _loadingNames = false;
+  String? _namesNotice;
+  final Map<String, Map<String, dynamic>> _liveNames = {};
   final List<String> _logs = [];
 
   List<Map<String, dynamic>> _currentPlaces = [];
@@ -127,6 +134,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     unawaited(_loadSyncHistory());
     setState(() {
       _isFetchingList = true;
+      _loadingNames = false;
+      _namesNotice = null;
+      _liveNames.clear();
       _placesLoadError = null;
       _rlsBlocked = false;
       if (_placesState != state) {
@@ -221,7 +231,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     if (!_searchBudgetReady) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(_budgetNotice)));
+      ).showSnackBar(SnackBar(content: Text(context.tr(_budgetNotice))));
       return;
     }
     final db = SupabaseConfig.client;
@@ -229,9 +239,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         AuthService().currentUser?.isAdmin != true ||
         db == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Sign in as an administrator to import Google place IDs.',
+            context.l10n.signInAsAnAdministratorToImportGooglePlaceIds,
           ),
         ),
       );
@@ -243,20 +253,26 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Sync $state again?'),
+          title: Text(context.l10n.syncValueAgain((state).toString())),
           content: Text(
             previous == null
-                ? 'This state already has stored places, but its previous sync time was not recorded. Syncing again will use Google API quota.'
-                : 'Last successful sync: ${previous.ageLabel(DateTime.now())} (${previous.malaysiaDateLabel}).\n\nSyncing again will use Google API quota. You can keep the existing data instead.',
+                ? context
+                      .l10n
+                      .thisStateAlreadyHasStoredPlacesButItsPreviousSyncTimeWasNotRecordedSyncingAgainWillUseGoog
+                : context.l10n
+                      .lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst(
+                        (previous.ageLabel(DateTime.now())).toString(),
+                        (previous.malaysiaDateLabel).toString(),
+                      ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep existing data'),
+              child: Text(context.l10n.keepExistingData),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Sync again'),
+              child: Text(context.l10n.syncAgain),
             ),
           ],
         ),
@@ -276,7 +292,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       _syncProgress = 0.05;
       _syncStatusText = 'Searching Google for $state';
       _syncSubStatusText =
-          'Only place IDs, your selected state and app categories are saved. Details and photos stay live.';
+          'Discovering new places. Existing records are preserved; use Update saved places to refresh their details.';
     });
     final service = GooglePlacesService();
     final batch = PlaceImportBatch(state);
@@ -432,19 +448,22 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Clear $_selectedState Places?'),
+        title: Text(context.l10n.clearValuePlaces((_selectedState).toString())),
         content: Text(
-          'This will delete all cached places for $_selectedState from the Supabase database.',
+          context.l10n
+              .thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase(
+                (_selectedState).toString(),
+              ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -490,11 +509,60 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     });
   }
 
+  Future<void> _loadPageNames() async {
+    final generation = _listGeneration;
+    final state = _selectedState;
+    setState(() {
+      _loadingNames = true;
+      _namesNotice = null;
+    });
+    try {
+      final rows = await GooglePlacesService().hydrateRows(
+        _currentPlaces,
+        shouldContinue: () =>
+            mounted && generation == _listGeneration && state == _selectedState,
+      );
+      if (!mounted ||
+          generation != _listGeneration ||
+          state != _selectedState) {
+        return;
+      }
+      final saved = await _places.saveFetchedRows(state, rows);
+      if (!mounted ||
+          generation != _listGeneration ||
+          state != _selectedState) {
+        return;
+      }
+      setState(() {
+        for (final row in rows) {
+          _liveNames[row['place_id'].toString()] = row;
+        }
+        final loaded = rows.where((r) => r['_live'] == true).length;
+        final error = rows
+            .map((r) => r['_loadError'])
+            .whereType<String>()
+            .firstOrNull;
+        _namesNotice =
+            'Loaded $loaded; saved $saved to database.${error == null ? '' : ' $error'}';
+      });
+    } catch (e) {
+      if (mounted && generation == _listGeneration) {
+        setState(() => _namesNotice = 'Fetch/save failed: $e');
+      }
+    } finally {
+      if (mounted && generation == _listGeneration) {
+        setState(() => _loadingNames = false);
+      }
+    }
+  }
+
   Future<void> _autoClassifyPlaces() async {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Open Review on a saved place. Load live details, check the suggestion, then confirm its category and setting. No bulk changes are made.',
+          context
+              .l10n
+              .openReviewOnASavedPlaceLoadLiveDetailsCheckTheSuggestionThenConfirmItsCategoryAndSettingNo,
         ),
       ),
     );
@@ -549,7 +617,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              label,
+              context.tr(label),
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -595,7 +663,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             ),
             const SizedBox(height: 1),
             Text(
-              label,
+              context.tr(label),
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -684,11 +752,13 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  _syncStatusText.isNotEmpty
-                                      ? _syncStatusText
-                                      : (_isLoading
-                                            ? 'Syncing places...'
-                                            : 'Activity Status'),
+                                  context.tr(
+                                    _syncStatusText.isNotEmpty
+                                        ? _syncStatusText
+                                        : (_isLoading
+                                              ? 'Syncing places...'
+                                              : 'Activity Status'),
+                                  ),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
@@ -725,7 +795,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                           if (_syncSubStatusText.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Text(
-                              _syncSubStatusText,
+                              context.tr(_syncSubStatusText),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF64748B),
@@ -799,8 +869,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       const SizedBox(width: 6),
                       Text(
                         _showTerminalLogs
-                            ? 'Hide Raw Logs'
-                            : 'View Raw Terminal Logs (${_logs.length} lines)',
+                            ? context.l10n.hideRawLogs
+                            : context.l10n.viewRawTerminalLogsValueLines(
+                                (_logs.length).toString(),
+                              ),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -874,12 +946,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FD),
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.admin_panel_settings, color: AppColors.primary),
             SizedBox(width: 8),
             Text(
-              'Admin Database Hub',
+              context.l10n.adminDatabaseHub,
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
             ),
           ],
@@ -899,7 +971,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -907,7 +979,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     Icon(Icons.cloud_sync, color: Colors.white, size: 24),
                     SizedBox(width: 8),
                     Text(
-                      'Secret Data Seeder Portal',
+                      context.l10n.secretDataSeederPortal,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -918,7 +990,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Manually discover Google places for the selected state. Save IDs and app categories; load current details when needed.',
+                  context
+                      .l10n
+                      .manuallyDiscoverGooglePlacesForTheSelectedStateSaveIdsAndAppCategoriesLoadCurrentDetailsWh,
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
@@ -939,8 +1013,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      '1. Select Destination State',
+                    Text(
+                      context.l10n.text1SelectDestinationState,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 15,
@@ -956,8 +1030,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        '13 States + KL',
+                      child: Text(
+                        context.l10n.text13StatesKl,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1006,7 +1080,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Database Count for $_selectedState:',
+                          context.l10n.databaseCountForValue(
+                            (_selectedState).toString(),
+                          ),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
@@ -1027,10 +1103,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       ),
                       child: Text(
                         _isFetchingList
-                            ? 'Checking…'
+                            ? context.l10n.checking
                             : _placesLoadError != null
-                            ? 'Unavailable'
-                            : '$_dbCount places',
+                            ? context.l10n.unavailable
+                            : context.l10n.valuePlaces((_dbCount).toString()),
                         style: TextStyle(
                           color: _dbCount > 0
                               ? const Color(0xFF059669)
@@ -1047,7 +1123,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                   Row(
                     children: [
                       _buildCountBadge(
-                        label: 'Indoor',
+                        label: context.l10n.indoor,
                         icon: '🏠',
                         count: _currentPlaces
                             .where((p) => p['is_indoor'] == true)
@@ -1057,7 +1133,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       ),
                       const SizedBox(width: 8),
                       _buildCountBadge(
-                        label: 'Outdoor',
+                        label: context.l10n.outdoor,
                         icon: '☀️',
                         count: _currentPlaces
                             .where((p) => p['is_indoor'] == false)
@@ -1067,7 +1143,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       ),
                       const SizedBox(width: 8),
                       _buildCountBadge(
-                        label: 'Review',
+                        label: context.l10n.review,
                         icon: '❓',
                         count: _currentPlaces
                             .where((p) => p['is_indoor'] == null)
@@ -1102,12 +1178,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(Icons.lock, color: Colors.red, size: 20),
                       SizedBox(width: 8),
                       Text(
-                        'Supabase Row-Level Security (RLS) Locked',
+                        context.l10n.supabaseRowLevelSecurityRlsLocked,
                         style: TextStyle(
                           color: Colors.red,
                           fontWeight: FontWeight.w900,
@@ -1117,8 +1193,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'To allow saving places, run this 1-line command in your Supabase SQL Editor:',
+                  Text(
+                    context
+                        .l10n
+                        .toAllowSavingPlacesRunThis1LineCommandInYourSupabaseSqlEditor,
                     style: TextStyle(fontSize: 11, color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
@@ -1151,9 +1229,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                               ),
                             );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'SQL command copied to clipboard!',
+                                  context.l10n.sqlCommandCopiedToClipboard,
                                 ),
                               ),
                             );
@@ -1180,12 +1258,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(Icons.star_half, color: Color(0xFFB45309), size: 20),
                       SizedBox(width: 8),
                       Text(
-                        'Missing Review Count Column in Supabase',
+                        context.l10n.missingReviewCountColumnInSupabase,
                         style: TextStyle(
                           color: Color(0xFFB45309),
                           fontWeight: FontWeight.w900,
@@ -1196,7 +1274,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Places in $_selectedState are currently saved without review counts. To rank by Popularity Score and display reviews (e.g. 12.4k), run this in Supabase SQL Editor and tap Fetch & Sync again:',
+                    context.l10n
+                        .placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE(
+                          (_selectedState).toString(),
+                        ),
                     style: const TextStyle(fontSize: 11, color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
@@ -1229,9 +1310,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                               ),
                             );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'SQL command copied to clipboard!',
+                                  context.l10n.sqlCommandCopiedToClipboard,
                                 ),
                               ),
                             );
@@ -1247,9 +1328,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         await _loadStateData();
+                        if (!context.mounted) return;
                         messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Checking database schema...'),
+                          SnackBar(
+                            content: Text(context.l10n.checkingDatabaseSchema),
                             duration: Duration(seconds: 1),
                           ),
                         );
@@ -1259,8 +1341,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         size: 16,
                         color: Color(0xFFB45309),
                       ),
-                      label: const Text(
-                        'Already Ran It? Tap to Refresh & Dismiss',
+                      label: Text(
+                        context.l10n.alreadyRanItTapToRefreshDismiss,
                         style: TextStyle(
                           color: Color(0xFFB45309),
                           fontWeight: FontWeight.bold,
@@ -1277,9 +1359,37 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
 
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text(_budgetNotice),
+            child: Text(context.tr(_budgetNotice)),
           ),
           // Action Buttons
+          FilledButton.icon(
+            onPressed: _isLoading || _isFetchingList || _loadingNames
+                ? null
+                : () async {
+                    final state = _selectedState;
+                    await Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlaceDetailsRefreshPage(state: state),
+                      ),
+                    );
+                    if (mounted) await _loadStateData();
+                  },
+            icon: const Icon(Icons.update),
+            label: Text(
+              context.l10n.updateSavedPlacesInValue(
+                (_selectedState).toString(),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              context
+                  .l10n
+                  .refreshHoursRatingsNamesAndLocationsForAllSavedPlacesDiscoverNewPlacesBelowOnlyAddsNewIds,
+            ),
+          ),
           Row(
             children: [
               Expanded(
@@ -1305,10 +1415,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       : const Icon(Icons.download_for_offline),
                   label: Text(
                     _isLoading
-                        ? 'Syncing...'
-                        : _lastSync == null
-                        ? 'Fetch & Sync $_selectedState'
-                        : 'Sync $_selectedState again',
+                        ? context.l10n.syncing
+                        : context.l10n.discoverNewPlaces,
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -1329,8 +1437,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     size: 18,
                     color: Colors.red,
                   ),
-                  label: const Text(
-                    'Clear',
+                  label: Text(
+                    context.l10n.clear,
                     style: TextStyle(color: Colors.red, fontSize: 12),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -1350,8 +1458,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             child: FilledButton.tonalIcon(
               onPressed: _isLoading ? null : _autoClassifyPlaces,
               icon: const Icon(Icons.bolt, color: Color(0xFF4F46E5), size: 18),
-              label: const Text(
-                'How to review categories and settings',
+              label: Text(
+                context.l10n.howToReviewCategoriesAndSettings,
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF4F46E5),
@@ -1378,7 +1486,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Places in Database ($_selectedState)',
+                  context.l10n.placesInDatabaseValue(
+                    (_selectedState).toString(),
+                  ),
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 15,
@@ -1393,9 +1503,26 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           ),
           const SizedBox(height: 8),
 
+          OutlinedButton.icon(
+            onPressed:
+                _loadingNames ||
+                    _isFetchingList ||
+                    _isLoading ||
+                    _currentPlaces.isEmpty
+                ? null
+                : _loadPageNames,
+            icon: const Icon(Icons.cloud_download_outlined),
+            label: Text(
+              _loadingNames
+                  ? context.l10n.loadingNames
+                  : context.l10n.fetchAndSaveThisPage,
+            ),
+          ),
+          Text(context.l10n.loadsUpTo20NamesFromGoogleUsingTheCurrentAllowance),
+          if (_namesNotice != null) Text(context.tr(_namesNotice!)),
           GoogleMapsAttribution(
             attributions: [
-              for (final row in _currentPlaces)
+              for (final row in _liveNames.values)
                 ...((row['attributions'] as List?) ?? []).whereType<Map>().map(
                   (a) => Map<String, dynamic>.from(a),
                 ),
@@ -1410,13 +1537,17 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     : () => _loadStateData(
                         offset: (_pageOffset - 20).clamp(0, _dbCount),
                       ),
-                child: const Text('Previous 20'),
+                child: Text(context.l10n.previous20),
               ),
               Flexible(
                 child: Text(
                   _dbCount == 0
-                      ? '0 places'
-                      : '${_pageOffset + 1}–${(_pageOffset + 20).clamp(0, _dbCount)} of $_dbCount',
+                      ? context.l10n.text0Places
+                      : context.l10n.valueValueOfValue(
+                          (_pageOffset + 1).toString(),
+                          ((_pageOffset + 20).clamp(0, _dbCount)).toString(),
+                          (_dbCount).toString(),
+                        ),
                 ),
               ),
               TextButton(
@@ -1426,7 +1557,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         _pageOffset + 20 >= _dbCount
                     ? null
                     : () => _loadStateData(offset: _pageOffset + 20),
-                child: const Text('Next 20'),
+                child: Text(context.l10n.next20),
               ),
             ],
           ),
@@ -1434,10 +1565,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           if (_currentPlaces.any(
             (p) => p['name'] == 'Incomplete import — needs review',
           ))
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: Text(
-                'Some older imports have unverified countries or states. These are marked for review; repeating the full sync will not repair them.',
+                context
+                    .l10n
+                    .someOlderImportsHaveUnverifiedCountriesOrStatesTheseAreMarkedForReviewRepeatingTheFullSync,
               ),
             ),
           if (_isFetchingList)
@@ -1451,7 +1584,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                _placesLoadError!,
+                context.tr(_placesLoadError!),
                 style: const TextStyle(color: Colors.red),
               ),
             )
@@ -1468,15 +1601,19 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'No places stored for $_selectedState yet.',
+                    context.l10n.noPlacesStoredForValueYet(
+                      (_selectedState).toString(),
+                    ),
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: AppColors.muted,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'This state has no saved records. Syncing it will use Google API quota.',
+                  Text(
+                    context
+                        .l10n
+                        .thisStateHasNoSavedRecordsSyncingItWillUseGoogleApiQuota,
                     style: TextStyle(fontSize: 12, color: AppColors.muted),
                     textAlign: TextAlign.center,
                   ),
@@ -1492,14 +1629,23 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       !value.contains('key=')
                   ? value
                   : null;
+              final resolvedFallback = AttractionImageResolver.resolvePhotoUrl(
+                Attraction(
+                  xid: p['place_id']?.toString() ?? '',
+                  name: p['name']?.toString() ?? '',
+                  latitude: (p['latitude'] as num?)?.toDouble() ?? 0.0,
+                  longitude: (p['longitude'] as num?)?.toDouble() ?? 0.0,
+                  category: p['category']?.toString() ?? 'Attraction',
+                ),
+              );
               final primaryPhoto = rawPhoto != null && rawPhoto.isNotEmpty
                   ? (rawPhoto.contains('|')
                         ? rawPhoto.split('|').first
                         : rawPhoto)
-                  : null;
+                  : resolvedFallback;
               final photoCount = rawPhoto != null && rawPhoto.contains('|')
                   ? rawPhoto.split('|').length
-                  : (rawPhoto != null && rawPhoto.isNotEmpty ? 1 : 0);
+                  : (primaryPhoto != null && primaryPhoto.isNotEmpty ? 1 : 0);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -1541,7 +1687,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            p['name']?.toString() ?? 'Place',
+                            _liveNames[p['place_id']]?['_live'] == true
+                                ? _liveNames[p['place_id']]!['name'].toString()
+                                : p['name'] == 'Saved Google place'
+                                ? context.l10n.pendingSyncTapFetchAndSave
+                                : p['name']?.toString() ?? 'Name unavailable',
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
@@ -1551,10 +1701,15 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
+                          Text(
+                            'ID: ${p['place_id']}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           TextButton(
                             onPressed: () => _togglePlaceIndoorOutdoor(p),
-                            child: const Text(
-                              'Review stored data / load live details',
+                            child: Text(
+                              context.l10n.reviewStoredDataLoadLiveDetails,
                             ),
                           ),
                           Wrap(

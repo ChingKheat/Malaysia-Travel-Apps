@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
@@ -30,7 +31,7 @@ class QuickAction extends StatelessWidget {
             Icon(icon, color: AppColors.primary),
             const SizedBox(height: 8),
             Text(
-              label,
+              context.tr(label),
               textAlign: TextAlign.center,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
             ),
@@ -113,7 +114,7 @@ class FeatureGrid extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    item.$2,
+                    context.tr(item.$2),
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       color: AppColors.ink,

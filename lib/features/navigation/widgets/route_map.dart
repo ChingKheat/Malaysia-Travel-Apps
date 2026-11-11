@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -153,11 +154,11 @@ class MapLegend extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: cardDecoration(),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Optimized order',
+            context.l10n.optimizedOrder,
             style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
           ),
           SizedBox(height: 8),

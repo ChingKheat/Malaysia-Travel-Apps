@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -6,16 +7,9 @@ import 'package:smart_travel_planner/features/profile/screens/profile_page.dart'
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 
 class AppHeader extends StatelessWidget {
-  const AppHeader({
-    super.key,
-    this.title,
-    this.subtitle,
-  });
+  const AppHeader({super.key, this.title, this.subtitle});
 
-  const AppHeader.home({
-    super.key,
-    this.subtitle,
-  }) : title = null;
+  const AppHeader.home({super.key, this.subtitle}) : title = null;
 
   const AppHeader.explore({
     super.key,
@@ -53,9 +47,12 @@ class AppHeader extends StatelessWidget {
         final firstName = user != null && user.name.trim().isNotEmpty
             ? user.name.trim().split(' ').first
             : 'Traveler';
-        final displayTitle = title ?? 'Hello, $firstName!';
-        final displaySubtitle =
-            subtitle ?? 'Where would you like to explore today?';
+        final displayTitle = title == null
+            ? context.l10n.helloValue(firstName)
+            : context.tr(title!);
+        final displaySubtitle = subtitle == null
+            ? context.l10n.whereWouldYouLikeToExploreToday
+            : context.tr(subtitle!);
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -67,8 +64,7 @@ class AppHeader extends StatelessWidget {
                 children: [
                   Text(
                     displayTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
@@ -78,8 +74,7 @@ class AppHeader extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     displaySubtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: const TextStyle(
                       color: AppColors.muted,
                       fontSize: 13,
@@ -91,16 +86,15 @@ class AppHeader extends StatelessWidget {
             IconButton.filledTonal(
               onPressed: () => showDemoSheet(
                 context,
-                title: 'Notifications',
-                body:
-                    '• Weather alert: light rain expected after 3 PM.\n'
-                    '• Route updated: Jalan Alor moved earlier to avoid crowds.\n'
-                    '• Reminder: Batu Caves opens at 7:00 AM tomorrow.',
+                title: context.l10n.notifications,
+                body: context
+                    .l10n
+                    .weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde,
                 icon: Icons.notifications_active_outlined,
-                actionLabel: 'Dismiss',
+                actionLabel: context.l10n.dismiss,
               ),
               icon: const Icon(Icons.notifications_none),
-              tooltip: 'Notifications',
+              tooltip: context.l10n.notifications,
             ),
             const SizedBox(width: 10),
             GestureDetector(
@@ -119,12 +113,15 @@ class AppHeader extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 20,
                   backgroundColor: AppColors.sky,
-                  backgroundImage:
-                      user != null && user.avatarUrl.isNotEmpty
-                          ? NetworkImage(user.avatarUrl)
-                          : null,
+                  backgroundImage: user != null && user.avatarUrl.isNotEmpty
+                      ? NetworkImage(user.avatarUrl)
+                      : null,
                   child: user == null || user.avatarUrl.isEmpty
-                      ? const Icon(Icons.person, color: AppColors.primary, size: 20)
+                      ? const Icon(
+                          Icons.person,
+                          color: AppColors.primary,
+                          size: 20,
+                        )
                       : null,
                 ),
               ),
@@ -140,4 +137,3 @@ class AppHeader extends StatelessWidget {
 Widget buildAppHeader({String? title, String? subtitle}) {
   return AppHeader(title: title, subtitle: subtitle);
 }
-

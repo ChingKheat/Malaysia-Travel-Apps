@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -91,18 +92,18 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Saved Places Inspector'),
+          title: Text(context.l10n.savedPlacesInspector),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
-          bottom: const TabBar(
+          bottom: TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
             indicatorColor: AppColors.teal,
             indicatorWeight: 3,
             tabs: [
-              Tab(icon: Icon(Icons.place), text: 'Retrieved Places'),
-              Tab(icon: Icon(Icons.code), text: 'Raw JSON Output'),
+              Tab(icon: Icon(Icons.place), text: context.l10n.retrievedPlaces),
+              Tab(icon: Icon(Icons.code), text: context.l10n.rawJsonOutput),
             ],
           ),
         ),
@@ -120,7 +121,7 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                         child: TextField(
                           controller: _cityController,
                           decoration: InputDecoration(
-                            labelText: 'Search City / Destination',
+                            labelText: context.l10n.searchCityDestination,
                             prefixIcon: const Icon(
                               Icons.search,
                               color: AppColors.primary,
@@ -160,7 +161,11 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                                 ),
                               )
                             : const Icon(Icons.cloud_download),
-                        label: Text(_isLoading ? 'Fetching...' : 'Retrieve'),
+                        label: Text(
+                          _isLoading
+                              ? context.l10n.fetching
+                              : context.l10n.retrieve,
+                        ),
                       ),
                     ],
                   ),
@@ -206,8 +211,8 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                               _statusCode != null
                                   ? 'HTTP Status: $_statusCode OK'
                                   : (_isLoading
-                                        ? 'Reading saved database...'
-                                        : 'Ready'),
+                                        ? context.l10n.readingSavedDatabase
+                                        : context.l10n.ready),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: _statusCode == 200
@@ -235,7 +240,9 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              '${_retrievedPlaces.length} Items',
+                              context.l10n.valueItems2(
+                                (_retrievedPlaces.length).toString(),
+                              ),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -257,7 +264,7 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                 padding: const EdgeInsets.all(12),
                 color: Colors.red.shade100,
                 child: Text(
-                  _errorMessage,
+                  context.tr(_errorMessage),
                   style: TextStyle(color: Colors.red.shade900),
                 ),
               ),
@@ -270,7 +277,7 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _retrievedPlaces.isEmpty
-                      ? const Center(child: Text('No places retrieved yet.'))
+                      ? Center(child: Text(context.l10n.noPlacesRetrievedYet))
                       : ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: _retrievedPlaces.length,
@@ -302,7 +309,11 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  'Category: ${place['type']}\nLocation: (${place['lat']}, ${place['lon']})',
+                                  context.l10n.categoryValueLocationValueValue(
+                                    (place['type']).toString(),
+                                    (place['lat']).toString(),
+                                    (place['lon']).toString(),
+                                  ),
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 trailing: const Icon(

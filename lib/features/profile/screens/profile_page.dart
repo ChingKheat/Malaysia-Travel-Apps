@@ -1,4 +1,7 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/core/localization/language_controller.dart';
+import 'package:smart_travel_planner/shared/widgets/language_selector.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
@@ -43,14 +46,14 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Log Out'),
-        content: const Text(
-          'Are you sure you want to log out of your travel profile?',
+        title: Text(context.l10n.logOut),
+        content: Text(
+          context.l10n.areYouSureYouWantToLogOutOfYourTravelProfile,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -59,12 +62,12 @@ class _ProfilePageState extends State<ProfilePage> {
               _authService.logout();
               showDemoSnackBar(
                 context,
-                'Successfully logged out.',
+                context.l10n.successfullyLoggedOut,
                 icon: Icons.logout_outlined,
               );
             },
-            child: const Text(
-              'Log Out',
+            child: Text(
+              context.l10n.logOut,
               style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
@@ -77,15 +80,15 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('No active profile found.')),
+      return Scaffold(
+        body: Center(child: Text(context.l10n.noActiveProfileFound)),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'My Profile',
+        title: Text(
+          context.l10n.myProfile,
           style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
         backgroundColor: Colors.white,
@@ -172,7 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       if (user.isAdmin)
                         _buildBadge(
-                          '👑 Admin',
+                          context.l10n.admin,
                           const Color(0xFFFEF3C7),
                           const Color(0xFFB45309),
                         ),
@@ -189,7 +192,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Expanded(
                   child: _buildStatCard(
                     context,
-                    label: 'Trips Planned',
+                    label: context.l10n.tripsPlanned,
                     value: '${user.tripsPlanned}',
                     icon: Icons.event_note,
                     iconColor: AppColors.primary,
@@ -199,7 +202,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Expanded(
                   child: _buildStatCard(
                     context,
-                    label: 'Places Visited',
+                    label: context.l10n.placesVisited,
                     value: '${user.placesVisited}',
                     icon: Icons.explore,
                     iconColor: AppColors.teal,
@@ -215,10 +218,10 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
                     child: Text(
-                      'Account Settings',
+                      context.l10n.accountSettings,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -228,22 +231,19 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   _buildListTile(
                     icon: Icons.edit_outlined,
-                    title: 'Edit Profile',
-                    subtitle: 'Change your full name',
+                    title: context.l10n.editProfile,
+                    subtitle: context.l10n.changeYourFullName,
                     onTap: _editProfile,
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   _buildListTile(
                     icon: Icons.language,
-                    title: 'App Language',
-                    subtitle: 'English (United States)',
-                    onTap: () => showDemoSheet(
-                      context,
-                      title: 'Language Support',
-                      body:
-                          'Our app supports English, Malay (Bahasa Melayu), and Chinese (简体中文). You can update your language preferences anytime.',
-                      icon: Icons.translate,
-                    ),
+                    title: context.l10n.appLanguage,
+                    subtitle:
+                        LanguageController.languageNames[LanguageScope.of(
+                          context,
+                        ).locale.languageCode]!,
+                    onTap: () => showLanguageSelector(context),
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   Material(
@@ -258,8 +258,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         Icons.notifications_outlined,
                         color: AppColors.primary,
                       ),
-                      title: const Text(
-                        'Push Notifications',
+                      title: Text(
+                        context.l10n.pushNotifications,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
@@ -278,15 +278,15 @@ class _ProfilePageState extends State<ProfilePage> {
                         demoHaptic();
                         showDemoSnackBar(
                           context,
-                          'Dark mode is not supported in the demo version.',
+                          context.l10n.darkModeIsNotSupportedInTheDemoVersion,
                         );
                       },
                       secondary: const Icon(
                         Icons.dark_mode_outlined,
                         color: AppColors.primary,
                       ),
-                      title: const Text(
-                        'Dark Mode',
+                      title: Text(
+                        context.l10n.darkMode,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
@@ -306,10 +306,10 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
                     child: Text(
-                      'Information',
+                      context.l10n.information,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -319,36 +319,38 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   _buildListTile(
                     icon: Icons.info_outline,
-                    title: 'About Smart Travel Planner',
+                    title: context.l10n.aboutSmartTravelPlanner,
                     subtitle: 'v1.0.0 (FYP Prototype Demo)',
                     onTap: () => showDemoSheet(
                       context,
-                      title: 'About App',
-                      body:
-                          'This app is a prototype designed for a Final Year Project to showcase automated route scheduling and map visualization in Malaysia.',
+                      title: context.l10n.aboutApp,
+                      body: context
+                          .l10n
+                          .thisAppIsAPrototypeDesignedForAFinalYearProjectToShowcaseAutomatedRouteSchedulingAndMapVis,
                       icon: Icons.info,
                     ),
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   _buildListTile(
                     icon: Icons.description_outlined,
-                    title: 'Privacy Policy & Terms',
-                    subtitle: 'Read our terms of service',
+                    title: context.l10n.privacyPolicyTerms,
+                    subtitle: context.l10n.readOurTermsOfService,
                     onTap: () => showDemoSheet(
                       context,
-                      title: 'Privacy & Terms',
-                      body:
-                          'By using this app, you agree to our terms of service. No real personal data is collected or sent to any server.',
+                      title: context.l10n.privacyTerms,
+                      body: context
+                          .l10n
+                          .byUsingThisAppYouAgreeToOurTermsOfServiceNoRealPersonalDataIsCollectedOrSentToAnyServer,
                       icon: Icons.description,
                     ),
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   _buildListTile(
                     icon: Icons.admin_panel_settings_outlined,
-                    title: 'Admin Database Hub',
+                    title: context.l10n.adminDatabaseHub,
                     subtitle: user.isAdmin
-                        ? 'Secret portal to fetch & sync places'
-                        : 'Admin access (Tap to log in as admin)',
+                        ? context.l10n.secretPortalToFetchSyncPlaces
+                        : context.l10n.adminAccessTapToLogInAsAdmin,
                     onTap: () {
                       if (!user.isAdmin) {
                         _showAdminLoginDialog(context);
@@ -374,8 +376,8 @@ class _ProfilePageState extends State<ProfilePage> {
               child: OutlinedButton.icon(
                 onPressed: _handleLogout,
                 icon: const Icon(Icons.logout, color: Colors.redAccent),
-                label: const Text(
-                  'Log Out',
+                label: Text(
+                  context.l10n.logOut,
                   style: TextStyle(
                     color: Colors.redAccent,
                     fontWeight: FontWeight.w800,
@@ -446,7 +448,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 6),
           Text(
-            label,
+            context.tr(label),
             style: const TextStyle(
               color: AppColors.muted,
               fontSize: 13,
@@ -499,24 +501,26 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.admin_panel_settings, color: AppColors.primary),
             SizedBox(width: 8),
-            Text('Admin Hub Access'),
+            Text(context.l10n.adminHubAccess),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'The Admin Database Hub requires administrator privileges to fetch, sync, and import places from Google.',
+              context
+                  .l10n
+                  .theAdminDatabaseHubRequiresAdministratorPrivilegesToFetchSyncAndImportPlacesFromGoogle,
               style: TextStyle(fontSize: 14),
             ),
             SizedBox(height: 14),
             Text(
-              'Default Admin Account:\nEmail: chingkheat@example.com\nPassword: SafeP@ss123!',
+              '${context.l10n.emailAddress}: chingkheat@example.com\n${context.l10n.password}: SafeP@ss123!',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -528,11 +532,11 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton.icon(
             icon: const Icon(Icons.login, size: 18),
-            label: const Text('Login as Admin'),
+            label: Text(context.l10n.loginAsAdmin),
             onPressed: () async {
               Navigator.pop(ctx);
               final res = await AuthService().login(
@@ -541,8 +545,10 @@ class _ProfilePageState extends State<ProfilePage> {
               );
               if (res && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Logged in as Administrator (Ching Kheat)'),
+                  SnackBar(
+                    content: Text(
+                      context.l10n.loggedInAsAdministratorChingKheat,
+                    ),
                   ),
                 );
                 Navigator.push(
@@ -584,21 +590,21 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Edit profile'),
+    title: Text(context.l10n.editProfile2),
     content: TextField(
       controller: _controller,
       autofocus: true,
       textCapitalization: TextCapitalization.words,
-      decoration: const InputDecoration(labelText: 'Full name'),
+      decoration: InputDecoration(labelText: context.l10n.fullName2),
     ),
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
+        child: Text(context.l10n.cancel),
       ),
       FilledButton(
         onPressed: () => Navigator.pop(context, _controller.text),
-        child: const Text('Save'),
+        child: Text(context.l10n.save),
       ),
     ],
   );

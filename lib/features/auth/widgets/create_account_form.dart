@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -39,8 +40,9 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   }
 
   void _clearValidationError(String field) {
-    if (_errorMessage == null && !_highlightedEmptyFields.contains(field))
+    if (_errorMessage == null && !_highlightedEmptyFields.contains(field)) {
       return;
+    }
     setState(() {
       _errorMessage = null;
       _highlightedEmptyFields.remove(field);
@@ -92,14 +94,16 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
         await showDialog<void>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('Check your email'),
-            content: const Text(
-              'If this email can be registered, a confirmation email will be sent. Open the link in that email, then return here and log in. You are not signed in yet.',
+            title: Text(context.l10n.checkYourEmail),
+            content: Text(
+              context
+                  .l10n
+                  .ifThisEmailCanBeRegisteredAConfirmationEmailWillBeSentOpenTheLinkInThatEmailThenReturnHere,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('OK'),
+                child: Text(context.l10n.ok),
               ),
             ],
           ),
@@ -126,8 +130,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header description
-          const Text(
-            'Create Account',
+          Text(
+            context.l10n.createAccount,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w900,
@@ -135,8 +139,10 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Register as a new tourist to plan your personalized trips in Malaysia.',
+          Text(
+            context
+                .l10n
+                .registerAsANewTouristToPlanYourPersonalizedTripsInMalaysia,
             style: TextStyle(fontSize: 14, color: AppColors.muted),
           ),
           const SizedBox(height: 20),
@@ -162,7 +168,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      _errorMessage!,
+                      context.tr(_errorMessage!),
                       style: TextStyle(
                         color: Colors.red.shade900,
                         fontSize: 13.5,
@@ -178,14 +184,14 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           ],
 
           // Field 1: Full Name
-          _buildLabel('Full Name', isMandatory: true),
+          _buildLabel(context.l10n.fullName, isMandatory: true),
           const SizedBox(height: 6),
           TextField(
             controller: _nameController,
             onChanged: (_) => _clearValidationError('name'),
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
-              hint: 'e.g. Ali Bin Ahmad',
+              hint: context.l10n.eGAliBinAhmad,
               icon: Icons.person_outline,
               isError: _highlightedEmptyFields.contains('name'),
             ),
@@ -193,7 +199,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           const SizedBox(height: 16),
 
           // Field 2: Email Address
-          _buildLabel('Email Address', isMandatory: true),
+          _buildLabel(context.l10n.emailAddress, isMandatory: true),
           const SizedBox(height: 6),
           TextField(
             controller: _emailController,
@@ -201,7 +207,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
-              hint: 'e.g. tourist@example.com',
+              hint: context.l10n.eGTouristExampleCom,
               icon: Icons.email_outlined,
               isError: _highlightedEmptyFields.contains('email'),
             ),
@@ -209,7 +215,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           const SizedBox(height: 16),
 
           // Field 3: Password
-          _buildLabel('Password', isMandatory: true),
+          _buildLabel(context.l10n.password, isMandatory: true),
           const SizedBox(height: 6),
           TextField(
             controller: _passwordController,
@@ -217,10 +223,13 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
-              hint: 'Enter strong password',
+              hint: context.l10n.enterStrongPassword,
               icon: Icons.lock_outline,
               isError: _highlightedEmptyFields.contains('password'),
               suffix: IconButton(
+                tooltip: _obscurePassword
+                    ? context.l10n.showPassword
+                    : context.l10n.hidePassword,
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_off_outlined
@@ -245,8 +254,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Password Strength Policy (C3):',
+                Text(
+                  context.l10n.passwordStrengthPolicyC3,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -277,7 +286,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           const SizedBox(height: 16),
 
           // Field 4: Confirm Password
-          _buildLabel('Confirm Password', isMandatory: true),
+          _buildLabel(context.l10n.confirmPassword, isMandatory: true),
           const SizedBox(height: 6),
           TextField(
             controller: _confirmPasswordController,
@@ -286,10 +295,13 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleRegister(),
             decoration: _inputDecoration(
-              hint: 'Re-enter password',
+              hint: context.l10n.reEnterPassword,
               icon: Icons.lock_clock_outlined,
               isError: _highlightedEmptyFields.contains('confirmPassword'),
               suffix: IconButton(
+                tooltip: _obscureConfirmPassword
+                    ? context.l10n.showPassword
+                    : context.l10n.hidePassword,
                 icon: Icon(
                   _obscureConfirmPassword
                       ? Icons.visibility_off_outlined
@@ -323,8 +335,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                       ),
                       backgroundColor: AppColors.primary,
                     ),
-                    child: const Text(
-                      'Register Account',
+                    child: Text(
+                      context.l10n.registerAccount,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -347,25 +359,27 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               child: ExpansionTile(
                 initiallyExpanded: false,
                 title: Row(
-                  children: const [
+                  children: [
                     Icon(
                       Icons.bug_report_outlined,
                       size: 18,
                       color: AppColors.primary,
                     ),
                     SizedBox(width: 8),
-                    Text(
-                      'UC100 Flow Testing Tools',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.ink,
+                    Flexible(
+                      child: Text(
+                        context.l10n.uc100FlowTestingTools,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.ink,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                subtitle: const Text(
-                  'Quickly test messages M1–M6 & alternative flows A1–A5',
+                subtitle: Text(
+                  context.l10n.quicklyTestMessagesM1M6AlternativeFlowsA1A5,
                   style: TextStyle(fontSize: 11, color: AppColors.muted),
                 ),
                 children: [
@@ -384,8 +398,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                                 Icons.mark_email_read_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Fill Valid Form',
+                              label: Text(
+                                context.l10n.fillValidForm,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -403,8 +417,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                                 Icons.email_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Test A5 (Email Exists)',
+                              label: Text(
+                                context.l10n.testA5EmailExists,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -422,8 +436,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                                 Icons.lock_open_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Test A3 (Weak Pwd)',
+                              label: Text(
+                                context.l10n.testA3WeakPwd,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -439,8 +453,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                                 Icons.compare_arrows_outlined,
                                 size: 16,
                               ),
-                              label: const Text(
-                                'Test A4 (Mismatch)',
+                              label: Text(
+                                context.l10n.testA4Mismatch,
                                 style: TextStyle(fontSize: 11),
                               ),
                               onPressed: () {
@@ -469,12 +483,14 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   Widget _buildLabel(String text, {bool isMandatory = false}) {
     return Row(
       children: [
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.ink,
+        Flexible(
+          child: Text(
+            context.tr(text),
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+            ),
           ),
         ),
         if (isMandatory)
@@ -534,12 +550,16 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             color: isSatisfied ? Colors.green.shade600 : Colors.grey.shade400,
           ),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              color: isSatisfied ? Colors.green.shade800 : Colors.grey.shade700,
-              fontWeight: isSatisfied ? FontWeight.w600 : FontWeight.normal,
+          Flexible(
+            child: Text(
+              context.tr(label),
+              style: TextStyle(
+                fontSize: 11.5,
+                color: isSatisfied
+                    ? Colors.green.shade800
+                    : Colors.grey.shade700,
+                fontWeight: isSatisfied ? FontWeight.w600 : FontWeight.normal,
+              ),
             ),
           ),
         ],

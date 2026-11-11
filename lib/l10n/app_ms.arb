@@ -1,0 +1,1656 @@
+{
+  "@@locale": "ms",
+  "appLanguage": "Bahasa Aplikasi",
+  "languageChanged": "Bahasa telah ditukar.",
+  "languageSessionOnly": "Bahasa ditukar untuk sesi ini. Pilihan anda tidak dapat disimpan.",
+  "home": "Utama",
+  "explore": "Teroka",
+  "recognize": "Kenal Pasti",
+  "plan": "Rancang",
+  "ai": "AI",
+  "back": "Kembali",
+  "cancel": "Batal",
+  "save": "Simpan",
+  "delete": "Padam",
+  "clear": "Kosongkan",
+  "close": "Tutup",
+  "done": "Selesai",
+  "retry": "Cuba Lagi",
+  "tryAgain": "Cuba Lagi",
+  "ok": "OK",
+  "gotIt": "Faham",
+  "dismiss": "Tutup",
+  "change": "Tukar",
+  "details": "Butiran",
+  "about": "Tentang",
+  "unavailable": "Tidak tersedia",
+  "information": "Maklumat",
+  "ready": "Sedia",
+  "stop": "Henti",
+  "open": "Buka",
+  "all": "Semua",
+  "allValue": "Semua ({arg0})",
+  "@allValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveChanges": "Simpan Perubahan",
+  "readMore": "Baca lagi",
+  "readLess": "Ringkaskan",
+  "viewAll": "Lihat Semua",
+  "seeAll": "Lihat Semua",
+  "viewOnMap": "Lihat pada Peta",
+  "openInGoogleMaps": "Buka dalam Google Maps",
+  "sharePlace": "Kongsi tempat",
+  "copyAddress": "Salin alamat",
+  "addressCopiedToClipboard": "Alamat disalin!",
+  "address": "Alamat",
+  "addressUnavailable": "Alamat tidak tersedia",
+  "descriptionUnavailable": "Penerangan tidak tersedia.",
+  "detailsUnavailable": "Butiran tidak tersedia",
+  "placeDetailsAreUnavailable": "Butiran tempat tidak tersedia.",
+  "nameUnavailable": "Nama tidak tersedia",
+  "phone": "Telefon",
+  "phoneUnavailable": "Telefon tidak tersedia",
+  "website": "Laman web",
+  "websiteUnavailable": "Laman web tidak tersedia",
+  "rating": "Penilaian",
+  "ratingUnavailable": "Penilaian tidak tersedia",
+  "reviews": "Ulasan",
+  "reviewCountUnavailable": "Bilangan ulasan tidak tersedia",
+  "openingHours": "Waktu operasi",
+  "openingHoursUnavailableCheckBeforeVisiting": "Waktu operasi tidak tersedia. Semak sebelum melawat.",
+  "operatingHoursMayVaryDuringPublicHolidaysOrSpecialEvents": "Waktu operasi mungkin berubah pada cuti umum atau acara khas.",
+  "hoursUnverified": "Waktu belum disahkan",
+  "photoUnavailable": "Foto tidak tersedia",
+  "loadPhoto": "Muatkan foto",
+  "retryPhoto": "Cuba semula foto",
+  "photoValue": "Foto: {arg0}",
+  "@photoValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "source": "Sumber",
+  "indoor": "Dalam bangunan",
+  "outdoor": "Luar bangunan",
+  "attraction": "Tarikan",
+  "attractions": "Tarikan",
+  "food": "Makanan",
+  "shopping": "Membeli-belah",
+  "culture": "Budaya",
+  "nature": "Alam Semula Jadi",
+  "adventure": "Pengembaraan",
+  "family": "Keluarga",
+  "museum": "Muzium",
+  "sight": "Tarikan",
+  "science": "Sains",
+  "nightlife": "Hiburan Malam",
+  "landmarks": "Mercu Tanda",
+  "nearby": "Berdekatan",
+  "popular": "Popular",
+  "airConditioned": "Berhawa dingin",
+  "comfortableFootwearAdvised": "Disarankan memakai kasut yang selesa",
+  "welcomeBack": "Selamat Kembali",
+  "selamatDatang": "Selamat Datang!",
+  "smartTravelPlanning": "Perancangan\nPelancongan Pintar",
+  "smartTravelPlanner": "Perancang Pelancongan Pintar",
+  "smartTravelPlanning2": "Perancangan Pelancongan Pintar",
+  "yourSmartTravelCompanionInMalaysia": "Teman Pelancongan Pintar Anda\ndi Malaysia",
+  "autoSmartScheduling": "Penjadualan Pintar Automatik",
+  "planTheBestRouteForYou": "Rancang laluan terbaik untuk anda",
+  "realTimeUpdates": "Kemas Kini Masa Nyata",
+  "weatherTrafficOpeningHours": "Cuaca, trafik dan waktu operasi",
+  "multiLanguageSupport": "Sokongan Pelbagai Bahasa",
+  "getStarted": "Mula",
+  "logInSignUp": "Log Masuk / Daftar",
+  "logIn": "Log Masuk",
+  "createAccount": "Cipta Akaun",
+  "registerAccount": "Daftar Akaun",
+  "logOut": "Log Keluar",
+  "malaysiaTravelPortal": "Portal Pelancongan Malaysia",
+  "accessAiItinerariesWeatherAlertsAndSmartRouteOptimization": "Akses jadual perjalanan AI, amaran cuaca dan pengoptimuman laluan pintar.",
+  "signInToManageYourMalaysiaTravelPlans": "Log masuk untuk mengurus rancangan perjalanan Malaysia anda.",
+  "registerAsANewTouristToPlanYourPersonalizedTripsInMalaysia": "Daftar untuk merancang perjalanan peribadi anda di Malaysia.",
+  "emailAddress": "Alamat E-mel",
+  "password": "Kata Laluan",
+  "confirmPassword": "Sahkan Kata Laluan",
+  "fullName": "Nama Penuh",
+  "fullName2": "Nama penuh",
+  "enterYourPassword": "Masukkan kata laluan anda",
+  "enterStrongPassword": "Masukkan kata laluan kukuh",
+  "reEnterPassword": "Masukkan semula kata laluan",
+  "eGAliBinAhmad": "cth. Ali Bin Ahmad",
+  "eGTouristExampleCom": "cth. tourist@example.com",
+  "pleaseEnterYourEmail": "Sila masukkan e-mel anda",
+  "pleaseEnterAValidEmail": "Sila masukkan e-mel yang sah",
+  "pleaseEnterYourPassword": "Sila masukkan kata laluan anda",
+  "passwordMustBeAtLeast6Characters": "Kata laluan mesti sekurang-kurangnya 6 aksara",
+  "passwordStrengthPolicyC3": "Syarat Kekuatan Kata Laluan (C3):",
+  "atLeast8Characters": "Sekurang-kurangnya 8 aksara",
+  "oneLowercaseLetterAZ": "Satu huruf kecil (a-z)",
+  "oneUppercaseLetterAZ": "Satu huruf besar (A-Z)",
+  "oneNumber09": "Satu nombor (0-9)",
+  "oneSpecialCharacter": "Satu aksara khas (!@#$%^&*)",
+  "checkYourEmail": "Semak e-mel anda",
+  "ifThisEmailCanBeRegisteredAConfirmationEmailWillBeSentOpenTheLinkInThatEmailThenReturnHere": "Jika e-mel ini boleh didaftarkan, e-mel pengesahan akan dihantar. Buka pautan dalam e-mel itu, kemudian kembali untuk log masuk. Anda belum log masuk.",
+  "loggedInAsGuestTraveler": "Log masuk sebagai Pelancong Tetamu!",
+  "successfullyLoggedOut": "Berjaya log keluar.",
+  "myProfile": "Profil Saya",
+  "noActiveProfileFound": "Tiada profil aktif ditemui.",
+  "accountSettings": "Tetapan Akaun",
+  "editProfile": "Edit Profil",
+  "editProfile2": "Edit profil",
+  "changeYourFullName": "Tukar nama penuh anda",
+  "areYouSureYouWantToLogOutOfYourTravelProfile": "Adakah anda pasti mahu log keluar?",
+  "pushNotifications": "Pemberitahuan Tolak",
+  "darkMode": "Mod Gelap",
+  "darkModeIsNotSupportedInTheDemoVersion": "Mod gelap tidak disokong dalam versi demo.",
+  "privacyTerms": "Privasi & Terma",
+  "privacyPolicyTerms": "Dasar Privasi & Terma",
+  "aboutApp": "Tentang Aplikasi",
+  "aboutSmartTravelPlanner": "Tentang Perancang Pelancongan Pintar",
+  "tripsPlanned": "Perjalanan Dirancang",
+  "placesVisited": "Tempat Dilawati",
+  "traveler": "Pelancong",
+  "smartTourist": "Pelancong Pintar",
+  "exploreMalaysia": "Terokai Malaysia",
+  "discoverAttractionsPlaces": "Temui tarikan dan tempat",
+  "imageRecognition": "Pengecaman Imej",
+  "imageRecognition2": "Pengecaman imej",
+  "discoverMalaysiaThroughYourCamera": "Terokai Malaysia melalui kamera anda",
+  "planYourTrip": "Rancang Perjalanan Anda",
+  "tellUsYourPreferences": "Beritahu kami pilihan anda",
+  "tripAssistant": "Pembantu Pelancongan",
+  "aiHelpTranslationAndWeatherAlerts": "Bantuan AI, terjemahan dan amaran cuaca",
+  "helloValue": "Helo, {arg0}!",
+  "@helloValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeBackValue": "Selamat kembali, {arg0}!",
+  "@welcomeBackValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "whereWouldYouLikeToExploreToday": "Di mana anda ingin meneroka hari ini?",
+  "whereToNext": "Ke mana seterusnya?",
+  "popularAttractions": "Tarikan Popular",
+  "topMustVisitDestinationsInMalaysia": "Destinasi wajib dilawati di Malaysia",
+  "browseAttractions": "Lihat Tarikan",
+  "myTrips": "Perjalanan Saya",
+  "viewSavedItinerariesAndYourCurrentPlan": "Lihat jadual tersimpan dan rancangan semasa anda",
+  "viewItinerary": "Lihat Jadual Perjalanan",
+  "viewNearby": "Lihat Berdekatan",
+  "aiItinerary": "Jadual perjalanan AI",
+  "routeOptimizer": "Pengoptimum laluan",
+  "weatherUpdates": "Kemas kini cuaca",
+  "budgetFilter": "Penapis bajet",
+  "multiLanguage": "Pelbagai bahasa",
+  "offlineMode": "Mod luar talian",
+  "itineraryLabelsReadyInEnglishMalayAndChinese": "Label jadual tersedia dalam bahasa Inggeris, Melayu dan Cina.",
+  "aTripThatFitsYou": "Perjalanan yang sesuai untuk anda",
+  "whereAndWhenWouldYouLikeToGo": "Ke mana dan bila anda ingin pergi?",
+  "chooseYourDatesDailyPaceAndFavouriteThingsToDo": "Pilih tarikh, rentak harian dan aktiviti kegemaran anda.",
+  "destination": "Destinasi",
+  "travelDates": "Tarikh perjalanan",
+  "selectTravelDates": "Pilih tarikh perjalanan",
+  "selectTravelDates2": "Pilih Tarikh Perjalanan",
+  "selectDestination": "Pilih Destinasi",
+  "selectState": "Pilih Negeri",
+  "yourDailyPace": "Rentak harian anda",
+  "dailyStartTime": "Waktu Mula Harian",
+  "dailyEndTime": "Waktu Tamat Harian",
+  "selectTime": "Pilih Masa",
+  "chooseASuggestedSchedule": "Pilih jadual yang dicadangkan",
+  "setAsideTimeForAttractionsMealsAndGettingAround": "Peruntukkan masa untuk tarikan, makanan dan perjalanan.",
+  "relaxed": "Santai",
+  "standard": "Biasa",
+  "full": "Penuh",
+  "plannedDuration": "Tempoh dirancang",
+  "makeItYourKindOfTrip": "Rancang mengikut citarasa anda",
+  "interests": "Minat",
+  "pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou": "Pilih satu atau lebih minat. Kami akan mencari tempat yang sesuai.",
+  "chooseYourDailyBudget": "Pilih bajet harian anda",
+  "dailyBudget": "Bajet harian",
+  "budget": "Bajet",
+  "low": "Rendah",
+  "medium": "Sederhana",
+  "high": "Tinggi",
+  "underRm150": "Bawah RM150",
+  "overRm300": "Lebih RM300",
+  "perPersonIncludingMealsAttractionTicketsAndLocalTransport": "Seorang, termasuk makanan, tiket tarikan dan pengangkutan tempatan.",
+  "gettingAround": "Pengangkutan",
+  "chooseHowYouWillTravelBetweenPlaces": "Pilih cara perjalanan antara tempat.",
+  "driving": "Memandu",
+  "walking": "Berjalan Kaki",
+  "transit": "Transit",
+  "publicTransport": "Pengangkutan Awam",
+  "exploreFurtherByCarOrEHailing": "Teroka lebih jauh dengan kereta atau e-hailing.",
+  "enjoyNearbyPlacesAtAWalkingPace": "Nikmati tempat berdekatan dengan berjalan kaki.",
+  "generateMyItinerary": "Jana Jadual Perjalanan Saya",
+  "generating": "Sedang menjana…",
+  "buildingItineraryFromSavedPlaces": "Membina jadual daripada tempat tersimpan…",
+  "checkYourTripPreferences": "Semak pilihan perjalanan anda",
+  "chooseADestination": "Pilih destinasi.",
+  "chooseYourTravelDates": "Pilih tarikh perjalanan anda.",
+  "chooseATime": "Pilih masa.",
+  "chooseAtLeastOneInterest": "Pilih sekurang-kurangnya satu minat.",
+  "chooseADailyBudget": "Pilih bajet harian.",
+  "chooseATravelMode": "Pilih cara perjalanan.",
+  "transitPlanningIsNotAvailableYetChooseDrivingOrWalkingToGenerateYourTrip": "Perancangan transit belum tersedia. Pilih memandu atau berjalan kaki.",
+  "itineraryGeneratedOpeningPreview": "Jadual telah dijana — membuka pratonton.",
+  "myItinerary": "Jadual Perjalanan Saya",
+  "yourValueItineraryIsReady": "Jadual Perjalanan {arg0} Anda Sedia!",
+  "@yourValueItineraryIsReady": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "saveItinerary": "Simpan Jadual Perjalanan",
+  "tripDetails": "Butiran Perjalanan",
+  "tripDetails2": "Butiran perjalanan",
+  "travelTime": "Masa Perjalanan",
+  "estCost": "Anggaran Kos",
+  "estDistance": "Anggaran Jarak",
+  "estVisit": "Anggaran Lawatan",
+  "dayValue": "Hari {arg0}",
+  "@dayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "dayValueTheme": "Tema Hari {arg0}",
+  "@dayValueTheme": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "dayRoute": "Laluan Harian",
+  "day1Plan": "Rancangan Hari 1",
+  "editDayValue": "Edit Hari {arg0}",
+  "@editDayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "editDayValueSchedule": "Edit Jadual Hari {arg0}",
+  "@editDayValueSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "regenerate": "Jana Semula",
+  "regenerateItinerary": "Jana semula jadual perjalanan",
+  "regenerateItinerary2": "Jana semula jadual perjalanan?",
+  "yourCurrentUnsavedChangesWillBeReplacedSavedTripsWillRemainAvailable": "Perubahan yang belum disimpan akan diganti. Perjalanan tersimpan kekal tersedia.",
+  "completeTripPreferencesInPlanBeforeRegenerating": "Lengkapkan pilihan perjalanan dalam Rancang sebelum menjana semula.",
+  "deleteItinerary": "Padam Jadual Perjalanan?",
+  "areYouSureYouWantToDeleteValue": "Adakah anda pasti mahu memadam \"{arg0}\"?",
+  "@areYouSureYouWantToDeleteValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteOrClearItinerary": "Padam atau kosongkan jadual",
+  "unableToDeleteThisItinerary": "Tidak dapat memadam jadual ini.",
+  "unableToSaveItineraryChangesOnThisDevice": "Tidak dapat menyimpan perubahan pada peranti ini.",
+  "noItinerariesYet": "Belum Ada Jadual Perjalanan",
+  "noActiveTripPlanned": "Tiada Perjalanan Aktif",
+  "youHaveNoActiveOrSavedTripsSetYourTravelPreferencesToGenerateASmartDayByDaySchedule": "Anda tiada perjalanan aktif atau tersimpan. Tetapkan pilihan untuk menjana jadual harian pintar.",
+  "tapToPlanYourSmartSchedule": "Ketik untuk merancang jadual pintar",
+  "tapToViewScheduleDetails": "Ketik untuk melihat jadual dan butiran",
+  "activeGeneratedPlan": "Rancangan Aktif Dijana",
+  "activePlannedTrip": "Perjalanan Aktif Dirancang",
+  "activeItinerary": "JADUAL AKTIF",
+  "activeTripPlanCleared": "Rancangan perjalanan aktif dikosongkan",
+  "clearActivePlan": "Kosongkan Rancangan Aktif?",
+  "areYouSureYouWantToClearYourCurrentGeneratedTripAndResetToDefault": "Adakah anda pasti mahu mengosongkan perjalanan semasa dan menetapkan semula?",
+  "addStop": "Tambah Hentian",
+  "addStopToDaySchedule": "Tambah Hentian pada Jadual Harian",
+  "addToPlan": "Tambah ke Rancangan",
+  "addToMyItinerary": "Tambah ke Jadual Saya",
+  "addToTravelPlan": "Tambah ke Rancangan Perjalanan",
+  "addToWishlist": "Tambah ke Senarai Hajat",
+  "selectAnAttractionToAppendToYourDayRoute": "Pilih tarikan untuk ditambah pada laluan harian",
+  "removeStop": "Buang hentian",
+  "swapAttraction": "Tukar Tarikan",
+  "swapAttraction2": "Tukar tarikan",
+  "dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces": "Seret pemegang untuk menyusun semula. Ketik Tukar untuk menggantikan dengan tempat dalam bangunan.",
+  "anItineraryDayMustHaveAtLeast1Stop": "Setiap hari mesti mempunyai sekurang-kurangnya 1 hentian.",
+  "duplicateStopToday": "Hentian berulang hari ini",
+  "inOtherDay": "Pada hari lain",
+  "duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave": "Tarikan berulang dikesan hari ini. Buang atau tukar untuk menyimpan.",
+  "cannotSaveThisOrderExceedsDailyHoursOpeningHoursBudgetOrWeatherConstraints": "Tidak dapat menyimpan: susunan ini melanggar had masa harian, waktu operasi, bajet atau cuaca.",
+  "cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop": "Tidak dapat menyimpan: \"{arg0}\" berulang hari ini. Buang atau tukar hentian itu.",
+  "@cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary": "Tidak dapat menyimpan: \"{arg0}\" telah dijadualkan pada hari lain.",
+  "@cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "connectToRefreshGooglePlaceLocationsBeforeSavingScheduleChanges": "Sambung ke Internet untuk mengemas kini lokasi Google sebelum menyimpan perubahan.",
+  "stopReorderedScheduleTimesAutomaticallyAdjusted": "Hentian disusun semula. Masa jadual dilaras secara automatik.",
+  "removedValueTimesUpdated": "\"{arg0}\" dibuang. Masa dikemas kini.",
+  "@removedValueTimesUpdated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "addedValueToDayValue": "{arg0} ditambah pada Hari {arg1}",
+  "@addedValueToDayValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "swappedValueWithValue": "\"{arg0}\" ditukar dengan \"{arg1}\"",
+  "@swappedValueWithValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "dayValuePlanUpdatedValueStops": "Rancangan Hari {arg0} dikemas kini ({arg1} hentian)",
+  "@dayValuePlanUpdatedValueStops": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "replacingValueValue": "Menggantikan \"{arg0}\" ({arg1})",
+  "@replacingValueValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "rainForecastedTodaySwappingToAnIndoorAttractionIsRecommended": "Hujan diramal hari ini. Disarankan menukar kepada tarikan dalam bangunan.",
+  "goodWeatherTodayYouCanKeepItIndoorOrSwapToAnOutdoorSight": "Cuaca baik hari ini! Kekalkan aktiviti dalam bangunan atau tukar ke luar.",
+  "scheduledTime": "Masa dijadualkan",
+  "scheduledVisit": "Lawatan dijadualkan",
+  "suggestedTime": "Masa dicadangkan",
+  "indoorActivity": "Aktiviti dalam bangunan",
+  "outdoorSight": "Tarikan luar bangunan",
+  "indoorAttractionWeatherSafe": "Tarikan dalam bangunan • Selamat daripada cuaca",
+  "outdoorSightseeing": "Bersiar-siar di luar",
+  "rainProofBackup": "Pilihan sandaran ketika hujan",
+  "valueDays": "{arg0} Hari",
+  "@valueDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDaysItinerary": "Jadual {arg0} hari",
+  "@valueDaysItinerary": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHoursOfSightseeingPerDay": "{arg0} jam bersiar-siar sehari",
+  "@valueHoursOfSightseeingPerDay": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHoursValueMinutesOfSightseeingPerDay": "{arg0} jam {arg1} minit bersiar-siar sehari",
+  "@valueHoursValueMinutesOfSightseeingPerDay": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueMin": "{arg0} min",
+  "@valueMin": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueH": "{arg0} j",
+  "@valueH": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueHValueMin": "{arg0} j {arg1} min",
+  "@valueHValueMin": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueStopsRmValueEstimated": "{arg0} hentian • Anggaran RM {arg1}",
+  "@valueStopsRmValueEstimated": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "aboveRmvalueTotal": "Jumlah melebihi ~RM{arg0}",
+  "@aboveRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "upToRmvalueTotal": "Jumlah sehingga ~RM{arg0}",
+  "@upToRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "rmvalueRmvalueTotal": "Jumlah ~RM{arg0} – RM{arg1}",
+  "@rmvalueRmvalueTotal": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "routeMap": "Peta Laluan",
+  "mapView": "Paparan Peta",
+  "reCenter": "Pusatkan semula",
+  "optimizeRoute": "Optimumkan Laluan",
+  "optimizedOrder": "Susunan optimum",
+  "optimizingRoute": "Mengoptimumkan laluan…",
+  "calculatingRouteEstimate": "Mengira anggaran laluan...",
+  "tapMapPinsToViewPlaceDetails": "Ketik pin peta untuk melihat butiran tempat",
+  "select25LocationsToDrawARoute": "Pilih 2–5 lokasi untuk melukis laluan",
+  "mapCenteredOnYourCurrentLocation": "Peta dipusatkan pada lokasi semasa anda.",
+  "unableToOpenGoogleMaps": "Tidak dapat membuka Google Maps.",
+  "unableToOpenThisLink": "Tidak dapat membuka pautan ini.",
+  "googleMapsIsNotConfiguredForThisPlatformYetYourSavedPlacesRemainAvailableInTheList": "Google Maps belum dikonfigurasi untuk platform ini. Tempat tersimpan masih tersedia dalam senarai.",
+  "valueKmValueStops": "{arg0} km • {arg1} hentian",
+  "@valueKmValueStops": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueStops2": "~{arg0} km • {arg1} hentian",
+  "@valueKmValueStops2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmAway": "{arg0} km jauhnya",
+  "@valueKmAway": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueMAway": "{arg0} m jauhnya",
+  "@valueMAway": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueMinWalk": "{arg0} km • ~{arg1} min berjalan",
+  "@valueKmValueMinWalk": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "routeEstValueKmValueMinDriving": "Anggaran laluan: {arg0} km • ~{arg1} min memandu",
+  "@routeEstValueKmValueMinDriving": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "searchCityDestination": "Cari Bandar / Destinasi",
+  "searchAttractionsFoodCulture": "Cari tarikan, makanan, budaya...",
+  "searchResults": "Hasil Carian",
+  "searchInThisArea": "Cari di kawasan ini",
+  "chooseState": "Pilih Negeri",
+  "chooseAreaCity": "Pilih Kawasan / Bandar",
+  "exploreNewLocation": "Terokai Lokasi Baharu",
+  "currentDestination": "DESTINASI SEMASA",
+  "resetSearchFilters": "Tetapkan Semula Carian & Penapis",
+  "noPlacesFound": "Tiada Tempat Ditemui",
+  "noSavedPlacesYet": "Belum Ada Tempat Tersimpan",
+  "noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm": "Tiada tarikan sepadan dengan \"{arg0}\". Semak ejaan atau cuba carian lebih umum.",
+  "@noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noAttractionsMatchThisFilterInThisCity": "Tiada tarikan sepadan dengan penapis ini di bandar ini.",
+  "noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation": "Tiada tempat dalam kategori ini berhampiran {arg0}. Cuba kategori atau lokasi lain.",
+  "@noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "unableToLoadAttractionsPleaseTryAgain": "Tidak dapat memuatkan tarikan. Sila cuba lagi.",
+  "unableToLoadDetailsRetry": "Tidak dapat memuatkan butiran. Cuba lagi.",
+  "saved": "Disimpan",
+  "savedAttractions": "Tarikan Tersimpan",
+  "yourSavedPlaces": "Tempat Tersimpan Anda",
+  "saveAttraction": "Simpan tarikan",
+  "removeFromSaved": "Buang daripada simpanan",
+  "savedListCanHoldUpTo10Attractions": "Senarai simpanan boleh memuatkan sehingga 10 tarikan.",
+  "savedValueToYourList": "\"{arg0}\" disimpan dalam senarai anda.",
+  "@savedValueToYourList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "removedValueFromSaved": "\"{arg0}\" dibuang daripada simpanan.",
+  "@removedValueFromSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "removedFromSavedPlaces": "Dibuang daripada tempat tersimpan",
+  "savedToFavoritePlaces": "Disimpan ke tempat kegemaran",
+  "browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist": "Lihat tarikan di {arg0} dan ketik \"Simpan\" untuk membina senarai hajat perjalanan anda.",
+  "@browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "savedPlacesCanBeViewedOnTheMapTabToSeeOptimalDrivingPathsOrVisitThePlanTabToAutomaticallyS": "Lihat tempat tersimpan pada tab Peta untuk laluan memandu, atau gunakan tab Rancang untuk jadual berbilang hari.",
+  "topIconicSpotsInValue": "Tempat ikonik terbaik di {arg0}",
+  "@topIconicSpotsInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "topMalaysianAttraction": "Tarikan Utama Malaysia",
+  "malaysianIconicAttraction": "Tarikan Ikonik Malaysia",
+  "mustVisitHighlights": "Tarikan Wajib Dilawati",
+  "travelerTipsGoodToKnow": "Tip Pelancong & Maklumat Berguna",
+  "helpfulTips": "Tip Berguna",
+  "activityStatus": "Status Aktiviti",
+  "entry": "Kemasukan",
+  "curatedSpotsWithin5Km": "Tempat pilihan dalam 5 km",
+  "text5KmRadius": "Jejari 5 km",
+  "exploreSpot": "Terokai tempat",
+  "viewPlaceDetails": "Lihat butiran tempat",
+  "liveGoogleInformation": "Maklumat Google langsung",
+  "livePlaceDetailsUnavailable": "Butiran tempat langsung tidak tersedia.",
+  "showingAvailablePlaceInformation": "Memaparkan maklumat tempat yang tersedia.",
+  "googlePlacesUnavailable": "Google Places tidak tersedia",
+  "attractionDetailsMapLinkCopiedToClipboard": "Butiran tarikan dan pautan peta disalin!",
+  "valueReviews": "({arg0} ulasan)",
+  "@valueReviews": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueReviews2": "{arg0} ulasan",
+  "@valueReviews2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingValue5": "Penilaian: {arg0} / 5",
+  "@ratingValue5": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valuePlaces": "{arg0} tempat",
+  "@valuePlaces": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "text0Places": "0 tempat",
+  "valueSpots": "{arg0} tempat",
+  "@valueSpots": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueItems": "{arg0} item",
+  "@valueItems": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueItems2": "{arg0} Item",
+  "@valueItems2": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "matchingValue": "Sepadan dengan \"{arg0}\"",
+  "@matchingValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "askPlacesFoodWeatherOrPlans": "Tanya tentang tempat, makanan, cuaca atau rancangan...",
+  "sendPrompt": "Hantar Soalan",
+  "geminiIsThinking": "Gemini sedang berfikir...",
+  "gemini15FlashMalaysianTravelAi": "Gemini 1.5 Flash • AI Pelancongan Malaysia",
+  "assistantResponseLanguage": "Bahasa jawapan pembantu",
+  "selectLanguage": "Pilih Bahasa",
+  "assistantLanguageSetToValue": "Bahasa pembantu ditetapkan kepada {arg0}.",
+  "@assistantLanguageSetToValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearChatHistory": "Kosongkan Sejarah Sembang?",
+  "thisWillResetYourConversationWithTheTravelAssistant": "Ini akan menetapkan semula perbualan anda dengan pembantu pelancongan.",
+  "chatHistoryCleared": "Sejarah sembang dikosongkan.",
+  "resetConversation": "Tetapkan Semula Perbualan",
+  "voiceSearch": "Carian Suara",
+  "voiceTravelAssistant": "Pembantu Pelancongan Suara",
+  "trySpokenQuery": "Cuba Soalan Suara",
+  "isItGoingToRainInKlToday": "🌧️ Adakah hujan di KL hari ini?",
+  "bestHalalFoodNearBukitBintang": "🍜 Makanan halal terbaik dekat Bukit Bintang",
+  "culturalEtiquetteForBatuCaves": "🏛️ Etika budaya di Batu Caves",
+  "howToGetFromKlSentralToKlcc": "🚇 Cara pergi dari KL Sentral ke KLCC",
+  "usefulMalayTravelPhrases": "🗣️ Frasa perjalanan bahasa Melayu berguna",
+  "topIndoorShoppingAndMuseums": "🛍️ Tempat membeli-belah dan muzium dalam bangunan terbaik",
+  "valueRain": "{arg0}% Hujan",
+  "@valueRain": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "scanner": "Pengimbas",
+  "history": "Sejarah",
+  "historyValue": "Sejarah ({arg0})",
+  "@historyValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "demoResults": "Hasil Demo",
+  "discoverALandmarkOrALocalDish": "Kenali mercu tanda atau hidangan tempatan",
+  "chooseAPhotoReviewItThenIdentifyWhatYouSee": "Pilih foto, semak, kemudian kenal pasti kandungannya.",
+  "takePhoto": "Ambil Foto",
+  "uploadFromGallery": "Muat Naik dari Galeri",
+  "launchYourCameraToCaptureALandmarkOrFood": "Buka kamera untuk mengambil foto mercu tanda atau makanan",
+  "selectAPhotoFromYourPhotoLibrary": "Pilih foto daripada galeri anda",
+  "yourPhotoIsReady": "Foto anda sedia",
+  "photoPreview": "PRATONTON FOTO",
+  "samplePreview": "PRATONTON SAMPEL",
+  "photoPreviewUnavailable": "Pratonton foto tidak tersedia",
+  "recognizePhoto": "Kenal pasti foto",
+  "recognizingPhoto": "Mengecam foto…",
+  "retakePhoto": "Ambil Semula Foto",
+  "chooseAnother": "Pilih Lain",
+  "readyToDiscoverWhatYouFound": "Sedia untuk mengenali penemuan anda?",
+  "forTheBestResultUseOneClearLandmarkOrDishKeepItCentredAndAvoidBlurryOrVeryDarkPhotos": "Untuk hasil terbaik, gunakan satu mercu tanda atau hidangan yang jelas di tengah foto. Elakkan foto kabur atau gelap.",
+  "forBetterAccuracyKeepTheLandmarkOrFoodDishWellLitAndCentered": "Untuk ketepatan lebih baik, pastikan pencahayaan baik dan subjek di tengah.",
+  "sampleScansWorkOfflineLiveRecognitionAndTranslationRequireAnOnlineAccount": "Imbasan sampel berfungsi di luar talian. Pengecaman langsung dan terjemahan memerlukan akaun dalam talian.",
+  "onlyResultTextIsSavedInYourLocalHistoryThePhotoIsNotStoredByTheApp": "Hanya teks hasil disimpan dalam sejarah setempat; aplikasi tidak menyimpan foto.",
+  "recognizeSendsThisPhotoToGoogleVisionThroughOurSecureService": "Pengecaman menghantar foto ini ke Google Vision melalui perkhidmatan selamat kami. ",
+  "cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample": "Kamera atau galeri tidak tersedia. Semak kebenaran dalam Tetapan atau cuba sampel.",
+  "restartTheAppToEnableTheCameraAndPhotoLibrary": "Mulakan semula aplikasi untuk mengaktifkan kamera dan galeri.",
+  "thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample": "Foto ini tidak dapat dibuka. Cuba foto lain atau sampel.",
+  "chooseAPhotoSmallerThan4Mb": "Pilih foto lebih kecil daripada 4 MB.",
+  "imageRecognitionIsTemporarilyUnavailableTryASample": "Pengecaman imej tidak tersedia buat sementara. Cuba sampel.",
+  "recentScans": "Imbasan Terkini",
+  "noScansYet": "Belum ada imbasan",
+  "yourCompletedRecognitionResultsWillAppearHereDemoResultsStaySeparateHistoryIsCurrentlyStor": "Hasil pengecaman anda akan dipaparkan di sini. Hasil demo diasingkan. Sejarah disimpan pada peranti ini.",
+  "clearHistory": "Kosongkan sejarah",
+  "clearScanHistory": "Kosongkan sejarah imbasan?",
+  "removeAllScanResultsSavedOnThisDeviceThisCannotBeUndone": "Padam semua hasil imbasan pada peranti ini? Tindakan ini tidak boleh dibatalkan.",
+  "goToScanner": "Pergi ke Pengimbas",
+  "tryPreparedRecognitionResults": "Cuba hasil pengecaman sampel",
+  "browsePreparedLandmarkAndFoodResultsToUnderstandWhatTheFinishedRecognitionScreenWillShow": "Lihat hasil mercu tanda dan makanan sampel untuk memahami paparan pengecaman.",
+  "thisIsAPreparedDemoResultItHasNotAnalysedYourUploadedPhotoAndIsNotAddedToScanHistory": "Ini hasil demo yang disediakan. Foto anda tidak dianalisis dan hasil ini tidak ditambah ke sejarah.",
+  "noPreparedTestResultIsAvailableYet": "Belum ada hasil ujian sampel.",
+  "runTestRecognition": "Jalankan pengecaman ujian",
+  "testRecognitionUsesPreparedCatalogResultsToPreviewTheFlow": "Pengecaman ujian menggunakan hasil katalog sampel untuk pratonton aliran.",
+  "viewDemoResult": "Lihat hasil demo",
+  "viewDemoResults": "Lihat hasil demo",
+  "exploreThisResult": "Terokai hasil ini",
+  "detectedLabels": "Label dikesan",
+  "visionConfidenceValue": "Keyakinan Vision {arg0}%",
+  "@visionConfidenceValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "identificationUsesVisionDetectionsGuideDescriptionsComeFromTheAppSCuratedCatalog": "Pengecaman menggunakan pengesanan Vision. Penerangan panduan daripada katalog pilihan aplikasi.",
+  "resultLanguage": "Bahasa hasil",
+  "translating": "Menterjemah…",
+  "machineTranslatedTextTheOriginalEnglishResultStaysInYourHistory": "Teks terjemahan mesin. Hasil asal bahasa Inggeris kekal dalam sejarah.",
+  "translationIsUnavailableYourOriginalResultIsStillAvailable": "Terjemahan tidak tersedia. Hasil asal masih tersedia.",
+  "findRestaurants": "Cari Restoran",
+  "chooseARestaurantBeforeAddingThisDishToYourTravelPlan": "Pilih restoran sebelum menambah hidangan ini ke rancangan perjalanan.",
+  "theseActionsWillBeAvailableWhenLiveRecognitionAndTourismDetailsAreConnected": "Tindakan ini tersedia apabila pengecaman langsung dan butiran pelancongan disambungkan.",
+  "availableAfterSetup": "Tersedia selepas persediaan",
+  "afterLiveRecognitionIsConnectedSuccessfulScansWillBeSavedHereAutomatically": "Selepas pengecaman langsung disambungkan, imbasan berjaya akan disimpan di sini.",
+  "adults": "Dewasa",
+  "children": "Kanak-kanak",
+  "seniors": "Warga Emas",
+  "travelers": "Pelancong",
+  "addTravelers": "Tambah pelancong",
+  "addMore": "Tambah Lagi",
+  "selectPlannedItinerary": "Pilih Jadual Dirancang",
+  "switchBetweenYourActiveTripsAndCustomGeneratedPlans": "Tukar antara perjalanan aktif dan rancangan tersuai",
+  "smartScheduleDailyStops": "Jadual pintar dan hentian harian",
+  "autoSmartSchedulingForTouristsInMalaysia": "Penjadualan pintar automatik untuk pelancong di Malaysia",
+  "smartItineraryScheduling": "Penjadualan Perjalanan Pintar",
+  "valueAdultvalue": "{arg0} Dewasa{arg1}",
+  "@valueAdultvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueChildvalue": "{arg0} Kanak-kanak{arg1}",
+  "@valueChildvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSeniorvalue": "{arg0} Warga Emas{arg1}",
+  "@valueSeniorvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueAddedToYourPlanDraft": "{arg0} ditambah ke draf rancangan anda!",
+  "@valueAddedToYourPlanDraft": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueAddedToYourDay2ScheduleDraft": "{arg0} ditambah ke draf jadual Hari 2!",
+  "@valueAddedToYourDay2ScheduleDraft": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "showingDayValuePlanForValue": "Memaparkan Rancangan Hari {arg0} untuk {arg1}",
+  "@showingDayValuePlanForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "switchedToValueValueDays": "Ditukar kepada {arg0} ({arg1} Hari)",
+  "@switchedToValueValueDays": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "swapToIndoorValue": "Tukar ke dalam bangunan: {arg0}",
+  "@swapToIndoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "rainSafeScheduleAppliedValueSwappedInForAfternoon": "Jadual selamat hujan digunakan: {arg0} menggantikan aktiviti petang.",
+  "@rainSafeScheduleAppliedValueSwappedInForAfternoon": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "builtA3DayKlPlanWithFoodAndShoppingStops": "Rancangan KL 3 hari dengan makanan dan membeli-belah telah dibina.",
+  "reorderedStopsToSaveAbout45MinutesOfTravelTime": "Hentian disusun semula untuk menjimatkan kira-kira 45 minit perjalanan.",
+  "rainAfter3PmIndoorBackupStopsAddedAutomatically": "Hujan selepas 3 petang — hentian sandaran dalam bangunan ditambah secara automatik.",
+  "dailySpendKeptWithinYourRm150300MediumBudget": "Perbelanjaan harian dalam bajet sederhana RM150–300.",
+  "mapsAndItineraryCachedForUseWithoutMobileData": "Peta dan jadual dicache untuk kegunaan tanpa data mudah alih.",
+  "routeOptimizedTravelTimeReducedBy45Minutes": "Laluan dioptimumkan — masa perjalanan dikurangkan 45 minit.",
+  "notifications": "Pemberitahuan",
+  "thisAppIsAPrototypeDesignedForAFinalYearProjectToShowcaseAutomatedRouteSchedulingAndMapVis": "Aplikasi ini ialah prototaip Projek Tahun Akhir untuk mempamerkan penjadualan laluan automatik dan visualisasi peta di Malaysia.",
+  "readOurTermsOfService": "Baca terma perkhidmatan kami",
+  "byUsingThisAppYouAgreeToOurTermsOfServiceNoRealPersonalDataIsCollectedOrSentToAnyServer": "Dengan menggunakan aplikasi ini, anda bersetuju dengan terma perkhidmatan kami. Tiada data peribadi sebenar dikumpulkan atau dihantar ke pelayan.",
+  "enterYourCredentialsToManageYourMalaysiaTrips": "Masukkan maklumat log masuk untuk mengurus perjalanan Malaysia anda.",
+  "invalidEmailOrPasswordMin6Chars": "E-mel atau kata laluan tidak sah (min 6 aksara)",
+  "listeningForVoiceCommandsInEnglishMalayOrChineseTapBelowToSendASampleSpokenQuery": "Mendengar arahan suara dalam bahasa Inggeris, Melayu atau Cina...\n\nKetik di bawah untuk menghantar soalan suara sampel.",
+  "recommend2IndoorSpotsIfItRainsNearKlccThisAfternoon": "Cadangkan 2 tempat dalam bangunan jika hujan dekat KLCC petang ini.",
+  "accountCreatedSuccessfullyRedirectingToHomepage": "Akaun berjaya dicipta! Menghala ke halaman utama...",
+  "pleaseCompleteAllMandatoryRegistrationFields": "Sila lengkapkan semua medan pendaftaran wajib.",
+  "pleaseEnterAValidEmailAddressEGUserExampleCom": "Sila masukkan alamat e-mel yang sah (cth. user@example.com).",
+  "passwordMustContainAtLeast8CharactersIncluding1Uppercase1Lowercase1NumberAnd1SpecialCharac": "Kata laluan mesti mengandungi sekurang-kurangnya 8 aksara, termasuk 1 huruf besar, 1 huruf kecil, 1 nombor dan 1 aksara khas.",
+  "passwordAndConfirmPasswordDoNotMatchPleaseReEnter": "Kata laluan dan pengesahan tidak sepadan. Sila masukkan semula.",
+  "thisEmailAddressHasAlreadyBeenRegisteredPleaseLogInOrUseAnotherEmailAddress": "Alamat e-mel ini telah didaftarkan. Sila log masuk atau gunakan e-mel lain.",
+  "registrationTimedOutCheckYourEmailForAConfirmationMessageBeforeTryingAgainAsYourAccountMay": "Pendaftaran tamat masa. Semak e-mel pengesahan sebelum mencuba lagi kerana akaun anda mungkin telah dicipta.",
+  "loginSuccessfulRedirectingToHomepage": "Log masuk berjaya. Menghala ke halaman utama...",
+  "pleaseEnterYourEmailAddressAndPassword": "Sila masukkan alamat e-mel dan kata laluan anda.",
+  "pleaseEnterAValidEmailAddress": "Sila masukkan alamat e-mel yang sah.",
+  "theEmailAddressOrPasswordIsIncorrectPleaseTryAgain": "Alamat e-mel atau kata laluan tidak betul. Sila cuba lagi.",
+  "authenticationServiceIsCurrentlyUnavailablePleaseTryAgainLater": "Perkhidmatan pengesahan tidak tersedia. Sila cuba lagi kemudian.",
+  "theLoginRequestTimedOutPleaseCheckYourNetworkAndTryAgain": "Permintaan log masuk tamat masa. Semak rangkaian dan cuba lagi.",
+  "profileUpdatedSuccessfully": "Profil berjaya dikemas kini!",
+  "fullNameFieldCannotBeEmptyPleaseEnterYourName": "Nama Penuh tidak boleh kosong. Sila masukkan nama anda.",
+  "unableToSaveProfileChangesPleaseCheckYourNetworkAndTryAgain": "Tidak dapat menyimpan perubahan profil. Semak rangkaian dan cuba lagi.",
+  "tripPreferencesRecordedSuccessfullyGeneratingYourItinerary": "Pilihan perjalanan berjaya direkodkan. Menjana jadual anda.",
+  "pleaseCompleteAllMandatoryTripPreferenceFields": "Sila lengkapkan semua medan pilihan perjalanan wajib.",
+  "pleaseEnterOrSelectAValidDestination": "Sila masukkan atau pilih destinasi yang sah.",
+  "pleaseSelectAValidNumberOfTravelDays": "Sila pilih bilangan hari perjalanan yang sah.",
+  "dailyEndTimeMustBeLaterThanDailyStartTime": "Waktu tamat harian mesti selepas waktu mula harian.",
+  "pleaseSelectAtLeastOneTravelInterest": "Sila pilih sekurang-kurangnya satu minat perjalanan.",
+  "pleaseSelectAValidEstimatedBudgetCategory": "Sila pilih kategori anggaran bajet yang sah.",
+  "theSelectedTravelModeIsNotSupportedPleaseSelectDrivingOrWalking": "Cara perjalanan tidak disokong. Pilih Memandu atau Berjalan Kaki.",
+  "authenticationRequiredPleaseLogInToSaveYourItinerary": "Pengesahan diperlukan. Log masuk untuk menyimpan jadual anda.",
+  "deletedOnThisDeviceCloudSyncIsPending": "Dipadam pada peranti ini. Penyegerakan awan menunggu.",
+  "adminDatabaseHub": "Hab Pangkalan Data Pentadbir",
+  "adminHubAccess": "Akses Hab Pentadbir",
+  "adminAccessTapToLogInAsAdmin": "Akses pentadbir (Ketik untuk log masuk)",
+  "loginAsAdmin": "Log Masuk sebagai Pentadbir",
+  "loggedInAsAdministratorChingKheat": "Log masuk sebagai Pentadbir (Ching Kheat)",
+  "theAdminDatabaseHubRequiresAdministratorPrivilegesToFetchSyncAndImportPlacesFromGoogle": "Hab ini memerlukan hak pentadbir untuk mengambil, menyegerak dan mengimport tempat Google.",
+  "secretDataSeederPortal": "Portal Pengisian Data",
+  "secretPortalToFetchSyncPlaces": "Portal untuk mengambil dan menyegerak tempat",
+  "signInAsAnAdministrator": "Log masuk sebagai pentadbir.",
+  "signInAsAnAdministratorToImportGooglePlaceIds": "Log masuk sebagai pentadbir untuk mengimport ID tempat Google.",
+  "text1SelectDestinationState": "1. Pilih Negeri Destinasi",
+  "discoverNewPlaces": "Temui tempat baharu",
+  "discoveringMorePlaces": "Mencari lebih banyak tempat…",
+  "discoverMorePlacesInValue": "Temui Lebih Banyak Tempat di {arg0}",
+  "@discoverMorePlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "discoveringNewPlacesExistingRecordsArePreservedUseUpdateSavedPlacesToRefreshTheirDetails": "Mencari tempat baharu. Rekod sedia ada dikekalkan; gunakan Kemas kini tempat tersimpan untuk butiran terkini.",
+  "updateSavedPlaces": "Kemas kini tempat tersimpan",
+  "updateSavedPlacesInValue": "Kemas kini tempat tersimpan di {arg0}",
+  "@updateSavedPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAllSavedPlaces": "Kemas kini semua tempat tersimpan",
+  "startANewUpdateOfAllSavedPlaces": "Mulakan kemas kini baharu semua tempat tersimpan",
+  "refreshHoursRatingsNamesAndLocationsForAllSavedPlacesDiscoverNewPlacesBelowOnlyAddsNewIds": "Kemas kini waktu, penilaian, nama dan lokasi tempat tersimpan. Carian tempat baharu di bawah hanya menambah ID baharu.",
+  "updatesEverySavedGooglePlaceInThisStateIncludingOpeningHoursRatingsNameAndLocationYourCate": "Mengemas kini setiap tempat Google tersimpan di negeri ini, termasuk waktu operasi, penilaian, nama dan lokasi. Kategori dan pilihan dalam/luar bangunan dikekalkan.",
+  "usesTheFullDetailsAllowanceKeepThisPageOpenLeavingPausesTheUpdateProgressIsSavedOnThisDevi": "Menggunakan kuota butiran penuh. Kekalkan halaman ini terbuka. Keluar akan menjeda kemas kini; kemajuan disimpan pada peranti. Respons berjaya tanpa waktu operasi menandakannya sebagai tidak diketahui.",
+  "pauseUpdate": "Jeda kemas kini",
+  "resumeUpdate": "Sambung kemas kini",
+  "pausing": "Menjeda…",
+  "updating": "Mengemas kini…",
+  "retryPlacesWithIssues": "Cuba semula tempat bermasalah",
+  "review": "Semak",
+  "needsReview": "Perlu semakan",
+  "placesNeedingReview": "Tempat perlu semakan",
+  "reviewSavedPlace": "Semak tempat tersimpan",
+  "reviewStoredDataLoadLiveDetails": "Semak data tersimpan / muatkan butiran langsung",
+  "incompleteImportNeedsReview": "Import tidak lengkap — perlu semakan",
+  "appCategory": "Kategori aplikasi",
+  "setting": "Persekitaran",
+  "confirmedSetting": "Persekitaran disahkan",
+  "confirmAndSaveReview": "Sahkan dan simpan semakan",
+  "onlyAppCategoryAndSettingAreSavedExistingGoogleDetailsAreNotStored": "Hanya kategori aplikasi dan persekitaran disimpan. Butiran Google sedia ada tidak disimpan.",
+  "loadRetryLiveDetails": "Muatkan / cuba semula butiran langsung",
+  "loadLiveDetailsToSeeTheNameAndAddress": "Muatkan butiran langsung untuk melihat nama dan alamat.",
+  "googleTypeValue": "Jenis Google: {arg0}",
+  "@googleTypeValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified": "Cadangan persekitaran: {arg0} — sahkan dengan pengetahuan anda; ini belum disahkan.",
+  "@settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "howToReviewCategoriesAndSettings": "Cara menyemak kategori dan persekitaran",
+  "openReviewOnASavedPlaceLoadLiveDetailsCheckTheSuggestionThenConfirmItsCategoryAndSettingNo": "Buka Semak pada tempat tersimpan. Muatkan butiran langsung, semak cadangan, kemudian sahkan kategori dan persekitaran. Tiada perubahan pukal.",
+  "savedPlacesInspector": "Pemeriksa Tempat Tersimpan",
+  "viewAdminSyncedPlacesInspectSavedData": "Lihat tempat disegerak pentadbir dan data tersimpan",
+  "storedDatabaseInformation": "Maklumat pangkalan data tersimpan",
+  "databaseUnavailableReconnectToCheckYourSavedPlaces": "Pangkalan data tidak tersedia. Sambung semula untuk menyemak tempat tersimpan.",
+  "unableToReadSavedPlacesRefreshTheDatabaseListBeforeStartingAnotherImport": "Tidak dapat membaca tempat tersimpan. Muat semula senarai sebelum import lain.",
+  "savedPlacesAreUnavailableTryAgainLater": "Tempat tersimpan tidak tersedia. Cuba lagi kemudian.",
+  "savedPlaceIdsAndAppCategoriesGoogleDetailsWereNotStored": "ID tempat dan kategori aplikasi disimpan. Butiran Google tidak disimpan.",
+  "savedGooglePlace": "Tempat Google tersimpan",
+  "placesInDatabaseValue": "Tempat dalam Pangkalan Data ({arg0})",
+  "@placesInDatabaseValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "placesInValue": "Tempat di {arg0}",
+  "@placesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noPlacesStoredForValueYet": "Belum ada tempat disimpan untuk {arg0}.",
+  "@noPlacesStoredForValueYet": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "noSavedPlacesFoundInValue": "Tiada tempat tersimpan di {arg0}.",
+  "@noSavedPlacesFoundInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "databaseCountForValue": "Bilangan Pangkalan Data untuk {arg0}:",
+  "@databaseCountForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingDatabaseSchema": "Menyemak skema pangkalan data...",
+  "readingSavedDatabase": "Membaca pangkalan data tersimpan...",
+  "refreshingTheValueDatabaseList": "Memuat semula senarai pangkalan data {arg0}",
+  "@refreshingTheValueDatabaseList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDatabaseListRefreshed": "Senarai pangkalan data {arg0} dimuat semula",
+  "@valueDatabaseListRefreshed": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingSyncHistoryForValue": "Menyemak sejarah penyegerakan {arg0}…",
+  "@checkingSyncHistoryForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingVerifiedGoogleAllowance": "Menyemak kuota Google yang disahkan…",
+  "checking": "Menyemak…",
+  "keepExistingData": "Kekalkan data sedia ada",
+  "syncAgain": "Segerak semula",
+  "syncValueAgain": "Segerak {arg0} semula?",
+  "@syncValueAgain": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "syncingPlaces": "Menyegerak tempat...",
+  "syncing": "Menyegerak...",
+  "lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst": "Penyegerakan terakhir berjaya: {arg0} ({arg1}).\n\nPenyegerakan semula menggunakan kuota Google API. Anda boleh mengekalkan data sedia ada.",
+  "@lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "thisStateAlreadyHasStoredPlacesButItsPreviousSyncTimeWasNotRecordedSyncingAgainWillUseGoog": "Negeri ini mempunyai tempat tersimpan tetapi masa penyegerakan tidak direkodkan. Penyegerakan semula menggunakan kuota Google API.",
+  "thisStateHasNoSavedRecordsSyncingItWillUseGoogleApiQuota": "Negeri ini tiada rekod tersimpan. Penyegerakan menggunakan kuota Google API.",
+  "olderImportsHaveNoRecordedDateCheckTheExistingPlacesBeforeSyncingAgain": "Import lama tiada tarikh direkodkan. Semak tempat sedia ada sebelum menyegerak semula.",
+  "someOlderImportsHaveUnverifiedCountriesOrStatesTheseAreMarkedForReviewRepeatingTheFullSync": "Sesetengah import lama mempunyai negara atau negeri belum disahkan. Rekod ditanda untuk semakan; penyegerakan penuh tidak akan membaikinya.",
+  "showingSavedHistoryCloudHistoryIsUnavailable": "Memaparkan sejarah tersimpan; sejarah awan tidak tersedia.",
+  "timestampSavedOnThisDeviceOnly": "Cap masa disimpan pada peranti ini sahaja.",
+  "fetchSyncIsBlockedUntilTheCurrentGoogleAllowanceIsVerifiedWithAtLeast48RequestsRemainingSa": "Ambil & Segerak disekat sehingga kuota Google disahkan dengan sekurang-kurangnya 48 permintaan berbaki. ID dan jadual tersimpan kekal tersedia.",
+  "pendingSyncTapFetchAndSave": "Menunggu penyegerakan — ketik Ambil dan simpan",
+  "fetchAndSaveThisPage": "Ambil dan simpan halaman ini",
+  "fetchSaveFailedValue": "Ambil/simpan gagal: {arg0}",
+  "@fetchSaveFailedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "fetching": "Mengambil...",
+  "loadingNames": "Memuatkan nama…",
+  "loadsUpTo20NamesFromGoogleUsingTheCurrentAllowance": "Memuatkan sehingga 20 nama Google menggunakan kuota semasa.",
+  "previous20": "20 Sebelumnya",
+  "next20": "20 Seterusnya",
+  "importStopped": "Import dihentikan",
+  "manuallyDiscoverGooglePlacesForTheSelectedStateSaveIdsAndAppCategoriesLoadCurrentDetailsWh": "Cari tempat Google secara manual untuk negeri dipilih. Simpan ID dan kategori; muatkan butiran semasa apabila perlu.",
+  "queryingTopPlacesInValue": "Mencari tempat terbaik di {arg0}…",
+  "@queryingTopPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "searchingGoogleForValue": "Mencari {arg0} di Google",
+  "@searchingGoogleForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearValuePlaces": "Kosongkan Tempat {arg0}?",
+  "@clearValuePlaces": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase": "Ini akan memadam semua tempat dicache untuk {arg0} daripada pangkalan data Supabase.",
+  "@thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "clearingPlacesForValue": "Mengosongkan tempat untuk {arg0}...",
+  "@clearingPlacesForValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "deletingRecordsFromSupabase": "Memadam rekod daripada Supabase",
+  "allCachedPlacesForValueRemoved": "Semua tempat dicache untuk {arg0} dibuang",
+  "@allCachedPlacesForValueRemoved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDeletingPlaces": "Ralat memadam tempat",
+  "errorLoadingPlacesValue": "Ralat memuatkan tempat: {arg0}",
+  "@errorLoadingPlacesValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "batchCacheRealPhotos": "Cache Foto Sebenar Secara Pukal",
+  "cacheTop30Photos": "Cache 30 Foto Teratas",
+  "cachingPhotos": "Mengcache foto…",
+  "cachingRealPhotos0Value": "Mengcache foto sebenar (0/{arg0})…",
+  "@cachingRealPhotos0Value": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "cachedValueOfValueInspectedValueTarget": "Dicache {arg0} daripada {arg1} diperiksa (sasaran {arg2})…",
+  "@cachedValueOfValueInspectedValueTarget": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "finishedValueRealPhotosCachedToSupabaseStorage": "Selesai! {arg0} foto sebenar dicache ke Supabase Storage.",
+  "@finishedValueRealPhotosCachedToSupabaseStorage": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "pausedPhotoCachingCachedValuePhotos": "Cache foto dijeda. {arg0} foto dicache.",
+  "@pausedPhotoCachingCachedValuePhotos": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "photoCachingFailedValue": "Cache foto gagal: {arg0}",
+  "@photoCachingFailedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsOfficialGooglePhotosForTopPlacesAndSavesThemToSupabaseStoragePlacesAlreadyCachedA": "Memuat turun foto rasmi Google untuk tempat teratas ke Supabase Storage. Tempat yang sudah dicache dilangkau untuk menjimatkan kuota API.",
+  "autoSaveTop5Highlights": "Simpan Automatik 5 Sorotan Teratas",
+  "savedValueTopHighlightsToYourList": "{arg0} sorotan teratas disimpan dalam senarai anda!",
+  "@savedValueTopHighlightsToYourList": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "retrieve": "Ambil",
+  "retrievedPlaces": "Tempat Diperoleh",
+  "noPlacesRetrievedYet": "Belum ada tempat diperoleh.",
+  "liveGooglePlacesApiActiveForMalaysia": "Google Places API langsung aktif untuk Malaysia",
+  "rawJsonOutput": "Output JSON Mentah",
+  "hideRawLogs": "Sembunyikan Log Mentah",
+  "viewRawTerminalLogsValueLines": "Lihat Log Terminal Mentah ({arg0} baris)",
+  "@viewRawTerminalLogsValueLines": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "selectADestinationInMalaysiaOrSimulateGpsPositions": "Pilih destinasi di Malaysia atau simulasikan kedudukan GPS.",
+  "mockDeviceCoordinatesInMalaysia": "Koordinat peranti simulasi di Malaysia",
+  "detectedStateValue": "Negeri dikesan: {arg0}",
+  "@detectedStateValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "text13StatesKl": "13 Negeri + KL",
+  "simulateGps": "📍 Simulasikan GPS",
+  "browseStates": "🗺️ Lihat Negeri",
+  "indoor2": "🏠 Dalam bangunan",
+  "indoor3": "🏢 Dalam bangunan",
+  "outdoor2": "☀️ Luar bangunan",
+  "topRated": "✨ Penilaian Tertinggi",
+  "sights": "🏛️ Tarikan",
+  "nature2": "🌳 Alam Semula Jadi",
+  "food2": "🍔 Makanan",
+  "cafes": "☕ Kafe",
+  "shops": "🛍️ Kedai",
+  "admin": "👑 Pentadbir",
+  "review2": "❓ Semak",
+  "indoorValue": "🏛️ Dalam bangunan ({arg0})",
+  "@indoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "outdoorValue": "🏞️ Luar bangunan ({arg0})",
+  "@outdoorValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueUpdatedValueNeedReviewValueRemaining": "{arg0} dikemas kini · {arg1} perlu semakan · {arg2} berbaki",
+  "@valueUpdatedValueNeedReviewValueRemaining": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "uc100FlowTestingTools": "Alat Ujian Aliran UC100",
+  "uc200FlowTestingTools": "Alat Ujian Aliran UC200",
+  "uc300FlowTestingTools": "Alat Ujian Aliran UC300",
+  "quicklyTestMessagesM1M6AlternativeFlowsA1A3": "Uji mesej M1–M6 dan aliran alternatif A1–A3",
+  "quicklyTestMessagesM1M6AlternativeFlowsA1A5": "Uji mesej M1–M6 dan aliran alternatif A1–A5",
+  "quicklyTestMessagesM1M8AlternativeFlowsA1A7": "Uji mesej M1–M8 dan aliran alternatif A1–A7",
+  "fillValidCredentials": "Isi Maklumat Log Masuk Sah",
+  "fillValidForm": "Isi Borang Sah",
+  "testA1EmptyFields": "Uji A1 (Medan Kosong)",
+  "testA2BadDestination": "Uji A2 (Destinasi Tidak Sah)",
+  "testA2InvalidEmail": "Uji A2 (E-mel Tidak Sah)",
+  "testA3InvalidDays": "Uji A3 (Hari Tidak Sah)",
+  "testA3NoAccount": "Uji A3 (Tiada Akaun)",
+  "testA3WeakPwd": "Uji A3 (Kata Laluan Lemah)",
+  "testA3WrongPassword": "Uji A3 (Kata Laluan Salah)",
+  "testA4BadTimeRange": "Uji A4 (Julat Masa Tidak Sah)",
+  "testA4Mismatch": "Uji A4 (Tidak Sepadan)",
+  "testA5EmailExists": "Uji A5 (E-mel Wujud)",
+  "testA5NoInterests": "Uji A5 (Tiada Minat)",
+  "testA7Transit": "Uji A7 (Transit)",
+  "recognizeSendsThisPhotoToGoogleVisionThroughOurSecureServiceOnlyResultTextIsSavedInYourLoc": "Pengecaman menghantar foto ini ke Google Vision melalui perkhidmatan selamat kami. Hanya teks hasil disimpan dalam sejarah setempat; aplikasi tidak menyimpan foto.",
+  "skipPlaceValueAndContinue": "Langkau tempat ({arg0}) dan teruskan",
+  "@skipPlaceValueAndContinue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueTopPicks": "{arg0} Pilihan Utama",
+  "@valueTopPicks": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueCustomSchedule": "Jadual Tersuai {arg0}",
+  "@valueCustomSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSmartSchedule": "Jadual Pintar {arg0}",
+  "@valueSmartSchedule": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueDayValueHighlights": "Sorotan Hari {arg1} di {arg0}",
+  "@valueDayValueHighlights": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueYourScheduledTimeRemainsSaved": "{arg0} Masa yang dijadualkan kekal tersimpan.",
+  "@valueYourScheduledTimeRemainsSaved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueKmValueMinvalue": "{arg0} km • {arg1} min{arg2}",
+  "@valueKmValueMinvalue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueLastSyncedValue": "{arg0} — kali terakhir disegerak {arg1}",
+  "@valueLastSyncedValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "valueSyncTimeNotRecorded": "{arg0} — masa penyegerakan tidak direkodkan",
+  "@valueSyncTimeNotRecorded": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValueSavedInValue": "{arg0} {arg1} disimpan di {arg2}",
+  "@valueValueSavedInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp": "{arg0}\n{arg1} tempat ditemui · {arg2} permintaan carian dalam penyegerakan itu.\nSemak tempat sedia ada sebelum menggunakan lebih banyak kuota API.",
+  "@valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "valueValueOfValue": "{arg0}–{arg1} daripada {arg2}",
+  "@valueValueOfValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryValueLocationValueValue": "Kategori: {arg0}\nLokasi: ({arg1}, {arg2})",
+  "@categoryValueLocationValueValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "alreadyRanItTapToRefreshDismiss": "Sudah Jalankan? Ketik untuk Muat Semula & Tutup",
+  "demoInfoTapLogInToSignInWithPreFilledTestUser": "Maklumat Demo: Ketik Log Masuk untuk menggunakan pengguna ujian yang diisi.",
+  "missingReviewCountColumnInSupabase": "Lajur Bilangan Ulasan Tiada dalam Supabase",
+  "placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE": "Tempat di {arg0} disimpan tanpa bilangan ulasan. Untuk menyusun mengikut populariti dan memaparkan ulasan (cth. 12.4k), jalankan ini dalam Supabase SQL Editor kemudian ketik Ambil & Segerak semula:",
+  "@placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "sqlCommandCopiedToClipboard": "Arahan SQL disalin!",
+  "supabaseRowLevelSecurityRlsLocked": "Keselamatan Peringkat Baris (RLS) Supabase Dikunci",
+  "toAllowSavingPlacesRunThis1LineCommandInYourSupabaseSqlEditor": "Untuk membenarkan simpanan tempat, jalankan arahan satu baris ini dalam Supabase SQL Editor:",
+  "text8Am10Pm": "8 pagi – 10 malam",
+  "text9Am6Pm": "9 pagi – 6 petang",
+  "text9Am9Pm": "9 pagi – 9 malam",
+  "estimatedForValueDaysPerPerson": "Anggaran untuk {arg0} hari · seorang",
+  "@estimatedForValueDaysPerPerson": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde": "• Amaran cuaca: hujan ringan dijangka selepas 3 petang.\n• Laluan dikemas kini: Jalan Alor diawalkan untuk mengelakkan orang ramai.\n• Peringatan: Batu Caves dibuka pada 7 pagi esok.",
+  "here": "sini",
+  "thisArea": "kawasan ini",
+  "forecastUnavailable": "Ramalan tidak tersedia",
+  "outdoorFriendly": "Sesuai untuk Luar Bangunan",
+  "highRainRiskIndoorRecommended": "Risiko Hujan Tinggi (Disarankan Dalam Bangunan)",
+  "scatteredShowersCarryUmbrella": "Hujan Berselerak (Bawa Payung)",
+  "partlyCloudy": "Separa Mendung",
+  "noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours": "Tiada tempat tambahan sesuai untuk hari ini. Cuba kurangkan hari atau panjangkan waktu harian.",
+  "forecastUnavailableForThisDateWeatherFilteringWasNotApplied": "Ramalan tarikh ini tidak tersedia; penapisan cuaca tidak digunakan.",
+  "travelTimesAreDistanceBasedEstimates": "Masa perjalanan ialah anggaran berdasarkan jarak.",
+  "someOpeningHoursAreUnverifiedConfirmBeforeVisiting": "Sesetengah waktu operasi belum disahkan. Sahkan sebelum melawat.",
+  "costsArePlanningEstimatesExcludingAccommodationAndTravelToTheFirstStop": "Kos ialah anggaran perancangan, tidak termasuk penginapan dan perjalanan ke hentian pertama.",
+  "itinerarySavedSuccessfullyToYourProfile": "Jadual berjaya disimpan dalam profil anda!",
+  "savedOnThisDeviceCloudSyncIsPending": "Disimpan pada peranti ini. Penyegerakan awan menunggu.",
+  "unableToSaveItineraryOnThisDevicePleaseTryAgain": "Tidak dapat menyimpan jadual pada peranti ini. Sila cuba lagi.",
+  "savedItineraryLoadedSuccessfully": "Jadual tersimpan berjaya dimuatkan.",
+  "youHaveNoSavedTripsYetTapPlanATripToGenerateYourFirstItinerary": "Anda belum mempunyai perjalanan tersimpan. Ketik \"Rancang Perjalanan\" untuk menjana jadual pertama!",
+  "unableToLoadSavedTripsPleaseTryAgain": "Tidak dapat memuatkan perjalanan tersimpan. Sila cuba lagi.",
+  "savedTripCouldNotBeFound": "Perjalanan tersimpan tidak ditemui.",
+  "allSavedPlacesUpdated": "Semua tempat tersimpan dikemas kini.",
+  "passFinishedWithIssuesRetryToReviewFailedPlaces": "Pusingan selesai dengan isu. Cuba lagi untuk menyemak tempat gagal.",
+  "pausedResumeToContinueFromTheNextPlace": "Dijeda. Sambung untuk meneruskan dari tempat seterusnya.",
+  "unableToSaveProgressStopAndRetryBeforeContinuing": "Tidak dapat menyimpan kemajuan. Hentikan dan cuba lagi sebelum meneruskan.",
+  "skippedByAdministratorExistingDataPreserved": "Dilangkau oleh pentadbir; data sedia ada dikekalkan.",
+  "skippedValueResumeToContinueUpdatingPlacesInValue": "{arg0} dilangkau. Sambung untuk mengemas kini tempat di {arg1}.",
+  "@skippedValueResumeToContinueUpdatingPlacesInValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "googlePlaceUnavailableValueExistingDataPreserved": "Tempat Google tidak tersedia ({arg0}); data sedia ada dikekalkan.",
+  "@googlePlaceUnavailableValueExistingDataPreserved": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "valueResumeToRetryValue": "{arg0} Sambung untuk mencuba semula {arg1}.",
+  "@valueResumeToRetryValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "thisStateIsAlreadyUpdating": "Negeri ini sedang dikemas kini.",
+  "stoppedBeforeRefreshStarted": "Dihentikan sebelum kemas kini bermula.",
+  "returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue": "Diterima {arg0} · negeri diterima {arg1} · unik {arg2} · negeri salah {arg3} · tidak sah {arg4} · semakan kategori {arg5}",
+  "@returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      },
+      "arg3": {
+        "type": "String"
+      },
+      "arg4": {
+        "type": "String"
+      },
+      "arg5": {
+        "type": "String"
+      }
+    }
+  },
+  "landmark": "mercu tanda",
+  "dish": "hidangan",
+  "showPassword": "Tunjukkan kata laluan",
+  "hidePassword": "Sembunyikan kata laluan",
+  "pleaseEnterATravelQuestionOrTapASuggestion": "Sila masukkan soalan perjalanan atau ketik cadangan.",
+  "promptIsTooShortPleaseBeMoreSpecific": "Soalan terlalu pendek. Sila berikan butiran lanjut.",
+  "activeSmartItinerary": "Jadual Pintar Aktif",
+  "text3DaysPersonalizedSchedule": "Jadual peribadi 3 hari",
+  "text5DaysCulturalSchedule": "Jadual budaya 5 hari",
+  "text7DaysIslandSchedule": "Jadual pulau 7 hari",
+  "heritageStreetArtRoute": "Laluan Warisan & Seni Jalanan",
+  "beachNatureExcursion": "Lawatan Pantai & Alam Semula Jadi",
+  "estimatedFor1DayPerPerson": "Anggaran untuk 1 hari · seorang"
+}

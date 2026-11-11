@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -40,21 +41,6 @@ class _PlannerPageState extends State<PlannerPage> {
     (index) => TimeOfDay(hour: 6 + index, minute: 0),
   );
 
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -66,12 +52,12 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day} ${_months[date.month - 1]} ${date.year}';
+    return context.localDate(date);
   }
 
   String get _travelDateLabel {
     final dates = travelDates;
-    if (dates == null) return 'Select travel dates';
+    if (dates == null) return context.l10n.selectTravelDates;
     return '${_formatDate(dates.start)} - ${_formatDate(dates.end)}';
   }
 
@@ -82,11 +68,8 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   String _formatTimeOfDay(TimeOfDay? time) {
-    if (time == null) return 'Select Time';
-    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
-    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '${hour.toString().padLeft(2, '0')}:$minute $period';
+    if (time == null) return context.l10n.selectTime;
+    return time.format(context);
   }
 
   bool _isSuggestedStartTime(TimeOfDay time) {
@@ -139,10 +122,10 @@ class _PlannerPageState extends State<PlannerPage> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
                   child: Text(
-                    'Select Destination',
+                    context.l10n.selectDestination,
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -267,8 +250,8 @@ class _PlannerPageState extends State<PlannerPage> {
     // Transition with demo loading effect and live generation
     runDemoLoadingAction(
       context,
-      loadingLabel: 'Building itinerary from saved places…',
-      successMessage: 'Itinerary generated — opening preview.',
+      loadingLabel: context.l10n.buildingItineraryFromSavedPlaces,
+      successMessage: context.l10n.itineraryGeneratedOpeningPreview,
       icon: Icons.auto_awesome,
       delay: const Duration(milliseconds: 1400),
     ).then((_) async {
@@ -316,7 +299,7 @@ class _PlannerPageState extends State<PlannerPage> {
                 itemHeight: null,
                 borderRadius: BorderRadius.circular(16),
                 icon: const Icon(Icons.expand_more, color: AppColors.muted),
-                hint: Text(label),
+                hint: Text(context.tr(label)),
                 selectedItemBuilder: (context) => _timeOptions
                     .map(
                       (time) => Align(
@@ -344,8 +327,8 @@ class _PlannerPageState extends State<PlannerPage> {
                           children: [
                             Expanded(child: Text(_formatTimeOfDay(time))),
                             if (suggested)
-                              const Tooltip(
-                                message: 'Suggested time',
+                              Tooltip(
+                                message: context.l10n.suggestedTime,
                                 child: Icon(
                                   Icons.check_circle_outline,
                                   color: AppColors.teal,
@@ -383,17 +366,23 @@ class _PlannerPageState extends State<PlannerPage> {
     final hours = minutes ~/ 60;
     final remainder = minutes % 60;
     return remainder == 0
-        ? '$hours hours of sightseeing per day'
-        : '$hours hours $remainder minutes of sightseeing per day';
+        ? context.l10n.valueHoursOfSightseeingPerDay(context.localNumber(hours))
+        : context.l10n.valueHoursValueMinutesOfSightseeingPerDay(
+            context.localNumber(hours),
+            context.localNumber(remainder),
+          );
   }
 
   String get _estimatedBudgetLabel {
     final days = _calculatedDays > 0 ? _calculatedDays : 1;
     return switch (budgetCategory) {
-      'Low' => 'Up to ~RM${150 * days} total',
-      'Medium' => '~RM${150 * days} – RM${300 * days} total',
-      'High' => 'Above ~RM${300 * days} total',
-      _ => 'Choose your daily budget',
+      'Low' => context.l10n.upToRmvalueTotal(context.localNumber(150 * days)),
+      'Medium' => context.l10n.rmvalueRmvalueTotal(
+        context.localNumber(150 * days),
+        context.localNumber(300 * days),
+      ),
+      'High' => context.l10n.aboveRmvalueTotal(context.localNumber(300 * days)),
+      _ => context.l10n.chooseYourDailyBudget,
     };
   }
 
@@ -417,7 +406,7 @@ class _PlannerPageState extends State<PlannerPage> {
               key: const ValueKey('plan-my-trips'),
               onPressed: widget.onMyTripsTap,
               icon: const Icon(Icons.folder_outlined, size: 20),
-              label: const Text('My Trips'),
+              label: Text(context.l10n.myTrips),
               style: TextButton.styleFrom(
                 minimumSize: const Size(48, 48),
                 foregroundColor: AppColors.primary,
@@ -426,30 +415,30 @@ class _PlannerPageState extends State<PlannerPage> {
           ),
           const SizedBox(height: 4),
         ],
-        const _PlanNotice(
+        _PlanNotice(
           icon: Icons.auto_awesome_outlined,
-          title: 'A trip that fits you',
-          message: 'Choose your dates, daily pace, and favourite things to do.',
+          title: context.l10n.aTripThatFitsYou,
+          message: context.l10n.chooseYourDatesDailyPaceAndFavouriteThingsToDo,
         ),
         const SizedBox(height: 20),
         _PlanSection(
           icon: Icons.luggage_outlined,
-          title: 'Trip details',
-          description: 'Where and when would you like to go?',
+          title: context.l10n.tripDetails2,
+          description: context.l10n.whereAndWhenWouldYouLikeToGo,
           children: [
             _PlanPickerField(
-              label: 'Destination',
+              label: context.l10n.destination,
               value: destination == null
                   ? 'Select State'
                   : '$destination, Malaysia',
               icon: Icons.place_outlined,
               hasError: _highlightedEmptyFields.contains('destination'),
-              errorText: 'Choose a destination.',
+              errorText: context.l10n.chooseADestination,
               onTap: _pickDestination,
             ),
             const SizedBox(height: 16),
             _PlanPickerField(
-              label: 'Travel dates',
+              label: context.l10n.travelDates,
               value: travelDates == null
                   ? 'Select Travel Dates'
                   : _travelDateLabel,
@@ -458,7 +447,7 @@ class _PlannerPageState extends State<PlannerPage> {
                   ? '$days ${days == 1 ? 'day' : 'days'} to explore'
                   : null,
               hasError: _highlightedEmptyFields.contains('numberOfDays'),
-              errorText: 'Choose your travel dates.',
+              errorText: context.l10n.chooseYourTravelDates,
               onTap: _pickTravelDates,
             ),
           ],
@@ -466,31 +455,31 @@ class _PlannerPageState extends State<PlannerPage> {
         const SizedBox(height: 16),
         _PlanSection(
           icon: Icons.schedule_outlined,
-          title: 'Your daily pace',
+          title: context.l10n.yourDailyPace,
           description:
-              'Set aside time for attractions, meals, and getting around.',
+              context.l10n.setAsideTimeForAttractionsMealsAndGettingAround,
           children: [
             const _PlanLabel('Choose a suggested schedule'),
             const SizedBox(height: 10),
             _PlanChoices(
               children: [
                 _buildTimePresetChip(
-                  title: 'Standard',
+                  title: context.l10n.standard,
                   startHour: 8,
                   endHour: 22,
-                  hoursLabel: '8 AM – 10 PM',
+                  hoursLabel: context.l10n.text8Am10Pm,
                 ),
                 _buildTimePresetChip(
-                  title: 'Popular',
+                  title: context.l10n.popular,
                   startHour: 9,
                   endHour: 21,
-                  hoursLabel: '9 AM – 9 PM',
+                  hoursLabel: context.l10n.text9Am9Pm,
                 ),
                 _buildTimePresetChip(
-                  title: 'Relaxed',
+                  title: context.l10n.relaxed,
                   startHour: 9,
                   endHour: 18,
-                  hoursLabel: '9 AM – 6 PM',
+                  hoursLabel: context.l10n.text9Am6Pm,
                 ),
               ],
             ),
@@ -499,14 +488,14 @@ class _PlannerPageState extends State<PlannerPage> {
               builder: (context, constraints) {
                 final fields = [
                   _buildTimeField(
-                    label: 'Daily Start Time',
+                    label: context.l10n.dailyStartTime,
                     field: 'dailyStartTime',
                     value: dailyStartTime,
                     isSuggested: _isSuggestedStartTime,
                     onChanged: (time) => dailyStartTime = time,
                   ),
                   _buildTimeField(
-                    label: 'Daily End Time',
+                    label: context.l10n.dailyEndTime,
                     field: 'dailyEndTime',
                     value: dailyEndTime,
                     isSuggested: _isSuggestedEndTime,
@@ -543,9 +532,10 @@ class _PlannerPageState extends State<PlannerPage> {
         const SizedBox(height: 16),
         _PlanSection(
           icon: Icons.account_balance_wallet_outlined,
-          title: 'Daily budget',
-          description:
-              'Per person, including meals, attraction tickets, and local transport.',
+          title: context.l10n.dailyBudget,
+          description: context
+              .l10n
+              .perPersonIncludingMealsAttractionTicketsAndLocalTransport,
           hasError: budgetError,
           children: [
             _PlanChoices(
@@ -556,8 +546,8 @@ class _PlannerPageState extends State<PlannerPage> {
                   ('High', 'Over RM300'),
                 ])
                   _PlanOption(
-                    title: option.$1,
-                    subtitle: option.$2,
+                    title: context.tr(option.$1),
+                    subtitle: context.tr(option.$2),
                     selected: budgetCategory == option.$1,
                     onTap: () {
                       setState(() {
@@ -574,17 +564,19 @@ class _PlannerPageState extends State<PlannerPage> {
             _PlanNotice(
               icon: Icons.payments_outlined,
               title: _estimatedBudgetLabel,
-              message:
-                  'Estimated for ${days > 0 ? days : 1} '
-                  '${days == 1 || days <= 0 ? 'day' : 'days'} · per person',
+              message: days <= 1
+                  ? context.l10n.estimatedFor1DayPerPerson
+                  : context.l10n.estimatedForValueDaysPerPerson(
+                      context.localNumber(days),
+                    ),
             ),
           ],
         ),
         const SizedBox(height: 16),
         _PlanSection(
           icon: Icons.route_outlined,
-          title: 'Getting around',
-          description: 'Choose how you will travel between places.',
+          title: context.l10n.gettingAround,
+          description: context.l10n.chooseHowYouWillTravelBetweenPlaces,
           hasError: modeError,
           children: [
             _PlanChoices(
@@ -599,7 +591,7 @@ class _PlannerPageState extends State<PlannerPage> {
                   ),
                 ])
                   _PlanOption(
-                    title: option.$2,
+                    title: context.tr(option.$2),
                     icon: option.$3,
                     selected: travelMode == option.$1,
                     onTap: () {
@@ -632,9 +624,9 @@ class _PlannerPageState extends State<PlannerPage> {
         const SizedBox(height: 16),
         _PlanSection(
           icon: Icons.favorite_border,
-          title: 'Make it your kind of trip',
+          title: context.l10n.makeItYourKindOfTrip,
           description:
-              'Pick one or more interests. We’ll use these to find places for you.',
+              context.l10n.pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou,
           hasError: interestError,
           children: [
             Wrap(
@@ -652,7 +644,7 @@ class _PlannerPageState extends State<PlannerPage> {
                   ('Nightlife', Icons.nightlife_outlined),
                 ])
                   FilterChip(
-                    label: Text(option.$1),
+                    label: Text(context.tr(option.$1)),
                     avatar: interests.contains(option.$1)
                         ? null
                         : Icon(option.$2, size: 18, color: AppColors.muted),
@@ -706,7 +698,7 @@ class _PlannerPageState extends State<PlannerPage> {
             liveRegion: true,
             child: _PlanNotice(
               icon: Icons.error_outline,
-              title: 'Check your trip preferences',
+              title: context.l10n.checkYourTripPreferences,
               message: _errorMessage!,
               isError: true,
             ),
@@ -716,8 +708,8 @@ class _PlannerPageState extends State<PlannerPage> {
         FilledButton.icon(
           onPressed: _handleGenerateItinerary,
           icon: const Icon(Icons.auto_awesome),
-          label: const Text(
-            'Generate My Itinerary',
+          label: Text(
+            context.l10n.generateMyItinerary,
             textAlign: TextAlign.center,
           ),
           style: primaryFilledButtonStyle().copyWith(
@@ -744,12 +736,12 @@ class _PlannerPageState extends State<PlannerPage> {
       child: ExpansionTile(
         initiallyExpanded: false,
         title: Row(
-          children: const [
+          children: [
             Icon(Icons.bug_report_outlined, size: 18, color: AppColors.primary),
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'UC300 Flow Testing Tools',
+                context.l10n.uc300FlowTestingTools,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -759,8 +751,8 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
           ],
         ),
-        subtitle: const Text(
-          'Quickly test messages M1–M8 & alternative flows A1–A7',
+        subtitle: Text(
+          context.l10n.quicklyTestMessagesM1M8AlternativeFlowsA1A7,
           style: TextStyle(fontSize: 12, color: AppColors.muted),
         ),
         children: [
@@ -776,8 +768,8 @@ class _PlannerPageState extends State<PlannerPage> {
                   children: [
                     ActionChip(
                       avatar: const Icon(Icons.check_circle_outline, size: 16),
-                      label: const Text(
-                        'Fill Valid Form',
+                      label: Text(
+                        context.l10n.fillValidForm,
                         style: TextStyle(fontSize: 12),
                       ),
                       onPressed: () {
@@ -801,8 +793,8 @@ class _PlannerPageState extends State<PlannerPage> {
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.dangerous_outlined, size: 16),
-                      label: const Text(
-                        'Test A1 (Empty Fields)',
+                      label: Text(
+                        context.l10n.testA1EmptyFields,
                         style: TextStyle(fontSize: 12),
                       ),
                       onPressed: () {
@@ -821,8 +813,8 @@ class _PlannerPageState extends State<PlannerPage> {
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.place, size: 16),
-                      label: const Text(
-                        'Test A2 (Bad Destination)',
+                      label: Text(
+                        context.l10n.testA2BadDestination,
                         style: TextStyle(fontSize: 12),
                       ),
                       onPressed: () {
@@ -835,8 +827,8 @@ class _PlannerPageState extends State<PlannerPage> {
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.calendar_month, size: 16),
-                      label: const Text(
-                        'Test A3 (Invalid Days)',
+                      label: Text(
+                        context.l10n.testA3InvalidDays,
                         style: TextStyle(fontSize: 12),
                       ),
                       onPressed: () {
@@ -854,8 +846,8 @@ class _PlannerPageState extends State<PlannerPage> {
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.timer_outlined, size: 16),
-                      label: const Text(
-                        'Test A4 (Bad Time Range)',
+                      label: Text(
+                        context.l10n.testA4BadTimeRange,
                         style: TextStyle(fontSize: 12),
                       ),
                       onPressed: () {
@@ -869,8 +861,8 @@ class _PlannerPageState extends State<PlannerPage> {
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.category_outlined, size: 16),
-                      label: const Text(
-                        'Test A5 (No Interests)',
+                      label: Text(
+                        context.l10n.testA5NoInterests,
                         style: TextStyle(fontSize: 12),
                       ),
                       onPressed: () {
@@ -883,8 +875,8 @@ class _PlannerPageState extends State<PlannerPage> {
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.directions_bus, size: 16),
-                      label: const Text(
-                        'Test A7 (Transit)',
+                      label: Text(
+                        context.l10n.testA7Transit,
                         style: TextStyle(fontSize: 12),
                       ),
                       onPressed: () {
@@ -948,7 +940,7 @@ class _PlanSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  title,
+                  context.tr(title),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -960,7 +952,7 @@ class _PlanSection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            description,
+            context.tr(description),
             style: const TextStyle(
               fontSize: 13,
               height: 1.5,
@@ -1041,7 +1033,7 @@ class _PlanPickerField extends StatelessWidget {
                             if (supportingText != null) ...[
                               const SizedBox(height: 5),
                               Text(
-                                supportingText!,
+                                context.tr(supportingText!),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -1142,7 +1134,7 @@ class _PlanOption extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    title,
+                    context.tr(title),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -1153,7 +1145,7 @@ class _PlanOption extends StatelessWidget {
                   if (subtitle != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      subtitle!,
+                      context.tr(subtitle!),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 12,
@@ -1207,7 +1199,7 @@ class _PlanNotice extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  context.tr(title),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -1216,7 +1208,7 @@ class _PlanNotice extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  message,
+                  context.tr(message),
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
@@ -1247,7 +1239,7 @@ class _PlanInlineNote extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            text,
+            context.tr(text),
             style: const TextStyle(
               fontSize: 13,
               height: 1.5,
@@ -1268,7 +1260,7 @@ class _PlanLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      text,
+      context.tr(text),
       style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
@@ -1288,7 +1280,7 @@ class _PlanFieldError extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Text(
-        text,
+        context.tr(text),
         style: TextStyle(fontSize: 13, color: Colors.red.shade700),
       ),
     );

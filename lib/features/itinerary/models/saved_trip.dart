@@ -7,6 +7,8 @@ class SavedTrip {
     required this.budget,
     required this.interests,
     this.totalDays = 3,
+    this.startsOn,
+    this.isGenerated = false,
   });
 
   final String title;
@@ -16,4 +18,8 @@ class SavedTrip {
   final String budget;
   final List<String> interests;
   final int totalDays;
+
+  /// Typed presentation metadata; does not change stored itinerary records.
+  final DateTime? startsOn;
+  final bool isGenerated;
 }

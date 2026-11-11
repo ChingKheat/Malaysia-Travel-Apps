@@ -9,10 +9,11 @@ void main() {
     await tester.pumpWidget(const SmartTravelApp());
 
     // Verify WelcomeScreen elements
-    expect(find.text('Selamat Datang!'), findsOneWidget);
+    expect(find.text('Welcome!'), findsOneWidget);
     expect(find.text('Smart Travel\nPlanning'), findsOneWidget);
 
     // Tap Log In / Sign Up to open AuthScreen
+    await tester.ensureVisible(find.text('Log In / Sign Up'));
     await tester.tap(find.text('Log In / Sign Up'));
     await tester.pumpAndSettle();
 

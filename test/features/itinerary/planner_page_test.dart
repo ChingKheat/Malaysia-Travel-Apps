@@ -41,7 +41,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Johor, Malaysia'), findsOneWidget);
 
-    final dateLabel = find.textContaining(RegExp(r'\d+ \w+ \d{4} - '));
+    // The displayed order now follows the current locale (English: Nov 18, 2026).
+    final dateLabel = find.textContaining(RegExp(r'\d{4} - '));
     await _reveal(tester, dateLabel);
     await tester.tap(dateLabel);
     await tester.pumpAndSettle();

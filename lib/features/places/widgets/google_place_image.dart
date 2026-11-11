@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,11 +14,15 @@ class GooglePlaceImage extends StatefulWidget {
     required this.photo,
     required this.service,
     this.photoIndex = 0,
+    this.autoLoad = false,
+    this.fill = false,
   });
   final String placeId;
   final GooglePlacePhoto photo;
   final int photoIndex;
   final GooglePlacesService service;
+  final bool autoLoad;
+  final bool fill;
   @override
   State<GooglePlaceImage> createState() => _GooglePlaceImageState();
 }
@@ -32,6 +37,9 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
   void initState() {
     super.initState();
     _photo = widget.photo;
+    if (widget.autoLoad) {
+      _load();
+    }
   }
 
   @override
@@ -44,6 +52,9 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
       _bytes = null;
       _loading = false;
       _requested = false;
+      if (widget.autoLoad) {
+        _load();
+      }
     }
   }
 
@@ -84,51 +95,130 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(
-        height: 220,
-        width: double.infinity,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _bytes == null
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_requested) const Text('Photo unavailable'),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 48),
-                      child: FilledButton.icon(
-                        onPressed: _load,
-                        icon: const Icon(Icons.photo),
-                        label: Text(_requested ? 'Retry photo' : 'Load photo'),
+  Widget build(BuildContext context) {
+    final imageWidget = (_loading || (!_requested && widget.autoLoad))
+        ? Container(
+            color: const Color(0xFFE2E8F0),
+            child: const Center(
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          )
+        : _bytes == null
+        ? Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_requested) ...[
+                  Text(
+                    context.l10n.photoUnavailable,
+                    style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: FilledButton.icon(
+                    onPressed: _load,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: Text(
+                      _requested
+                          ? context.l10n.retryPhoto
+                          : context.l10n.loadPhoto,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : Image.memory(
+            _bytes!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (_, _, _) =>
+                Center(child: Text(context.l10n.photoUnavailable)),
+          );
+
+    if (widget.fill) {
+      final authorName = _photo.authors.firstOrNull?['displayName']?.toString();
+      final authorUri = _photo.authors.firstOrNull?['uri']?.toString();
+
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          imageWidget,
+          if (_bytes != null && authorName != null)
+            Positioned(
+              left: 14,
+              bottom: 14,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: authorUri != null
+                      ? () => _openAuthor(authorUri)
+                      : null,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        width: 0.8,
                       ),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.camera_alt_outlined,
+                          size: 13,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Google Maps • $authorName',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              )
-            : Image.memory(
-                _bytes!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
-                    const Center(child: Text('Photo unavailable')),
               ),
-      ),
-      if (_bytes != null) ...[
-        const Text('Google Maps'),
-        ..._photo.authors.map(
-          (author) => TextButton(
-            onPressed: author['uri'] == null
-                ? null
-                : () => _openAuthor(author['uri']?.toString()),
-            child: Text(
-              'Photo: ${author['displayName'] ?? 'Google Maps contributor'}',
+            ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 220, width: double.infinity, child: imageWidget),
+        if (_bytes != null) ...[
+          const Text('Google Maps'),
+          ..._photo.authors.map(
+            (author) => TextButton(
+              onPressed: author['uri'] == null
+                  ? null
+                  : () => _openAuthor(author['uri']?.toString()),
+              child: Text(
+                context.l10n.photoValue(
+                  (author['displayName'] ?? 'Google Maps contributor')
+                      .toString(),
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ],
-    ],
-  );
+    );
+  }
 }

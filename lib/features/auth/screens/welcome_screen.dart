@@ -1,4 +1,6 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/shared/widgets/language_selector.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
@@ -26,7 +28,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       setState(() => _isActionLoading = false);
       showDemoSnackBar(
         context,
-        'Logged in as Guest Traveler!',
+        context.l10n.loggedInAsGuestTraveler,
         icon: Icons.check_circle_outline,
       );
     }
@@ -85,110 +87,149 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           ),
           // Content Layout
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Spacer(),
-                  // Selamat Datang
-                  Text(
-                    'Selamat Datang!',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 22,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.5,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 16.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: LanguageButton(foregroundColor: Colors.white),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  // Smart Travel Planning Title
-                  const Text(
-                    'Smart Travel\nPlanning',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
-                      letterSpacing: -0.5,
+                    // Selamat Datang
+                    Text(
+                      context.l10n.selamatDatang,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Subtitle
-                  Text(
-                    'Your Smart Travel Companion\nin Malaysia',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 16,
-                      height: 1.4,
+                    const SizedBox(height: 6),
+                    // Smart Travel Planning Title
+                    Text(
+                      context.l10n.smartTravelPlanning,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 38,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 12),
+                    // Subtitle
+                    Text(
+                      context.l10n.yourSmartTravelCompanionInMalaysia,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        fontSize: 16,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
 
-                  // Feature highlights container
-                  _buildFeatureItem(
-                    icon: Icons.auto_awesome_outlined,
-                    title: 'Auto Smart Scheduling',
-                    description: 'Plan the best route for you',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFeatureItem(
-                    icon: Icons.cloud_sync_outlined,
-                    title: 'Real-time Updates',
-                    description: 'Weather, traffic & opening hours',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFeatureItem(
-                    icon: Icons.translate_outlined,
-                    title: 'Multi-language Support',
-                    description: 'English • Malay • 中文',
-                  ),
+                    // Feature highlights container
+                    _buildFeatureItem(
+                      icon: Icons.auto_awesome_outlined,
+                      title: context.l10n.autoSmartScheduling,
+                      description: context.l10n.planTheBestRouteForYou,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureItem(
+                      icon: Icons.cloud_sync_outlined,
+                      title: context.l10n.realTimeUpdates,
+                      description: context.l10n.weatherTrafficOpeningHours,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureItem(
+                      icon: Icons.translate_outlined,
+                      title: context.l10n.multiLanguageSupport,
+                      description: 'English • Malay • 中文',
+                    ),
 
-                  const SizedBox(height: 36),
+                    const SizedBox(height: 36),
 
-                  // Buttons
-                  _isActionLoading
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 20.0),
-                            child: CircularProgressIndicator(color: Colors.white),
-                          ),
-                        )
-                      : Column(
-                          children: [
-                            // Get Started (Gradient Button)
-                            Container(
-                              width: double.infinity,
-                              height: 54,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF7C3AED), // Violet
-                                    Color(0xFF4F46E5), // Indigo
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF6366F1).withValues(alpha: 0.4),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
+                    // Buttons
+                    _isActionLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
                               ),
-                              child: ElevatedButton(
-                                onPressed: _handleGetStarted,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
+                            ),
+                          )
+                        : Column(
+                            children: [
+                              // Get Started (Gradient Button)
+                              Container(
+                                width: double.infinity,
+                                height: 54,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF7C3AED), // Violet
+                                      Color(0xFF4F46E5), // Indigo
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF6366F1,
+                                      ).withValues(alpha: 0.4),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: _handleGetStarted,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    context.l10n.getStarted,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              // Log In / Sign Up (Outlined Button)
+                              OutlinedButton(
+                                onPressed: _showLoginSheet,
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(54),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
+                                  side: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    width: 1.5,
+                                  ),
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.05,
+                                  ),
                                 ),
-                                child: const Text(
-                                  'Get Started',
+                                child: Text(
+                                  context.l10n.logInSignUp,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -196,35 +237,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            // Log In / Sign Up (Outlined Button)
-                            OutlinedButton(
-                              onPressed: _showLoginSheet,
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(54),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                side: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  width: 1.5,
-                                ),
-                                backgroundColor: Colors.white.withValues(alpha: 0.05),
-                              ),
-                              child: const Text(
-                                'Log In / Sign Up',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                  const SizedBox(height: 16),
-                ],
+                            ],
+                          ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             ),
           ),
@@ -252,11 +269,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               width: 1,
             ),
           ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 22,
-          ),
+          child: Icon(icon, color: Colors.white, size: 22),
         ),
         const SizedBox(width: 16),
         // Content
@@ -297,7 +310,9 @@ class LoginBottomSheet extends StatefulWidget {
 
 class _LoginBottomSheetState extends State<LoginBottomSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'chingkheat@example.com');
+  final _emailController = TextEditingController(
+    text: 'chingkheat@example.com',
+  );
   final _passwordController = TextEditingController(text: '123456');
   final _authService = AuthService();
 
@@ -330,11 +345,15 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
         Navigator.pop(context); // Close bottom sheet
         showDemoSnackBar(
           context,
-          'Welcome back, ${_authService.currentUser?.name}!',
+          context.l10n.welcomeBackValue(
+            (_authService.currentUser?.name).toString(),
+          ),
           icon: Icons.check_circle,
         );
       } else {
-        setState(() => _errorMessage = 'Invalid email or password (min 6 chars)');
+        setState(
+          () => _errorMessage = 'Invalid email or password (min 6 chars)',
+        );
       }
     }
   }
@@ -373,8 +392,8 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
               ),
               const SizedBox(height: 24),
               // Header
-              const Text(
-                'Welcome Back',
+              Text(
+                context.l10n.welcomeBack,
                 style: TextStyle(
                   color: AppColors.ink,
                   fontSize: 26,
@@ -382,18 +401,18 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Enter your credentials to manage your Malaysia trips.',
-                style: TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 14,
-                ),
+              Text(
+                context.l10n.enterYourCredentialsToManageYourMalaysiaTrips,
+                style: TextStyle(color: AppColors.muted, fontSize: 14),
               ),
               const SizedBox(height: 24),
 
               if (_errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -401,12 +420,20 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red.shade600,
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          _errorMessage!,
-                          style: TextStyle(color: Colors.red.shade700, fontSize: 13, fontWeight: FontWeight.w600),
+                          context.tr(_errorMessage!),
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -420,17 +447,23 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Email Address',
+                  labelText: context.l10n.emailAddress,
                   prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: const BorderSide(color: AppColors.line),
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.isEmpty) return 'Please enter your email';
-                  if (!val.contains('@')) return 'Please enter a valid email';
+                  if (val == null || val.isEmpty) {
+                    return context.l10n.pleaseEnterYourEmail;
+                  }
+                  if (!val.contains('@')) {
+                    return context.l10n.pleaseEnterAValidEmail;
+                  }
                   return null;
                 },
               ),
@@ -441,17 +474,23 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: context.l10n.password,
                   prefixIcon: const Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: const BorderSide(color: AppColors.line),
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.isEmpty) return 'Please enter your password';
-                  if (val.length < 6) return 'Password must be at least 6 characters';
+                  if (val == null || val.isEmpty) {
+                    return context.l10n.pleaseEnterYourPassword;
+                  }
+                  if (val.length < 6) {
+                    return context.l10n.passwordMustBeAtLeast6Characters;
+                  }
                   return null;
                 },
               ),
@@ -467,11 +506,17 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, color: AppColors.primary, size: 18),
+                    const Icon(
+                      Icons.info_outline,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Demo Info: Tap Log In to sign in with pre-filled test user.',
+                        context
+                            .l10n
+                            .demoInfoTapLogInToSignInWithPreFilledTestUser,
                         style: TextStyle(
                           color: AppColors.primary.withValues(alpha: 0.9),
                           fontSize: 12,
@@ -497,7 +542,7 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                       height: 52,
                       child: FilledButton(
                         onPressed: _handleLogin,
-                        child: const Text('Log In'),
+                        child: Text(context.l10n.logIn),
                       ),
                     ),
             ],

@@ -144,7 +144,13 @@ class PlaceCatalogService {
   ];
 
   static Map<String, dynamic> persistentRow(Map<String, dynamic> row) {
-    if (!isGoogleReference(row)) return {...row}..remove('photo_url');
+    final rawPhoto = row['photo_url']?.toString();
+    final safePhoto = rawPhoto != null &&
+            !rawPhoto.contains('places.googleapis.com') &&
+            !rawPhoto.contains('key=')
+        ? rawPhoto
+        : null;
+    if (!isGoogleReference(row)) return {...row, 'photo_url': safePhoto};
     return {
       'place_id': row['place_id'],
       'state': row['state'],
@@ -159,6 +165,7 @@ class PlaceCatalogService {
       'rating': null,
       'user_ratings_total': null,
       'operating_hours': null,
+      'photo_url': safePhoto,
     };
   }
 
