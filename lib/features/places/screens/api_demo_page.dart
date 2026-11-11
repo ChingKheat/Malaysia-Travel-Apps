@@ -17,9 +17,10 @@ import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/navigation/screens/map_screen.dart';
 
 class ApiDemoPage extends StatefulWidget {
-  const ApiDemoPage({super.key, this.isVisible = true});
+  const ApiDemoPage({super.key, this.isVisible = true, this.discoveryHeader});
 
   final bool isVisible;
+  final Widget? discoveryHeader;
 
   @override
   State<ApiDemoPage> createState() => _ApiDemoPageState();
@@ -524,44 +525,37 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       return _ErrorState(message: _error!, onRetry: _loadAttractions);
     }
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-          child: Column(
-            children: [
-              _buildLocationSelector(),
-              const SizedBox(height: 10),
-              _buildSearchBar(),
-              const SizedBox(height: 10),
-              _buildCategoryChips(),
-            ],
-          ),
-        ),
-        Expanded(
-          child: AttractionListScreen(
-            attractions: filtered,
-            selectedStops: _selectedStops,
-            highlights: _suggestedHighlights,
-            hasMore: _page?.hasMore == true,
-            loadingMore: _loadingMore,
-            onLoadMore: () => _loadAttractions(append: true),
-            attributions: _attributions,
-            currentAreaName: _locationService.currentAreaName,
-            selectedCategory: _selectedCategory,
-            searchQuery: _searchQuery,
-            onClearFilters: () {
-              setState(() {
-                _searchQuery = '';
-                _searchController.clear();
-                _selectedCategory = 'All';
-              });
-            },
-            onAttractionTap: _openDetails,
-            onToggleStop: _toggleStop,
-          ),
-        ),
-      ],
+    return AttractionListScreen(
+      header: Column(
+        children: [
+          if (widget.discoveryHeader != null) widget.discoveryHeader!,
+          _buildLocationSelector(),
+          const SizedBox(height: 10),
+          _buildSearchBar(),
+          const SizedBox(height: 10),
+          _buildCategoryChips(),
+          const SizedBox(height: 12),
+        ],
+      ),
+      attractions: filtered,
+      selectedStops: _selectedStops,
+      highlights: _suggestedHighlights,
+      hasMore: _page?.hasMore == true,
+      loadingMore: _loadingMore,
+      onLoadMore: () => _loadAttractions(append: true),
+      attributions: _attributions,
+      currentAreaName: _locationService.currentAreaName,
+      selectedCategory: _selectedCategory,
+      searchQuery: _searchQuery,
+      onClearFilters: () {
+        setState(() {
+          _searchQuery = '';
+          _searchController.clear();
+          _selectedCategory = 'All';
+        });
+      },
+      onAttractionTap: _openDetails,
+      onToggleStop: _toggleStop,
     );
   }
 

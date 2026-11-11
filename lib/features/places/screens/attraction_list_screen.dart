@@ -17,6 +17,7 @@ class AttractionListScreen extends StatelessWidget {
     required this.onAttractionTap,
     required this.onToggleStop,
     this.highlights,
+    this.header,
     this.hasMore = false,
     this.loadingMore = false,
     this.onLoadMore,
@@ -27,6 +28,7 @@ class AttractionListScreen extends StatelessWidget {
     this.onClearFilters,
   });
 
+  final Widget? header;
   final List<Attraction> attractions;
   final List<Attraction> selectedStops;
   final ValueChanged<Attraction> onAttractionTap;
@@ -54,6 +56,7 @@ class AttractionListScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
       children: [
+        ?header,
         // 1. Featured Highlights Carousel (Only in default browse mode)
         if (showHighlights) ...[
           _buildHighlightsSection(context),

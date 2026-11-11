@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
-import 'package:smart_travel_planner/features/places/screens/api_demo_page.dart';
+import 'package:smart_travel_planner/features/community/explore_page.dart';
 import 'package:smart_travel_planner/features/assistant/screens/assistant_page.dart';
 import 'package:smart_travel_planner/features/home/screens/home_page.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/image_recognition_page.dart';
@@ -89,7 +89,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
         onRouteTap: () => _goToTab(1),
         onAssistantTap: () => _goToTab(4),
       ),
-      ApiDemoPage(isVisible: _selectedIndex == 1 && !_myTripsOpen),
+      ExplorePage(isVisible: _selectedIndex == 1 && !_myTripsOpen),
       ImageRecognitionPage(
         key: ValueKey(
           'recognition:${AuthService().currentUser?.uid ?? 'guest'}',
