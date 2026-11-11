@@ -4618,6 +4618,110 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Estimated for 1 day · per person'**
   String get estimatedFor1DayPerPerson;
+
+  /// No description provided for @scan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get scan;
+
+  /// No description provided for @identifyMalaysianLandmarksAndLocalDishes.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify Malaysian landmarks and local dishes'**
+  String get identifyMalaysianLandmarksAndLocalDishes;
+
+  /// No description provided for @scanningPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning photo…'**
+  String get scanningPhoto;
+
+  /// No description provided for @cancelRecognition.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel recognition'**
+  String get cancelRecognition;
+
+  /// No description provided for @howToTakeAGoodPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'How to take a good photo'**
+  String get howToTakeAGoodPhoto;
+
+  /// No description provided for @frameOneDishOrLandmarkSoItsEasyToIdentify.
+  ///
+  /// In en, this message translates to:
+  /// **'Frame one dish or landmark so it’s easy to identify.'**
+  String get frameOneDishOrLandmarkSoItsEasyToIdentify;
+
+  /// No description provided for @tipFoodCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'01  FOOD'**
+  String get tipFoodCategory;
+
+  /// No description provided for @centerTheSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Center the subject'**
+  String get centerTheSubject;
+
+  /// No description provided for @shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoot from above and leave a little space around the whole plate.'**
+  String get shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate;
+
+  /// No description provided for @tipLandmarkCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'02  LANDMARK'**
+  String get tipLandmarkCategory;
+
+  /// No description provided for @includeTheKeyFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the key feature'**
+  String get includeTheKeyFeature;
+
+  /// No description provided for @stepBackToFitTheStatueAndStepsWaitForAClearView.
+  ///
+  /// In en, this message translates to:
+  /// **'Step back to fit the statue and steps. Wait for a clear view.'**
+  String get stepBackToFitTheStatueAndStepsWaitForAClearView;
+
+  /// No description provided for @aPlateOfNasiLemakCenteredInTheFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'A plate of nasi lemak centered in the frame'**
+  String get aPlateOfNasiLemakCenteredInTheFrame;
+
+  /// No description provided for @theGoldenStatueAndStepsAtBatuCaves.
+  ///
+  /// In en, this message translates to:
+  /// **'The golden statue and steps at Batu Caves'**
+  String get theGoldenStatueAndStepsAtBatuCaves;
+
+  /// No description provided for @checkTheLightAndFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the light and focus'**
+  String get checkTheLightAndFocus;
+
+  /// No description provided for @useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'Use soft light from the front or side. Tap the subject to focus and hold your phone steady.'**
+  String
+  get useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady;
+
+  /// No description provided for @selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected photos are sent to Google Vision for scanning. Only result text is saved in History on this device.'**
+  String
+  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice;
 }
 
 class _AppLocalizationsDelegate

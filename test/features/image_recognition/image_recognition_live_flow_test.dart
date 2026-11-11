@@ -1,5 +1,7 @@
-import 'dart:typed_data';
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +14,11 @@ import 'package:smart_travel_planner/features/image_recognition/services/recogni
 import 'package:smart_travel_planner/features/image_recognition/widgets/recognition_result_sheet.dart';
 
 class _Picker extends ImagePicker {
+  _Picker({this.pick});
+
+  final XFile? Function()? pick;
+  final sources = <ImageSource>[];
+
   @override
   Future<XFile?> pickImage({
     required ImageSource source,
@@ -20,10 +27,15 @@ class _Picker extends ImagePicker {
     int? imageQuality,
     CameraDevice preferredCameraDevice = CameraDevice.rear,
     bool requestFullMetadata = true,
-  }) async => XFile.fromData(
-    File('assets/recognition/petronas.jpg').readAsBytesSync(),
-    name: 'photo.jpg',
-  );
+  }) async {
+    sources.add(source);
+    final override = pick;
+    if (override != null) return override();
+    return XFile.fromData(
+      File('assets/recognition/petronas.jpg').readAsBytesSync(),
+      name: 'photo.jpg',
+    );
+  }
 }
 
 class _Service extends ImageRecognitionService {
@@ -31,9 +43,11 @@ class _Service extends ImageRecognitionService {
   int translations = 0;
   bool fail = false;
   bool failTranslation = false;
+  Completer<void>? pendingScan;
   @override
   Future<RecognitionResult> recognize(Uint8List bytes) async {
     scans++;
+    await pendingScan?.future;
     if (fail) {
       throw const ImageRecognitionException(
         'Service is offline. Try a sample.',
@@ -78,40 +92,134 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  testWidgets(
-    'Photo preview requires an explicit scan and persists result text only',
-    (tester) async {
+  Future<void> tapPhotoSource(WidgetTester tester, String label) async {
+    final source = find.text(label);
+    await tester.scrollUntilVisible(source, 100);
+    await tester.pumpAndSettle();
+    await tester.tap(source);
+  }
+
+  for (final entry in {
+    ImageSource.camera: 'Take Photo',
+    ImageSource.gallery: 'Upload from Gallery',
+  }.entries) {
+    testWidgets(
+      '${entry.key.name} starts one scan and saves only result text',
+      (tester) async {
+        phone(tester);
+        final api = _Service();
+        addTearDown(api.dispose);
+        final picker = _Picker();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ImageRecognitionPage(
+                userId: 'live',
+                service: api,
+                imagePicker: picker,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(api.scans, 0);
+        await tapPhotoSource(tester, entry.value);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(picker.sources, [entry.key]);
+        expect(api.scans, 1);
+        expect(find.text('Scanning photo…'), findsOneWidget);
+        expect(find.text('Your photo is ready'), findsNothing);
+        expect(find.text('Recognize photo'), findsNothing);
+
+        await tester.pumpAndSettle();
+        final sheet = tester.widget<RecognitionResultSheet>(
+          find.byType(RecognitionResultSheet),
+        );
+        expect(sheet.image, isNotNull);
+        expect(find.text('Vision confidence 90%'), findsOneWidget);
+        expect(api.scans, 1);
+        final history = await RecognitionHistoryStore(userId: 'live').load();
+        expect(history, hasLength(1));
+        expect(history.single.isSample, isFalse);
+        expect(history.single.toJson().keys, isNot(contains('image')));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final entry in <String, int?>{
+    'picker cancellation': null,
+    'empty file': 0,
+    'oversized file': ImageRecognitionService.maxImageBytes + 1,
+  }.entries) {
+    testWidgets('${entry.key} returns to the guide without scanning', (
+      tester,
+    ) async {
       phone(tester);
       final api = _Service();
+      addTearDown(api.dispose);
+      final length = entry.value;
+      final picker = _Picker(
+        pick: () => length == null
+            ? null
+            : XFile.fromData(Uint8List(length), name: 'invalid.jpg'),
+      );
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ImageRecognitionPage(
-              userId: 'live',
-              service: api,
-              imagePicker: _Picker(),
-            ),
+            body: ImageRecognitionPage(service: api, imagePicker: picker),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Upload from Gallery'));
+      await tapPhotoSource(tester, 'Upload from Gallery');
       await tester.pumpAndSettle();
-      expect(find.text('Your photo is ready'), findsOneWidget);
+      expect(picker.sources, [ImageSource.gallery]);
       expect(api.scans, 0);
-      await tester.ensureVisible(find.text('Recognize photo'));
-      await tester.tap(find.text('Recognize photo'));
-      await tester.pumpAndSettle();
-      expect(api.scans, 1);
-      expect(find.text('Vision confidence 90%'), findsOneWidget);
-      final history = await RecognitionHistoryStore(userId: 'live').load();
-      expect(history, hasLength(1));
-      expect(history.single.isSample, isFalse);
-      expect(history.single.toJson().keys, isNot(contains('image')));
+      expect(find.text('Upload from Gallery').hitTestable(), findsOneWidget);
+      expect(find.text('Scanning photo…'), findsNothing);
+      expect(
+        find.byType(SnackBar),
+        length == null ? findsNothing : findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
-      api.dispose();
-    },
-  );
+    });
+  }
+
+  testWidgets('Closing a scan discards a late recognition result', (
+    tester,
+  ) async {
+    phone(tester);
+    final api = _Service()..pendingScan = Completer<void>();
+    addTearDown(api.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ImageRecognitionPage(
+            userId: 'cancelled',
+            service: api,
+            imagePicker: _Picker(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tapPhotoSource(tester, 'Upload from Gallery');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(api.scans, 1);
+    await tester.tap(find.byTooltip('Cancel recognition'));
+    await tester.pumpAndSettle();
+    api.pendingScan!.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scanning photo…'), findsNothing);
+    expect(find.byType(RecognitionResultSheet), findsNothing);
+    expect(find.text('Upload from Gallery'), findsOneWidget);
+    expect(await RecognitionHistoryStore(userId: 'cancelled').load(), isEmpty);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'Offline recognition retains samples and does not save fabricated results',
@@ -130,11 +238,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Upload from Gallery'));
+      await tapPhotoSource(tester, 'Upload from Gallery');
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Recognize photo'));
-      await tester.tap(find.text('Recognize photo'));
-      await tester.pumpAndSettle();
+      expect(api.scans, 1);
       expect(find.text('Service is offline. Try a sample.'), findsOneWidget);
       expect(await RecognitionHistoryStore(userId: 'offline').load(), isEmpty);
       expect(find.text('History (0)'), findsOneWidget);

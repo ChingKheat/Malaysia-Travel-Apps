@@ -2738,4 +2738,65 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get estimatedFor1DayPerPerson => 'Anggaran untuk 1 hari · seorang';
+
+  @override
+  String get scan => 'Imbas';
+
+  @override
+  String get identifyMalaysianLandmarksAndLocalDishes =>
+      'Kenal pasti mercu tanda dan hidangan tempatan Malaysia';
+
+  @override
+  String get scanningPhoto => 'Mengimbas foto…';
+
+  @override
+  String get cancelRecognition => 'Batalkan pengecaman';
+
+  @override
+  String get howToTakeAGoodPhoto => 'Cara mengambil foto yang baik';
+
+  @override
+  String get frameOneDishOrLandmarkSoItsEasyToIdentify =>
+      'Bingkaikan satu hidangan atau mercu tanda supaya mudah dikenal pasti.';
+
+  @override
+  String get tipFoodCategory => '01  MAKANAN';
+
+  @override
+  String get centerTheSubject => 'Pusatkan subjek';
+
+  @override
+  String get shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate =>
+      'Ambil gambar dari atas dan tinggalkan sedikit ruang di sekeliling pinggan.';
+
+  @override
+  String get tipLandmarkCategory => '02  MERCU TANDA';
+
+  @override
+  String get includeTheKeyFeature => 'Sertakan ciri utama';
+
+  @override
+  String get stepBackToFitTheStatueAndStepsWaitForAClearView =>
+      'Undur sedikit untuk memuatkan patung dan tangga. Tunggu pandangan yang jelas.';
+
+  @override
+  String get aPlateOfNasiLemakCenteredInTheFrame =>
+      'Sepinggan nasi lemak di tengah bingkai';
+
+  @override
+  String get theGoldenStatueAndStepsAtBatuCaves =>
+      'Patung emas dan tangga di Batu Caves';
+
+  @override
+  String get checkTheLightAndFocus => 'Semak pencahayaan dan fokus';
+
+  @override
+  String
+  get useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady =>
+      'Gunakan cahaya lembut dari hadapan atau sisi. Ketik subjek untuk fokus dan pegang telefon dengan stabil.';
+
+  @override
+  String
+  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
+      'Foto yang dipilih dihantar ke Google Vision untuk diimbas. Hanya teks keputusan disimpan dalam Sejarah pada peranti ini.';
 }

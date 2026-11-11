@@ -1652,5 +1652,22 @@
   "text7DaysIslandSchedule": "7 days island schedule",
   "heritageStreetArtRoute": "Heritage & Street Art Route",
   "beachNatureExcursion": "Beach & Nature Excursion",
-  "estimatedFor1DayPerPerson": "Estimated for 1 day · per person"
+  "estimatedFor1DayPerPerson": "Estimated for 1 day · per person",
+  "scan": "Scan",
+  "identifyMalaysianLandmarksAndLocalDishes": "Identify Malaysian landmarks and local dishes",
+  "scanningPhoto": "Scanning photo…",
+  "cancelRecognition": "Cancel recognition",
+  "howToTakeAGoodPhoto": "How to take a good photo",
+  "frameOneDishOrLandmarkSoItsEasyToIdentify": "Frame one dish or landmark so it’s easy to identify.",
+  "tipFoodCategory": "01  FOOD",
+  "centerTheSubject": "Center the subject",
+  "shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate": "Shoot from above and leave a little space around the whole plate.",
+  "tipLandmarkCategory": "02  LANDMARK",
+  "includeTheKeyFeature": "Include the key feature",
+  "stepBackToFitTheStatueAndStepsWaitForAClearView": "Step back to fit the statue and steps. Wait for a clear view.",
+  "aPlateOfNasiLemakCenteredInTheFrame": "A plate of nasi lemak centered in the frame",
+  "theGoldenStatueAndStepsAtBatuCaves": "The golden statue and steps at Batu Caves",
+  "checkTheLightAndFocus": "Check the light and focus",
+  "useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady": "Use soft light from the front or side. Tap the subject to focus and hold your phone steady.",
+  "selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice": "Selected photos are sent to Google Vision for scanning. Only result text is saved in History on this device."
 }

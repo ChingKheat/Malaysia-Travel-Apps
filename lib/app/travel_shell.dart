@@ -60,7 +60,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   static const _tabSubtitles = [
     null, // Home: automatically shows Where would you like to explore today?
     'Discover attractions & places',
-    'Discover Malaysia through your camera',
+    'Identify Malaysian landmarks and local dishes',
     'Tell us your preferences',
     'AI help, translation and weather alerts',
   ];
@@ -139,7 +139,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                                 Text(
                                   context
                                       .l10n
-                                      .discoverMalaysiaThroughYourCamera,
+                                      .identifyMalaysianLandmarksAndLocalDishes,
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: AppColors.muted,
@@ -175,7 +175,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   }
 }
 
-/// Five equal-width destinations keep Recognize at the physical centre.
+/// The central Scan action rises above the other destinations.
 class TravelBottomNavigation extends StatelessWidget {
   const TravelBottomNavigation({
     super.key,
@@ -193,52 +193,60 @@ class TravelBottomNavigation extends StatelessWidget {
       IconData icon,
       String label, {
       IconData? selectedIcon,
-      Key? key,
-      String? tooltip,
     }) {
       final selected = selectedIndex == index;
-      return Semantics(
-        selected: selected,
-        button: true,
-        child: Tooltip(
-          message: context.tr(tooltip ?? label),
-          child: InkWell(
-            key: key,
-            onTap: () => onSelected(index),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? AppColors.primary.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      selected ? selectedIcon ?? icon : icon,
-                      size: 22,
-                      color: selected ? AppColors.primary : AppColors.muted,
-                    ),
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 18),
+          child: Semantics(
+            selected: selected,
+            button: true,
+            child: Tooltip(
+              message: context.tr(label),
+              child: InkWell(
+                onTap: () => onSelected(index),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primary.withValues(alpha: 0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          selected ? selectedIcon ?? icon : icon,
+                          size: 22,
+                          color: selected ? AppColors.primary : AppColors.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            context.tr(label),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: selected
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.muted,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    context.tr(label),
-                    textAlign: TextAlign.center,
-                    softWrap: true,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected ? AppColors.primary : AppColors.ink,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -247,55 +255,120 @@ class TravelBottomNavigation extends StatelessWidget {
     }
 
     return Material(
-      color: Colors.white,
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.symmetric(horizontal: 8),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 72),
-          child: IntrinsicHeight(
-            child: Row(
+      type: MaterialType.transparency,
+      child: Stack(
+        children: [
+          const Positioned.fill(
+            top: 18,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.line)),
+              ),
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: SizedBox(
+                height: 76,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    item(
+                      0,
+                      Icons.home_outlined,
+                      'Home',
+                      selectedIcon: Icons.home,
+                    ),
+                    item(
+                      1,
+                      Icons.travel_explore_outlined,
+                      'Explore',
+                      selectedIcon: Icons.travel_explore,
+                    ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: _ScanDestination(
+                          selected: selectedIndex == 2,
+                          onTap: () => onSelected(2),
+                        ),
+                      ),
+                    ),
+                    item(
+                      3,
+                      Icons.event_note_outlined,
+                      'Plan',
+                      selectedIcon: Icons.event_note,
+                    ),
+                    item(
+                      4,
+                      Icons.smart_toy_outlined,
+                      'AI',
+                      selectedIcon: Icons.smart_toy,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScanDestination extends StatelessWidget {
+  const _ScanDestination({required this.selected, required this.onTap});
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    button: true,
+    child: Tooltip(
+      message: context.l10n.imageRecognition2,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          key: const ValueKey('scan-navigation-button'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            width: 56,
+            height: 70,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
-                  child: item(
-                    0,
-                    Icons.home_outlined,
-                    'Home',
-                    selectedIcon: Icons.home,
+                Ink(
+                  width: 48,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.primaryDark : AppColors.primary,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.center_focus_strong_rounded,
+                    color: Colors.white,
+                    size: 26,
                   ),
                 ),
-                Expanded(
-                  child: item(
-                    1,
-                    Icons.travel_explore_outlined,
-                    'Explore',
-                    selectedIcon: Icons.travel_explore,
-                  ),
-                ),
-                Expanded(
-                  child: item(
-                    2,
-                    Icons.document_scanner_outlined,
-                    'Recognize',
-                    selectedIcon: Icons.document_scanner,
-                    key: const ValueKey('scan-navigation-button'),
-                    tooltip: context.l10n.imageRecognition2,
-                  ),
-                ),
-                Expanded(
-                  child: item(
-                    3,
-                    Icons.event_note_outlined,
-                    'Plan',
-                    selectedIcon: Icons.event_note,
-                  ),
-                ),
-                Expanded(
-                  child: item(
-                    4,
-                    Icons.smart_toy_outlined,
-                    'AI',
-                    selectedIcon: Icons.smart_toy,
+                const SizedBox(height: 4),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      context.l10n.scan,
+                      style: TextStyle(
+                        color: selected ? AppColors.primaryDark : AppColors.ink,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -303,6 +376,6 @@ class TravelBottomNavigation extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

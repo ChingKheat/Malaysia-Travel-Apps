@@ -2730,4 +2730,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get estimatedFor1DayPerPerson => 'Estimated for 1 day · per person';
+
+  @override
+  String get scan => 'Scan';
+
+  @override
+  String get identifyMalaysianLandmarksAndLocalDishes =>
+      'Identify Malaysian landmarks and local dishes';
+
+  @override
+  String get scanningPhoto => 'Scanning photo…';
+
+  @override
+  String get cancelRecognition => 'Cancel recognition';
+
+  @override
+  String get howToTakeAGoodPhoto => 'How to take a good photo';
+
+  @override
+  String get frameOneDishOrLandmarkSoItsEasyToIdentify =>
+      'Frame one dish or landmark so it’s easy to identify.';
+
+  @override
+  String get tipFoodCategory => '01  FOOD';
+
+  @override
+  String get centerTheSubject => 'Center the subject';
+
+  @override
+  String get shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate =>
+      'Shoot from above and leave a little space around the whole plate.';
+
+  @override
+  String get tipLandmarkCategory => '02  LANDMARK';
+
+  @override
+  String get includeTheKeyFeature => 'Include the key feature';
+
+  @override
+  String get stepBackToFitTheStatueAndStepsWaitForAClearView =>
+      'Step back to fit the statue and steps. Wait for a clear view.';
+
+  @override
+  String get aPlateOfNasiLemakCenteredInTheFrame =>
+      'A plate of nasi lemak centered in the frame';
+
+  @override
+  String get theGoldenStatueAndStepsAtBatuCaves =>
+      'The golden statue and steps at Batu Caves';
+
+  @override
+  String get checkTheLightAndFocus => 'Check the light and focus';
+
+  @override
+  String
+  get useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady =>
+      'Use soft light from the front or side. Tap the subject to focus and hold your phone steady.';
+
+  @override
+  String
+  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
+      'Selected photos are sent to Google Vision for scanning. Only result text is saved in History on this device.';
 }

@@ -2646,4 +2646,62 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get estimatedFor1DayPerPerson => '预计 1 天 · 每人';
+
+  @override
+  String get scan => '扫描';
+
+  @override
+  String get identifyMalaysianLandmarksAndLocalDishes => '识别马来西亚地标与地道美食';
+
+  @override
+  String get scanningPhoto => '正在扫描照片…';
+
+  @override
+  String get cancelRecognition => '取消识别';
+
+  @override
+  String get howToTakeAGoodPhoto => '如何拍出清晰好照片';
+
+  @override
+  String get frameOneDishOrLandmarkSoItsEasyToIdentify =>
+      '画面中只对准一道美食或一个地标，更容易准确识别。';
+
+  @override
+  String get tipFoodCategory => '01  美食';
+
+  @override
+  String get centerTheSubject => '主体居中';
+
+  @override
+  String get shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate =>
+      '从上方拍摄，并在整盘美食周围留出少量空白。';
+
+  @override
+  String get tipLandmarkCategory => '02  地标';
+
+  @override
+  String get includeTheKeyFeature => '拍入关键特征';
+
+  @override
+  String get stepBackToFitTheStatueAndStepsWaitForAClearView =>
+      '向后退几步，让雕像和台阶完整入镜，并等待视野清晰。';
+
+  @override
+  String get aPlateOfNasiLemakCenteredInTheFrame => '画面居中的一盘椰浆饭';
+
+  @override
+  String get theGoldenStatueAndStepsAtBatuCaves => '黑风洞的金色神像与台阶';
+
+  @override
+  String get checkTheLightAndFocus => '注意光线与对焦';
+
+  @override
+  String
+  get useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady =>
+      '使用来自正面或侧面的柔和光线，轻点主体对焦并稳住手机。';
+
+  @override
+  String
+  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
+      '所选照片会发送至 Google Vision 进行扫描，本设备仅在历史记录中保存识别结果文字。';
 }

@@ -9,11 +9,12 @@ import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
 import 'package:smart_travel_planner/features/image_recognition/data/recognition_presets.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
+import 'package:smart_travel_planner/features/image_recognition/screens/recognition_scan_screen.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
 import 'package:smart_travel_planner/features/image_recognition/widgets/recognition_result_sheet.dart';
 
-/// Photos are sent only after the user presses Recognize photo.
+/// Capturing or selecting a photo starts a live scan.
 class ImageRecognitionPage extends StatefulWidget {
   const ImageRecognitionPage({
     super.key,
@@ -71,7 +72,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     _showResult(preset.sampleResult());
   }
 
-  void _showResult(RecognitionResult result) {
+  void _showResult(RecognitionResult result, {Uint8List? photo}) {
     final preset = recognitionPresets
         .where((item) => item.id == result.sampleId)
         .firstOrNull;
@@ -84,7 +85,9 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       builder: (_) => RecognitionResultSheet(
         result: result,
         service: _service,
-        image: preset == null
+        image: photo != null
+            ? _photo(photo, height: 220)
+            : preset == null
             ? null
             : _PresetImage(preset: preset, height: 200),
       ),
@@ -94,6 +97,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   Future<void> _pickPhoto(ImageSource source) async {
     if (_picking || _recognizing) return;
     setState(() => _picking = true);
+    late final Uint8List bytes;
     try {
       final photo = await _picker.pickImage(
         source: source,
@@ -107,32 +111,49 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         _notify('Choose a photo smaller than 4 MB.');
         return;
       }
-      final bytes = await photo.readAsBytes();
+      bytes = await photo.readAsBytes();
       if (bytes.isEmpty ||
           bytes.length > ImageRecognitionService.maxImageBytes) {
         _notify('Choose a photo smaller than 4 MB.');
         return;
       }
-      if (mounted) _showPhotoPreview(bytes);
     } on MissingPluginException {
       _notify('Restart the app to enable the camera and photo library.');
+      return;
     } on PlatformException {
       _notify(
         'Camera or photo library unavailable. Check access in Settings or try a sample.',
       );
+      return;
     } catch (_) {
       _notify('This photo could not be opened. Try another photo or a sample.');
+      return;
     } finally {
       if (mounted) setState(() => _picking = false);
     }
+    if (mounted) await _recognize(bytes);
   }
 
   Future<void> _recognize(Uint8List bytes) async {
     if (_recognizing) return;
     setState(() => _recognizing = true);
     try {
-      final result = await _service.recognize(bytes);
-      if (!mounted) return;
+      final outcome = await Navigator.push<ScanOutcome>(
+        context,
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => RecognitionScanScreen(
+            photo: bytes,
+            recognize: _service.recognize,
+          ),
+        ),
+      );
+      if (!mounted || outcome == null) return;
+      final result = outcome.result;
+      if (result == null) {
+        _notify(outcome.error!);
+        return;
+      }
       setState(
         () => _history = [
           result,
@@ -140,11 +161,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         ].take(RecognitionHistoryStore.maxEntries).toList(),
       );
       _saveHistory();
-      _showResult(result);
-    } on ImageRecognitionException catch (error) {
-      _notify(error.message);
-    } catch (_) {
-      _notify('Image recognition is temporarily unavailable. Try a sample.');
+      _showResult(result, photo: bytes);
     } finally {
       if (mounted) setState(() => _recognizing = false);
     }
@@ -165,164 +182,23 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       );
   }
 
-  void _showPhotoPreview(Uint8List bytes) => _showSheet([
-    ClipRRect(
-      borderRadius: BorderRadius.circular(18),
+  Widget _photo(Uint8List bytes, {required double height}) => SizedBox(
+    height: height,
+    width: double.infinity,
+    child: ColoredBox(
+      color: AppColors.ink,
       child: Image.memory(
         bytes,
-        height: 240,
-        width: double.infinity,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => SizedBox(
-          height: 160,
-          child: Center(child: Text(context.l10n.photoPreviewUnavailable)),
-        ),
-      ),
-    ),
-    const SizedBox(height: 20),
-    const _Badge('PHOTO PREVIEW'),
-    const SizedBox(height: 14),
-    Text(
-      context.l10n.yourPhotoIsReady,
-      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-    ),
-    const SizedBox(height: 6),
-    Text(
-      context.l10n.readyToDiscoverWhatYouFound,
-      style: TextStyle(color: AppColors.muted, fontSize: 14),
-    ),
-    const SizedBox(height: 12),
-    Text(
-      context
-          .l10n
-          .recognizeSendsThisPhotoToGoogleVisionThroughOurSecureServiceOnlyResultTextIsSavedInYourLoc,
-      style: TextStyle(color: AppColors.muted, height: 1.6),
-    ),
-    const SizedBox(height: 16),
-    Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.auto_awesome_outlined, color: AppColors.primary, size: 20),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              context
-                  .l10n
-                  .forTheBestResultUseOneClearLandmarkOrDishKeepItCentredAndAvoidBlurryOrVeryDarkPhotos,
-              style: TextStyle(color: AppColors.ink, fontSize: 12, height: 1.5),
-            ),
-          ),
-        ],
-      ),
-    ),
-    const SizedBox(height: 20),
-    SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: () {
-          Navigator.pop(context);
-          unawaited(_recognize(bytes));
-        },
-        icon: const Icon(Icons.image_search),
-        label: Text(context.l10n.recognizePhoto),
-      ),
-    ),
-    const SizedBox(height: 8),
-    SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () {
-          Navigator.pop(context);
-          _showLocalTestResult();
-        },
-        icon: const Icon(Icons.science_outlined),
-        label: Text(context.l10n.runTestRecognition),
-      ),
-    ),
-    const SizedBox(height: 8),
-    Text(
-      context.l10n.testRecognitionUsesPreparedCatalogResultsToPreviewTheFlow,
-      style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
-    ),
-    const SizedBox(height: 12),
-    Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        OutlinedButton.icon(
-          onPressed: () {
-            Navigator.pop(context);
-            _pickPhoto(ImageSource.camera);
-          },
-          icon: const Icon(Icons.photo_camera_outlined),
-          label: Text(context.l10n.retakePhoto),
-        ),
-        OutlinedButton.icon(
-          onPressed: () {
-            Navigator.pop(context);
-            _pickPhoto(ImageSource.gallery);
-          },
-          icon: const Icon(Icons.photo_library_outlined),
-          label: Text(context.l10n.chooseAnother),
-        ),
-      ],
-    ),
-    const SizedBox(height: 24),
-  ]);
-
-  void _showLocalTestResult() {
-    if (recognitionPresets.isEmpty) {
-      _notify('No prepared test result is available yet.');
-      return;
-    }
-    _showResult(recognitionPresets.first.sampleResult());
-  }
-
-  void _showSheet(List<Widget> children) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: Colors.white,
-      constraints: const BoxConstraints(maxWidth: 560),
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: DefaultTextStyle(
-            style: Theme.of(
-              sheetContext,
-            ).textTheme.bodyMedium!.copyWith(color: AppColors.ink),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...children,
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: () => Navigator.pop(sheetContext),
-                    child: Text(context.l10n.done),
-                  ),
-                ),
-              ],
-            ),
+        errorBuilder: (_, _, _) => Center(
+          child: Text(
+            context.l10n.photoPreviewUnavailable,
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 
   Future<void> _clearHistory() async {
     final clear = await showDialog<bool>(
@@ -416,7 +292,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    title,
+                    context.tr(title),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -434,99 +310,187 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
 
   Widget _scanner() => ListView(
     key: const PageStorageKey('recognition-scanner'),
-    padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
     children: [
       Text(
-        context.l10n.discoverALandmarkOrALocalDish,
-        style: TextStyle(
-          fontSize: 21,
-          height: 1.3,
+        context.l10n.howToTakeAGoodPhoto,
+        style: const TextStyle(
+          color: AppColors.ink,
+          fontSize: 22,
           fontWeight: FontWeight.w800,
         ),
       ),
-      const SizedBox(height: 10),
+      const SizedBox(height: 5),
       Text(
-        context.l10n.chooseAPhotoReviewItThenIdentifyWhatYouSee,
-        style: TextStyle(fontSize: 13, height: 1.6, color: AppColors.muted),
-      ),
-      const SizedBox(height: 20),
-      _SourceCard(
-        title: context.l10n.takePhoto,
-        subtitle: context.l10n.launchYourCameraToCaptureALandmarkOrFood,
-        icon: Icons.photo_camera_outlined,
-        prominent: true,
-        enabled: !_picking && !_recognizing,
-        onTap: () => _pickPhoto(ImageSource.camera),
-      ),
-      const SizedBox(height: 12),
-      _SourceCard(
-        title: context.l10n.uploadFromGallery,
-        subtitle: context.l10n.selectAPhotoFromYourPhotoLibrary,
-        icon: Icons.file_upload_outlined,
-        enabled: !_picking && !_recognizing,
-        onTap: () => _pickPhoto(ImageSource.gallery),
-      ),
-      if (_picking || _recognizing) ...[
-        const SizedBox(height: 12),
-        const LinearProgressIndicator(
-          color: AppColors.primary,
-          backgroundColor: Colors.white,
+        context.l10n.frameOneDishOrLandmarkSoItsEasyToIdentify,
+        style: const TextStyle(
+          color: AppColors.muted,
+          fontSize: 13,
+          height: 1.4,
         ),
-        if (_recognizing)
-          Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              context.l10n.recognizingPhoto,
-              style: TextStyle(color: AppColors.muted),
-            ),
-          ),
-      ],
-      const SizedBox(height: 24),
-      OutlinedButton.icon(
-        onPressed: () => setState(() => _tab = 1),
-        icon: const Icon(Icons.collections_outlined),
-        label: Text(context.l10n.viewDemoResults),
       ),
-      const SizedBox(height: 20),
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _panelDecoration(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      const SizedBox(height: 14),
+      IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.auto_awesome_outlined,
-                  color: AppColors.primary,
-                  size: 18,
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    context.l10n.helpfulTips,
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+            Expanded(
+              child: _PhotoTip(
+                asset: 'assets/recognition/nasi_lemak.jpg',
+                photoDescription:
+                    context.l10n.aPlateOfNasiLemakCenteredInTheFrame,
+                category: context.l10n.tipFoodCategory,
+                caption: context.l10n.centerTheSubject,
+                instruction: context
+                    .l10n
+                    .shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate,
+                fit: BoxFit.contain,
+              ),
             ),
-            SizedBox(height: 8),
-            Text(
-              context
-                  .l10n
-                  .forBetterAccuracyKeepTheLandmarkOrFoodDishWellLitAndCentered,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.6,
-                color: AppColors.muted,
+            const SizedBox(width: 12),
+            Expanded(
+              child: _PhotoTip(
+                asset: 'assets/recognition/batu_caves.jpg',
+                photoDescription:
+                    context.l10n.theGoldenStatueAndStepsAtBatuCaves,
+                category: context.l10n.tipLandmarkCategory,
+                caption: context.l10n.includeTheKeyFeature,
+                instruction: context
+                    .l10n
+                    .stepBackToFitTheStatueAndStepsWaitForAClearView,
               ),
             ),
           ],
         ),
       ),
+      const SizedBox(height: 12),
+      DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.light_mode_outlined,
+                color: AppColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.checkTheLightAndFocus,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context
+                          .l10n
+                          .useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 14),
+      Text(
+        context
+            .l10n
+            .selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice,
+        style: const TextStyle(
+          color: AppColors.muted,
+          fontSize: 12,
+          height: 1.4,
+        ),
+      ),
+      const SizedBox(height: 10),
+      IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _picking || _recognizing
+                    ? null
+                    : () => _pickPhoto(ImageSource.camera),
+                icon: const Icon(Icons.photo_camera_outlined, size: 20),
+                label: Text(
+                  context.l10n.takePhoto,
+                  textAlign: TextAlign.center,
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 54),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _picking || _recognizing
+                    ? null
+                    : () => _pickPhoto(ImageSource.gallery),
+                icon: const Icon(Icons.photo_library_outlined, size: 20),
+                label: Text(
+                  context.l10n.uploadFromGallery,
+                  textAlign: TextAlign.center,
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primaryDark,
+                  minimumSize: const Size(0, 54),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 12,
+                  ),
+                  side: const BorderSide(color: AppColors.line),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      if (_picking) ...[
+        const SizedBox(height: 12),
+        const LinearProgressIndicator(color: AppColors.primary),
+      ],
       const SizedBox(height: 16),
       Text(
         context
@@ -568,7 +532,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
               'food': 'Food',
             }.entries)
               ChoiceChip(
-                label: Text(entry.value),
+                label: Text(context.tr(entry.value)),
                 selected: _filter == entry.key,
                 selectedColor: AppColors.primary,
                 backgroundColor: Colors.white,
@@ -773,80 +737,81 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
 
 BoxDecoration _panelDecoration() => cardDecoration();
 
-class _SourceCard extends StatelessWidget {
-  const _SourceCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-    this.prominent = false,
-    this.enabled = true,
+class _PhotoTip extends StatelessWidget {
+  const _PhotoTip({
+    required this.asset,
+    required this.photoDescription,
+    required this.category,
+    required this.caption,
+    required this.instruction,
+    this.fit = BoxFit.cover,
   });
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool prominent;
-  final bool enabled;
+
+  final String asset;
+  final String photoDescription;
+  final String category;
+  final String caption;
+  final String instruction;
+  final BoxFit fit;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: prominent ? AppColors.primary : Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: BorderSide(color: prominent ? Colors.transparent : AppColors.line),
-    ),
+  Widget build(BuildContext context) => Container(
     clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: enabled ? onTap : null,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: prominent
-                    ? Colors.white.withValues(alpha: 0.18)
-                    : AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                size: 25,
-                color: prominent ? Colors.white : AppColors.primary,
-              ),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: AppColors.line),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AspectRatio(
+          aspectRatio: 1.25,
+          child: ColoredBox(
+            color: const Color(0xFFF0EFED),
+            child: Image.asset(
+              asset,
+              fit: fit,
+              semanticLabel: photoDescription,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                      color: prominent ? Colors.white : AppColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.5,
-                      color: prominent
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : AppColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(11, 10, 11, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                category,
+                style: const TextStyle(
+                  color: AppColors.primaryDark,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                caption,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                instruction,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     ),
   );
 }

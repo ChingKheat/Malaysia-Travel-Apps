@@ -1652,5 +1652,22 @@
   "text7DaysIslandSchedule": "7 天海岛行程",
   "heritageStreetArtRoute": "文化遗产与街头艺术路线",
   "beachNatureExcursion": "海滩与自然之旅",
-  "estimatedFor1DayPerPerson": "预计 1 天 · 每人"
+  "estimatedFor1DayPerPerson": "预计 1 天 · 每人",
+  "scan": "扫描",
+  "identifyMalaysianLandmarksAndLocalDishes": "识别马来西亚地标与地道美食",
+  "scanningPhoto": "正在扫描照片…",
+  "cancelRecognition": "取消识别",
+  "howToTakeAGoodPhoto": "如何拍出清晰好照片",
+  "frameOneDishOrLandmarkSoItsEasyToIdentify": "画面中只对准一道美食或一个地标，更容易准确识别。",
+  "tipFoodCategory": "01  美食",
+  "centerTheSubject": "主体居中",
+  "shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate": "从上方拍摄，并在整盘美食周围留出少量空白。",
+  "tipLandmarkCategory": "02  地标",
+  "includeTheKeyFeature": "拍入关键特征",
+  "stepBackToFitTheStatueAndStepsWaitForAClearView": "向后退几步，让雕像和台阶完整入镜，并等待视野清晰。",
+  "aPlateOfNasiLemakCenteredInTheFrame": "画面居中的一盘椰浆饭",
+  "theGoldenStatueAndStepsAtBatuCaves": "黑风洞的金色神像与台阶",
+  "checkTheLightAndFocus": "注意光线与对焦",
+  "useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady": "使用来自正面或侧面的柔和光线，轻点主体对焦并稳住手机。",
+  "selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice": "所选照片会发送至 Google Vision 进行扫描，本设备仅在历史记录中保存识别结果文字。"
 }

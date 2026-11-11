@@ -1323,6 +1323,10 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.beachNatureExcursion;
     case "Estimated for 1 day · per person":
       return l.estimatedFor1DayPerPerson;
+    case "Scan":
+      return l.scan;
+    case "Identify Malaysian landmarks and local dishes":
+      return l.identifyMalaysianLandmarksAndLocalDishes;
   }
   for (final entry in _messagePatterns) {
     final match = entry.$1.firstMatch(label);

@@ -1652,5 +1652,22 @@
   "text7DaysIslandSchedule": "Jadual pulau 7 hari",
   "heritageStreetArtRoute": "Laluan Warisan & Seni Jalanan",
   "beachNatureExcursion": "Lawatan Pantai & Alam Semula Jadi",
-  "estimatedFor1DayPerPerson": "Anggaran untuk 1 hari · seorang"
+  "estimatedFor1DayPerPerson": "Anggaran untuk 1 hari · seorang",
+  "scan": "Imbas",
+  "identifyMalaysianLandmarksAndLocalDishes": "Kenal pasti mercu tanda dan hidangan tempatan Malaysia",
+  "scanningPhoto": "Mengimbas foto…",
+  "cancelRecognition": "Batalkan pengecaman",
+  "howToTakeAGoodPhoto": "Cara mengambil foto yang baik",
+  "frameOneDishOrLandmarkSoItsEasyToIdentify": "Bingkaikan satu hidangan atau mercu tanda supaya mudah dikenal pasti.",
+  "tipFoodCategory": "01  MAKANAN",
+  "centerTheSubject": "Pusatkan subjek",
+  "shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate": "Ambil gambar dari atas dan tinggalkan sedikit ruang di sekeliling pinggan.",
+  "tipLandmarkCategory": "02  MERCU TANDA",
+  "includeTheKeyFeature": "Sertakan ciri utama",
+  "stepBackToFitTheStatueAndStepsWaitForAClearView": "Undur sedikit untuk memuatkan patung dan tangga. Tunggu pandangan yang jelas.",
+  "aPlateOfNasiLemakCenteredInTheFrame": "Sepinggan nasi lemak di tengah bingkai",
+  "theGoldenStatueAndStepsAtBatuCaves": "Patung emas dan tangga di Batu Caves",
+  "checkTheLightAndFocus": "Semak pencahayaan dan fokus",
+  "useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady": "Gunakan cahaya lembut dari hadapan atau sisi. Ketik subjek untuk fokus dan pegang telefon dengan stabil.",
+  "selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice": "Foto yang dipilih dihantar ke Google Vision untuk diimbas. Hanya teks keputusan disimpan dalam Sejarah pada peranti ini."
 }
