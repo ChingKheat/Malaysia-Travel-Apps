@@ -46,206 +46,242 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Image
-          Positioned.fill(
-            child: Image.network(
-              'https://images.unsplash.com/photo-1596436889106-be35e843f974?q=80&w=800&auto=format&fit=crop',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // Fallback elegant background if offline/network fails
-                return Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF1E1B4B), Color(0xFF0F172A)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+      backgroundColor: const Color(0xFF080B1E),
+      body: SizedBox.expand(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background Image
+            Positioned.fill(
+              child: Image.network(
+                'https://images.unsplash.com/photo-1596436889106-be35e843f974?q=80&w=800&auto=format&fit=crop',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback elegant background if offline/network fails
+                  return Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF1E1B4B), Color(0xFF0F172A)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          // Deep Blue/Purple Gradient Overlay (for legibility and premium look)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.15),
-                    const Color(0xFF080B1E).withValues(alpha: 0.5),
-                    const Color(0xFF080B1E).withValues(alpha: 0.85),
-                    const Color(0xFF080B1E),
-                  ],
-                  stops: const [0.0, 0.4, 0.7, 1.0],
+            // Deep Blue/Purple Gradient Overlay (for legibility and premium look)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.15),
+                      const Color(0xFF080B1E).withValues(alpha: 0.5),
+                      const Color(0xFF080B1E).withValues(alpha: 0.85),
+                      const Color(0xFF080B1E),
+                    ],
+                    stops: const [0.0, 0.4, 0.7, 1.0],
+                  ),
                 ),
               ),
             ),
-          ),
-          // Content Layout
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 16.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 24),
-                    const Align(
-                      alignment: Alignment.centerRight,
-                      child: LanguageButton(foregroundColor: Colors.white),
+            // Content Layout
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final minHeight = (constraints.maxHeight - 32.0).clamp(
+                    0.0,
+                    double.infinity,
+                  );
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 16.0,
                     ),
-                    // Selamat Datang
-                    Text(
-                      context.l10n.selamatDatang,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 22,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    // Smart Travel Planning Title
-                    Text(
-                      context.l10n.smartTravelPlanning,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 38,
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Subtitle
-                    Text(
-                      context.l10n.yourSmartTravelCompanionInMalaysia,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
-                        fontSize: 16,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Feature highlights container
-                    _buildFeatureItem(
-                      icon: Icons.auto_awesome_outlined,
-                      title: context.l10n.autoSmartScheduling,
-                      description: context.l10n.planTheBestRouteForYou,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureItem(
-                      icon: Icons.cloud_sync_outlined,
-                      title: context.l10n.realTimeUpdates,
-                      description: context.l10n.weatherTrafficOpeningHours,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureItem(
-                      icon: Icons.translate_outlined,
-                      title: context.l10n.multiLanguageSupport,
-                      description: 'English • Malay • 中文',
-                    ),
-
-                    const SizedBox(height: 36),
-
-                    // Buttons
-                    _isActionLoading
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 20.0),
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
-                          )
-                        : Column(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: minHeight),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Get Started (Gradient Button)
-                              Container(
-                                width: double.infinity,
-                                height: 54,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF7C3AED), // Violet
-                                      Color(0xFF4F46E5), // Indigo
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFF6366F1,
-                                      ).withValues(alpha: 0.4),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: _handleGetStarted,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    context.l10n.getStarted,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
+                              const SizedBox(height: 24),
+                              const Align(
+                                alignment: Alignment.centerRight,
+                                child: LanguageButton(
+                                  foregroundColor: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 14),
-                              // Log In / Sign Up (Outlined Button)
-                              OutlinedButton(
-                                onPressed: _showLoginSheet,
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(54),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  side: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.3),
-                                    width: 1.5,
-                                  ),
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.05,
-                                  ),
-                                ),
-                                child: Text(
-                                  context.l10n.logInSignUp,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              // Selamat Datang
+                              Text(
+                                context.l10n.selamatDatang,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
+                              const SizedBox(height: 6),
+                              // Smart Travel Planning Title
+                              Text(
+                                context.l10n.smartTravelPlanning,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.1,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Subtitle
+                              Text(
+                                context.l10n.yourSmartTravelCompanionInMalaysia,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                  fontSize: 16,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+
+                              // Feature highlights container
+                              _buildFeatureItem(
+                                icon: Icons.auto_awesome_outlined,
+                                title: context.l10n.autoSmartScheduling,
+                                description:
+                                    context.l10n.planTheBestRouteForYou,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildFeatureItem(
+                                icon: Icons.cloud_sync_outlined,
+                                title: context.l10n.realTimeUpdates,
+                                description:
+                                    context.l10n.weatherTrafficOpeningHours,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildFeatureItem(
+                                icon: Icons.translate_outlined,
+                                title: context.l10n.multiLanguageSupport,
+                                description: 'English • Malay • 中文',
+                              ),
+                              const SizedBox(height: 36),
                             ],
                           ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+
+                          // Buttons
+                          Column(
+                            children: [
+                              _isActionLoading
+                                  ? const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 20.0,
+                                        ),
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : Column(
+                                      children: [
+                                        // Get Started (Gradient Button)
+                                        Container(
+                                          width: double.infinity,
+                                          height: 54,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            gradient: const LinearGradient(
+                                              colors: [
+                                                Color(0xFF7C3AED), // Violet
+                                                Color(0xFF4F46E5), // Indigo
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(
+                                                  0xFF6366F1,
+                                                ).withValues(alpha: 0.4),
+                                                blurRadius: 16,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ElevatedButton(
+                                            onPressed: _handleGetStarted,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              shadowColor: Colors.transparent,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              context.l10n.getStarted,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        // Log In / Sign Up (Outlined Button)
+                                        OutlinedButton(
+                                          onPressed: _showLoginSheet,
+                                          style: OutlinedButton.styleFrom(
+                                            minimumSize: const Size.fromHeight(
+                                              54,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.3,
+                                              ),
+                                              width: 1.5,
+                                            ),
+                                            backgroundColor: Colors.white
+                                                .withValues(alpha: 0.05),
+                                          ),
+                                          child: Text(
+                                            context.l10n.logInSignUp,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
