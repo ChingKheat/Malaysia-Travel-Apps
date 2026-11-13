@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/auth/models/user_model.dart';
+import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 
 class RegisterResult {
   final bool success;
@@ -382,7 +383,16 @@ class AuthService extends ChangeNotifier {
             .signUp(
               email: cleanEmail,
               password: password,
-              data: {'full_name': name.trim()},
+              data: {
+                'full_name': name.trim(),
+                'preferred_language':
+                    OnboardingService.instance.selectedLanguage,
+                'terms_accepted': OnboardingService.instance.isCompleted,
+                if (OnboardingService.instance.termsAcceptedAt != null)
+                  'terms_accepted_at':
+                      OnboardingService.instance.termsAcceptedAt!
+                          .toIso8601String(),
+              },
             )
             .timeout(const Duration(seconds: 10));
 
@@ -410,6 +420,7 @@ class AuthService extends ChangeNotifier {
             tripsPlanned: 0,
             placesVisited: 0,
             memberSince: 'Just now',
+            preferredLanguage: OnboardingService.instance.selectedLanguage,
           );
 
           // Save to profiles table

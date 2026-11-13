@@ -7,7 +7,10 @@ import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/features/auth/screens/auth_screen.dart';
 import 'package:smart_travel_planner/features/admin/screens/admin_places_screen.dart';
+import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setup_screen.dart';
+import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -45,30 +48,69 @@ class _ProfilePageState extends State<ProfilePage> {
   void _handleLogout() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.l10n.logOut),
+      builder: (dialogContext) => AlertDialog(
+        title: Text(dialogContext.l10n.logOut),
         content: Text(
-          context.l10n.areYouSureYouWantToLogOutOfYourTravelProfile,
+          dialogContext.l10n.areYouSureYouWantToLogOutOfYourTravelProfile,
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.l10n.cancel),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(dialogContext.l10n.cancel),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back from profile screen
-              _authService.logout();
-              showDemoSnackBar(
-                context,
-                context.l10n.successfullyLoggedOut,
-                icon: Icons.logout_outlined,
-              );
+            onPressed: () async {
+              Navigator.pop(dialogContext); // Close dialog
+              final messenger = ScaffoldMessenger.of(context);
+              final loggedOutMsg = context.l10n.successfullyLoggedOut;
+
+              await _authService.logout();
+
+              if (mounted) {
+                final targetScreen = !OnboardingService.instance.isCompleted
+                    ? const OnboardingSetupScreen()
+                    : const AuthScreen(
+                        initialTabIndex: 0,
+                        showLanguageSelector: false,
+                      );
+
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => targetScreen),
+                  (route) => false,
+                );
+              }
+
+              demoHaptic();
+              messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(
+                          Icons.logout_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(loggedOutMsg)),
+                      ],
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    margin: const EdgeInsets.all(16),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
             },
             child: Text(
-              context.l10n.logOut,
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              dialogContext.l10n.logOut,
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -244,6 +286,20 @@ class _ProfilePageState extends State<ProfilePage> {
                           context,
                         ).locale.languageCode]!,
                     onTap: () => showLanguageSelector(context),
+                  ),
+                  const Divider(height: 1, color: AppColors.line, indent: 56),
+                  _buildListTile(
+                    icon: Icons.explore_outlined,
+                    title: 'Citylore Welcome Setup',
+                    subtitle: 'Revisit guide language, location & privacy setup',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const OnboardingSetupScreen(isRevisit: true),
+                        ),
+                      );
+                    },
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   Material(

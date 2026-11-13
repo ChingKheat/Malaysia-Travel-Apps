@@ -21,7 +21,8 @@ class TravelMatrixService {
     List<TravelStop> stops,
     String mode,
   ) async {
-    if (stops.length < 2) return {};
+    // The current routes proxy supports only driving and walking.
+    if (stops.length < 2 || mode == 'Public Transport') return {};
     final pool = stops.take(10).toList();
     final key =
         '$mode:${pool.map((s) => '${SchedulingEngine.identity(s)}:${s.latitude}:${s.longitude}').join('|')}';

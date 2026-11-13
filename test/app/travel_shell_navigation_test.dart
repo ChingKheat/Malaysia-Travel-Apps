@@ -72,7 +72,7 @@ void main() {
         expect(find.byType(MyTripsScreen), findsNothing);
         expect(find.byKey(const ValueKey('plan-my-trips')), findsOneWidget);
 
-        await tester.tap(find.text('Kuala Lumpur, Malaysia'));
+        await tester.tap(find.text('Select Destination'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Johor, Malaysia'));
         await tester.pumpAndSettle();

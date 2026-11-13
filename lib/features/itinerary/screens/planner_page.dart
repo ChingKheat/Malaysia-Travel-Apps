@@ -7,17 +7,77 @@ import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
+import 'package:smart_travel_planner/features/itinerary/widgets/modern_date_range_picker.dart';
 import 'itinerary_ready_page.dart';
+import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
+import 'package:smart_travel_planner/shared/models/travel_stop.dart';
+
+class _DepartureSearch extends SearchDelegate<(String, double, double)?> {
+  _DepartureSearch(this.options);
+
+  final List<(String, double, double)> options;
+
+  @override
+  List<Widget> buildActions(BuildContext context) => [
+    IconButton(
+      tooltip: 'Clear search',
+      onPressed: () => query = '',
+      icon: const Icon(Icons.clear),
+    ),
+  ];
+
+  @override
+  Widget buildLeading(BuildContext context) =>
+      BackButton(onPressed: () => close(context, null));
+
+  @override
+  Widget buildResults(BuildContext context) => buildSuggestions(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final results = options
+        .where(
+          (place) =>
+              place.$1.toLowerCase().contains(query.trim().toLowerCase()),
+        )
+        .toList();
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) => ListTile(
+        title: Text(results[index].$1),
+        onTap: () => close(context, results[index]),
+      ),
+    );
+  }
+}
 
 class PlannerPage extends StatefulWidget {
   const PlannerPage({
     super.key,
     required this.onItineraryReady,
     this.onMyTripsTap,
+    this.useModernPicker = false,
+    @visibleForTesting this.enableTestingBypass = false,
+    @visibleForTesting this.initialDestination,
+    @visibleForTesting this.initialTravelDates,
+    @visibleForTesting this.initialDailyStartTime,
+    @visibleForTesting this.initialDailyEndTime,
+    @visibleForTesting this.initialInterests,
+    @visibleForTesting this.initialBudgetCategory,
+    @visibleForTesting this.initialTravelMode,
   });
 
   final VoidCallback onItineraryReady;
   final VoidCallback? onMyTripsTap;
+  final bool useModernPicker;
+  final bool enableTestingBypass;
+  final String? initialDestination;
+  final DateTimeRange? initialTravelDates;
+  final TimeOfDay? initialDailyStartTime;
+  final TimeOfDay? initialDailyEndTime;
+  final Set<String>? initialInterests;
+  final String? initialBudgetCategory;
+  final String? initialTravelMode;
 
   @override
   State<PlannerPage> createState() => _PlannerPageState();
@@ -25,13 +85,15 @@ class PlannerPage extends StatefulWidget {
 
 class _PlannerPageState extends State<PlannerPage> {
   // Trip Preference Form State variables
-  String? destination = 'Kuala Lumpur';
+  String? destination;
   DateTimeRange? travelDates;
-  TimeOfDay? dailyStartTime = const TimeOfDay(hour: 8, minute: 0);
-  TimeOfDay? dailyEndTime = const TimeOfDay(hour: 22, minute: 0);
-  final Set<String> interests = {'Food', 'Shopping'};
-  String budgetCategory = 'Medium';
-  String travelMode = 'Driving';
+  TimeOfDay? dailyStartTime;
+  TimeOfDay? dailyEndTime;
+  final Set<String> interests = <String>{};
+  String budgetCategory = '';
+  String travelMode = '';
+  int? _transitPlanningMinutes;
+  TravelStop? _departurePoint;
 
   bool _destinationConfirmed = false;
   bool _datesConfirmed = false;
@@ -52,11 +114,37 @@ class _PlannerPageState extends State<PlannerPage> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    travelDates = DateTimeRange(
-      start: DateTime(now.year, now.month, now.day + 7),
-      end: DateTime(now.year, now.month, now.day + 9),
-    );
+    _testingForm = widget.enableTestingBypass;
+    if (widget.initialDestination != null) {
+      destination = widget.initialDestination;
+      _destinationConfirmed = true;
+    }
+    if (widget.initialTravelDates != null) {
+      travelDates = widget.initialTravelDates;
+      _datesConfirmed = true;
+    }
+    if (widget.initialDailyStartTime != null) {
+      dailyStartTime = widget.initialDailyStartTime;
+    }
+    if (widget.initialDailyEndTime != null) {
+      dailyEndTime = widget.initialDailyEndTime;
+    }
+    if (widget.initialDailyStartTime != null &&
+        widget.initialDailyEndTime != null) {
+      _paceConfirmed = true;
+    }
+    if (widget.initialBudgetCategory != null) {
+      budgetCategory = widget.initialBudgetCategory!;
+      _budgetConfirmed = true;
+    }
+    if (widget.initialTravelMode != null) {
+      travelMode = widget.initialTravelMode!;
+      _modeConfirmed = true;
+    }
+    if (widget.initialInterests != null) {
+      interests.addAll(widget.initialInterests!);
+      _interestsConfirmed = true;
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -189,40 +277,59 @@ class _PlannerPageState extends State<PlannerPage> {
 
   Future<void> _pickTravelDates() async {
     final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365 * 2)),
-      initialDateRange: travelDates,
-      helpText: context.l10n.selectTravelDates,
-      builder: (context, child) {
-        final compact = MediaQuery.sizeOf(context).width < 360;
-        final theme = Theme.of(context);
-        final pickerTheme = DatePickerTheme.of(context);
-        return Theme(
-          data: theme.copyWith(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: AppColors.primary,
-              primary: AppColors.primary,
-            ),
-            datePickerTheme: compact
-                ? pickerTheme.copyWith(
-                    rangePickerHeaderHeadlineStyle:
-                        (pickerTheme.rangePickerHeaderHeadlineStyle ??
-                                theme.textTheme.titleLarge)
-                            ?.copyWith(fontSize: 20),
-                  )
-                : pickerTheme,
-          ),
-          child: compact
-              ? MediaQuery.withClampedTextScaling(
-                  maxScaleFactor: 1.0,
-                  child: child!,
-                )
-              : child!,
+    final firstDate = DateTime(now.year, now.month, now.day);
+    final lastDate = now.add(const Duration(days: 365 * 2));
+    final defaultRange =
+        travelDates ??
+        DateTimeRange(
+          start: DateTime(now.year, now.month, now.day + 7),
+          end: DateTime(now.year, now.month, now.day + 9),
         );
-      },
-    );
+
+    final DateTimeRange? picked;
+    if (widget.useModernPicker && !_testingForm) {
+      picked = await showModernDateRangePicker(
+        context: context,
+        initialDateRange: travelDates ?? defaultRange,
+        firstDate: firstDate,
+        lastDate: lastDate,
+      );
+    } else {
+      picked = await showDateRangePicker(
+        context: context,
+        firstDate: firstDate,
+        lastDate: lastDate,
+        initialDateRange: defaultRange,
+        helpText: context.l10n.selectTravelDates,
+        builder: (context, child) {
+          final compact = MediaQuery.sizeOf(context).width < 360;
+          final theme = Theme.of(context);
+          final pickerTheme = DatePickerTheme.of(context);
+          return Theme(
+            data: theme.copyWith(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: AppColors.primary,
+                primary: AppColors.primary,
+              ),
+              datePickerTheme: compact
+                  ? pickerTheme.copyWith(
+                      rangePickerHeaderHeadlineStyle:
+                          (pickerTheme.rangePickerHeaderHeadlineStyle ??
+                                  theme.textTheme.titleLarge)
+                              ?.copyWith(fontSize: 20),
+                    )
+                  : pickerTheme,
+            ),
+            child: compact
+                ? MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.0,
+                    child: child!,
+                  )
+                : child!,
+          );
+        },
+      );
+    }
 
     if (mounted && picked != null) {
       setState(() {
@@ -251,6 +358,8 @@ class _PlannerPageState extends State<PlannerPage> {
       interests: interests.toList(),
       budgetCategory: budgetCategory,
       travelMode: travelMode,
+      transitPlanningMinutes: _transitPlanningMinutes,
+      departurePoint: _departurePoint,
     );
 
     // Validate using TripPreferencesService (FR300_3 to FR300_9)
@@ -400,6 +509,14 @@ class _PlannerPageState extends State<PlannerPage> {
           );
   }
 
+  bool get _isInvalidTimeRange {
+    final start = dailyStartTime;
+    final end = dailyEndTime;
+    if (start == null || end == null) return false;
+    final minutes = end.hour * 60 + end.minute - start.hour * 60 - start.minute;
+    return minutes <= 0;
+  }
+
   String get _estimatedBudgetLabel {
     final days = _calculatedDays > 0 ? _calculatedDays : 1;
     return switch (budgetCategory) {
@@ -423,7 +540,10 @@ class _PlannerPageState extends State<PlannerPage> {
     final canEditMode = _testingForm || (canEditBudget && _budgetConfirmed);
     final canEditInterests =
         _testingForm ||
-        (canEditMode && _modeConfirmed && travelMode != 'Public Transport');
+        (canEditMode &&
+            _modeConfirmed &&
+            (travelMode != 'Public Transport' ||
+                _transitPlanningMinutes != null));
     final canGenerate =
         _testingForm || (canEditInterests && _interestsConfirmed);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -467,8 +587,9 @@ class _PlannerPageState extends State<PlannerPage> {
             _PlanPickerField(
               label: context.l10n.destination,
               value: destination == null
-                  ? 'Select State'
+                  ? context.l10n.selectDestination
                   : '$destination, Malaysia',
+              isPlaceholder: destination == null,
               icon: Icons.place_outlined,
               hasError: _highlightedEmptyFields.contains('destination'),
               errorText: context.l10n.chooseADestination,
@@ -478,8 +599,9 @@ class _PlannerPageState extends State<PlannerPage> {
             _PlanPickerField(
               label: context.l10n.travelDates,
               value: travelDates == null
-                  ? 'Select Travel Dates'
+                  ? context.l10n.selectTravelDates
                   : _travelDateLabel,
+              isPlaceholder: travelDates == null,
               icon: Icons.calendar_month_outlined,
               supportingText: days > 0
                   ? '$days ${days == 1 ? 'day' : 'days'} to explore'
@@ -567,7 +689,7 @@ class _PlannerPageState extends State<PlannerPage> {
             if (duration != null) ...[
               const SizedBox(height: 14),
               _PlanInlineNote(icon: Icons.timelapse_outlined, text: duration),
-            ] else
+            ] else if (_isInvalidTimeRange)
               _PlanFieldError(TripPreferencesService.m5InvalidTimeRange),
             if (!_paceConfirmed)
               TextButton(
@@ -660,6 +782,33 @@ class _PlannerPageState extends State<PlannerPage> {
               ],
             ),
             if (modeError) const _PlanFieldError('Choose a travel mode.'),
+            Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                leading: const Icon(Icons.trip_origin),
+                title: const Text('Daily starting point'),
+                subtitle: Text(_departurePoint?.title ?? 'Choose a place'),
+                onTap: () async {
+                  final options = [
+                    ('Bukit Bintang', 3.1468, 101.7113),
+                    for (final place in curatedMalaysianAttractions)
+                      (place.name, place.latitude, place.longitude),
+                  ];
+                  final point = await showSearch<(String, double, double)?>(
+                    context: context,
+                    delegate: _DepartureSearch(options),
+                  );
+                  if (!mounted || point == null) return;
+                  setState(
+                    () => _departurePoint = TravelStop.fromJson({
+                      'title': point.$1,
+                      'latitude': point.$2,
+                      'longitude': point.$3,
+                    }),
+                  );
+                },
+              ),
+            ),
             if (travelMode.isNotEmpty) ...[
               const SizedBox(height: 14),
               _PlanInlineNote(
@@ -670,10 +819,26 @@ class _PlannerPageState extends State<PlannerPage> {
                   'Driving' => 'Explore further by car or e-hailing.',
                   'Walking' => 'Enjoy nearby places at a walking pace.',
                   _ =>
-                    'Transit planning is not available yet. Choose driving or walking to generate your trip.',
+                    'Enter a planning estimate per leg, including walking, waiting and transfers.',
                 },
               ),
             ],
+            if (travelMode == 'Public Transport')
+              TextField(
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Estimated minutes per leg (1–240)',
+                ),
+                onChanged: (text) {
+                  final minutes = int.tryParse(text);
+                  setState(
+                    () => _transitPlanningMinutes =
+                        minutes != null && minutes >= 1 && minutes <= 240
+                        ? minutes
+                        : null,
+                  );
+                },
+              ),
           ],
         ),
         const SizedBox(height: 16),
@@ -785,190 +950,9 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
           ),
         ),
-        const SizedBox(height: 24),
-        _buildTestingTools(),
       ],
     );
   }
-
-  Widget _buildTestingTools() => Material(
-    color: const Color(0xFFF1F5F9),
-    borderRadius: BorderRadius.circular(14),
-    child: Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFCBD5E1)),
-      ),
-      child: ExpansionTile(
-        initiallyExpanded: false,
-        title: Row(
-          children: [
-            Icon(Icons.bug_report_outlined, size: 18, color: AppColors.primary),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                context.l10n.uc300FlowTestingTools,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Text(
-          context.l10n.quicklyTestMessagesM1M8AlternativeFlowsA1A7,
-          style: TextStyle(fontSize: 12, color: AppColors.muted),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            child: Column(
-              children: [
-                const Divider(height: 1),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    ActionChip(
-                      avatar: const Icon(Icons.check_circle_outline, size: 16),
-                      label: Text(
-                        context.l10n.fillValidForm,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () {
-                        final now = DateTime.now();
-                        setState(() {
-                          destination = 'Kuala Lumpur';
-                          travelDates = DateTimeRange(
-                            start: DateTime(now.year, now.month, now.day + 2),
-                            end: DateTime(now.year, now.month, now.day + 5),
-                          );
-                          dailyStartTime = const TimeOfDay(hour: 8, minute: 0);
-                          dailyEndTime = const TimeOfDay(hour: 22, minute: 0);
-                          interests.clear();
-                          interests.addAll({'Food', 'Culture'});
-                          budgetCategory = 'Medium';
-                          travelMode = 'Driving';
-                          _errorMessage = null;
-                          _highlightedEmptyFields.clear();
-                          _testingForm = true;
-                        });
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.dangerous_outlined, size: 16),
-                      label: Text(
-                        context.l10n.testA1EmptyFields,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          destination = null;
-                          travelDates = null;
-                          dailyStartTime = null;
-                          dailyEndTime = null;
-                          interests.clear();
-                          budgetCategory = '';
-                          travelMode = '';
-                          _errorMessage = null;
-                          _highlightedEmptyFields.clear();
-                          _testingForm = true;
-                        });
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.place, size: 16),
-                      label: Text(
-                        context.l10n.testA2BadDestination,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          destination = 'Invalid State';
-                          _errorMessage = null;
-                          _highlightedEmptyFields.clear();
-                          _testingForm = true;
-                        });
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.calendar_month, size: 16),
-                      label: Text(
-                        context.l10n.testA3InvalidDays,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () {
-                        final now = DateTime.now();
-                        setState(() {
-                          // Set dates to produce 31 days (violates 1-30 limit)
-                          travelDates = DateTimeRange(
-                            start: now,
-                            end: now.add(const Duration(days: 35)),
-                          );
-                          _errorMessage = null;
-                          _highlightedEmptyFields.clear();
-                          _testingForm = true;
-                        });
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.timer_outlined, size: 16),
-                      label: Text(
-                        context.l10n.testA4BadTimeRange,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          dailyStartTime = const TimeOfDay(hour: 18, minute: 0);
-                          dailyEndTime = const TimeOfDay(hour: 8, minute: 0);
-                          _errorMessage = null;
-                          _highlightedEmptyFields.clear();
-                          _testingForm = true;
-                        });
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.category_outlined, size: 16),
-                      label: Text(
-                        context.l10n.testA5NoInterests,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          interests.clear();
-                          _errorMessage = null;
-                          _highlightedEmptyFields.clear();
-                          _testingForm = true;
-                        });
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.directions_bus, size: 16),
-                      label: Text(
-                        context.l10n.testA7Transit,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          travelMode = 'Public Transport';
-                          _errorMessage = null;
-                          _highlightedEmptyFields.clear();
-                          _testingForm = true;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 class _PlanSection extends StatelessWidget {
@@ -1075,6 +1059,7 @@ class _PlanPickerField extends StatelessWidget {
     required this.hasError,
     required this.errorText,
     this.supportingText,
+    this.isPlaceholder = false,
   });
 
   final String label;
@@ -1084,6 +1069,7 @@ class _PlanPickerField extends StatelessWidget {
   final bool hasError;
   final String errorText;
   final String? supportingText;
+  final bool isPlaceholder;
 
   @override
   Widget build(BuildContext context) {
@@ -1123,10 +1109,14 @@ class _PlanPickerField extends StatelessWidget {
                           children: [
                             Text(
                               value,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.ink,
+                                fontWeight: isPlaceholder
+                                    ? FontWeight.w500
+                                    : FontWeight.w700,
+                                color: isPlaceholder
+                                    ? AppColors.muted
+                                    : AppColors.ink,
                               ),
                             ),
                             if (supportingText != null) ...[

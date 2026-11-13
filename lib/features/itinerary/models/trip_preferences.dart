@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 
 class TripPreferences {
   final String? destination;
@@ -22,6 +23,8 @@ class TripPreferences {
   final List<String> interests;
   final String? budgetCategory;
   final String? travelMode;
+  final int? transitPlanningMinutes;
+  final TravelStop? departurePoint;
 
   const TripPreferences({
     this.destination,
@@ -33,6 +36,8 @@ class TripPreferences {
     this.interests = const [],
     this.budgetCategory,
     this.travelMode,
+    this.transitPlanningMinutes,
+    this.departurePoint,
     // Preserve the public named parameter used by existing forms and tests.
     // ignore: prefer_initializing_formals
   }) : _numberOfDays = numberOfDays;
@@ -62,6 +67,9 @@ class TripPreferences {
     'interests': interests,
     'budget': budgetCategory,
     'travel_mode': travelMode,
+    if (transitPlanningMinutes != null)
+      'transit_planning_minutes': transitPlanningMinutes,
+    if (departurePoint != null) 'departure_point': departurePoint!.toJson(),
   };
 
   factory TripPreferences.fromJson(Map<String, dynamic> json) {
@@ -78,6 +86,11 @@ class TripPreferences {
       interests: (json['interests'] as List? ?? []).cast<String>(),
       budgetCategory: json['budget'] as String?,
       travelMode: json['travel_mode'] as String?,
+      departurePoint: json['departure_point'] is Map
+          ? TravelStop.fromJson(Map<String, dynamic>.from(json['departure_point'] as Map))
+          : null,
+      transitPlanningMinutes: (json['transit_planning_minutes'] as num?)
+          ?.toInt(),
     );
   }
 
@@ -91,6 +104,7 @@ class TripPreferences {
     List<String>? interests,
     String? budgetCategory,
     String? travelMode,
+    TravelStop? departurePoint,
   }) {
     return TripPreferences(
       destination: destination ?? this.destination,
@@ -102,6 +116,8 @@ class TripPreferences {
       interests: interests ?? this.interests,
       budgetCategory: budgetCategory ?? this.budgetCategory,
       travelMode: travelMode ?? this.travelMode,
+      transitPlanningMinutes: transitPlanningMinutes,
+      departurePoint: departurePoint ?? this.departurePoint,
     );
   }
 }

@@ -49,7 +49,12 @@ void main() {
     (tester) async {
       await AuthService().logout();
       final controller = LanguageController(store: MemoryLanguageStore());
-      await tester.pumpWidget(SmartTravelApp(languageController: controller));
+      await tester.pumpWidget(
+        SmartTravelApp(
+          languageController: controller,
+          skipOnboarding: true,
+        ),
+      );
       await tester.ensureVisible(find.text('Log In / Sign Up'));
       await tester.tap(find.text('Log In / Sign Up'));
       await tester.pumpAndSettle();
@@ -200,10 +205,25 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final controller = LanguageController(store: MemoryLanguageStore());
+      final now = DateTime.now();
       await tester.pumpWidget(
         harness(
           controller,
-          Scaffold(body: PlannerPage(onItineraryReady: () {})),
+          Scaffold(
+            body: PlannerPage(
+              onItineraryReady: () {},
+              initialDestination: 'Kuala Lumpur',
+              initialTravelDates: DateTimeRange(
+                start: DateTime(now.year, now.month, now.day + 2),
+                end: DateTime(now.year, now.month, now.day + 5),
+              ),
+              initialDailyStartTime: const TimeOfDay(hour: 8, minute: 0),
+              initialDailyEndTime: const TimeOfDay(hour: 22, minute: 0),
+              initialBudgetCategory: 'Medium',
+              initialTravelMode: 'Driving',
+              initialInterests: const {'Food', 'Culture'},
+            ),
+          ),
           scale: 2,
         ),
       );
@@ -211,33 +231,6 @@ void main() {
       await controller.changeLanguage(code);
       await tester.pumpAndSettle();
       final l = lookupAppLocalizations(Locale(code));
-      final testingTools = find.text(l.uc300FlowTestingTools);
-      await tester.scrollUntilVisible(
-        testingTools,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await Scrollable.ensureVisible(
-        tester.element(testingTools),
-        alignment: 0.5,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(testingTools);
-      await tester.pumpAndSettle();
-      final fillForm = find.text(l.fillValidForm);
-      await tester.scrollUntilVisible(
-        fillForm,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await Scrollable.ensureVisible(tester.element(fillForm), alignment: 0.5);
-      await tester.pumpAndSettle();
-      await tester.tap(fillForm);
-      tester
-          .state<ScrollableState>(find.byType(Scrollable).first)
-          .position
-          .jumpTo(0);
-      await tester.pumpAndSettle();
       for (final label in [
         l.tripDetails2,
         l.yourDailyPace,

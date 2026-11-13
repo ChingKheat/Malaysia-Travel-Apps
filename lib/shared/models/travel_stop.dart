@@ -92,18 +92,45 @@ class TravelStop {
     googleDetails: details,
   );
 
+  TravelStop withVisitMinutes(int minutes) {
+    if (minutes < 30 || minutes > 240) {
+      throw RangeError.range(minutes, 30, 240, 'minutes');
+    }
+    return _copySchedule(
+      time,
+      minutes,
+      travelMinutes,
+      travelCost,
+      travelIsEstimated,
+    );
+  }
+
   TravelStop scheduled(
     int start,
     int end, {
     int transit = 0,
     double transportCost = 0,
     bool estimated = true,
-  }) => TravelStop(
+  }) => _copySchedule(
+    '${formatMinutes(start)} - ${formatMinutes(end)}',
+    end - start,
+    transit,
+    transportCost,
+    estimated,
+  );
+
+  TravelStop _copySchedule(
+    String time,
+    int minutes,
+    int transit,
+    double transportCost,
+    bool estimated,
+  ) => TravelStop(
     title: title,
-    time: '${formatMinutes(start)} - ${formatMinutes(end)}',
+    time: time,
     note: note,
     description: description,
-    duration: '${end - start} min',
+    duration: '$minutes min',
     openingHours: openingHours,
     tips: tips,
     icon: icon,
@@ -114,7 +141,7 @@ class TravelStop {
     latitude: latitude,
     longitude: longitude,
     estimatedCost: estimatedCost,
-    visitMinutes: visitMinutes,
+    visitMinutes: minutes,
     isIndoor: isIndoor,
     operatingHours: operatingHours,
     travelMinutes: transit,

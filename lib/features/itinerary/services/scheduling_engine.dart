@@ -227,6 +227,11 @@ class SchedulingEngine {
     final end =
         (preferences.dailyEndTime?.hour ?? 22) * 60 +
         (preferences.dailyEndTime?.minute ?? 0);
+    final dayStart = now;
+    final spreadLowBudgetVisits =
+        preferences.budgetCategory == 'Low' &&
+        !preserveOrder &&
+        end - dayStart >= 10 * 60;
     var remaining = preferences.dailyBudget;
     final pool = [...candidates];
     final selected = <TravelStop>[];
@@ -235,6 +240,7 @@ class SchedulingEngine {
     while (pool.isNotEmpty) {
       TravelStop? best;
       int bestStart = 0;
+      int bestTravelStart = 0;
       TravelLeg bestLeg = const TravelLeg(0, 0);
       var bestScore = -double.infinity;
       for (final stop in pool) {
@@ -252,17 +258,26 @@ class SchedulingEngine {
             indoor == false) {
           continue;
         }
-        final previous = selected.isEmpty ? null : selected.last;
+        final previous = selected.lastOrNull ?? preferences.departurePoint;
         final leg = previous == null
             ? const TravelLeg(0, 0)
-            : legs['${identity(previous)}>${identity(stop)}'] ??
-                  estimate(previous, stop, preferences.travelMode ?? 'Driving');
+            : legFor(previous, stop, preferences, legs);
         final cost =
             stop.estimatedCost +
             transportCost(leg, preferences.travelMode ?? 'Driving');
         if (cost > remaining) continue;
-        final start = fit(stop, date, now + leg.minutes, end);
-        if (start == null) continue;
+        final earliest = fit(stop, date, now + leg.minutes, end);
+        if (earliest == null) continue;
+        // Keep the first visit early. Aim subsequent visits at late morning,
+        // afternoon and early evening while honoring each opening window.
+        const offsets = [0, 150, 390, 630];
+        final target = spreadLowBudgetVisits && selected.length < offsets.length
+            ? dayStart + offsets[selected.length]
+            : now;
+        final proposedDeparture = math.max(now, target - leg.minutes);
+        final later = fit(stop, date, proposedDeparture + leg.minutes, end);
+        final start = later ?? earliest;
+        final travelStart = later == null ? now : proposedDeparture;
         final meal = RegExp(
           r'food|restaurant|dining|lunch|dinner|cafe',
           caseSensitive: false,
@@ -286,13 +301,15 @@ class SchedulingEngine {
                 ? 100
                 : 0) -
             leg.minutes -
-            (start - now - leg.minutes) * 0.5 -
-            cost * 0.15 -
+            (start - travelStart - leg.minutes) * 0.5 -
+            (spreadLowBudgetVisits && later == null ? 120 : 0) -
+            cost * (preferences.budgetCategory == 'Low' ? 3.0 : 0.15) -
             stop.visitMinutes * 0.02 +
             ties[identity(stop)]! * 0.001;
         if (score > bestScore) {
           best = stop;
           bestStart = start;
+          bestTravelStart = travelStart;
           bestLeg = leg;
           bestScore = score;
         }
@@ -307,7 +324,7 @@ class SchedulingEngine {
         best.scheduled(
           bestStart,
           bestStart + best.visitMinutes,
-          transit: bestLeg.minutes,
+          transit: math.min(bestLeg.minutes, bestStart - bestTravelStart),
           transportCost: travelCost,
           estimated: bestLeg.estimated,
         ),
@@ -318,5 +335,23 @@ class SchedulingEngine {
       remaining -= best.estimatedCost + travelCost;
     }
     return selected;
+  }
+
+  static TravelLeg legFor(
+    TravelStop from,
+    TravelStop to,
+    TripPreferences preferences,
+    Map<String, TravelLeg> legs,
+  ) {
+    final mode = preferences.travelMode ?? 'Driving';
+    final known = legs['${identity(from)}>${identity(to)}'];
+    if (known != null) return known;
+    if (from.latitude == to.latitude && from.longitude == to.longitude) {
+      return const TravelLeg(0, 0, estimated: false);
+    }
+    if (mode == 'Public Transport') {
+      return TravelLeg(preferences.transitPlanningMinutes ?? 1440, 0);
+    }
+    return estimate(from, to, mode);
   }
 }

@@ -9,6 +9,7 @@ import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.
 import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
+import 'today_plan_page.dart';
 import 'package:smart_travel_planner/shared/models/weather_forecast.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/scheduling_engine.dart';
@@ -1010,6 +1011,23 @@ class _ItineraryPageState extends State<ItineraryPage> {
         const SizedBox(height: 10),
         _buildDayIntelligenceBanner(stops),
         const SizedBox(height: 16),
+        if (stops.isNotEmpty &&
+            stops.every((stop) => stop.time.contains(' - ')))
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => TodayPlanPage(
+                  storageKey:
+                      '$_tripKey:$_selectedDay:${_dateForDay(_selectedDay).toIso8601String()}',
+                  stops: stops,
+                  date: _dateForDay(_selectedDay),
+                  preferences: _preferences,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Today’s Plan'),
+          ),
 
         // Daily Stops List for Selected Day
         ...stops.map(

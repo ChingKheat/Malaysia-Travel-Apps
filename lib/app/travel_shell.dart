@@ -14,6 +14,9 @@ import 'package:smart_travel_planner/features/image_recognition/screens/image_re
 import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/features/auth/screens/auth_screen.dart';
+import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setup_screen.dart';
+import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 import 'package:smart_travel_planner/shared/widgets/app_header.dart';
 
 class TravelShell extends StatefulWidget {
@@ -29,6 +32,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AuthService().addListener(_onAuthStateChanged);
     _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       unawaited(SupabaseItineraryService().syncPending());
     });
@@ -43,9 +47,25 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    AuthService().removeListener(_onAuthStateChanged);
     _syncTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _onAuthStateChanged() {
+    if (!AuthService().isLoggedIn && mounted) {
+      final targetScreen = !OnboardingService.instance.isCompleted
+          ? const OnboardingSetupScreen()
+          : const AuthScreen(
+              initialTabIndex: 0,
+              showLanguageSelector: false,
+            );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => targetScreen),
+        (route) => false,
+      );
+    }
   }
 
   int _selectedIndex = 0;
@@ -114,23 +134,38 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
         ),
         userId: AuthService().currentUser?.uid ?? 'guest',
       ),
-      PlannerPage(onItineraryReady: _openMyTrips, onMyTripsTap: _openMyTrips),
+      PlannerPage(
+        onItineraryReady: _openMyTrips,
+        onMyTripsTap: _openMyTrips,
+        useModernPicker: true,
+      ),
       const AssistantPage(),
       // Keep itinerary drafts and the selected day alive between visits.
       MyTripsScreen(onBackTap: _closeMyTrips, onPlanTap: () => _goToTab(3)),
     ];
 
+    final isDarkShell =
+        (_selectedIndex == 0 || _selectedIndex == 1) && !_myTripsOpen;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: Colors.white,
-      ),
+      value: isDarkShell
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: const Color(0xFF141518),
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: Colors.white,
+            ),
       child: PopScope(
         canPop: !_myTripsOpen,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop && _myTripsOpen) _closeMyTrips();
         },
         child: Scaffold(
+          backgroundColor: isDarkShell
+              ? const Color(0xFF121214)
+              : Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             bottom: false,
             child: Column(
@@ -168,7 +203,10 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                           )
                         : AppHeader(
                             title: _tabTitles[_selectedIndex],
-                            subtitle: _tabSubtitles[_selectedIndex],
+                            subtitle: _selectedIndex == 1
+                                ? 'Kuala Lumpur · Community'
+                                : _tabSubtitles[_selectedIndex],
+                            isDark: _selectedIndex == 1,
                           ),
                   ),
                 ),
@@ -186,6 +224,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
               : TravelBottomNavigation(
                   selectedIndex: _selectedIndex,
                   onSelected: _goToTab,
+                  isDark: isDarkShell,
                 ),
         ),
       ),
@@ -199,10 +238,12 @@ class TravelBottomNavigation extends StatelessWidget {
     super.key,
     required this.selectedIndex,
     required this.onSelected,
+    this.isDark = false,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +254,9 @@ class TravelBottomNavigation extends StatelessWidget {
       IconData? selectedIcon,
     }) {
       final selected = selectedIndex == index;
+      final activeColor = isDark ? const Color(0xFFE5A95C) : AppColors.primary;
+      final inactiveColor = isDark ? const Color(0xFF757A88) : AppColors.muted;
+
       return Expanded(
         child: Padding(
           padding: const EdgeInsets.only(top: 18),
@@ -234,14 +278,16 @@ class TravelBottomNavigation extends StatelessWidget {
                         height: 28,
                         decoration: BoxDecoration(
                           color: selected
-                              ? AppColors.primary.withValues(alpha: 0.12)
+                              ? activeColor.withValues(
+                                  alpha: isDark ? 0.18 : 0.12,
+                                )
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
                           selected ? selectedIcon ?? icon : icon,
                           size: 22,
-                          color: selected ? AppColors.primary : AppColors.muted,
+                          color: selected ? activeColor : inactiveColor,
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -255,9 +301,7 @@ class TravelBottomNavigation extends StatelessWidget {
                               fontWeight: selected
                                   ? FontWeight.w700
                                   : FontWeight.w600,
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.muted,
+                              color: selected ? activeColor : inactiveColor,
                             ),
                           ),
                         ),
@@ -276,12 +320,16 @@ class TravelBottomNavigation extends StatelessWidget {
       type: MaterialType.transparency,
       child: Stack(
         children: [
-          const Positioned.fill(
+          Positioned.fill(
             top: 18,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: AppColors.line)),
+                color: isDark ? const Color(0xFF141518) : Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? const Color(0xFF24262E) : AppColors.line,
+                  ),
+                ),
               ),
             ),
           ),
@@ -296,9 +344,9 @@ class TravelBottomNavigation extends StatelessWidget {
                   children: [
                     item(
                       0,
-                      Icons.home_outlined,
+                      Icons.explore_outlined,
                       'Home',
-                      selectedIcon: Icons.home,
+                      selectedIcon: Icons.explore,
                     ),
                     item(
                       1,
@@ -312,6 +360,7 @@ class TravelBottomNavigation extends StatelessWidget {
                         child: _ScanDestination(
                           selected: selectedIndex == 2,
                           onTap: () => onSelected(2),
+                          isDark: isDark,
                         ),
                       ),
                     ),
@@ -323,9 +372,9 @@ class TravelBottomNavigation extends StatelessWidget {
                     ),
                     item(
                       4,
-                      Icons.smart_toy_outlined,
+                      Icons.auto_awesome,
                       'AI',
-                      selectedIcon: Icons.smart_toy,
+                      selectedIcon: Icons.auto_awesome,
                     ),
                   ],
                 ),
@@ -339,10 +388,15 @@ class TravelBottomNavigation extends StatelessWidget {
 }
 
 class _ScanDestination extends StatelessWidget {
-  const _ScanDestination({required this.selected, required this.onTap});
+  const _ScanDestination({
+    required this.selected,
+    required this.onTap,
+    this.isDark = false,
+  });
 
   final bool selected;
   final VoidCallback onTap;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -366,12 +420,18 @@ class _ScanDestination extends StatelessWidget {
                   width: 48,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.primaryDark : AppColors.primary,
+                    color: isDark
+                        ? (selected
+                            ? const Color(0xFFC98E45)
+                            : const Color(0xFFE5A95C))
+                        : (selected
+                            ? AppColors.primaryDark
+                            : AppColors.primary),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.center_focus_strong_rounded,
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF141518) : Colors.white,
                     size: 26,
                   ),
                 ),
@@ -382,7 +442,13 @@ class _ScanDestination extends StatelessWidget {
                     child: Text(
                       context.l10n.scan,
                       style: TextStyle(
-                        color: selected ? AppColors.primaryDark : AppColors.ink,
+                        color: isDark
+                            ? (selected
+                                ? const Color(0xFFE5A95C)
+                                : const Color(0xFFB0B4C0))
+                            : (selected
+                                ? AppColors.primaryDark
+                                : AppColors.ink),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),

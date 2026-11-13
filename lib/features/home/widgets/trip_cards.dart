@@ -8,10 +8,16 @@ import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
 import 'package:smart_travel_planner/shared/widgets/demo_tap.dart';
 
 class TripCard extends StatelessWidget {
-  const TripCard({super.key, required this.trip, required this.onTap});
+  const TripCard({
+    super.key,
+    required this.trip,
+    required this.onTap,
+    this.isDark = false,
+  });
 
   final SavedTrip trip;
   final VoidCallback onTap;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +25,13 @@ class TripCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: cardDecoration(),
+        decoration: isDark
+            ? BoxDecoration(
+                color: const Color(0xFF1A1B20),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF282A33), width: 1.2),
+              )
+            : cardDecoration(),
         child: Row(
           children: [
             Container(
@@ -27,9 +39,13 @@ class TripCard extends StatelessWidget {
               height: 68,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF93C5FD), Color(0xFF6652E8)],
-                ),
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFFDCA456), Color(0xFFB8782E)],
+                      )
+                    : const LinearGradient(
+                        colors: [Color(0xFF93C5FD), Color(0xFF6652E8)],
+                      ),
               ),
               child: const Icon(
                 Icons.location_city,
@@ -44,29 +60,34 @@ class TripCard extends StatelessWidget {
                 children: [
                   Text(
                     context.tripTitle(trip),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.ink,
+                      color: isDark ? Colors.white : AppColors.ink,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     context.tripDate(trip),
-                    style: const TextStyle(color: AppColors.muted),
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFF8F93A0) : AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     context.tr(trip.detail),
-                    style: const TextStyle(
-                      color: AppColors.primary,
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFFE5A95C) : AppColors.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.muted),
+            Icon(
+              Icons.chevron_right,
+              color: isDark ? const Color(0xFFE5A95C) : AppColors.muted,
+            ),
           ],
         ),
       ),

@@ -91,6 +91,50 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     );
   }
 
+  // ignore: unused_element
+  Future<void> _editVisitDuration(int index) async {
+    final stop = _stops[index];
+    var minutes = stop.visitMinutes.clamp(30, 240);
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(stop.title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Visit duration · $minutes min'),
+              Slider(
+                value: minutes.toDouble(),
+                min: 30,
+                max: 240,
+                divisions: 42,
+                label: '$minutes min',
+                onChanged: (value) =>
+                    setDialogState(() => minutes = value.round()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, minutes),
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() {
+      _stops[index] = stop.withVisitMinutes(result);
+      _stops = _recalculateTimes(_stops);
+    });
+  }
+
   void _deleteStop(int index) {
     if (_stops.length <= 1) {
       showDemoSnackBar(
@@ -1302,7 +1346,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                         onPressed: () => _showSwapAttractionSheet(index),
                       ),
 
-                      // Action 2: Delete Stop
+                      IconButton(
+                        tooltip: 'Edit visit duration',
+                        onPressed: () => _editVisitDuration(index),
+                        icon: const Icon(Icons.timer_outlined, size: 20),
+                      ),
                       IconButton(
                         tooltip: context.l10n.removeStop,
                         padding: EdgeInsets.zero,

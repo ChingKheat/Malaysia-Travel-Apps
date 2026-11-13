@@ -4,7 +4,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../shared/models/attraction.dart';
 import '../auth/services/auth_service.dart';
+import '../places/screens/attraction_detail_page.dart';
 
 // Feature-local copy keeps the prototype usable in all existing app languages.
 String communityText(BuildContext context, String en, String zh, String ms) =>
@@ -14,6 +16,189 @@ String communityText(BuildContext context, String en, String zh, String ms) =>
       _ => en,
     };
 
+void openLandmarkDetail(BuildContext context, CommunityPost post) {
+  final name =
+      post.relatedLandmark ?? (post.area.isNotEmpty ? post.area : post.place);
+  final attraction = Attraction(
+    xid: 'landmark_${name.toLowerCase().replaceAll(RegExp(r'\s+'), '_')}',
+    name: name,
+    category: post.topic == 'Food' ? 'foods' : 'historic',
+    latitude: 3.1430,
+    longitude: 101.6960,
+    description:
+        post.area.isNotEmpty ? '${post.area}, ${post.place}' : post.place,
+    rating: 4.8,
+    userRatingsTotal: 342,
+    photoUrl: post.asset,
+  );
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AttractionDetailPage(attraction: attraction),
+    ),
+  );
+}
+
+void showDirectMessageDialog(BuildContext context, CommunityPost post) {
+  final controller = TextEditingController();
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF19191C),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      side: BorderSide(color: Color(0xFF2C2C34)),
+    ),
+    builder: (ctx) {
+      return Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF2B2218),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    post.authorInitials,
+                    style: const TextStyle(
+                      color: Color(0xFFE5A93C),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Message ${post.author}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Inquire about ${post.area.isNotEmpty ? post.area : post.place}',
+                        style: const TextStyle(
+                          color: Color(0xFF8E8E95),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                'Where is this located?',
+                'What time does it open?',
+                'Is it suitable for families?',
+              ].map((q) => ActionChip(
+                    backgroundColor: const Color(0xFF222226),
+                    side: const BorderSide(color: Color(0xFF33333E)),
+                    label: Text(
+                      q,
+                      style: const TextStyle(
+                        color: Color(0xFFEDEDED),
+                        fontSize: 12,
+                      ),
+                    ),
+                    onPressed: () => controller.text = q,
+                  )).toList(),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Type your message to ${post.author}...',
+                hintStyle: const TextStyle(color: Color(0xFF6B7280)),
+                filled: true,
+                fillColor: const Color(0xFF222226),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF33333E)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF33333E)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFE5A93C)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: () {
+                  final text = controller.text.trim();
+                  if (text.isEmpty) return;
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF1E1E22),
+                      content: Text(
+                        'Message sent to ${post.author}!',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.send_rounded,
+                  size: 16,
+                  color: Color(0xFF121212),
+                ),
+                label: const Text(
+                  'Send Message',
+                  style: TextStyle(
+                    color: Color(0xFF121212),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFE5A93C),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 class CommunityPost {
   CommunityPost({
     required this.author,
@@ -21,11 +206,43 @@ class CommunityPost {
     required this.topic,
     required this.body,
     required this.asset,
-  });
-  final String author, place, topic, body, asset;
-  bool liked = false;
-  bool saved = false;
-  final List<String> comments = [];
+    this.authorRole = 'Architect',
+    this.authorLocation = 'Penang',
+    this.timeAgo = '2h ago',
+    this.area = 'Chinatown Edge',
+    this.title = '',
+    this.relatedLandmark,
+    this.likesCount = 38,
+    this.liked = false,
+    this.saved = false,
+    List<String>? initialComments,
+  }) : comments = initialComments ?? [];
+
+  final String author;
+  final String authorRole;
+  final String authorLocation;
+  final String timeAgo;
+  final String place;
+  final String area;
+  final String topic;
+  final String title;
+  final String body;
+  final String asset;
+  final String? relatedLandmark;
+  int likesCount;
+  bool liked;
+  bool saved;
+  final List<String> comments;
+
+  String get authorInitials {
+    final parts = author.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return 'AR';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  String get authorSubtitle =>
+      authorLocation.isNotEmpty ? '$authorLocation · $authorRole · $timeAgo' : place;
 }
 
 class CommunityPage extends StatefulWidget {
@@ -299,14 +516,17 @@ class _CommunityPageState extends State<CommunityPage> {
   }
 }
 
-class _PostDetail extends StatefulWidget {
-  const _PostDetail({required this.post});
+typedef _PostDetail = CommunityPostDetailPage;
+
+class CommunityPostDetailPage extends StatefulWidget {
+  const CommunityPostDetailPage({super.key, required this.post});
   final CommunityPost post;
   @override
-  State<_PostDetail> createState() => _PostDetailState();
+  State<CommunityPostDetailPage> createState() =>
+      _CommunityPostDetailPageState();
 }
 
-class _PostDetailState extends State<_PostDetail> {
+class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
   final _comment = TextEditingController();
   @override
   void dispose() {

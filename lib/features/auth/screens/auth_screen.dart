@@ -3,14 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/shared/widgets/language_selector.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
+import 'package:smart_travel_planner/app/travel_shell.dart';
+import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/auth/widgets/create_account_form.dart';
 import 'package:smart_travel_planner/features/auth/widgets/login_form.dart';
+import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setup_screen.dart';
+import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
+import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key, this.initialTabIndex = 1});
+  const AuthScreen({
+    super.key,
+    this.initialTabIndex = 1,
+    this.showLanguageSelector,
+  });
 
   /// 0 for Login, 1 for Create Account
   final int initialTabIndex;
+
+  /// Explicitly control whether to display the language selector button on the auth card.
+  /// If null, defaults to hiding when onboarding is completed (!OnboardingService.instance.isCompleted).
+  final bool? showLanguageSelector;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -19,6 +32,13 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  bool get _shouldShowLanguageSelector {
+    if (widget.showLanguageSelector != null) {
+      return widget.showLanguageSelector!;
+    }
+    return !OnboardingService.instance.isCompleted;
+  }
 
   @override
   void initState() {
@@ -37,8 +57,22 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   void _onSuccess() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const TravelShell()),
+      (route) => false,
+    );
+  }
+
+  String _guestLabel(BuildContext context) {
+    final lang = Localizations.localeOf(context).languageCode;
+    switch (lang) {
+      case 'zh':
+        return '访客探索';
+      case 'ms':
+        return 'Mod Tetamu';
+      default:
+        return 'Guest Mode';
     }
   }
 
@@ -86,7 +120,17 @@ class _AuthScreenState extends State<AuthScreen>
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.maybePop(context),
+                        onPressed: () {
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => const OnboardingSetupScreen(isRevisit: true),
+                              ),
+                            );
+                          }
+                        },
                         icon: const Icon(
                           Icons.arrow_back_ios_new,
                           color: Colors.white,
@@ -98,11 +142,33 @@ class _AuthScreenState extends State<AuthScreen>
                       Expanded(
                         child: Text(
                           context.l10n.smartTravelPlanner,
-                          style: TextStyle(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
+                        ),
+                      ),
+                      IconButton(
+                        key: const ValueKey('auth-guest-button'),
+                        tooltip: _guestLabel(context),
+                        onPressed: () async {
+                          await AuthService().loginAsGuest();
+                          if (context.mounted) {
+                            showDemoSnackBar(
+                              context,
+                              context.l10n.loggedInAsGuestTraveler,
+                              icon: Icons.check_circle_outline,
+                            );
+                            _onSuccess();
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.person_outline,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                     ],
@@ -178,11 +244,17 @@ class _AuthScreenState extends State<AuthScreen>
                     ),
                     child: Column(
                       children: [
+                        if (_shouldShowLanguageSelector) ...[
+                          const SizedBox(height: 8),
+                          const Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: EdgeInsets.only(right: 8.0),
+                              child: LanguageButton(),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 12),
-                        const Align(
-                          alignment: Alignment.centerRight,
-                          child: LanguageButton(),
-                        ),
                         // Drag Handle
                         Container(
                           width: 44,

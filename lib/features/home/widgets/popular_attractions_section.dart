@@ -52,10 +52,16 @@ class PopularAttractionsSection extends StatelessWidget {
     super.key,
     required this.onSeeAllTap,
     this.attractions,
+    this.title,
+    this.actionLabel,
+    this.isDarkTheme = false,
   });
 
   final VoidCallback onSeeAllTap;
   final List<Attraction>? attractions;
+  final String? title;
+  final String? actionLabel;
+  final bool isDarkTheme;
 
   void _openAttraction(BuildContext context, Attraction attraction) {
     if (attraction.googlePlaceId != null) {
@@ -106,23 +112,42 @@ class PopularAttractionsSection extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                context.l10n.popularAttractions,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                title ?? context.l10n.popularAttractions,
+                style: isDarkTheme
+                    ? const TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'serif',
+                      )
+                    : theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
               ),
             ),
             const SizedBox(width: 8),
             TextButton(
               key: const ValueKey('popular-attractions-see-all'),
               onPressed: onSeeAllTap,
-              style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                foregroundColor: isDarkTheme ? const Color(0xFF8F93A0) : null,
+              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(context.l10n.seeAll),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward_rounded, size: 16),
+                  Text(
+                    actionLabel ?? context.l10n.seeAll,
+                    style: TextStyle(
+                      color: isDarkTheme ? const Color(0xFF8F93A0) : null,
+                      fontSize: isDarkTheme ? 13 : null,
+                      fontWeight: isDarkTheme ? FontWeight.w500 : null,
+                    ),
+                  ),
+                  if (!isDarkTheme) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_rounded, size: 16),
+                  ],
                 ],
               ),
             ),
@@ -147,6 +172,7 @@ class PopularAttractionsSection extends StatelessWidget {
                     child: PopularAttractionCard(
                       attraction: attraction,
                       onTap: () => _openAttraction(context, attraction),
+                      isDark: isDarkTheme,
                     ),
                   );
                 },
@@ -164,10 +190,12 @@ class PopularAttractionCard extends StatelessWidget {
     super.key,
     required this.attraction,
     required this.onTap,
+    this.isDark = false,
   });
 
   final Attraction attraction;
   final VoidCallback onTap;
+  final bool isDark;
 
   String _resolveState(Attraction a) {
     final xid = a.xid.toLowerCase();
@@ -229,9 +257,12 @@ class PopularAttractionCard extends StatelessWidget {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: colors.surface,
+          color: isDark ? const Color(0xFF1A1B20) : colors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colors.outlineVariant),
+          border: Border.all(
+            color: isDark ? const Color(0xFF282A33) : colors.outlineVariant,
+            width: 1.2,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -270,51 +301,82 @@ class PopularAttractionCard extends StatelessWidget {
                     category,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: colors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: isDark
+                        ? const TextStyle(
+                            color: Color(0xFFE5A95C),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          )
+                        : theme.textTheme.labelMedium?.copyWith(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     attraction.name,
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: isDark
+                        ? const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          )
+                        : theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 14),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: isDark ? const Color(0xFF8F93A0) : null,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           _resolveState(attraction),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall,
+                          style: isDark
+                              ? const TextStyle(
+                                  color: Color(0xFF8F93A0),
+                                  fontSize: 12,
+                                )
+                              : theme.textTheme.bodySmall,
                         ),
                       ),
                       if (rating != null) ...[
                         const SizedBox(width: 6),
                         Icon(
                           Icons.star_rounded,
-                          size: 15,
-                          color: colors.primary,
+                          size: 16,
+                          color: isDark
+                              ? const Color(0xFFE5A95C)
+                              : colors.primary,
                         ),
                         const SizedBox(width: 3),
                         Text(
                           rating.toStringAsFixed(1),
-                          style: theme.textTheme.bodySmall,
+                          style: isDark
+                              ? const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                )
+                              : theme.textTheme.bodySmall,
                         ),
                       ],
                       const SizedBox(width: 8),
                       Icon(
                         Icons.arrow_outward_rounded,
                         size: 16,
-                        color: colors.primary,
+                        color: isDark
+                            ? const Color(0xFFE5A95C)
+                            : colors.primary,
                       ),
                     ],
                   ),

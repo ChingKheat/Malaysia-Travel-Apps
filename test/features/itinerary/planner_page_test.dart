@@ -12,9 +12,11 @@ void main() {
     ) async {
       await _openPlanner(tester, width: 320, scale: scale);
       await _unlockSchedule(tester);
+      await _choose(tester, 'Standard');
       await _choose(tester, 'Continue');
       await _choose(tester, 'High');
       await _choose(tester, 'Walking');
+      await _choose(tester, 'Food');
       await _choose(tester, 'Continue');
       _scrollToTop(tester);
       await tester.pumpAndSettle();
@@ -25,17 +27,11 @@ void main() {
         'Getting around',
         'Make it your kind of trip',
         'Generate My Itinerary',
-        'UC300 Flow Testing Tools',
       ]) {
         await _reveal(tester, find.text(label));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: label);
       }
-      await tester.tap(find.text('UC300 Flow Testing Tools'));
-      await tester.pumpAndSettle();
-      await _reveal(tester, find.text('Test A7 (Transit)'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
     });
   }
 
@@ -45,6 +41,10 @@ void main() {
     await _openPlanner(tester);
     SharedPreferences.setMockInitialValues({});
     await _unlockSchedule(tester, checkCancellation: true);
+
+    await _reveal(tester, find.text('Standard'));
+    await tester.tap(find.text('Standard'));
+    await tester.pumpAndSettle();
 
     await _reveal(tester, find.text('Daily End Time'));
     tester
@@ -56,7 +56,7 @@ void main() {
     await _reveal(tester, find.text('Continue'));
     expect(
       tester
-          .widget<TextButton>(find.widgetWithText(TextButton, 'Continue'))
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Continue').first)
           .onPressed,
       isNull,
     );
@@ -93,11 +93,11 @@ void main() {
     _scrollToTop(tester);
     await tester.pumpAndSettle();
     await _choose(tester, 'Food');
-    await _choose(tester, 'Shopping');
+    await _choose(tester, 'Food');
     await _reveal(tester, find.text('Continue'));
     expect(
       tester
-          .widget<TextButton>(find.widgetWithText(TextButton, 'Continue'))
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Continue').first)
           .onPressed,
       isNull,
     );
@@ -148,9 +148,21 @@ void main() {
   testWidgets('Generate keeps the existing unsupported transit validation', (
     tester,
   ) async {
-    await _openPlanner(tester);
-    await _choose(tester, 'UC300 Flow Testing Tools');
-    await _choose(tester, 'Test A7 (Transit)');
+    final now = DateTime.now();
+    await _openPlanner(
+      tester,
+      enableTestingBypass: true,
+      initialDestination: 'Kuala Lumpur',
+      initialTravelDates: DateTimeRange(
+        start: DateTime(now.year, now.month, now.day + 2),
+        end: DateTime(now.year, now.month, now.day + 5),
+      ),
+      initialDailyStartTime: const TimeOfDay(hour: 8, minute: 0),
+      initialDailyEndTime: const TimeOfDay(hour: 22, minute: 0),
+      initialBudgetCategory: 'Medium',
+      initialTravelMode: 'Public Transport',
+      initialInterests: const {'Food', 'Culture'},
+    );
     _scrollToTop(tester);
     await tester.pumpAndSettle();
     await _reveal(tester, find.text('Generate My Itinerary'));
@@ -159,6 +171,12 @@ void main() {
     expect(find.text(TripPreferencesService.m8UnsupportedMode), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Planner starts with empty/clean slate defaults', (tester) async {
+    await _openPlanner(tester);
+    expect(find.text('Select Destination'), findsOneWidget);
+    expect(find.text('Select travel dates'), findsOneWidget);
+  });
 }
 
 Future<void> _unlockSchedule(
@@ -166,22 +184,22 @@ Future<void> _unlockSchedule(
   bool checkCancellation = false,
 }) async {
   expect(find.text('Travel dates'), findsOneWidget);
-  expect(find.textContaining(RegExp(r'\d{4} - ')).hitTestable(), findsNothing);
-  await _choose(tester, 'Kuala Lumpur, Malaysia');
+  expect(find.text('Select travel dates').hitTestable(), findsNothing);
+  await _choose(tester, 'Select Destination');
   if (checkCancellation) {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Travel dates'), findsOneWidget);
     expect(
-      find.textContaining(RegExp(r'\d{4} - ')).hitTestable(),
+      find.text('Select travel dates').hitTestable(),
       findsNothing,
     );
-    await _choose(tester, 'Kuala Lumpur, Malaysia');
+    await _choose(tester, 'Select Destination');
   }
   await tester.tap(find.text('Johor, Malaysia'));
   await tester.pumpAndSettle();
 
-  final dateLabel = find.textContaining(RegExp(r'\d{4} - '));
+  final dateLabel = find.text('Select travel dates');
   await _reveal(tester, dateLabel);
   await tester.tap(dateLabel);
   await tester.pumpAndSettle();
@@ -212,7 +230,7 @@ Future<void> _unlockSchedule(
 Future<void> _choose(WidgetTester tester, String label) async {
   final target = find.text(label);
   await _reveal(tester, target);
-  await tester.tap(target);
+  await tester.tap(find.text(label).first);
   await tester.pumpAndSettle();
 }
 
@@ -237,6 +255,14 @@ Future<void> _openPlanner(
   WidgetTester tester, {
   double width = 400,
   double scale = 1,
+  bool enableTestingBypass = false,
+  String? initialDestination,
+  DateTimeRange? initialTravelDates,
+  TimeOfDay? initialDailyStartTime,
+  TimeOfDay? initialDailyEndTime,
+  Set<String>? initialInterests,
+  String? initialBudgetCategory,
+  String? initialTravelMode,
 }) async {
   tester.view.physicalSize = Size(width, 800);
   tester.view.devicePixelRatio = 1;
@@ -251,7 +277,18 @@ Future<void> _openPlanner(
         child: child!,
       ),
       home: Scaffold(
-        body: PlannerPage(onItineraryReady: () {}, onMyTripsTap: () {}),
+        body: PlannerPage(
+          onItineraryReady: () {},
+          onMyTripsTap: () {},
+          enableTestingBypass: enableTestingBypass,
+          initialDestination: initialDestination,
+          initialTravelDates: initialTravelDates,
+          initialDailyStartTime: initialDailyStartTime,
+          initialDailyEndTime: initialDailyEndTime,
+          initialInterests: initialInterests,
+          initialBudgetCategory: initialBudgetCategory,
+          initialTravelMode: initialTravelMode,
+        ),
       ),
     ),
   );

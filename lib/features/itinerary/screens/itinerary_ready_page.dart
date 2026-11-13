@@ -28,7 +28,39 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
   Widget build(BuildContext context) {
     final userPrefs = TripPreferencesService.storedPreferences;
     final destination = userPrefs?.destination ?? 'Kuala Lumpur';
-    final previewStops = getDailyStops(0);
+    final days = List.generate(userPrefs?.numberOfDays ?? 1, getDailyStops);
+    final previewDay = days.indexWhere((stops) => stops.isNotEmpty);
+    if (previewDay < 0) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'No visits could be scheduled in $destination',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Check your daily hours, travel time and budget, then try again.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Back to trip settings'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    final previewStops = days[previewDay];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FD),
@@ -73,7 +105,6 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
           ),
           const SizedBox(height: 18),
           ...previewStops
-              .take(3)
               .map(
                 (stop) => Container(
                   margin: const EdgeInsets.only(bottom: 10),

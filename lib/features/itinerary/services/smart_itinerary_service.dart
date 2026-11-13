@@ -128,12 +128,20 @@ class SmartItineraryService {
         /* Use the curated local catalog. */
       }
     }
-    if (candidates.isEmpty) candidates = _offlineCandidates(preferences);
     candidates = candidates
         .where((s) => s.latitude != 0 && s.longitude != 0)
         .toList();
+    final localCandidates = _offlineCandidates(preferences);
+    if (candidates.isEmpty) {
+      candidates = localCandidates;
+    } else if (preferences.budgetCategory == 'Low') {
+      final titles = candidates.map((stop) => _normalizedTitle(stop.title)).toSet();
+      candidates.addAll(localCandidates.where(
+        (stop) => titles.add(_normalizedTitle(stop.title)),
+      ));
+    }
     final legs = await TravelMatrixService().fetch(
-      candidates,
+      [?preferences.departurePoint, ...candidates],
       preferences.travelMode ?? 'Driving',
     );
     final visited = <String>{};
@@ -210,6 +218,9 @@ class SmartItineraryService {
     dayWarnings[dayIndex] = _warning(stops, false);
     return stops;
   }
+
+  static String _normalizedTitle(String title) =>
+      title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
   static double estimateVisitCost(String category) {
     final lower = category.toLowerCase();

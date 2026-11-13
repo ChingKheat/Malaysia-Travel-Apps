@@ -1,14 +1,20 @@
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/app/travel_shell.dart';
 import 'package:smart_travel_planner/shared/widgets/language_selector.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
+import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'auth_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key});
+  const WelcomeScreen({super.key, this.showLanguageSelector});
+
+  /// Explicitly control whether to display the language selector button.
+  /// If null, defaults to hiding when onboarding is completed (!OnboardingService.instance.isCompleted).
+  final bool? showLanguageSelector;
 
   @override
   State<WelcomeScreen> createState() => _WelcomeScreenState();
@@ -17,6 +23,45 @@ class WelcomeScreen extends StatefulWidget {
 class _WelcomeScreenState extends State<WelcomeScreen> {
   final _authService = AuthService();
   bool _isActionLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authService.addListener(_onAuthStateChanged);
+    if (_authService.isLoggedIn) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _authService.isLoggedIn) {
+          _navigateToHome();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _authService.removeListener(_onAuthStateChanged);
+    super.dispose();
+  }
+
+  void _onAuthStateChanged() {
+    if (mounted && _authService.isLoggedIn) {
+      _navigateToHome();
+    }
+  }
+
+  void _navigateToHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const TravelShell()),
+      (route) => false,
+    );
+  }
+
+  bool get _shouldShowLanguageSelector {
+    if (widget.showLanguageSelector != null) {
+      return widget.showLanguageSelector!;
+    }
+    return !OnboardingService.instance.isCompleted;
+  }
 
   void _handleGetStarted() async {
     if (_isActionLoading) return;
@@ -31,16 +76,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         context.l10n.loggedInAsGuestTraveler,
         icon: Icons.check_circle_outline,
       );
+      _navigateToHome();
     }
   }
 
-  void _showLoginSheet() {
-    Navigator.push(
+  void _showLoginSheet() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const AuthScreen(initialTabIndex: 1),
+        builder: (context) => const AuthScreen(initialTabIndex: 0),
       ),
     );
+    if (mounted && _authService.isLoggedIn) {
+      _navigateToHome();
+    }
   }
 
   @override
@@ -111,12 +160,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 24),
-                              const Align(
-                                alignment: Alignment.centerRight,
-                                child: LanguageButton(
-                                  foregroundColor: Colors.white,
+                              if (_shouldShowLanguageSelector) ...[
+                                const Align(
+                                  alignment: Alignment.centerRight,
+                                  child: LanguageButton(
+                                    foregroundColor: Colors.white,
+                                  ),
                                 ),
-                              ),
+                              ] else ...[
+                                const SizedBox(height: 12),
+                              ],
                               // Selamat Datang
                               Text(
                                 context.l10n.selamatDatang,

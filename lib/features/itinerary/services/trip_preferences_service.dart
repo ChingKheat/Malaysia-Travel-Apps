@@ -133,9 +133,13 @@ class TripPreferencesService {
       );
     }
 
-    // C7 / A7: Supported Travel Mode Check (Driving or Walking only in this prototype)
     final supportedModes = {'Driving', 'Walking'};
-    if (!supportedModes.contains(prefs.travelMode)) {
+    final transitMinutes = prefs.transitPlanningMinutes ?? 0;
+    final hasTransitEstimate =
+        prefs.travelMode == 'Public Transport' &&
+        transitMinutes >= 1 &&
+        transitMinutes <= 240;
+    if (!supportedModes.contains(prefs.travelMode) && !hasTransitEstimate) {
       return const PreferencesValidationResult(
         success: false,
         message: m8UnsupportedMode,
