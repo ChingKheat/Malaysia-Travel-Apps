@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_travel_planner/features/admin/screens/place_details_refresh_page.dart';
 import 'package:smart_travel_planner/features/admin/services/admin_places_repository.dart';
 import 'package:smart_travel_planner/features/admin/services/place_details_refresh_service.dart';
+import 'package:smart_travel_planner/features/admin/services/place_refresh_task.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 
@@ -15,6 +18,19 @@ class RefreshRepository extends AdminPlacesRepository {
   RefreshRepository(this.total);
   final int total;
   final writes = <Map<String, dynamic>>[];
+  final covers = <String, String>{};
+  @override
+  Future<String?> readCover(String state, String id) async => covers[id];
+  @override
+  Future<void> saveCover(
+    String state,
+    String id,
+    String url,
+    String? previous,
+  ) async {
+    covers[id] = url;
+  }
+
   bool fail = false;
   @override
   Future<AdminPlacesPage> load(String state, {int offset = 0}) async =>
@@ -80,9 +96,28 @@ class RefreshGoogle extends GooglePlacesService {
   }
 }
 
+class WaitingGoogle extends RefreshGoogle {
+  final gate = Completer<void>();
+  @override
+  Future<GooglePlaceDetails?> fetchDetails(
+    String id, {
+    bool basic = false,
+  }) async {
+    await gate.future;
+    return super.fetchDetails(id, basic: basic);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('smart_travel/place_sync'),
+          (_) async => null,
+        );
+  });
   Future<PlaceDetailsRefreshService> service(
     RefreshRepository repo,
     RefreshGoogle google,
@@ -92,6 +127,151 @@ void main() {
     preferences: await SharedPreferences.getInstance(),
     scope: 'test-admin',
     interval: Duration.zero,
+  );
+  testWidgets(
+    'Leaving the details page keeps work running and reattaches without duplicate requests',
+    (tester) async {
+      final repo = RefreshRepository(2);
+      final google = WaitingGoogle();
+      final sync = await service(repo, google);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlaceDetailsRefreshPage(
+            state: 'Penang',
+            service: sync,
+            syncFlow: true,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      final task = PlaceRefreshTask.attach(sync, 'Penang');
+      expect(task.running, true);
+      await tester.pumpWidget(const MaterialApp(home: Text('Another page')));
+      expect(task.running, true);
+      final completion = task.run();
+      google.gate.complete();
+      await tester.pumpAndSettle();
+      expect((await completion).saved, 2);
+      expect(google.calls, ['ChITest0', 'ChITest1']);
+      expect(task.running, false);
+      expect(tester.takeException(), null);
+    },
+  );
+
+  testWidgets(
+    'Unified sync starts details automatically and returns completion',
+    (tester) async {
+      final repo = RefreshRepository(2);
+      final sync = await service(repo, RefreshGoogle());
+      int? result;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  result = await Navigator.push<int>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PlaceDetailsRefreshPage(
+                        state: 'Penang',
+                        service: sync,
+                        syncFlow: true,
+                        restartOnStart: true,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Sync places'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Sync places'));
+      await tester.pumpAndSettle();
+      expect(result, 2);
+      expect(repo.writes, hasLength(2));
+      expect(find.text('Sync places'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Unified sync keeps failed details open for resume', (
+    tester,
+  ) async {
+    final google = RefreshGoogle()..stopId = 'ChITest0';
+    final sync = await service(RefreshRepository(2), google);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PlaceDetailsRefreshPage(
+          state: 'Penang',
+          service: sync,
+          syncFlow: true,
+          restartOnStart: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(sync.read('Penang')!.next, 0);
+    expect(find.text('Resume update'), findsOneWidget);
+    expect(find.textContaining('Allowance exhausted'), findsOneWidget);
+  });
+
+  test(
+    'A failed place is automatically skipped and later places update',
+    () async {
+      final repo = RefreshRepository(3);
+      final google = RefreshGoogle()
+        ..stopId = 'ChITest1'
+        ..status = 503;
+      final sync = await service(repo, google);
+      final result = await sync.run(
+        'Penang',
+        shouldContinue: () => true,
+        onProgress: (_) {},
+      );
+      expect(result.finished, true);
+      expect(result.saved, 2);
+      expect(result.issues.keys, ['ChITest1']);
+      expect(google.calls, ['ChITest0', 'ChITest1', 'ChITest2']);
+      expect(repo.writes.map((r) => r['place_id']), ['ChITest0', 'ChITest2']);
+    },
+  );
+  test(
+    'Sync links approved photos, preserves existing ones and continues after failures',
+    () async {
+      final repo = RefreshRepository(4)
+        ..covers['ChITest0'] = 'https://example.com/old.jpg';
+      final requested = <String>[];
+      final sync = PlaceDetailsRefreshService(
+        repository: repo,
+        google: RefreshGoogle(),
+        preferences: await SharedPreferences.getInstance(),
+        scope: 'cover-test',
+        interval: Duration.zero,
+        approvedCover: (id) async {
+          requested.add(id);
+          if (id == 'ChITest2') throw StateError('Storage unavailable');
+          return id == 'ChITest1' ? 'https://example.com/new.jpg' : null;
+        },
+      );
+      final result = await sync.run(
+        'Penang',
+        shouldContinue: () => true,
+        onProgress: (_) {},
+      );
+      expect(result.saved, 4);
+      expect(result.coversSaved, 1);
+      expect(result.coversFailed, 1);
+      expect(result.coversMissing, 1);
+      expect(requested, ['ChITest1', 'ChITest2', 'ChITest3']);
+      expect(repo.covers['ChITest0'], 'https://example.com/old.jpg');
+      expect(repo.covers['ChITest1'], 'https://example.com/new.jpg');
+      requested.clear();
+      await sync.run('Penang', shouldContinue: () => true, onProgress: (_) {});
+      expect(requested, ['ChITest2', 'ChITest3']);
+    },
   );
   test('Refresh covers every page with full hours and ratings', () async {
     final repo = RefreshRepository(23), google = RefreshGoogle();
@@ -264,32 +444,35 @@ void main() {
     expect(sync.read('Penang')!.saved, 1);
     expect(tester.takeException(), null);
   });
-  test('skipCurrent moves cursor and records skipped place in issues', () async {
-    final repo = RefreshRepository(2), google = RefreshGoogle();
-    final sync = await service(repo, google);
-    var first = true;
-    final initial = await sync.run(
-      'Penang',
-      shouldContinue: () {
-        if (first) {
-          first = false;
-          return true;
-        }
-        return false;
-      },
-      onProgress: (_) {},
-    );
-    expect(initial.next, 0);
-    final skipped = await sync.skipCurrent('Penang');
-    expect(skipped!.next, 1);
-    expect(skipped.issues['ChITest0'], contains('Skipped by administrator'));
-    final result = await sync.run(
-      'Penang',
-      shouldContinue: () => true,
-      onProgress: (_) {},
-    );
-    expect(result.saved, 1);
-    expect(result.finished, true);
-    expect(result.issues.length, 1);
-  });
+  test(
+    'skipCurrent moves cursor and records skipped place in issues',
+    () async {
+      final repo = RefreshRepository(2), google = RefreshGoogle();
+      final sync = await service(repo, google);
+      var first = true;
+      final initial = await sync.run(
+        'Penang',
+        shouldContinue: () {
+          if (first) {
+            first = false;
+            return true;
+          }
+          return false;
+        },
+        onProgress: (_) {},
+      );
+      expect(initial.next, 0);
+      final skipped = await sync.skipCurrent('Penang');
+      expect(skipped!.next, 1);
+      expect(skipped.issues['ChITest0'], contains('Skipped by administrator'));
+      final result = await sync.run(
+        'Penang',
+        shouldContinue: () => true,
+        onProgress: (_) {},
+      );
+      expect(result.saved, 1);
+      expect(result.finished, true);
+      expect(result.issues.length, 1);
+    },
+  );
 }

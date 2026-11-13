@@ -138,9 +138,14 @@ class AdminPlacesRepository {
       'user_ratings_total': place['user_ratings_total'],
       'operating_hours': place['operating_hours'],
       'google_attributions': place['attributions'] ?? [],
+      if (place.containsKey('google_photos'))
+        'google_photos': place['google_photos'],
       // Retain clean Supabase Storage or non-key URLs; reject dynamic Google key URLs.
-      'photo_url': place['photo_url'] != null &&
-              !place['photo_url'].toString().contains('places.googleapis.com') &&
+      'photo_url':
+          place['photo_url'] != null &&
+              !place['photo_url'].toString().contains(
+                'places.googleapis.com',
+              ) &&
               !place['photo_url'].toString().contains('key=')
           ? place['photo_url'].toString()
           : null,
@@ -149,8 +154,9 @@ class AdminPlacesRepository {
 
   Future<int> savePlaces(
     String state,
-    Iterable<Map<String, dynamic>> places,
-  ) async {
+    Iterable<Map<String, dynamic>> places, {
+    void Function(List<Map<String, dynamic>> rows)? onInserted,
+  }) async {
     final unique = <String, Map<String, dynamic>>{};
     for (final place in places) {
       final row = importRow(state, place);
@@ -168,6 +174,10 @@ class AdminPlacesRepository {
             .select('place_id');
         // PostgREST returns only inserted rows when duplicates are ignored.
         inserted += added.length;
+        final ids = added.map((r) => r['place_id']).toSet();
+        onInserted?.call(
+          rows.where((r) => ids.contains(r['place_id'])).toList(),
+        );
       } catch (_) {
         throw StateError(
           'Import interrupted: $inserted inserts confirmed; ${values.length - start} records unconfirmed. Earlier batches remain saved. Retry safely; existing IDs are preserved.',
@@ -177,7 +187,53 @@ class AdminPlacesRepository {
     return inserted;
   }
 
+  Future<void> markNewImportConflict(
+    String id,
+    String state,
+    String expectedCategory,
+  ) async {
+    // Only called for IDs inserted by this run. A concurrent review is preserved.
+    await _db
+        .from('places')
+        .update({'category': 'Attraction'})
+        .eq('place_id', id)
+        .eq('state', state)
+        .eq('category', expectedCategory)
+        .isFilter('is_indoor', null);
+  }
+
   /// Refresh existing records without changing their reviewed grouping.
+  Future<String?> readCover(String state, String id) async {
+    final row = await _db
+        .from('places')
+        .select('photo_url')
+        .eq('state', state)
+        .eq('place_id', id)
+        .single();
+    return row['photo_url'] as String?;
+  }
+
+  Future<void> saveCover(
+    String state,
+    String id,
+    String url,
+    String? previous,
+  ) async {
+    final query = _db
+        .from('places')
+        .update({'photo_url': url})
+        .eq('state', state)
+        .eq('place_id', id);
+    final updated =
+        await (previous == null
+                ? query.isFilter('photo_url', null)
+                : query.eq('photo_url', previous))
+            .select('photo_url');
+    if (updated.length != 1 || updated.single['photo_url'] != url) {
+      throw StateError('Cover changed or could not be saved');
+    }
+  }
+
   Future<int> saveFetchedRows(
     String state,
     Iterable<Map<String, dynamic>> rows,
@@ -192,6 +248,7 @@ class AdminPlacesRepository {
       values.remove('place_id');
       values.remove('state');
       values.remove('category');
+      values.remove('photo_url');
       // Basic details do not include these fields; never erase prior full details.
       if (row['_fullDetails'] != true) {
         values.remove('rating');

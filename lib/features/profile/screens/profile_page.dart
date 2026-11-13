@@ -575,6 +575,7 @@ class _EditProfileDialog extends StatefulWidget {
 
 class _EditProfileDialogState extends State<_EditProfileDialog> {
   late final TextEditingController _controller;
+  String? _inlineError;
 
   @override
   void initState() {
@@ -588,6 +589,17 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
     super.dispose();
   }
 
+  void _handleSave() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      setState(() {
+        _inlineError = context.tr(AuthService.m2NameRequired);
+      });
+      return;
+    }
+    Navigator.pop(context, text);
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(context.l10n.editProfile2),
@@ -595,7 +607,27 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       controller: _controller,
       autofocus: true,
       textCapitalization: TextCapitalization.words,
-      decoration: InputDecoration(labelText: context.l10n.fullName2),
+      onChanged: (val) {
+        if (_inlineError != null && val.trim().isNotEmpty) {
+          setState(() => _inlineError = null);
+        }
+      },
+      onSubmitted: (_) => _handleSave(),
+      decoration: InputDecoration(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(context.l10n.fullName2),
+            const Text(
+              ' *',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        hintText: context.l10n.eGAliBinAhmad,
+        helperText: context.l10n.changeYourFullName,
+        errorText: _inlineError,
+      ),
     ),
     actions: [
       TextButton(
@@ -603,7 +635,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
         child: Text(context.l10n.cancel),
       ),
       FilledButton(
-        onPressed: () => Navigator.pop(context, _controller.text),
+        onPressed: _handleSave,
         child: Text(context.l10n.save),
       ),
     ],

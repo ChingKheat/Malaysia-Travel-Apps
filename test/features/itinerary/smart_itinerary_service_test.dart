@@ -91,6 +91,7 @@ void main() {
 
     test('Google details retain ephemeral photos without permanent URLs', () {
       final dummyPlace = {
+        'id': 'ChIJ123',
         'displayName': {'text': 'Penang Hill'},
         'formattedAddress': 'Penang, Malaysia',
         'primaryTypeDisplayName': {'text': 'Tourist Attraction'},

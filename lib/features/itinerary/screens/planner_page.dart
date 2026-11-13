@@ -33,6 +33,14 @@ class _PlannerPageState extends State<PlannerPage> {
   String budgetCategory = 'Medium';
   String travelMode = 'Driving';
 
+  bool _destinationConfirmed = false;
+  bool _datesConfirmed = false;
+  bool _paceConfirmed = false;
+  bool _budgetConfirmed = false;
+  bool _modeConfirmed = false;
+  bool _interestsConfirmed = false;
+  bool _testingForm = false;
+
   String? _errorMessage;
   Set<String> _highlightedEmptyFields = {};
 
@@ -169,9 +177,10 @@ class _PlannerPageState extends State<PlannerPage> {
       },
     );
 
-    if (selected != null) {
+    if (mounted && selected != null) {
       setState(() {
         destination = selected;
+        _destinationConfirmed = true;
         _errorMessage = null;
         _highlightedEmptyFields.remove('destination');
       });
@@ -185,23 +194,40 @@ class _PlannerPageState extends State<PlannerPage> {
       firstDate: now,
       lastDate: now.add(const Duration(days: 365 * 2)),
       initialDateRange: travelDates,
-      helpText: 'Select travel dates',
+      helpText: context.l10n.selectTravelDates,
       builder: (context, child) {
+        final compact = MediaQuery.sizeOf(context).width < 360;
+        final theme = Theme.of(context);
+        final pickerTheme = DatePickerTheme.of(context);
         return Theme(
-          data: Theme.of(context).copyWith(
+          data: theme.copyWith(
             colorScheme: ColorScheme.fromSeed(
               seedColor: AppColors.primary,
               primary: AppColors.primary,
             ),
+            datePickerTheme: compact
+                ? pickerTheme.copyWith(
+                    rangePickerHeaderHeadlineStyle:
+                        (pickerTheme.rangePickerHeaderHeadlineStyle ??
+                                theme.textTheme.titleLarge)
+                            ?.copyWith(fontSize: 20),
+                  )
+                : pickerTheme,
           ),
-          child: child!,
+          child: compact
+              ? MediaQuery.withClampedTextScaling(
+                  maxScaleFactor: 1.0,
+                  child: child!,
+                )
+              : child!,
         );
       },
     );
 
-    if (picked != null) {
+    if (mounted && picked != null) {
       setState(() {
         travelDates = picked;
+        _datesConfirmed = true;
         _errorMessage = null;
         _highlightedEmptyFields.remove('numberOfDays');
       });
@@ -344,6 +370,7 @@ class _PlannerPageState extends State<PlannerPage> {
                 onChanged: (time) {
                   setState(() {
                     onChanged(time);
+                    if (_dailyDurationLabel == null) _paceConfirmed = false;
                     _errorMessage = null;
                     _highlightedEmptyFields.remove(field);
                   });
@@ -388,6 +415,17 @@ class _PlannerPageState extends State<PlannerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final canEditDates = _testingForm || _destinationConfirmed;
+    final canEditPace =
+        _testingForm ||
+        (canEditDates && _datesConfirmed && _calculatedDays <= 30);
+    final canEditBudget = _testingForm || (canEditPace && _paceConfirmed);
+    final canEditMode = _testingForm || (canEditBudget && _budgetConfirmed);
+    final canEditInterests =
+        _testingForm ||
+        (canEditMode && _modeConfirmed && travelMode != 'Public Transport');
+    final canGenerate =
+        _testingForm || (canEditInterests && _interestsConfirmed);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final days = _calculatedDays;
     final duration = _dailyDurationLabel;
@@ -448,12 +486,15 @@ class _PlannerPageState extends State<PlannerPage> {
                   : null,
               hasError: _highlightedEmptyFields.contains('numberOfDays'),
               errorText: context.l10n.chooseYourTravelDates,
-              onTap: _pickTravelDates,
+              onTap: canEditDates ? _pickTravelDates : null,
             ),
+            if (canEditDates && days > 30)
+              _PlanFieldError(TripPreferencesService.m4InvalidDays),
           ],
         ),
         const SizedBox(height: 16),
         _PlanSection(
+          enabled: canEditPace,
           icon: Icons.schedule_outlined,
           title: context.l10n.yourDailyPace,
           description:
@@ -526,11 +567,22 @@ class _PlannerPageState extends State<PlannerPage> {
             if (duration != null) ...[
               const SizedBox(height: 14),
               _PlanInlineNote(icon: Icons.timelapse_outlined, text: duration),
-            ],
+            ] else
+              _PlanFieldError(TripPreferencesService.m5InvalidTimeRange),
+            if (!_paceConfirmed)
+              TextButton(
+                onPressed: !canEditPace || duration == null
+                    ? null
+                    : () => setState(() => _paceConfirmed = true),
+                child: Text(
+                  MaterialLocalizations.of(context).continueButtonLabel,
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 16),
         _PlanSection(
+          enabled: canEditBudget,
           icon: Icons.account_balance_wallet_outlined,
           title: context.l10n.dailyBudget,
           description: context
@@ -552,6 +604,7 @@ class _PlannerPageState extends State<PlannerPage> {
                     onTap: () {
                       setState(() {
                         budgetCategory = option.$1;
+                        _budgetConfirmed = true;
                         _errorMessage = null;
                         _highlightedEmptyFields.remove('budgetCategory');
                       });
@@ -574,6 +627,7 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
         const SizedBox(height: 16),
         _PlanSection(
+          enabled: canEditMode,
           icon: Icons.route_outlined,
           title: context.l10n.gettingAround,
           description: context.l10n.chooseHowYouWillTravelBetweenPlaces,
@@ -597,6 +651,7 @@ class _PlannerPageState extends State<PlannerPage> {
                     onTap: () {
                       setState(() {
                         travelMode = option.$1;
+                        _modeConfirmed = true;
                         _errorMessage = null;
                         _highlightedEmptyFields.remove('travelMode');
                       });
@@ -623,6 +678,7 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
         const SizedBox(height: 16),
         _PlanSection(
+          enabled: canEditInterests,
           icon: Icons.favorite_border,
           title: context.l10n.makeItYourKindOfTrip,
           description:
@@ -681,6 +737,7 @@ class _PlannerPageState extends State<PlannerPage> {
                         selected
                             ? interests.add(option.$1)
                             : interests.remove(option.$1);
+                        if (interests.isEmpty) _interestsConfirmed = false;
                         _errorMessage = null;
                         _highlightedEmptyFields.remove('interests');
                       });
@@ -690,6 +747,15 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
             if (interestError)
               const _PlanFieldError('Choose at least one interest.'),
+            if (!_interestsConfirmed)
+              TextButton(
+                onPressed: !canEditInterests || interests.isEmpty
+                    ? null
+                    : () => setState(() => _interestsConfirmed = true),
+                child: Text(
+                  MaterialLocalizations.of(context).continueButtonLabel,
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 24),
@@ -706,7 +772,7 @@ class _PlannerPageState extends State<PlannerPage> {
           const SizedBox(height: 16),
         ],
         FilledButton.icon(
-          onPressed: _handleGenerateItinerary,
+          onPressed: canGenerate ? _handleGenerateItinerary : null,
           icon: const Icon(Icons.auto_awesome),
           label: Text(
             context.l10n.generateMyItinerary,
@@ -788,6 +854,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           travelMode = 'Driving';
                           _errorMessage = null;
                           _highlightedEmptyFields.clear();
+                          _testingForm = true;
                         });
                       },
                     ),
@@ -808,6 +875,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           travelMode = '';
                           _errorMessage = null;
                           _highlightedEmptyFields.clear();
+                          _testingForm = true;
                         });
                       },
                     ),
@@ -822,6 +890,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           destination = 'Invalid State';
                           _errorMessage = null;
                           _highlightedEmptyFields.clear();
+                          _testingForm = true;
                         });
                       },
                     ),
@@ -841,6 +910,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           );
                           _errorMessage = null;
                           _highlightedEmptyFields.clear();
+                          _testingForm = true;
                         });
                       },
                     ),
@@ -856,6 +926,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           dailyEndTime = const TimeOfDay(hour: 8, minute: 0);
                           _errorMessage = null;
                           _highlightedEmptyFields.clear();
+                          _testingForm = true;
                         });
                       },
                     ),
@@ -870,6 +941,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           interests.clear();
                           _errorMessage = null;
                           _highlightedEmptyFields.clear();
+                          _testingForm = true;
                         });
                       },
                     ),
@@ -884,6 +956,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           travelMode = 'Public Transport';
                           _errorMessage = null;
                           _highlightedEmptyFields.clear();
+                          _testingForm = true;
                         });
                       },
                     ),
@@ -905,6 +978,7 @@ class _PlanSection extends StatelessWidget {
     required this.description,
     required this.children,
     this.hasError = false,
+    this.enabled = true,
   });
 
   final IconData icon;
@@ -912,6 +986,7 @@ class _PlanSection extends StatelessWidget {
   final String description;
   final List<Widget> children;
   final bool hasError;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -960,8 +1035,32 @@ class _PlanSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          ...children,
+          if (enabled)
+            ...children
+          else
+            _LockedPlanControls(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: children,
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _LockedPlanControls extends StatelessWidget {
+  const _LockedPlanControls({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      enabled: false,
+      child: ExcludeFocus(
+        child: IgnorePointer(child: Opacity(opacity: 0.55, child: child)),
       ),
     );
   }
@@ -981,14 +1080,14 @@ class _PlanPickerField extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool hasError;
   final String errorText;
   final String? supportingText;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final field = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _PlanLabel(label),
@@ -1056,6 +1155,7 @@ class _PlanPickerField extends StatelessWidget {
         if (hasError) _PlanFieldError(errorText),
       ],
     );
+    return onTap == null ? _LockedPlanControls(child: field) : field;
   }
 }
 

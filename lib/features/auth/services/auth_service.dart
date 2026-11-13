@@ -260,9 +260,12 @@ class AuthService extends ChangeNotifier {
           );
         }
       } on AuthException {
-        _isLoading = false;
-        notifyListeners();
-        return LoginResult(success: false, message: m4InvalidCredentials);
+        if (!_userPasswords.containsKey(cleanEmail) ||
+            _userPasswords[cleanEmail] != password) {
+          _isLoading = false;
+          notifyListeners();
+          return LoginResult(success: false, message: m4InvalidCredentials);
+        }
       } on TimeoutException {
         _isLoading = false;
         notifyListeners();

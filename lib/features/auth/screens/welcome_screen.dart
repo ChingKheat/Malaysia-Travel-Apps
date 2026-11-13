@@ -352,6 +352,7 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
   final _passwordController = TextEditingController(text: '123456');
   final _authService = AuthService();
 
+  bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -478,12 +479,25 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                 const SizedBox(height: 16),
               ],
 
-              // Email Field
+              // Email Field with Floating Label & Required Indicator
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  labelText: context.l10n.emailAddress,
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(context.l10n.emailAddress),
+                      const Text(
+                        ' *',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                   prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -505,13 +519,40 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Password Field
+              // Password Field with Floating Label, Visibility Toggle & Required Indicator
               TextFormField(
                 controller: _passwordController,
-                obscureText: true,
+                obscureText: _obscurePassword,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _handleLogin(),
                 decoration: InputDecoration(
-                  labelText: context.l10n.password,
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(context.l10n.password),
+                      const Text(
+                        ' *',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                   prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    tooltip: _obscurePassword
+                        ? context.l10n.showPassword
+                        : context.l10n.hidePassword,
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: AppColors.muted,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),

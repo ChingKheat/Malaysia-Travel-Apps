@@ -211,6 +211,33 @@ void main() {
       await controller.changeLanguage(code);
       await tester.pumpAndSettle();
       final l = lookupAppLocalizations(Locale(code));
+      final testingTools = find.text(l.uc300FlowTestingTools);
+      await tester.scrollUntilVisible(
+        testingTools,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await Scrollable.ensureVisible(
+        tester.element(testingTools),
+        alignment: 0.5,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(testingTools);
+      await tester.pumpAndSettle();
+      final fillForm = find.text(l.fillValidForm);
+      await tester.scrollUntilVisible(
+        fillForm,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await Scrollable.ensureVisible(tester.element(fillForm), alignment: 0.5);
+      await tester.pumpAndSettle();
+      await tester.tap(fillForm);
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
       for (final label in [
         l.tripDetails2,
         l.yourDailyPace,

@@ -1,22 +1,32 @@
+import '../../places/utils/attraction_image_resolver.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../places/services/google_places_service.dart';
 import '../../places/services/place_catalog_service.dart';
 import 'admin_places_repository.dart';
+import '../../places/services/place_photo_storage_service.dart';
 
 class PlaceRefreshProgress {
   PlaceRefreshProgress({
     required this.ids,
     this.next = 0,
     this.saved = 0,
+    this.coversSaved = 0,
+    this.coversMissing = 0,
+    this.coversFailed = 0,
     Map<String, String>? issues,
     this.message = '',
   }) : issues = issues ?? {};
   final List<String> ids;
   int next;
   int saved;
+  int coversSaved;
+  int coversMissing;
+  int coversFailed;
   final Map<String, String> issues;
   String message;
+  String get coverSummary =>
+      'Covers: $coversSaved linked · $coversMissing missing · $coversFailed failed';
   bool get finished => next == ids.length;
   String get summary =>
       '$saved updated · ${issues.length} need review · ${ids.length - next} remaining';
@@ -24,6 +34,9 @@ class PlaceRefreshProgress {
     'ids': ids,
     'next': next,
     'saved': saved,
+    'coversSaved': coversSaved,
+    'coversMissing': coversMissing,
+    'coversFailed': coversFailed,
     'issues': issues,
     'message': message,
   };
@@ -32,6 +45,9 @@ class PlaceRefreshProgress {
         ids: List<String>.from(data['ids'] as List),
         next: data['next'] as int,
         saved: data['saved'] as int,
+        coversSaved: data['coversSaved'] as int? ?? 0,
+        coversMissing: data['coversMissing'] as int? ?? 0,
+        coversFailed: data['coversFailed'] as int? ?? 0,
         issues: Map<String, String>.from(data['issues'] as Map),
         message: data['message'] as String,
       );
@@ -45,6 +61,7 @@ class PlaceDetailsRefreshService {
     required this.google,
     required this.preferences,
     required this.scope,
+    this.approvedCover = PlacePhotoStorageService.approvedCover,
     this.interval = const Duration(milliseconds: 850),
   });
   final AdminPlacesRepository repository;
@@ -52,6 +69,7 @@ class PlaceDetailsRefreshService {
   final SharedPreferences preferences;
   final String scope;
   final Duration interval;
+  final Future<String?> Function(String) approvedCover;
   static final Set<String> _running = {};
   String _key(String state) => 'place_details_refresh_v1:$scope:$state';
   PlaceRefreshProgress? read(String state) {
@@ -82,8 +100,8 @@ class PlaceDetailsRefreshService {
     progress.next++;
     progress.message = progress.finished
         ? (progress.issues.isEmpty
-            ? 'All saved places updated.'
-            : 'Pass finished with issues. Retry to review failed places.')
+              ? 'All saved places updated.'
+              : 'Pass finished with issues. Retry to review failed places.')
         : 'Skipped $id. Resume to continue updating places in $state.';
     await _persist(state, progress);
     return progress;
@@ -134,18 +152,20 @@ class PlaceDetailsRefreshService {
         try {
           final details = await google.fetchDetails(id, basic: false);
           if (details == null) {
-            if (google.lastStatusCode == 404 ||
-                google.lastStatusCode == 410 ||
-                google.lastStatusCode == 400) {
+            if (google.lastStatusCode != 401 &&
+                google.lastStatusCode != 403 &&
+                google.lastStatusCode != 429) {
               progress.issues[id] =
-                  'Google place unavailable (${google.lastStatusCode}); existing data preserved.';
+                  'Automatically skipped: ${google.lastError ?? 'Details unavailable'} (${google.lastStatusCode ?? 'network'}); existing data preserved.';
               progress.next++;
+              progress.message =
+                  'Skipped unavailable place. Continuing updates…';
               await _persist(state, progress);
               onProgress(progress);
               if (!progress.finished) await Future<void>.delayed(interval);
               continue;
             }
-            // Includes quota, sign-in, network and invalid ID. Keep the cursor.
+            // Account-wide failures must not skip the entire remaining catalog.
             progress.message =
                 '${google.lastError ?? 'Details unavailable'} Resume to retry $id.';
             break;
@@ -172,6 +192,9 @@ class PlaceDetailsRefreshService {
               'user_ratings_total': details.reviewCount,
               'operating_hours': details.data['regularOpeningHours'],
               'attributions': details.attributions,
+              'google_photos': details.photos
+                  .map((p) => {'name': p.name, 'authorAttributions': p.authors})
+                  .toList(),
             };
             try {
               AdminPlacesRepository.importRow(state, row);
@@ -184,6 +207,24 @@ class PlaceDetailsRefreshService {
                 throw StateError('Database update was not confirmed');
               }
               progress.saved++;
+              try {
+                final previous = await repository.readCover(state, id);
+                if (!PlacePhotoStorageService.isUsableLink(previous)) {
+                  final url =
+                      await approvedCover(id) ??
+                      (details.photos.isEmpty
+                          ? null
+                          : AttractionImageResolver.googleProxyLink(id));
+                  if (url == null) {
+                    progress.coversMissing++;
+                  } else {
+                    await repository.saveCover(state, id, url, previous);
+                    progress.coversSaved++;
+                  }
+                }
+              } catch (_) {
+                progress.coversFailed++;
+              }
             }
           }
           progress.next++;

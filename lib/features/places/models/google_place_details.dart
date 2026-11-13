@@ -26,8 +26,8 @@ class GooglePlaceDetails {
   List<GooglePlacePhoto> get photos => (data['photos'] as List? ?? [])
       .whereType<Map>()
       .map((p) => GooglePlacePhoto.fromApi(Map<String, dynamic>.from(p)))
-      .where((p) => p.name.isNotEmpty)
-      .take(5)
+      .where((p) => p.name.startsWith('places/$id/photos/'))
+      .take(8)
       .toList();
   List<Map<String, dynamic>> get attributions =>
       (data['attributions'] as List? ?? [])

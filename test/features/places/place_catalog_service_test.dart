@@ -52,7 +52,7 @@ void main() {
     },
   );
   test(
-    'Catalog supports offline reopen, filters states, and excludes photo URLs',
+    'Catalog supports offline reopen, filters states, and selects saved cover links',
     () async {
       final db = SupabaseClient(
         'https://db.test',
@@ -61,7 +61,7 @@ void main() {
           expect(request.url.host, 'db.test');
           expect(
             request.url.queryParameters['select'],
-            isNot(contains('photo_url')),
+            contains('photo_url'),
           );
           return http.Response(
             jsonEncode([row('museum', 'Museum'), row('food', 'Restaurant')]),
@@ -161,3 +161,4 @@ class _Catalog extends PlaceCatalogService {
   @override
   Future<List<Map<String, dynamic>>> load({String? state}) async => rows;
 }
+

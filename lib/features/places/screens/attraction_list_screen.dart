@@ -1,3 +1,5 @@
+import '../services/google_places_service.dart';
+import '../widgets/google_place_image.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +8,18 @@ import 'package:smart_travel_planner/features/places/utils/attraction_image_reso
 import 'package:smart_travel_planner/features/places/widgets/google_maps_attribution.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
+
+final _coverGoogle = GooglePlacesService();
+
+Widget _googleCover(Attraction place) => GooglePlaceImage(
+  key: ValueKey(place.xid),
+  placeId: place.googlePlaceId!,
+  photo: place.googlePhotos.first,
+  service: _coverGoogle,
+  autoLoad: true,
+  fill: true,
+  attributionTop: 48,
+);
 
 /// Inspiring travel discovery screen displaying curated highlights and
 /// rich editorial destination cards.
@@ -404,10 +418,7 @@ class HighlightAttractionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final direct = attraction.photoUrl?.split('|').firstOrNull?.trim();
-    final photoUrl = (direct != null && direct.startsWith('http'))
-        ? direct
-        : AttractionImageResolver.resolvePhotoUrl(attraction);
+    final photoUrl = AttractionImageResolver.resolvePhotoUrl(attraction);
     final (catColor, catIcon, catLabel) = ModernAttractionCard.getCategoryMeta(
       attraction.category,
     );
@@ -441,31 +452,22 @@ class HighlightAttractionCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // Photo background
-              if (photoUrl != null && photoUrl.startsWith('http'))
+              if (photoUrl == null &&
+                  attraction.googlePlaceId != null &&
+                  attraction.googlePhotos.isNotEmpty)
+                _googleCover(attraction)
+              else if (photoUrl != null && photoUrl.startsWith('http'))
                 Image.network(
                   photoUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) {
-                    final fallback =
-                        AttractionImageResolver.resolveFallbackPhotoUrl(
-                          attraction,
-                        );
-                    if (fallback != null && fallback != photoUrl) {
-                      return Image.network(
-                        fallback,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            ModernAttractionCard.buildFallbackThumbnail(
-                              catColor,
-                              catIcon,
-                            ),
-                      );
-                    }
-                    return ModernAttractionCard.buildFallbackThumbnail(
-                      catColor,
-                      catIcon,
-                    );
-                  },
+                  errorBuilder: (_, _, _) =>
+                      attraction.googlePlaceId != null &&
+                          attraction.googlePhotos.isNotEmpty
+                      ? _googleCover(attraction)
+                      : ModernAttractionCard.buildFallbackThumbnail(
+                          catColor,
+                          catIcon,
+                        ),
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;
                     return ModernAttractionCard.buildFallbackThumbnail(
@@ -699,10 +701,7 @@ class ModernAttractionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (catColor, catIcon, catLabel) = getCategoryMeta(attraction.category);
-    final direct = attraction.photoUrl?.split('|').firstOrNull?.trim();
-    final photoUrl = (direct != null && direct.startsWith('http'))
-        ? direct
-        : AttractionImageResolver.resolvePhotoUrl(attraction);
+    final photoUrl = AttractionImageResolver.resolvePhotoUrl(attraction);
     final hasValidPhoto = photoUrl != null && photoUrl.startsWith('http');
     final ratingVal = attraction.rating ?? 4.7;
 
@@ -741,25 +740,19 @@ class ModernAttractionCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (hasValidPhoto)
+                    if (!hasValidPhoto &&
+                        attraction.googlePlaceId != null &&
+                        attraction.googlePhotos.isNotEmpty)
+                      _googleCover(attraction)
+                    else if (hasValidPhoto)
                       Image.network(
                         photoUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          final fallback =
-                              AttractionImageResolver.resolveFallbackPhotoUrl(
-                                attraction,
-                              );
-                          if (fallback != null && fallback != photoUrl) {
-                            return Image.network(
-                              fallback,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  buildFallbackThumbnail(catColor, catIcon),
-                            );
-                          }
-                          return buildFallbackThumbnail(catColor, catIcon);
-                        },
+                        errorBuilder: (_, _, _) =>
+                            attraction.googlePlaceId != null &&
+                                attraction.googlePhotos.isNotEmpty
+                            ? _googleCover(attraction)
+                            : buildFallbackThumbnail(catColor, catIcon),
                         loadingBuilder: (context, child, progress) {
                           if (progress == null) return child;
                           return buildFallbackThumbnail(catColor, catIcon);

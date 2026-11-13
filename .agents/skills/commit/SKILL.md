@@ -44,9 +44,9 @@ Check whether any files changed in `HEAD..origin/main` or `origin/main..<remote_
 Before modifying git history, summarize for the user:
 1. **Current branch & local changes:** branch name, count of modified/untracked files.
 2. **`origin/main` status:** whether teammates already merged commits into `main` (`HEAD..origin/main` commits), or if `origin/main` has no new commits.
-3. **Teammate branch status:** whether any teammate branch (e.g. `origin/YH`) has pushed commits that are **not merged into `main` yet** (include commit hash, author, date, summary, and any overlapping files with local edits).
+3. **Teammate & all branch status:** check whether **all branch commits** (including teammate branches like `origin/YH` and local feature branches) are merged correctly into `main`. Report clearly if every branch is up to date and merged into `main`, or list any unmerged commits (with commit hash, author, date, summary, and overlapping files).
 
-If an **unmerged** teammate branch has commits ahead of `origin/main` (especially if files overlap), **ask the user** before merging that unmerged branch:
+If an **unmerged** teammate branch has commits ahead of `origin/main` (especially if files overlap), or if anything is ambiguous or confusing, **STOP and ask the user** before proceeding:
 - Option A: Sync with `origin/main` only (keep teammate's unmerged WIP separate).
 - Option B: Merge `origin/<teammate>` as well so everything is combined before pushing to `main`.
 
@@ -99,9 +99,10 @@ git merge origin/<teammate> --no-edit
 ```
 
 3. **Conflict Resolution Rules:**
+   - **Stop and ask user on conflict:** If any merge conflict occurs, or if any step is confusing or ambiguous, **DO NOT guess or auto-resolve**. **STOP immediately** and ask the user how to proceed, clearly showing the conflicted files and the conflicting regions.
    - **Never** run `git checkout --ours` or `--theirs` blindly on shared code files.
-   - Inspect every conflicted file (`git diff --name-only --diff-filter=U`) and read both sides carefully so neither your features (e.g. localization, services, UI changes) nor your teammate's changes are lost.
-   - After resolving all conflict markers, stage the resolved files and complete the merge commit (`git commit --no-edit`).
+   - When the user directs how to resolve the conflicts (or asks to review together), inspect every conflicted file (`git diff --name-only --diff-filter=U`) and verify that neither local features nor teammate changes are accidentally lost.
+   - After resolving conflict markers with user agreement, stage the resolved files and complete the merge commit (`git commit --no-edit`).
 
 ---
 

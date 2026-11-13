@@ -3,14 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../places/services/google_places_service.dart';
-import '../../places/services/place_photo_storage_service.dart';
 import '../services/admin_places_repository.dart';
 import '../services/place_details_refresh_service.dart';
+import '../services/place_refresh_task.dart';
 
 class PlaceDetailsRefreshPage extends StatefulWidget {
-  const PlaceDetailsRefreshPage({super.key, required this.state, this.service});
+  const PlaceDetailsRefreshPage({
+    super.key,
+    required this.state,
+    this.service,
+    this.syncFlow = false,
+    this.restartOnStart = false,
+  });
   final String state;
   final PlaceDetailsRefreshService? service;
+  final bool syncFlow;
+  final bool restartOnStart;
   @override
   State<PlaceDetailsRefreshPage> createState() =>
       _PlaceDetailsRefreshPageState();
@@ -18,19 +26,31 @@ class PlaceDetailsRefreshPage extends StatefulWidget {
 
 class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
   PlaceDetailsRefreshService? _service;
+  PlaceRefreshTask? _task;
   PlaceRefreshProgress? _progress;
   bool _running = false, _stop = false;
   String? _error;
 
-  bool _cachingPhotos = false;
-  bool _stopPhotos = false;
-  int _photoCurrent = 0;
-  int _photoTotal = 0;
-  String? _photoStatus;
   @override
   void initState() {
     super.initState();
     _prepare();
+  }
+
+  void _observeTask() {
+    if (!mounted) return;
+    setState(() {
+      _progress = _task?.progress;
+      _running = _task?.running ?? false;
+      _stop = _task?.stopping ?? false;
+      _error = _task?.error;
+    });
+  }
+
+  @override
+  void dispose() {
+    _task?.removeListener(_observeTask);
+    super.dispose();
   }
 
   Future<void> _prepare() async {
@@ -48,10 +68,23 @@ class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
             scope: '${SupabaseConfig.supabaseUrl}:$user',
           );
       if (mounted) {
+        _task = PlaceRefreshTask.attach(service, widget.state);
+        _task!.addListener(_observeTask);
         setState(() {
-          _service = service;
-          _progress = service.read(widget.state);
+          _service = _task!.service;
+          _progress = _task!.progress;
         });
+        if (widget.syncFlow &&
+            !widget.restartOnStart &&
+            !_task!.running &&
+            _progress?.finished == true &&
+            _progress!.issues.isEmpty) {
+          Navigator.pop(context, _progress!.saved);
+        } else if (widget.syncFlow) {
+          await _run(restart: widget.restartOnStart);
+        } else {
+          _observeTask();
+        }
       }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -65,14 +98,22 @@ class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
       _error = null;
     });
     try {
-      await _service!.run(
-        widget.state,
+      final user = SupabaseConfig.client?.auth.currentUser?.id;
+      final result = await _task!.run(
         restart: restart,
-        shouldContinue: () => mounted && !_stop,
-        onProgress: (value) {
-          if (mounted) setState(() => _progress = value);
-        },
+        allowed: () =>
+            user == null || SupabaseConfig.client?.auth.currentUser?.id == user,
       );
+      if (mounted &&
+          widget.syncFlow &&
+          result.finished &&
+          result.issues.isEmpty &&
+          ModalRoute.of(context)?.isCurrent == true) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(result.coverSummary)));
+        Navigator.pop(context, result.saved);
+      }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
@@ -80,80 +121,17 @@ class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
     }
   }
 
-  Future<void> _cachePhotos({int limit = 30}) async {
-    final client = SupabaseConfig.client;
-    if (client == null) return;
-    setState(() {
-      _cachingPhotos = true;
-      _stopPhotos = false;
-      _photoCurrent = 0;
-      _photoTotal = 0;
-      _photoStatus = 'Querying top places in ${widget.state}…';
-    });
-
-    try {
-      final rows = await client
-          .from('places')
-          .select('place_id')
-          .eq('state', widget.state)
-          .order('rating', ascending: false, nullsFirst: false)
-          .limit(limit);
-
-      final ids = (rows as List)
-          .map((r) => r['place_id'] as String)
-          .where((id) => id.startsWith('ChI'))
-          .toList();
-
-      if (ids.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _photoStatus = 'No saved places found in ${widget.state}.';
-            _cachingPhotos = false;
-          });
-        }
-        return;
-      }
-
-      setState(() {
-        _photoTotal = ids.length;
-        _photoStatus = 'Caching real photos (0/${ids.length})…';
-      });
-
-      final google = _service?.google ?? GooglePlacesService();
-      final saved = await PlacePhotoStorageService.batchCachePhotos(
-        placeIds: ids,
-        googleService: google,
-        shouldContinue: () => mounted && !_stopPhotos,
-        onProgress: (current, total, cached) {
-          if (mounted) {
-            setState(() {
-              _photoCurrent = current;
-              _photoStatus =
-                  'Cached $cached of $current inspected ($total target)…';
-            });
-          }
-        },
-      );
-
-      if (mounted) {
-        setState(() {
-          _photoStatus = _stopPhotos
-              ? 'Paused photo caching. Cached $saved photos.'
-              : 'Finished! $saved real photos cached to Supabase Storage.';
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _photoStatus = 'Photo caching failed: $e');
-    } finally {
-      if (mounted) setState(() => _cachingPhotos = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final progress = _progress;
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.updateSavedPlaces)),
+      appBar: AppBar(
+        title: Text(
+          widget.syncFlow
+              ? 'Sync places · 2/2'
+              : context.l10n.updateSavedPlaces,
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -165,10 +143,8 @@ class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
                 .updatesEverySavedGooglePlaceInThisStateIncludingOpeningHoursRatingsNameAndLocationYourCate,
           ),
           const SizedBox(height: 12),
-          Text(
-            context
-                .l10n
-                .usesTheFullDetailsAllowanceKeepThisPageOpenLeavingPausesTheUpdateProgressIsSavedOnThisDevi,
+          const Text(
+            'On Android, updates continue when you leave this page, switch apps or lock the screen. A sync notification stays active. Pause stops the task. Force-stopping the app interrupts it; saved progress can be resumed. Missing Google hours remain unknown.',
           ),
           const SizedBox(height: 20),
           if (progress != null) ...[
@@ -179,6 +155,7 @@ class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
             ),
             const SizedBox(height: 12),
             Text(context.tr(progress.summary)),
+            Text(progress.coverSummary),
             Text(context.tr(progress.message)),
           ],
           if (_error != null)
@@ -203,7 +180,7 @@ class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
           ),
           if (_running)
             OutlinedButton(
-              onPressed: _stop ? null : () => setState(() => _stop = true),
+              onPressed: _stop ? null : () => _task?.pause(),
               child: Text(
                 _stop ? context.l10n.pausing : context.l10n.pauseUpdate,
               ),
@@ -241,62 +218,6 @@ class _PlaceDetailsRefreshPageState extends State<PlaceDetailsRefreshPage> {
                   ),
               ],
             ),
-          const Divider(height: 40),
-          Text(
-            context.l10n.batchCacheRealPhotos,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            context
-                .l10n
-                .downloadsOfficialGooglePhotosForTopPlacesAndSavesThemToSupabaseStoragePlacesAlreadyCachedA,
-            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 12),
-          if (_cachingPhotos) ...[
-            LinearProgressIndicator(
-              value: _photoTotal > 0 ? _photoCurrent / _photoTotal : null,
-            ),
-            const SizedBox(height: 8),
-          ],
-          if (_photoStatus != null) ...[
-            Text(
-              context.tr(_photoStatus!),
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: _running || _cachingPhotos
-                      ? null
-                      : () => _cachePhotos(limit: 30),
-                  icon: const Icon(Icons.photo_library),
-                  label: Text(
-                    _cachingPhotos
-                        ? context.l10n.cachingPhotos
-                        : context.l10n.cacheTop30Photos,
-                  ),
-                ),
-              ),
-              if (_cachingPhotos) ...[
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: _stopPhotos
-                      ? null
-                      : () => setState(() => _stopPhotos = true),
-                  child: Text(
-                    _stopPhotos ? context.l10n.pausing : context.l10n.stop,
-                  ),
-                ),
-              ],
-            ],
-          ),
         ],
       ),
     );

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../places/screens/api_demo_page.dart';
+import '../../shared/models/attraction.dart';
 import 'community_page.dart';
 
 /// Opens community from one card, without introducing another tab row.
 class ExplorePage extends StatefulWidget {
-  const ExplorePage({super.key, required this.isVisible});
+  const ExplorePage({super.key, required this.isVisible, this.onPlacesLoaded});
   final bool isVisible;
+  final ValueChanged<List<Attraction>>? onPlacesLoaded;
   @override
   State<ExplorePage> createState() => _ExplorePageState();
 }
@@ -27,6 +29,7 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   Widget build(BuildContext context) => ApiDemoPage(
     isVisible: widget.isVisible && !_communityOpen,
+    onPlacesLoaded: widget.onPlacesLoaded,
     discoveryHeader: Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(

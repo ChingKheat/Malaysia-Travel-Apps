@@ -23,6 +23,17 @@ class PlaceImportBatch {
       'longitude': location?['longitude'],
       'app_category': category,
       'attributions': p['attributions'] ?? [],
+      'google_photos': (p['photos'] as List? ?? [])
+          .whereType<Map>()
+          .where(
+            (photo) =>
+                photo['name'] is String &&
+                (photo['name'] as String).startsWith(
+                  'places/${p['id']}/photos/',
+                ),
+          )
+          .take(8)
+          .toList(),
     };
     try {
       AdminPlacesRepository.importRow(state, row);

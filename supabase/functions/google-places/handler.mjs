@@ -1,5 +1,5 @@
-export const basicFields = 'id,displayName,formattedAddress,addressComponents,location,primaryTypeDisplayName,types,googleMapsUri,attributions';
-const fields = basicFields+',rating,userRatingCount,regularOpeningHours,photos,websiteUri,nationalPhoneNumber,editorialSummary';
+export const basicFields = 'id,displayName,formattedAddress,addressComponents,location,primaryTypeDisplayName,types,googleMapsUri,attributions,photos';
+const fields = basicFields+',rating,userRatingCount,regularOpeningHours,websiteUri,nationalPhoneNumber';
 export const states = ['Penang','Kuala Lumpur','Melaka','Selangor','Johor','Perak','Pahang','Sabah','Sarawak','Kedah','Terengganu','Kelantan','Negeri Sembilan','Perlis','Putrajaya','Labuan'];
 const cors = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS','Cache-Control':'no-store'};
 const json = (body,status=200) => Response.json(body,{status,headers:cors});

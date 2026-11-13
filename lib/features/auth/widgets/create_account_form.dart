@@ -124,6 +124,23 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   Widget build(BuildContext context) {
     final pwd = _passwordController.text;
 
+    final String? nameError = _highlightedEmptyFields.contains('name')
+        ? context.tr(AuthService.m2NameRequired)
+        : null;
+
+    final String? emailError = _highlightedEmptyFields.contains('email')
+        ? context.l10n.pleaseEnterYourEmail
+        : null;
+
+    final String? passwordError = _highlightedEmptyFields.contains('password')
+        ? context.l10n.pleaseEnterYourPassword
+        : null;
+
+    final String? confirmPasswordError =
+        _highlightedEmptyFields.contains('confirmPassword')
+            ? context.l10n.pleaseEnterYourPassword
+            : null;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: Column(
@@ -183,49 +200,51 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             const SizedBox(height: 18),
           ],
 
-          // Field 1: Full Name
-          _buildLabel(context.l10n.fullName, isMandatory: true),
-          const SizedBox(height: 6),
+          // Field 1: Full Name with Floating Label & Inline Validation
           TextField(
             controller: _nameController,
             onChanged: (_) => _clearValidationError('name'),
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
+              label: _buildFieldLabel(context.l10n.fullName, isMandatory: true),
               hint: context.l10n.eGAliBinAhmad,
+              helperText: context.l10n.eGAliBinAhmad,
+              errorText: nameError,
               icon: Icons.person_outline,
-              isError: _highlightedEmptyFields.contains('name'),
+              isError: _highlightedEmptyFields.contains('name') || nameError != null,
             ),
           ),
           const SizedBox(height: 16),
 
-          // Field 2: Email Address
-          _buildLabel(context.l10n.emailAddress, isMandatory: true),
-          const SizedBox(height: 6),
+          // Field 2: Email Address with Floating Label & Inline Validation
           TextField(
             controller: _emailController,
             onChanged: (_) => _clearValidationError('email'),
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
+              label: _buildFieldLabel(context.l10n.emailAddress, isMandatory: true),
               hint: context.l10n.eGTouristExampleCom,
+              helperText: context.l10n.eGTouristExampleCom,
+              errorText: emailError,
               icon: Icons.email_outlined,
-              isError: _highlightedEmptyFields.contains('email'),
+              isError: _highlightedEmptyFields.contains('email') || emailError != null,
             ),
           ),
           const SizedBox(height: 16),
 
-          // Field 3: Password
-          _buildLabel(context.l10n.password, isMandatory: true),
-          const SizedBox(height: 6),
+          // Field 3: Password with Floating Label, Toggle & Strength Checklist
           TextField(
             controller: _passwordController,
             onChanged: (_) => _clearValidationError('password'),
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
+              label: _buildFieldLabel(context.l10n.password, isMandatory: true),
               hint: context.l10n.enterStrongPassword,
+              errorText: passwordError,
               icon: Icons.lock_outline,
-              isError: _highlightedEmptyFields.contains('password'),
+              isError: _highlightedEmptyFields.contains('password') || passwordError != null,
               suffix: IconButton(
                 tooltip: _obscurePassword
                     ? context.l10n.showPassword
@@ -285,9 +304,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           ),
           const SizedBox(height: 16),
 
-          // Field 4: Confirm Password
-          _buildLabel(context.l10n.confirmPassword, isMandatory: true),
-          const SizedBox(height: 6),
+          // Field 4: Confirm Password with Floating Label & Inline Validation
           TextField(
             controller: _confirmPasswordController,
             onChanged: (_) => _clearValidationError('confirmPassword'),
@@ -295,9 +312,11 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleRegister(),
             decoration: _inputDecoration(
+              label: _buildFieldLabel(context.l10n.confirmPassword, isMandatory: true),
               hint: context.l10n.reEnterPassword,
+              errorText: confirmPasswordError,
               icon: Icons.lock_clock_outlined,
-              isError: _highlightedEmptyFields.contains('confirmPassword'),
+              isError: _highlightedEmptyFields.contains('confirmPassword') || confirmPasswordError != null,
               suffix: IconButton(
                 tooltip: _obscureConfirmPassword
                     ? context.l10n.showPassword
@@ -480,16 +499,16 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
     );
   }
 
-  Widget _buildLabel(String text, {bool isMandatory = false}) {
+  Widget _buildFieldLabel(String text, {bool isMandatory = false}) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(
           child: Text(
             context.tr(text),
             style: const TextStyle(
               fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -503,38 +522,53 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   }
 
   InputDecoration _inputDecoration({
+    required Widget label,
     required String hint,
     required IconData icon,
     Widget? suffix,
+    String? helperText,
+    String? errorText,
     bool isError = false,
   }) {
+    final hasError = isError || errorText != null;
     return InputDecoration(
+      label: label,
       hintText: hint,
+      helperText: helperText,
+      errorText: errorText,
       prefixIcon: Icon(
         icon,
-        color: isError ? Colors.red : AppColors.muted,
+        color: hasError ? Colors.red : AppColors.muted,
         size: 20,
       ),
       suffixIcon: suffix,
       filled: true,
-      fillColor: isError ? Colors.red.shade50 : Colors.grey.shade50,
+      fillColor: hasError ? Colors.red.shade50 : Colors.grey.shade50,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: isError ? Colors.red : AppColors.line),
+        borderSide: BorderSide(color: hasError ? Colors.red : AppColors.line),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: isError ? Colors.red.shade400 : AppColors.line,
+          color: hasError ? Colors.red.shade400 : AppColors.line,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: isError ? Colors.red : AppColors.primary,
+          color: hasError ? Colors.red : AppColors.primary,
           width: 2,
         ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.red, width: 1.2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
       ),
     );
   }

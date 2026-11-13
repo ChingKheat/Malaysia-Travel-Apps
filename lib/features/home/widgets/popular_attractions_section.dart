@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
+import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
@@ -44,7 +46,7 @@ List<Attraction> _buildDefaultPopularList() {
   return result;
 }
 
-/// Popular Attractions discovery carousel for the Home Page with magazine-style cards.
+/// Horizontally scrollable popular attractions on the home page.
 class PopularAttractionsSection extends StatelessWidget {
   const PopularAttractionsSection({
     super.key,
@@ -92,142 +94,71 @@ class PopularAttractionsSection extends StatelessWidget {
     final items = attractions ?? defaultPopularAttractions;
     if (items.isEmpty) return const SizedBox.shrink();
 
+    final theme = Theme.of(context);
+    final textScaler = MediaQuery.textScalerOf(context);
+    final cardHeight =
+        250 + (textScaler.scale(15) - 15).clamp(0.0, double.infinity) * 5;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Elevated Header Row
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6366F1), Color(0xFF3B82F6)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF6366F1,
-                            ).withValues(alpha: 0.25),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.l10n.popularAttractions,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.ink,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          SizedBox(height: 1),
-                          Text(
-                            context.l10n.topMustVisitDestinationsInMalaysia,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.muted,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                context.l10n.popularAttractions,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(width: 8),
-              InkWell(
-                key: const ValueKey('popular-attractions-see-all'),
-                onTap: onSeeAllTap,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        context.l10n.seeAll,
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 13,
-                        color: AppColors.primary,
-                      ),
-                    ],
-                  ),
-                ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              key: const ValueKey('popular-attractions-see-all'),
+              onPressed: onSeeAllTap,
+              style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(context.l10n.seeAll),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_rounded, size: 16),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        const SizedBox(height: 14),
-
-        // Horizontal Carousel with Editorial Full-Bleed Cards
-        SizedBox(
-          height: 270,
-          child: ListView.separated(
-            key: const ValueKey('popular-attractions-list'),
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, index) {
-              final attraction = items[index];
-              return PopularAttractionCard(
-                attraction: attraction,
-                onTap: () => _openAttraction(context, attraction),
-              );
-            },
-          ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = (constraints.maxWidth * 0.72).clamp(0.0, 248.0);
+            return SizedBox(
+              height: cardHeight,
+              child: ListView.separated(
+                key: const ValueKey('popular-attractions-list'),
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                itemCount: items.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final attraction = items[index];
+                  return SizedBox(
+                    width: cardWidth,
+                    child: PopularAttractionCard(
+                      attraction: attraction,
+                      onTap: () => _openAttraction(context, attraction),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         ),
       ],
     );
   }
 }
 
-/// Creative full-bleed magazine-style attraction card with frosted glass badges.
 class PopularAttractionCard extends StatelessWidget {
   const PopularAttractionCard({
     super.key,
@@ -252,11 +183,8 @@ class PopularAttractionCard extends StatelessWidget {
   }
 
   String _cleanCategory(String raw) {
-    final parts = raw.split(',');
-    if (parts.isNotEmpty) {
-      return parts.first.trim();
-    }
-    return 'Attraction';
+    final category = raw.split(',').first.trim();
+    return category.isEmpty ? 'Attraction' : category;
   }
 
   IconData _categoryIcon(String cat) {
@@ -278,302 +206,115 @@ class PopularAttractionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final direct = attraction.photoUrl?.split('|').firstOrNull?.trim();
-    final photoUrl = (direct != null && direct.startsWith('http'))
-        ? direct
-        : AttractionImageResolver.resolvePhotoUrl(attraction);
-    final stateName = _resolveState(attraction);
-    final cleanCategory = _cleanCategory(attraction.category);
-    final categoryIcon = _categoryIcon(attraction.category);
-    final rating = (attraction.rating ?? 4.8).toStringAsFixed(1);
+    final photoUrl = AttractionImageResolver.resolvePhotoUrl(attraction);
+    final localPhoto = AttractionImageResolver.resolveAsset(attraction);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final rating = attraction.rating;
+    final category = context.tr(_cleanCategory(attraction.category));
+    final fallback = ColoredBox(
+      color: colors.primaryContainer,
+      child: Center(
+        child: Icon(
+          _categoryIcon(attraction.category),
+          color: colors.onPrimaryContainer,
+          size: 38,
+        ),
+      ),
+    );
 
     return DemoTapCard(
       onTap: onTap,
-      borderRadius: 22,
+      borderRadius: 16,
       child: Container(
-        width: 206,
-        height: 266,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.22),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1E293B).withValues(alpha: 0.14),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.08),
-              blurRadius: 22,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
         clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Full-bleed Photo Background
-            if (photoUrl != null)
-              Image.network(
-                photoUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
-                    _FallbackGradient(icon: categoryIcon),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return _FallbackGradient(icon: categoryIcon);
-                },
-              )
-            else
-              _FallbackGradient(icon: categoryIcon),
-
-            // 2. Layered Scrim Gradients for Maximum Visual Depth
-            // Top shadow for badge contrast
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 70,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.5),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
+            Expanded(
+              child: photoUrl != null
+                  ? Image.network(
+                      photoUrl,
+                      fit: BoxFit.cover,
+                      excludeFromSemantics: true,
+                      frameBuilder: (_, child, frame, wasSynchronouslyLoaded) =>
+                          wasSynchronouslyLoaded || frame != null
+                          ? child
+                          : fallback,
+                      errorBuilder: (_, _, _) => fallback,
+                    )
+                  : localPhoto != null
+                  ? Image.asset(
+                      localPhoto,
+                      fit: BoxFit.cover,
+                      excludeFromSemantics: true,
+                      errorBuilder: (_, _, _) => fallback,
+                    )
+                  : _LiveAttractionPhoto(
+                      key: ValueKey(attraction.xid),
+                      attraction: attraction,
+                      fallback: fallback,
+                    ),
             ),
-            // Bottom deep cinematic shadow for typography contrast
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 160,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.45, 1.0],
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.55),
-                      Colors.black.withValues(alpha: 0.92),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // 3. Top Floating Glassmorphism Badges
-            Positioned(
-              top: 10,
-              left: 10,
-              right: 10,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // State Badge
-                  Flexible(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7.5,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.22),
-                          width: 0.8,
+                  Text(
+                    category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    attraction.name,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 14),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          _resolveState(attraction),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            size: 11,
-                            color: Color(0xFF60A5FA),
-                          ),
-                          const SizedBox(width: 3),
-                          Flexible(
-                            child: Text(
-                              stateName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-
-                  // Rating Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.22),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
+                      if (rating != null) ...[
+                        const SizedBox(width: 6),
+                        Icon(
                           Icons.star_rounded,
-                          size: 13,
-                          color: Color(0xFFFFB800),
+                          size: 15,
+                          color: colors.primary,
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          rating,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                          ),
+                          rating.toStringAsFixed(1),
+                          style: theme.textTheme.bodySmall,
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 4. Bottom Floating Info & Action Dock
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Category Tag with Vibrant Gradient
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3.5,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
-                      ),
-                      borderRadius: BorderRadius.circular(7),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFF6366F1,
-                          ).withValues(alpha: 0.35),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(categoryIcon, size: 10.5, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text(
-                          context.tr(cleanCategory).toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-
-                  // Attraction Name
-                  Text(
-                    attraction.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      height: 1.2,
-                      letterSpacing: -0.2,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black54,
-                          blurRadius: 6,
-                          offset: Offset(0, 1.5),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Action Footer Row with Floating Action Indicator
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            context.l10n.exploreSpot,
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(width: 2),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 14,
-                            color: Colors.white70,
-                          ),
-                        ],
-                      ),
-                      // Floating Circular Action Button
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.arrow_outward_rounded,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_outward_rounded,
+                        size: 16,
+                        color: colors.primary,
                       ),
                     ],
                   ),
@@ -587,22 +328,61 @@ class PopularAttractionCard extends StatelessWidget {
   }
 }
 
-class _FallbackGradient extends StatelessWidget {
-  const _FallbackGradient({this.icon = Icons.landscape_rounded});
+class _LiveAttractionPhoto extends StatefulWidget {
+  const _LiveAttractionPhoto({
+    super.key,
+    required this.attraction,
+    required this.fallback,
+  });
 
-  final IconData icon;
+  final Attraction attraction;
+  final Widget fallback;
+
+  @override
+  State<_LiveAttractionPhoto> createState() => _LiveAttractionPhotoState();
+}
+
+class _LiveAttractionPhotoState extends State<_LiveAttractionPhoto> {
+  static final _service = GooglePlacesService();
+  late final Future<Attraction?> _match = _findPhoto();
+
+  Future<Attraction?> _findPhoto() async {
+    final place = widget.attraction;
+    if (place.googlePlaceId != null && place.googlePhotos.isNotEmpty) {
+      return place;
+    }
+    if (place.googlePlaceId case final id?) {
+      final details = await _service.fetchDetails(id);
+      if (details == null || details.photos.isEmpty) return null;
+      return Attraction(
+        xid: place.xid,
+        name: place.name,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        category: place.category,
+        googlePhotos: details.photos,
+      );
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E3A8A), Color(0xFF4338CA), Color(0xFF6D28D9)],
-        ),
-      ),
-      child: Center(child: Icon(icon, color: Colors.white60, size: 40)),
+    return FutureBuilder<Attraction?>(
+      future: _match,
+      builder: (context, snapshot) {
+        final place = snapshot.data;
+        if (place == null) return widget.fallback;
+        return GooglePlaceImage(
+          placeId: place.googlePlaceId!,
+          photo: place.googlePhotos.first,
+          service: _service,
+          autoLoad: true,
+          fill: true,
+          fallback: widget.fallback,
+          showGoogleMapsAttribution: true,
+        );
+      },
     );
   }
 }

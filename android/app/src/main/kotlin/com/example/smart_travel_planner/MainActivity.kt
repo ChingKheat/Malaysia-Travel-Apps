@@ -1,11 +1,15 @@
 package com.example.smart_travel_planner
 
 import android.content.pm.PackageManager
+import android.content.Intent
+import android.os.Build
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Bundle
 import android.view.Surface
+import android.view.View
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -14,8 +18,35 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private var headingStream: HeadingStream? = null
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Prevent Android's legacy Theme.Light focus highlight (#99CC00 border)
+        // from sticking on FlutterView after non-touch/keyboard focus.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            findViewById<View>(FLUTTER_VIEW_ID)?.setDefaultFocusHighlightEnabled(false)
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        val syncChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "smart_travel/place_sync")
+        PlaceSyncService.onStopped = { syncChannel.invokeMethod("stopped", null) }
+        syncChannel.setMethodCallHandler { call, result ->
+            try {
+                when (call.method) {
+                    "start" -> {
+                        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 4101)
+                        }
+                        val intent = Intent(this, PlaceSyncService::class.java)
+                        if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+                        result.success(null)
+                    }
+                    "stop" -> { stopService(Intent(this, PlaceSyncService::class.java)); result.success(null) }
+                    else -> result.notImplemented()
+                }
+            } catch (e: Exception) { result.error("background_sync", e.message, null) }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "smart_travel/maps").setMethodCallHandler { call, result ->
             if (call.method == "configured") {
                 val info = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
@@ -29,6 +60,8 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        stopService(Intent(this, PlaceSyncService::class.java))
+        PlaceSyncService.onStopped = null
         headingStream?.onCancel(null)
         headingStream = null
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, "smart_travel/heading")

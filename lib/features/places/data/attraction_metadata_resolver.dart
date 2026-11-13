@@ -25,7 +25,9 @@ class AttractionMetadataResolver {
     if (name.contains('batu caves') || name.contains('murugan')) {
       return 'Gombak, 68100 Batu Caves, Selangor, Malaysia';
     }
-    if (name.contains('twin towers') || name.contains('klcc') || name.contains('petronas')) {
+    if (name.contains('twin towers') ||
+        name.contains('klcc') ||
+        name.contains('petronas')) {
       return 'Lower Ground (Concourse), Petronas Twin Towers, KLCC, 50088 Kuala Lumpur';
     }
     if (name.contains('central market') || name.contains('pasar seni')) {
@@ -82,7 +84,9 @@ class AttractionMetadataResolver {
     if (name.contains('famosa')) {
       return 'Jalan Parameswara, Bandar Hilir, 75000 Melaka';
     }
-    if (name.contains('sky bridge') || name.contains('skycab') || name.contains('langkawi')) {
+    if (name.contains('sky bridge') ||
+        name.contains('skycab') ||
+        name.contains('langkawi')) {
       return 'Teluk Burau, 07000 Langkawi, Kedah';
     }
     if (name.contains('eagle square') || name.contains('dataran lang')) {
@@ -134,10 +138,14 @@ class AttractionMetadataResolver {
     if (xid.contains('_johor_')) return 'Johor';
 
     final name = a.name.toLowerCase();
-    if (name.contains('batu caves') || name.contains('sunway') || name.contains('shah alam')) {
+    if (name.contains('batu caves') ||
+        name.contains('sunway') ||
+        name.contains('shah alam')) {
       return 'Selangor';
     }
-    if (name.contains('penang') || name.contains('george town')) return 'Penang';
+    if (name.contains('penang') || name.contains('george town')) {
+      return 'Penang';
+    }
     if (name.contains('melaka') || name.contains('malacca')) return 'Melaka';
     if (name.contains('langkawi')) return 'Kedah';
     if (name.contains('sabah') || name.contains('kinabalu')) return 'Sabah';
@@ -149,40 +157,10 @@ class AttractionMetadataResolver {
     return 'Kuala Lumpur';
   }
 
-  /// Resolves curated gallery photos for iconic attractions.
+  /// Uses only a photo explicitly attached to this attraction.
   static List<String> resolveGallery(Attraction a) {
-    final primary = AttractionImageResolver.resolvePhotoUrl(a);
-    final name = a.name.toLowerCase();
-
-    final photos = <String>[];
-    if (primary != null && primary.startsWith('http')) {
-      photos.add(primary);
-    }
-
-    if (name.contains('batu caves') || name.contains('murugan')) {
-      photos.addAll([
-        'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?w=800&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1548013146-72479768bada?w=800&auto=format&fit=crop&q=80',
-      ]);
-    } else if (name.contains('twin towers') || name.contains('klcc') || name.contains('petronas')) {
-      photos.addAll([
-        'https://images.unsplash.com/photo-1596436889106-be35e843f974?w=800&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&auto=format&fit=crop&q=80',
-      ]);
-    } else if (name.contains('thean hou')) {
-      photos.addAll([
-        'https://images.unsplash.com/photo-1548013146-72479768bada?w=800&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&auto=format&fit=crop&q=80',
-      ]);
-    } else if (name.contains('george town') || name.contains('penang')) {
-      photos.addAll([
-        'https://images.unsplash.com/photo-1599387737838-892410a5146c?w=800&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=800&auto=format&fit=crop&q=80',
-      ]);
-    }
-
-    return photos.toSet().toList();
+    final photo = AttractionImageResolver.resolvePhotoUrl(a);
+    return photo == null ? [] : [photo];
   }
 
   /// Estimated duration for visiting.
@@ -192,10 +170,16 @@ class AttractionMetadataResolver {
 
     if (name.contains('batu caves')) return '2 – 3 hours';
     if (name.contains('twin towers')) return '1.5 – 2 hours';
-    if (name.contains('legoland') || name.contains('sunway')) return '4 – 6 hours';
+    if (name.contains('legoland') || name.contains('sunway')) {
+      return '4 – 6 hours';
+    }
     if (name.contains('kinabalu')) return 'Half day (4+ hrs)';
-    if (name.contains('bird park') || name.contains('aquaria')) return '2 – 3 hours';
-    if (name.contains('central market') || name.contains('jalan alor')) return '1.5 – 2 hours';
+    if (name.contains('bird park') || name.contains('aquaria')) {
+      return '2 – 3 hours';
+    }
+    if (name.contains('central market') || name.contains('jalan alor')) {
+      return '1.5 – 2 hours';
+    }
 
     if (cat.contains('museum') || cat.contains('temple')) return '1 – 2 hours';
     if (cat.contains('food') || cat.contains('dining')) return '1 – 1.5 hours';
@@ -211,10 +195,16 @@ class AttractionMetadataResolver {
     final name = a.name.toLowerCase();
     final cat = a.category.toLowerCase();
     if (name.contains('cave')) return 'Outdoor & Cave';
-    if (name.contains('mall') || name.contains('pavilion') || name.contains('museum') || name.contains('aquaria')) {
+    if (name.contains('mall') ||
+        name.contains('pavilion') ||
+        name.contains('museum') ||
+        name.contains('aquaria')) {
       return 'Indoor (Air-con)';
     }
-    if (cat.contains('park') || cat.contains('nature') || cat.contains('street') || cat.contains('beach')) {
+    if (cat.contains('park') ||
+        cat.contains('nature') ||
+        cat.contains('street') ||
+        cat.contains('beach')) {
       return 'Outdoor';
     }
     return 'Covered & Open-air';
@@ -224,23 +214,39 @@ class AttractionMetadataResolver {
   static String resolveAdmission(Attraction a) {
     final name = a.name.toLowerCase();
     if (name.contains('batu caves')) return 'Free Admission (Main Cave)';
-    if (name.contains('merdeka square') || name.contains('jalan alor') || name.contains('saloma') || name.contains('thean hou')) {
+    if (name.contains('merdeka square') ||
+        name.contains('jalan alor') ||
+        name.contains('saloma') ||
+        name.contains('thean hou')) {
       return 'Free Entry';
     }
-    if (name.contains('twin towers') || name.contains('kl tower') || name.contains('aquaria') || name.contains('legoland') || name.contains('bird park')) {
+    if (name.contains('twin towers') ||
+        name.contains('kl tower') ||
+        name.contains('aquaria') ||
+        name.contains('legoland') ||
+        name.contains('bird park')) {
       return 'Ticketed';
     }
     return 'General Access';
   }
 
   static String _detectState(Attraction a) {
-    if (a.latitude > 5.1 && a.latitude < 5.6 && a.longitude > 100.1 && a.longitude < 100.6) {
+    if (a.latitude > 5.1 &&
+        a.latitude < 5.6 &&
+        a.longitude > 100.1 &&
+        a.longitude < 100.6) {
       return 'Penang';
     }
-    if (a.latitude > 2.0 && a.latitude < 2.5 && a.longitude > 102.1 && a.longitude < 102.5) {
+    if (a.latitude > 2.0 &&
+        a.latitude < 2.5 &&
+        a.longitude > 102.1 &&
+        a.longitude < 102.5) {
       return 'Melaka';
     }
-    if (a.latitude > 3.0 && a.latitude < 3.4 && a.longitude > 101.5 && a.longitude < 101.9) {
+    if (a.latitude > 3.0 &&
+        a.latitude < 3.4 &&
+        a.longitude > 101.5 &&
+        a.longitude < 101.9) {
       return 'Kuala Lumpur';
     }
     return 'Malaysia';
@@ -275,7 +281,9 @@ class AttractionMetadataResolver {
     final reviews = reviewCount ?? a.userRatingsTotal;
 
     // Curated iconic Malaysian landmarks
-    if (name.contains('twin towers') || name.contains('klcc') || name.contains('petronas')) {
+    if (name.contains('twin towers') ||
+        name.contains('klcc') ||
+        name.contains('petronas')) {
       return 'The Petronas Twin Towers are iconic 88-storey supertall skyscrapers in Kuala Lumpur, standing as one of Malaysia’s most recognized architectural landmarks. Featuring an iconic skybridge and scenic observation deck, it offers sweeping panoramic views of the capital city.';
     }
     if (name.contains('batu caves') || name.contains('murugan')) {
@@ -299,15 +307,21 @@ class AttractionMetadataResolver {
         ? ' boasting a strong $score★ rating with over $reviews verified reviews on Google Maps'
         : ' rated $score★ on Google Maps';
 
-    if (cat.toLowerCase().contains('food') || name.contains('restaurant') || name.contains('cafe')) {
+    if (cat.toLowerCase().contains('food') ||
+        name.contains('restaurant') ||
+        name.contains('cafe')) {
       return '${a.name} is a popular dining and culinary destination in $state,$reviewText. Featuring an inviting $atmosphere setting, it is a recommended spot for tourists and food lovers seeking authentic local flavors.';
     }
 
-    if (cat.toLowerCase().contains('culture') || cat.toLowerCase().contains('history') || cat.toLowerCase().contains('temple')) {
+    if (cat.toLowerCase().contains('culture') ||
+        cat.toLowerCase().contains('history') ||
+        cat.toLowerCase().contains('temple')) {
       return '${a.name} is a distinguished cultural and historical destination in $state,$reviewText. Known for its rich heritage and $atmosphere environment, it offers visitors a meaningful glimpse into Malaysia’s vibrant community and architectural traditions.';
     }
 
-    if (cat.toLowerCase().contains('nature') || cat.toLowerCase().contains('park') || cat.toLowerCase().contains('beach')) {
+    if (cat.toLowerCase().contains('nature') ||
+        cat.toLowerCase().contains('park') ||
+        cat.toLowerCase().contains('beach')) {
       return '${a.name} is a scenic outdoor retreat situated in $state,$reviewText. Surrounded by an inspiring $atmosphere ambiance, it provides an ideal getaway for sightseeing, relaxation, and memorable photography.';
     }
 
@@ -331,7 +345,9 @@ class AttractionMetadataResolver {
         'Best time to visit is early morning (around 8:00 AM) to beat the tropical midday heat and tour bus crowds.',
       ];
     }
-    if (name.contains('twin towers') || name.contains('klcc') || name.contains('petronas')) {
+    if (name.contains('twin towers') ||
+        name.contains('klcc') ||
+        name.contains('petronas')) {
       return const [
         'Pre-booking tickets online is strongly advised as daily observation deck time slots sell out.',
         'Catch the free Lake Symphony light & water fountain show at KLCC Park every evening (8:00 PM & 9:00 PM).',
@@ -359,19 +375,26 @@ class AttractionMetadataResolver {
         'Cash and local DuitNow QR payments are widely accepted.',
       ];
     }
-    if (cat.contains('religion') || cat.contains('temple') || cat.contains('mosque') || cat.contains('church')) {
+    if (cat.contains('religion') ||
+        cat.contains('temple') ||
+        cat.contains('mosque') ||
+        cat.contains('church')) {
       return const [
         'Respectful attire is requested: cover shoulders and knees, and remove footwear where indicated.',
         'Quiet observation is appreciated during active prayer or worship hours.',
       ];
     }
-    if (cat.contains('park') || cat.contains('nature') || cat.contains('garden')) {
+    if (cat.contains('park') ||
+        cat.contains('nature') ||
+        cat.contains('garden')) {
       return const [
         'Wear comfortable walking shoes, stay hydrated, and bring mosquito repellent.',
         'Tropical showers often occur in late afternoon; consider carrying a compact umbrella.',
       ];
     }
-    if (cat.contains('food') || cat.contains('dining') || cat.contains('market')) {
+    if (cat.contains('food') ||
+        cat.contains('dining') ||
+        cat.contains('market')) {
       return const [
         'Peak dining hours are between 7:00 PM and 9:00 PM.',
         'Local e-wallets (Touch \'n Go / DuitNow) and cash are the most convenient payment methods.',

@@ -1,5 +1,6 @@
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/shared/models/attraction.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
@@ -18,12 +19,14 @@ class HomePage extends StatefulWidget {
     required this.onItineraryTap,
     required this.onRouteTap,
     required this.onAssistantTap,
+    this.attractions,
   });
 
   final VoidCallback onPlanTap;
   final VoidCallback onItineraryTap;
   final VoidCallback onRouteTap;
   final VoidCallback onAssistantTap;
+  final List<Attraction>? attractions;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -103,17 +106,17 @@ class _HomePageState extends State<HomePage> {
             return const Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _SavedPlacesInspectorBanner(),
-                SizedBox(height: 18),
-              ],
+              children: [_SavedPlacesInspectorBanner(), SizedBox(height: 18)],
             );
           },
         ),
         HeroPanel(onSearchTap: widget.onPlanTap),
         const SizedBox(height: 18),
 
-        PopularAttractionsSection(onSeeAllTap: widget.onRouteTap),
+        PopularAttractionsSection(
+          onSeeAllTap: widget.onRouteTap,
+          attractions: widget.attractions,
+        ),
         const SizedBox(height: 18),
         _MyTripsCard(onTap: widget.onItineraryTap),
         const SizedBox(height: 18),
@@ -180,18 +183,13 @@ class _SavedPlacesInspectorBanner extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ApiRetrievalScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const ApiRetrievalScreen()),
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),

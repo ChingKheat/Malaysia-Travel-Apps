@@ -17,10 +17,16 @@ import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/navigation/screens/map_screen.dart';
 
 class ApiDemoPage extends StatefulWidget {
-  const ApiDemoPage({super.key, this.isVisible = true, this.discoveryHeader});
+  const ApiDemoPage({
+    super.key,
+    this.isVisible = true,
+    this.discoveryHeader,
+    this.onPlacesLoaded,
+  });
 
   final bool isVisible;
   final Widget? discoveryHeader;
+  final ValueChanged<List<Attraction>>? onPlacesLoaded;
 
   @override
   State<ApiDemoPage> createState() => _ApiDemoPageState();
@@ -141,6 +147,8 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
             .where((s) => attractions.any((a) => a.xid == s.xid))
             .toList();
       });
+
+      widget.onPlacesLoaded?.call(attractions);
 
       if (_selectedStops.length >= 2) {
         await _loadRoute(_selectedStops);

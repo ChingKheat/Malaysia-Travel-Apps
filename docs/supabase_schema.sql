@@ -44,6 +44,7 @@ ALTER TABLE public.places ADD COLUMN IF NOT EXISTS is_indoor BOOLEAN;
 
 ALTER TABLE public.places ADD COLUMN IF NOT EXISTS user_ratings_total INTEGER DEFAULT 0;
 ALTER TABLE public.places ADD COLUMN IF NOT EXISTS google_fetched_at TIMESTAMPTZ;
+ALTER TABLE public.places ADD COLUMN IF NOT EXISTS google_photos JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE public.places ADD COLUMN IF NOT EXISTS google_attributions JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS public.indoor_places (
@@ -132,9 +133,7 @@ ALTER TABLE public.places ADD COLUMN IF NOT EXISTS data_source TEXT NOT NULL DEF
 CREATE TABLE IF NOT EXISTS public.google_api_budgets (
   sku TEXT NOT NULL CHECK (sku IN ('text_search_pro','details_pro','details_enterprise','photos','routes_essentials','route_matrix_essentials')),
   billing_month DATE NOT NULL CHECK (extract(day FROM billing_month)=1),
-  request_limit INTEGER NOT NULL DEFAULT 0 CHECK (request_limit>=0 AND request_limit <= CASE
-    WHEN sku IN ('text_search_pro','details_pro') THEN 4000
-    WHEN sku IN ('details_enterprise','photos') THEN 800 ELSE 8000 END),
+  request_limit INTEGER NOT NULL DEFAULT 0,
   baseline_usage INTEGER NOT NULL DEFAULT 0 CHECK (baseline_usage>=0),
   used_units INTEGER NOT NULL DEFAULT 0 CHECK (used_units>=0),
   verified_at TIMESTAMPTZ,
@@ -142,6 +141,10 @@ CREATE TABLE IF NOT EXISTS public.google_api_budgets (
   enabled BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (sku,billing_month)
 );
+
+-- Configurable app limits; usage and expiry checks remain enforced by the reserve RPC.
+ALTER TABLE public.google_api_budgets DROP CONSTRAINT IF EXISTS google_api_budgets_check;
+ALTER TABLE public.google_api_budgets ADD CONSTRAINT google_api_budgets_check CHECK (request_limit >= 0);
 
 CREATE TABLE IF NOT EXISTS public.landmark_catalogue (
   id TEXT PRIMARY KEY,name TEXT NOT NULL,aliases TEXT[] NOT NULL DEFAULT '{}',
@@ -597,7 +600,7 @@ REVOKE ALL ON FUNCTION public.sanitize_google_itinerary_stop() FROM PUBLIC, anon
 INSERT INTO public.google_api_budgets(sku,billing_month,request_limit)
 SELECT sku,date_trunc('month',now() AT TIME ZONE 'America/Los_Angeles')::date,cap
 FROM (VALUES ('text_search_pro',4000),('details_pro',4000),
-  ('details_enterprise',800),('photos',800),('routes_essentials',8000),
+  ('details_enterprise',5000),('photos',5000),('routes_essentials',8000),
   ('route_matrix_essentials',8000)) AS defaults(sku,cap)
 ON CONFLICT DO NOTHING;
 

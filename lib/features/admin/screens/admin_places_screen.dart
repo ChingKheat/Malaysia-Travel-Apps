@@ -1,5 +1,7 @@
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/place_details_refresh_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -49,6 +51,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
 
   String _selectedState = 'Penang';
   bool _isLoading = false;
+  bool _isSyncing = false;
+  bool _cancelRequested = false;
+  bool _isCancelling = false;
   bool _isFetchingList = false;
   bool _loadingNames = false;
   String? _namesNotice;
@@ -90,7 +95,19 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
   @override
   void dispose() {
     _noticeTimer?.cancel();
+    _cancelRequested = true;
     super.dispose();
+  }
+
+  void _cancelSync() {
+    if (!_isSyncing || _cancelRequested) return;
+    setState(() {
+      _cancelRequested = true;
+      _isCancelling = true;
+      _syncStatusText = 'Cancelling sync...';
+      _syncSubStatusText = 'Stopping Google Places search...';
+    });
+    _addLog('⏹️ Cancellation requested by user...');
   }
 
   Future<void> _loadSyncHistory() async {
@@ -196,7 +213,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
           _pageOffset = offset;
           _searchBudgetReady = remaining >= 48;
           _budgetNotice = remaining >= 48
-              ? '$remaining verified search requests remaining. A full state sync uses up to 48.'
+              ? '$remaining verified search requests remaining. Discovery uses up to 48 before retries; updating details also uses one full-details request per place.'
               : 'Fetch & Sync is blocked until the current Google allowance is verified with at least 48 requests remaining. Saved IDs and schedules remain available.';
           _dbCount = page.totalCount;
           _missingReviewColumn =
@@ -228,12 +245,6 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         _placesLoadError != null) {
       return;
     }
-    if (!_searchBudgetReady) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.tr(_budgetNotice))));
-      return;
-    }
     final db = SupabaseConfig.client;
     if (!GooglePlacesService.isAvailable ||
         AuthService().currentUser?.isAdmin != true ||
@@ -248,56 +259,25 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       return;
     }
     final state = _selectedState;
-    if (_lastSync != null || _dbCount > 0) {
-      final previous = _lastSync;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(context.l10n.syncValueAgain((state).toString())),
-          content: Text(
-            previous == null
-                ? context
-                      .l10n
-                      .thisStateAlreadyHasStoredPlacesButItsPreviousSyncTimeWasNotRecordedSyncingAgainWillUseGoog
-                : context.l10n
-                      .lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst(
-                        (previous.ageLabel(DateTime.now())).toString(),
-                        (previous.malaysiaDateLabel).toString(),
-                      ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(context.l10n.keepExistingData),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(context.l10n.syncAgain),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true ||
-          !mounted ||
-          state != _selectedState ||
-          _isLoading) {
-        return;
-      }
-    }
     setState(() {
       _isLoading = true;
+      _isSyncing = true;
+      _cancelRequested = false;
+      _isCancelling = false;
       _logs.clear();
       _activityState = state;
       _rlsBlocked = false;
       _syncProgress = 0.05;
       _syncStatusText = 'Searching Google for $state';
       _syncSubStatusText =
-          'Discovering new places. Existing records are preserved; use Update saved places to refresh their details.';
+          'Step 1/2: Discovering new places. Step 2 updates details for all saved places.';
     });
     final service = GooglePlacesService();
     final batch = PlaceImportBatch(state);
     final live = batch.rows;
     var searchRequests = 0;
+    var inserted = 0;
+    final newlyInserted = <String, String>{};
     final categorySpecs = [
       {
         'category': 'Culture',
@@ -366,46 +346,146 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     ];
 
     try {
-      for (int c = 0; c < categorySpecs.length; c++) {
+      final preferences = await SharedPreferences.getInstance();
+      final scope =
+          '${SupabaseConfig.supabaseUrl}:${db.auth.currentUser!.id}:unified';
+      final pendingKey = 'places_sync_pending:$scope:$state';
+      final pending = preferences.getInt(pendingKey);
+      if (pending == null && !_searchBudgetReady) {
+        throw StateError(_budgetNotice);
+      }
+      if (pending != null) inserted = pending;
+      for (int c = 0; pending == null && c < categorySpecs.length; c++) {
+        if (_cancelRequested) break;
         final queries = categorySpecs[c]['queries'] as List<String>;
         for (final query in queries) {
+          if (_cancelRequested) break;
           String? pageToken;
           for (int page = 0; page < 3; page++) {
-            searchRequests++;
-            final data = await service.searchPage(
+            if (_cancelRequested) break;
+            final data = await service.searchPageWithRetry(
               query: query,
               state: state,
               pageToken: pageToken,
+              shouldContinue: () => mounted && !_cancelRequested,
+              onAttempt: (attempt) {
+                searchRequests++;
+                if (mounted) {
+                  _addLog(
+                    'Search ${c + 1}, page ${page + 1}, attempt $attempt',
+                  );
+                }
+              },
             );
+            if (!mounted) return;
+            if (_cancelRequested) break;
             if (data == null) {
               throw StateError(
                 service.lastError ?? 'Google Places unavailable',
               );
             }
+            final pageIds = <String>{};
             for (final p in (data['places'] as List? ?? []).whereType<Map>()) {
               batch.add(
                 Map<String, dynamic>.from(p),
                 categorySpecs[c]['category'] as String,
               );
+              if (p['id'] is String) pageIds.add(p['id'] as String);
+            }
+            if (_cancelRequested) break;
+            inserted += await _places.savePlaces(
+              state,
+              pageIds.map((id) => live[id]).whereType<Map<String, dynamic>>(),
+              onInserted: (rows) {
+                for (final row in rows) {
+                  newlyInserted[row['place_id'] as String] =
+                      row['category'] as String;
+                }
+              },
+            );
+            for (final id in newlyInserted.keys.toList()) {
+              if (newlyInserted[id] != 'Attraction' &&
+                  (batch.categories[id]?.length ?? 0) > 1) {
+                await _places.markNewImportConflict(
+                  id,
+                  state,
+                  newlyInserted[id]!,
+                );
+                newlyInserted[id] = 'Attraction';
+              }
             }
             if (!mounted) return;
-            _addLog(batch.summary);
+            if (_cancelRequested) break;
+            _addLog('${batch.summary} · $inserted new records saved');
             pageToken = data['nextPageToken'] as String?;
             if (pageToken == null || pageToken.isEmpty) break;
           }
+          if (!mounted || _cancelRequested) break;
         }
         if (!mounted) return;
+        if (_cancelRequested) break;
         setState(() {
           _syncProgress = (c + 1) / categorySpecs.length;
         });
       }
-      final inserted = await _places.savePlaces(state, live.values);
-      // A failed/cancelled search or database batch never advances this date.
-      final completed = await _syncHistory.recordSuccess(
-        state: state,
-        placeCount: live.length,
-        requestCount: searchRequests,
+      if (!mounted) return;
+      if (_cancelRequested) {
+        if (pending == null) {
+          await preferences.remove(pendingKey);
+          await preferences.remove('$pendingKey:requests');
+        }
+        if (!mounted) return;
+        _addLog(
+          '⏹️ Sync cancelled by user. $inserted new records saved and retained.',
+        );
+        setState(() {
+          _isLoading = false;
+          _isSyncing = false;
+          _isCancelling = false;
+          _cancelRequested = false;
+          _syncStatusText = 'Import stopped';
+          _syncSubStatusText =
+              '${batch.summary} · $inserted new records saved and retained · Sync cancelled';
+        });
+        await _loadStateData(forState: state);
+        return;
+      }
+      if (pending == null && !await preferences.setInt(pendingKey, inserted)) {
+        throw StateError('Unable to save sync progress.');
+      }
+      if (pending == null) {
+        await preferences.setInt('$pendingKey:requests', searchRequests);
+      }
+      if (!mounted) return;
+      final updated = await Navigator.push<int>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PlaceDetailsRefreshPage(
+            state: state,
+            syncFlow: true,
+            restartOnStart: pending == null,
+            service: PlaceDetailsRefreshService(
+              repository: _places,
+              google: service,
+              preferences: preferences,
+              scope: scope,
+            ),
+          ),
+        ),
       );
+      if (!mounted) return;
+      if (updated == null) {
+        setState(() {
+          _syncStatusText = 'Details task saved';
+          _syncSubStatusText =
+              '$inserted new places saved. Details continue in the background unless paused or blocked. Tap Sync places to view progress.';
+        });
+        await _loadStateData(forState: state);
+        return;
+      }
+      await preferences.remove(pendingKey);
+      // Only completed discovery AND details advance the successful sync date.
+      final completed = await _syncHistory.load(state);
       if (!mounted) return;
       final historyError = _syncHistory.lastError;
       setState(() {
@@ -414,33 +494,40 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       });
       await _loadStateData(forState: state);
       if (!mounted) return;
-      final skipped = live.length - inserted;
       final refreshed = _placesLoadError == null;
       setState(() {
         _lastSync = completed;
-        _syncHistoryOffline = completed.localOnly;
+        _syncHistoryOffline = completed?.localOnly ?? true;
         _syncProgress = 1;
         _syncStatusText = refreshed
             ? '$state database list refreshed'
             : '$state sync saved. List refresh failed.';
         _syncSubStatusText =
-            '${batch.summary} · $inserted new · $skipped already saved'
+            '$updated details updated in final pass · $inserted new places'
             '${refreshed ? ' · $_dbCount in database' : '. Tap Refresh to reload the list.'}';
       });
       _addLog(
-        'Saved place IDs and app categories. Google details were not stored.',
+        'Saved discovered names, coordinates and photo references. Existing records were preserved.',
       );
       if (historyError != null) _addLog(historyError);
     } catch (error) {
       if (mounted) {
         setState(() {
           _syncStatusText = 'Import stopped';
-          _syncSubStatusText = '${batch.summary} · ${error.toString()}';
+          _syncSubStatusText =
+              '${batch.summary} · $inserted new records saved and retained · ${error.toString()}';
           _rlsBlocked = error.toString().contains('row-level security');
         });
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isSyncing = false;
+          _isCancelling = false;
+          _cancelRequested = false;
+        });
+      }
     }
   }
 
@@ -764,10 +851,62 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                                     fontSize: 14,
                                     color: Color(0xFF0F172A),
                                   ),
-                                  maxLines: 1,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (_isSyncing) ...[
+                                const SizedBox(width: 8),
+                                InkWell(
+                                  onTap: _isCancelling ? null : _cancelSync,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEE2E2),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: const Color(0xFFFCA5A5),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        _isCancelling
+                                            ? const SizedBox(
+                                                width: 10,
+                                                height: 10,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 1.5,
+                                                      color: Colors.red,
+                                                    ),
+                                              )
+                                            : const Icon(
+                                                Icons.close,
+                                                size: 13,
+                                                color: Colors.red,
+                                              ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          _isCancelling
+                                              ? context.tr('Cancelling…')
+                                              : context.l10n.cancel,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -1069,27 +1208,25 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                 ),
                 const Divider(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.storage,
-                          size: 18,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          context.l10n.databaseCountForValue(
-                            (_selectedState).toString(),
-                          ),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                    const Icon(
+                      Icons.storage,
+                      size: 18,
+                      color: AppColors.primary,
                     ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        context.l10n.databaseCountForValue(
+                          (_selectedState).toString(),
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -1362,44 +1499,21 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             child: Text(context.tr(_budgetNotice)),
           ),
           // Action Buttons
-          FilledButton.icon(
-            onPressed: _isLoading || _isFetchingList || _loadingNames
-                ? null
-                : () async {
-                    final state = _selectedState;
-                    await Navigator.push<void>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PlaceDetailsRefreshPage(state: state),
-                      ),
-                    );
-                    if (mounted) await _loadStateData();
-                  },
-            icon: const Icon(Icons.update),
-            label: Text(
-              context.l10n.updateSavedPlacesInValue(
-                (_selectedState).toString(),
-              ),
-            ),
-          ),
-          Padding(
+          const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Text(
-              context
-                  .l10n
-                  .refreshHoursRatingsNamesAndLocationsForAllSavedPlacesDiscoverNewPlacesBelowOnlyAddsNewIds,
+              'Discover new places, then update names, hours, ratings and locations for all saved places. During step 2, you can leave the page; tap Sync places to view progress. Categories stay unchanged.',
             ),
           ),
           Row(
             children: [
               Expanded(
-                flex: 3,
+                flex: _isSyncing ? 2 : 3,
                 child: FilledButton.icon(
                   onPressed:
                       _isLoading ||
                           _loadingSyncHistory ||
                           _isFetchingList ||
-                          !_searchBudgetReady ||
                           _placesLoadError != null
                       ? null
                       : _syncPlacesFromGoogle,
@@ -1414,9 +1528,8 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         )
                       : const Icon(Icons.download_for_offline),
                   label: Text(
-                    _isLoading
-                        ? context.l10n.syncing
-                        : context.l10n.discoverNewPlaces,
+                    _isLoading ? context.l10n.syncing : 'Sync places',
+                    overflow: TextOverflow.ellipsis,
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -1429,26 +1542,65 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                flex: 1,
-                child: OutlinedButton.icon(
-                  onPressed: _isLoading ? null : _clearStatePlaces,
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 18,
-                    color: Colors.red,
-                  ),
-                  label: Text(
-                    context.l10n.clear,
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: Color(0xFFFCA5A5)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+                flex: _isSyncing ? 2 : 1,
+                child: _isSyncing
+                    ? OutlinedButton.icon(
+                        onPressed: _isCancelling ? null : _cancelSync,
+                        icon: _isCancelling
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.red,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.close,
+                                size: 18,
+                                color: Colors.red,
+                              ),
+                        label: Text(
+                          _isCancelling
+                              ? context.tr('Cancelling…')
+                              : context.l10n.cancel,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Color(0xFFFCA5A5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _clearStatePlaces,
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: Colors.red,
+                        ),
+                        label: Text(
+                          context.l10n.clear,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Color(0xFFFCA5A5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
               ),
             ],
           ),

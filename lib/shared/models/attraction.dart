@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import '../../features/places/models/google_place_details.dart';
 
 class Attraction {
   const Attraction({
@@ -13,6 +14,7 @@ class Attraction {
     this.userRatingsTotal,
     this.isIndoor,
     this.photoUrl,
+    this.googlePhotos = const [],
   });
 
   final String xid;
@@ -26,6 +28,7 @@ class Attraction {
   final int? userRatingsTotal;
   final bool? isIndoor;
   final String? photoUrl;
+  final List<GooglePlacePhoto> googlePhotos;
 
   LatLng get point => LatLng(latitude, longitude);
   String? get googlePlaceId => xid.startsWith('google_')
@@ -54,6 +57,7 @@ class Attraction {
       userRatingsTotal: userRatingsTotal ?? this.userRatingsTotal,
       isIndoor: isIndoor ?? this.isIndoor,
       photoUrl: photoUrl ?? this.photoUrl,
+      googlePhotos: googlePhotos,
     );
   }
 
@@ -141,6 +145,9 @@ class Attraction {
       userRatingsTotal: userRatingsTotal,
       isIndoor: isIndoor,
       photoUrl: photoUrl,
+      googlePhotos: GooglePlaceDetails(id, {
+        'photos': json['photos'] ?? json['google_photos'],
+      }).photos,
     );
   }
 

@@ -72,7 +72,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AttractionDetailPage), findsOneWidget);
-    expect(find.text('Attraction Details'), findsOneWidget);
+    expect(find.text('Petronas Twin Towers (KLCC)'), findsWidgets);
     expect(find.text('Iconic skyscrapers in Kuala Lumpur.'), findsOneWidget);
   });
 }

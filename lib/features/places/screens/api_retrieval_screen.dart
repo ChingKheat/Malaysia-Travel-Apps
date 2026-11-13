@@ -27,11 +27,17 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
   @override
   void initState() {
     super.initState();
+    _cityController.addListener(_onCityChanged);
     _fetchPlacesFromApi();
+  }
+
+  void _onCityChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _cityController.removeListener(_onCityChanged);
     _cityController.dispose();
     super.dispose();
   }
@@ -126,6 +132,15 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                               Icons.search,
                               color: AppColors.primary,
                             ),
+                            suffixIcon: _cityController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 20),
+                                    onPressed: () {
+                                      _cityController.clear();
+                                      setState(() {});
+                                    },
+                                  )
+                                : null,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -168,6 +183,34 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        'Kuala Lumpur',
+                        'Penang',
+                        'Melaka',
+                        'Johor',
+                        'Sabah',
+                      ].map((city) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ActionChip(
+                            avatar: const Icon(Icons.place_outlined, size: 14),
+                            label: Text(city),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    _cityController.text = city;
+                                    _fetchPlacesFromApi();
+                                  },
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                   const SizedBox(height: 12),
 

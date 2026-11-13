@@ -1,18 +1,54 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 
-/// Manages caching real Google place photos into Supabase Storage.
-/// Keeps the Google API key strictly server-side while giving the mobile
-/// app permanent, direct, non-expiring public URLs for place cards.
+/// Maps place IDs to explicitly approved files already uploaded to Storage.
 class PlacePhotoStorageService {
-  const PlacePhotoStorageService._();
-
   static const String bucketName = 'place-photos';
 
+  static const _approved = String.fromEnvironment(
+    'APPROVED_PLACE_COVERS',
+    defaultValue: '{}',
+  );
+
+  static bool isUsableLink(Object? value) {
+    final uri = Uri.tryParse(value?.toString().trim() ?? '');
+    return uri != null &&
+        uri.scheme == 'https' &&
+        uri.host.isNotEmpty &&
+        !uri.host.endsWith('googleapis.com') &&
+        !uri.host.endsWith('googleusercontent.com') &&
+        !uri.queryParameters.containsKey('key') &&
+        !uri.queryParameters.containsKey('token');
+  }
+
+  static Future<String?> approvedCover(String placeId) async {
+    final path = (jsonDecode(_approved) as Map<String, dynamic>)[placeId];
+    if (path == null) return null;
+    if (path is! String ||
+        !RegExp(
+          r'^approved/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$',
+        ).hasMatch(path)) {
+      throw const FormatException('Invalid approved cover path');
+    }
+    final client = SupabaseConfig.client;
+    if (client == null) throw StateError('Storage unavailable');
+    final url = client.storage.from(bucketName).getPublicUrl(path);
+    if (!isUsableLink(url)) throw StateError('Invalid public cover URL');
+    final response = await http
+        .head(Uri.parse(url))
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200 ||
+        !(response.headers['content-type'] ?? '').startsWith('image/')) {
+      throw StateError('Approved image is unavailable');
+    }
+    return url;
+  }
+
   /// Syncs the first official Google photo for [placeId] to Supabase Storage.
-  /// Returns the permanent public storage URL, or null if unavailable.
   static Future<String?> syncPhotoToStorage({
     required String placeId,
     required GooglePlacesService googleService,
@@ -26,7 +62,6 @@ class PlacePhotoStorageService {
       final fileName = '$placeId.jpg';
       final publicUrl = client.storage.from(bucketName).getPublicUrl(fileName);
 
-      // Check if photo is already cached to conserve Google API quota
       if (skipIfAlreadyCached) {
         final existing = await client
             .from('places')
@@ -41,7 +76,6 @@ class PlacePhotoStorageService {
         }
       }
 
-      // 1. If photo metadata is not provided, fetch details first
       GooglePlacePhoto? targetPhoto = photo;
       if (targetPhoto == null) {
         final details = await googleService.fetchDetails(placeId, basic: false);
@@ -49,12 +83,10 @@ class PlacePhotoStorageService {
       }
       if (targetPhoto == null) return null;
 
-      // 2. Fetch image bytes securely through existing Supabase Edge Function proxy
       final result = await googleService.fetchPhotoResult(targetPhoto);
       final bytes = result.bytes;
       if (bytes == null || bytes.isEmpty) return null;
 
-      // 3. Upload to Supabase Storage bucket 'place-photos'
       await client.storage.from(bucketName).uploadBinary(
         fileName,
         bytes,
@@ -64,45 +96,16 @@ class PlacePhotoStorageService {
         ),
       );
 
-      // 4. Get public URL and save to places table (if admin permissions permit)
       try {
         await client
             .from('places')
             .update({'photo_url': publicUrl})
             .eq('place_id', placeId);
-      } catch (_) {
-        // Ignored: Non-admin users might not have UPDATE rights on public.places,
-        // but the storage file is already uploaded and publicly resolvable.
-      }
+      } catch (_) {}
 
       return publicUrl;
     } catch (_) {
       return null;
     }
-  }
-
-  /// Batch caches official Google photos for a list of [placeIds].
-  /// Safely stops if shouldContinue returns false.
-  static Future<int> batchCachePhotos({
-    required List<String> placeIds,
-    required GooglePlacesService googleService,
-    bool Function()? shouldContinue,
-    void Function(int current, int total, int cached)? onProgress,
-  }) async {
-    var cachedCount = 0;
-    for (var i = 0; i < placeIds.length; i++) {
-      if (shouldContinue != null && !shouldContinue()) break;
-      final placeId = placeIds[i];
-      final url = await syncPhotoToStorage(
-        placeId: placeId,
-        googleService: googleService,
-        skipIfAlreadyCached: true,
-      );
-      if (url != null) cachedCount++;
-      onProgress?.call(i + 1, placeIds.length, cachedCount);
-      // Brief pause between requests to prevent overwhelming the proxy
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-    }
-    return cachedCount;
   }
 }

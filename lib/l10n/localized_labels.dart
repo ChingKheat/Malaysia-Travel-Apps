@@ -51,6 +51,31 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.back;
     case "Cancel":
       return l.cancel;
+    case "Cancelling…":
+    case "Cancelling...":
+      return l.localeName.startsWith('zh')
+          ? '正在取消…'
+          : l.localeName.startsWith('ms')
+              ? 'Membatalkan…'
+              : 'Cancelling…';
+    case "Cancelling sync...":
+      return l.localeName.startsWith('zh')
+          ? '正在取消同步…'
+          : l.localeName.startsWith('ms')
+              ? 'Membatalkan penyelarasan…'
+              : 'Cancelling sync...';
+    case "Stopping Google Places search...":
+      return l.localeName.startsWith('zh')
+          ? '正在停止 Google 地点搜索…'
+          : l.localeName.startsWith('ms')
+              ? 'Menghentikan carian Google Places…'
+              : 'Stopping Google Places search...';
+    case "Sync cancelled":
+      return l.localeName.startsWith('zh')
+          ? '已取消同步'
+          : l.localeName.startsWith('ms')
+              ? 'Penyelarasan dibatalkan'
+              : 'Sync cancelled';
     case "Save":
       return l.save;
     case "Delete":

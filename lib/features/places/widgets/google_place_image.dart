@@ -16,6 +16,9 @@ class GooglePlaceImage extends StatefulWidget {
     this.photoIndex = 0,
     this.autoLoad = false,
     this.fill = false,
+    this.attributionTop,
+    this.fallback,
+    this.showGoogleMapsAttribution = false,
   });
   final String placeId;
   final GooglePlacePhoto photo;
@@ -23,6 +26,9 @@ class GooglePlaceImage extends StatefulWidget {
   final GooglePlacesService service;
   final bool autoLoad;
   final bool fill;
+  final double? attributionTop;
+  final Widget? fallback;
+  final bool showGoogleMapsAttribution;
   @override
   State<GooglePlaceImage> createState() => _GooglePlaceImageState();
 }
@@ -104,38 +110,43 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
             ),
           )
         : _bytes == null
-        ? Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_requested) ...[
-                  Text(
-                    context.l10n.photoUnavailable,
-                    style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 44),
-                  child: FilledButton.icon(
-                    onPressed: _load,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: Text(
-                      _requested
-                          ? context.l10n.retryPhoto
-                          : context.l10n.loadPhoto,
+        ? widget.fallback ??
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_requested) ...[
+                      Text(
+                        context.l10n.photoUnavailable,
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      child: FilledButton.icon(
+                        onPressed: _load,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: Text(
+                          _requested
+                              ? context.l10n.retryPhoto
+                              : context.l10n.loadPhoto,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          )
+              )
         : Image.memory(
             _bytes!,
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
             errorBuilder: (_, _, _) =>
+                widget.fallback ??
                 Center(child: Text(context.l10n.photoUnavailable)),
           );
 
@@ -147,10 +158,27 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
         fit: StackFit.expand,
         children: [
           imageWidget,
+          if (_bytes != null && widget.showGoogleMapsAttribution)
+            const PositionedDirectional(
+              start: 8,
+              top: 8,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: Colors.black87),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    'Google Maps',
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              ),
+            ),
           if (_bytes != null && authorName != null)
             Positioned(
               left: 14,
-              bottom: 14,
+              right: 14,
+              top: widget.attributionTop,
+              bottom: widget.attributionTop == null ? 14 : null,
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -180,12 +208,16 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
                           color: Colors.white70,
                         ),
                         const SizedBox(width: 5),
-                        Text(
-                          'Google Maps • $authorName',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            'Google Maps • $authorName',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],

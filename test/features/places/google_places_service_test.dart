@@ -328,6 +328,6 @@ void main() {
     final details = await places.fetchDetails('ChIJUnknown');
     expect(details, isNull);
     expect(places.lastStatusCode, 404);
-    expect(places.lastError, 'Google Places request failed');
+    expect(places.lastError, 'Google Places request failed (Google HTTP 404)');
   });
 }

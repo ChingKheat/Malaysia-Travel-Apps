@@ -11,10 +11,18 @@ try {
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT current_setting('request.jwt.claim.role',true) $$;
     GRANT USAGE ON SCHEMA auth,public TO anon,authenticated;`);
+  // Supabase Storage tables are platform-owned; emulate their minimal schema locally.
+  await db.exec(`CREATE SCHEMA storage;
+    CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean);
+    CREATE TABLE storage.objects(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),bucket_id text,name text);
+    ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;`);
   const sql = (await readFile('docs/supabase_schema.sql','utf8')).replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";','');
   await db.exec(sql);
+  await db.exec("UPDATE public.google_api_budgets SET request_limit=5000,used_units=800 WHERE sku='details_enterprise'");
   await db.exec("INSERT INTO public.places(place_id,name,state,category,latitude,longitude) VALUES ('ChITestDirectory','Example','Penang','Culture',5.4,100.3)");
   await db.exec(sql);
+  const budget=(await db.query("SELECT request_limit,used_units FROM public.google_api_budgets WHERE sku='details_enterprise'")).rows[0];
+  assert.equal(budget.request_limit,5000); assert.equal(budget.used_units,800);
   await db.exec('SET ROLE authenticated');
   const row = (await db.query("SELECT * FROM public.places_directory WHERE place_id='ChITestDirectory'")).rows[0];
   assert.equal(row.setting,'待审核');

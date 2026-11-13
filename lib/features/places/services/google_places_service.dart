@@ -48,6 +48,7 @@ class GooglePlacesService {
     lastStatusCode = null;
     final token = _token;
     if (token == null) {
+      lastStatusCode = 401;
       lastError =
           'Sign in with a registered account to load Google place data.';
       return null;
@@ -74,6 +75,7 @@ class GooglePlacesService {
             final upstream = decoded['upstreamStatus'];
             if (upstream is int) {
               lastStatusCode = upstream;
+              lastError = '$lastError (Google HTTP $upstream)';
             }
           }
         } catch (_) {}
@@ -166,6 +168,9 @@ class GooglePlacesService {
             ...row,
             '_live': true,
             '_fullDetails': full,
+            'google_photos': details.photos
+                .map((p) => {'name': p.name, 'authorAttributions': p.authors})
+                .toList(),
             '_addressComponents': details.data['addressComponents'],
             'name': details.name ?? 'Name unavailable',
             'category': details.category ?? row['category'],
@@ -252,6 +257,36 @@ class GooglePlacesService {
       lastError = 'The place service returned invalid data.';
       return [];
     }
+  }
+
+  Future<Map<String, dynamic>?> searchPageWithRetry({
+    required String query,
+    required String state,
+    String? pageToken,
+    void Function(int attempt)? onAttempt,
+    bool Function()? shouldContinue,
+    Duration retryDelay = const Duration(seconds: 2),
+  }) async {
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      if (shouldContinue != null && !shouldContinue()) return null;
+      onAttempt?.call(attempt);
+      final result = await searchPage(
+        query: query,
+        state: state,
+        pageToken: pageToken,
+      );
+      if (result != null) return result;
+      if (shouldContinue != null && !shouldContinue()) return null;
+      // Never retry authentication, invalid parameters or the app allowance gate.
+      final transient =
+          lastStatusCode == null ||
+          (lastStatusCode ?? 0) >= 500 ||
+          (lastStatusCode == 429 &&
+              (lastError?.contains('Google HTTP 429') ?? false));
+      if (!transient || attempt == 3) return null;
+      await Future<void>.delayed(retryDelay * attempt);
+    }
+    return null;
   }
 
   Future<Map<String, dynamic>?> searchPage({

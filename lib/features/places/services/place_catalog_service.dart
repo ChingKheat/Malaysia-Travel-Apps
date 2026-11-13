@@ -49,7 +49,7 @@ class PlaceCatalogService {
         var query = db
             .from('places')
             .select(
-              'place_id,name,state,category,latitude,longitude,rating,user_ratings_total,operating_hours,is_indoor,data_source',
+              'place_id,name,state,category,latitude,longitude,rating,user_ratings_total,operating_hours,is_indoor,data_source,photo_url',
             );
         if (state != null) query = query.eq('state', state);
         final page = await query
@@ -145,7 +145,8 @@ class PlaceCatalogService {
 
   static Map<String, dynamic> persistentRow(Map<String, dynamic> row) {
     final rawPhoto = row['photo_url']?.toString();
-    final safePhoto = rawPhoto != null &&
+    final safePhoto =
+        rawPhoto != null &&
             !rawPhoto.contains('places.googleapis.com') &&
             !rawPhoto.contains('key=')
         ? rawPhoto
@@ -183,5 +184,6 @@ class PlaceCatalogService {
     'attributions': row['attributions'] ?? const [],
     'is_indoor': row['is_indoor'],
     'photo_url': row['photo_url'],
+    'photos': row['google_photos'] ?? const [],
   };
 }

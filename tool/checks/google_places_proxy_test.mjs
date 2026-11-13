@@ -55,6 +55,7 @@ test('Search uses fixed fields and server headers; preserves real values and pag
   assert.equal(google.options.headers['X-Goog-Api-Key'],config.GOOGLE_BACKEND_API_KEY);
   assert.ok(!google.options.headers['X-Goog-FieldMask'].includes('places.regularOpeningHours'));
   assert.ok(!google.options.headers['X-Goog-FieldMask'].includes('places.rating'));
+  assert.ok(google.options.headers['X-Goog-FieldMask'].includes('places.photos'));
   assert.ok(google.options.headers['X-Goog-FieldMask'].includes('places.addressComponents'));
   assert.ok(!google.url.includes(config.GOOGLE_BACKEND_API_KEY));
   assert.equal(result.headers.get('cache-control'),'no-store');
@@ -120,6 +121,7 @@ test('Basic and full details reserve the matching SKU with fixed masks',async()=
     const reservation=calls.at(-2);
     assert.deepEqual(JSON.parse(reservation.options.body),{p_sku:profile==='basic'?'details_pro':'details_enterprise',p_units:1});
     assert.equal(calls.at(-1).options.headers['X-Goog-FieldMask'].includes('rating'),profile==='full');
+    assert.equal(calls.at(-1).options.headers['X-Goog-FieldMask'].includes('editorialSummary'),false);
     assert.equal(reservation.options.headers.apikey,config.SUPABASE_SERVICE_ROLE_KEY);
     assert.equal(calls.at(-1).options.headers.apikey,undefined);
   }

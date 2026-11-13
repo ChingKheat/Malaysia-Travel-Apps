@@ -1,3 +1,5 @@
+import '../utils/attraction_image_resolver.dart';
+import '../widgets/google_place_image.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,8 +9,6 @@ import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/places/data/attraction_metadata_resolver.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
-import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
-import 'package:smart_travel_planner/features/places/services/place_photo_storage_service.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 
 /// Full-featured attraction details screen with offline resilience,
@@ -77,15 +77,6 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
         _error = _service.lastError ?? 'Place details are unavailable.';
       }
     });
-    if (details != null &&
-        details.photos.isNotEmpty &&
-        widget.attraction.googlePlaceId != null) {
-      PlacePhotoStorageService.syncPhotoToStorage(
-        placeId: widget.attraction.googlePlaceId!,
-        googleService: _service,
-        photo: details.photos.first,
-      );
-    }
   }
 
   Future<void> _openMap() async {
@@ -214,11 +205,9 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     final admission = AttractionMetadataResolver.resolveAdmission(a);
     final tips = AttractionMetadataResolver.resolveTips(a);
 
+    final localPhoto = AttractionImageResolver.resolveAsset(a);
     final galleryPhotos = AttractionMetadataResolver.resolveGallery(a);
-    final hasGooglePhotos = details != null && details.photos.isNotEmpty;
-    final totalPhotos = hasGooglePhotos
-        ? details.photos.length
-        : galleryPhotos.length;
+    final totalPhotos = galleryPhotos.length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
@@ -310,22 +299,15 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                 fit: StackFit.expand,
                 children: [
                   // Photo Pager
-                  if (hasGooglePhotos)
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: details.photos.length,
-                      onPageChanged: (idx) =>
-                          setState(() => _activePhotoIndex = idx),
-                      itemBuilder: (context, index) {
-                        return GooglePlaceImage(
-                          placeId: details.id,
-                          photo: details.photos[index],
-                          photoIndex: index,
-                          service: _service,
-                          autoLoad: true,
-                          fill: true,
-                        );
-                      },
+                  if (galleryPhotos.isEmpty &&
+                      details != null &&
+                      details.photos.isNotEmpty)
+                    GooglePlaceImage(
+                      placeId: details.id,
+                      photo: details.photos.first,
+                      service: _service,
+                      autoLoad: true,
+                      fill: true,
                     )
                   else if (galleryPhotos.isNotEmpty)
                     PageView.builder(
@@ -338,7 +320,15 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                           galleryPhotos[index],
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) =>
-                              _buildFallbackHero(a.category),
+                              details != null && details.photos.isNotEmpty
+                              ? GooglePlaceImage(
+                                  placeId: details.id,
+                                  photo: details.photos.first,
+                                  service: _service,
+                                  autoLoad: true,
+                                  fill: true,
+                                )
+                              : _buildFallbackHero(a.category),
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
                             return Container(
@@ -353,9 +343,9 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                         );
                       },
                     )
-                  else if (a.photoUrl != null && a.photoUrl!.startsWith('http'))
-                    Image.network(
-                      a.photoUrl!,
+                  else if (localPhoto != null)
+                    Image.asset(
+                      localPhoto,
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => _buildFallbackHero(a.category),
                     )
@@ -1148,7 +1138,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              context.l10n.malaysianIconicAttraction,
+              context.l10n.photoUnavailable,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

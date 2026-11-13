@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_travel_planner/features/itinerary/screens/itinerary_ready_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 
@@ -9,6 +11,13 @@ void main() {
       tester,
     ) async {
       await _openPlanner(tester, width: 320, scale: scale);
+      await _unlockSchedule(tester);
+      await _choose(tester, 'Continue');
+      await _choose(tester, 'High');
+      await _choose(tester, 'Walking');
+      await _choose(tester, 'Continue');
+      _scrollToTop(tester);
+      await tester.pumpAndSettle();
       for (final label in [
         'Trip details',
         'Your daily pace',
@@ -34,20 +43,28 @@ void main() {
     tester,
   ) async {
     await _openPlanner(tester);
-    await _reveal(tester, find.text('Kuala Lumpur, Malaysia'));
-    await tester.tap(find.text('Kuala Lumpur, Malaysia'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Johor, Malaysia'));
-    await tester.pumpAndSettle();
-    expect(find.text('Johor, Malaysia'), findsOneWidget);
+    SharedPreferences.setMockInitialValues({});
+    await _unlockSchedule(tester, checkCancellation: true);
 
-    // The displayed order now follows the current locale (English: Nov 18, 2026).
-    final dateLabel = find.textContaining(RegExp(r'\d{4} - '));
-    await _reveal(tester, dateLabel);
-    await tester.tap(dateLabel);
+    await _reveal(tester, find.text('Daily End Time'));
+    tester
+        .widget<DropdownButton<TimeOfDay>>(
+          find.byType(DropdownButton<TimeOfDay>).last,
+        )
+        .onChanged!(const TimeOfDay(hour: 7, minute: 0));
     await tester.pumpAndSettle();
-    expect(find.byType(DateRangePickerDialog), findsOneWidget);
-    await tester.binding.handlePopRoute();
+    await _reveal(tester, find.text('Continue'));
+    expect(
+      tester
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Continue'))
+          .onPressed,
+      isNull,
+    );
+    expect(
+      find.text(TripPreferencesService.m5InvalidTimeRange),
+      findsOneWidget,
+    );
+    _scrollToTop(tester);
     await tester.pumpAndSettle();
 
     await _reveal(tester, find.text('Relaxed'));
@@ -55,6 +72,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('9 hours of sightseeing per day'), findsOneWidget);
 
+    await _reveal(tester, find.text('High'));
+    expect(find.text('High').hitTestable(), findsNothing);
+    _scrollToTop(tester);
+    await tester.pumpAndSettle();
+    await _choose(tester, 'Continue');
     await _reveal(tester, find.text('High'));
     await tester.tap(find.text('High'));
     await tester.pumpAndSettle();
@@ -65,6 +87,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Enjoy nearby places at a walking pace.'), findsOneWidget);
 
+    final generate = find.widgetWithText(FilledButton, 'Generate My Itinerary');
+    await _reveal(tester, generate);
+    expect(tester.widget<FilledButton>(generate).onPressed, isNull);
+    _scrollToTop(tester);
+    await tester.pumpAndSettle();
+    await _choose(tester, 'Food');
+    await _choose(tester, 'Shopping');
+    await _reveal(tester, find.text('Continue'));
+    expect(
+      tester
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Continue'))
+          .onPressed,
+      isNull,
+    );
+
     await _reveal(tester, find.text('Nature'));
     await tester.tap(find.text('Nature'));
     await tester.pumpAndSettle();
@@ -74,6 +111,37 @@ void main() {
           .selected,
       isTrue,
     );
+    await _choose(tester, 'Continue');
+    await _reveal(tester, find.text('Generate My Itinerary'));
+
+    _scrollToTop(tester);
+    await tester.pumpAndSettle();
+    final dateLabel = find.textContaining(RegExp(r'\d{4} - '));
+    await _reveal(tester, dateLabel);
+    await tester.tap(dateLabel);
+    await tester.pumpAndSettle();
+    final dialog = tester.element(find.byType(DateRangePickerDialog));
+    final start = DateUtils.dateOnly(
+      DateTime.now(),
+    ).add(const Duration(days: 7));
+    Navigator.of(
+      dialog,
+    ).pop(DateTimeRange(start: start, end: start.add(const Duration(days: 3))));
+    await tester.pumpAndSettle();
+    await _reveal(tester, find.text('Above ~RM1,200 total'));
+    await _choose(tester, 'Generate My Itinerary');
+    final readyPage = find.byType(ItineraryReadyPage);
+    for (
+      var attempt = 0;
+      attempt < 20 && readyPage.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 25)),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(readyPage, findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -81,8 +149,9 @@ void main() {
     tester,
   ) async {
     await _openPlanner(tester);
-    await _reveal(tester, find.text('Transit'));
-    await tester.tap(find.text('Transit'));
+    await _choose(tester, 'UC300 Flow Testing Tools');
+    await _choose(tester, 'Test A7 (Transit)');
+    _scrollToTop(tester);
     await tester.pumpAndSettle();
     await _reveal(tester, find.text('Generate My Itinerary'));
     await tester.tap(find.text('Generate My Itinerary'));
@@ -92,17 +161,74 @@ void main() {
   });
 }
 
+Future<void> _unlockSchedule(
+  WidgetTester tester, {
+  bool checkCancellation = false,
+}) async {
+  expect(find.text('Travel dates'), findsOneWidget);
+  expect(find.textContaining(RegExp(r'\d{4} - ')).hitTestable(), findsNothing);
+  await _choose(tester, 'Kuala Lumpur, Malaysia');
+  if (checkCancellation) {
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Travel dates'), findsOneWidget);
+    expect(
+      find.textContaining(RegExp(r'\d{4} - ')).hitTestable(),
+      findsNothing,
+    );
+    await _choose(tester, 'Kuala Lumpur, Malaysia');
+  }
+  await tester.tap(find.text('Johor, Malaysia'));
+  await tester.pumpAndSettle();
+
+  final dateLabel = find.textContaining(RegExp(r'\d{4} - '));
+  await _reveal(tester, dateLabel);
+  await tester.tap(dateLabel);
+  await tester.pumpAndSettle();
+  if (checkCancellation) {
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await _reveal(tester, find.text('Relaxed'));
+    expect(find.text('Relaxed').hitTestable(), findsNothing);
+    _scrollToTop(tester);
+    await tester.pumpAndSettle();
+    await _reveal(tester, dateLabel);
+    await tester.tap(dateLabel);
+    await tester.pumpAndSettle();
+  }
+  final dialog = find.byType(DateRangePickerDialog);
+  final save = MaterialLocalizations.of(tester.element(dialog)).saveButtonLabel;
+  await tester.tap(
+    find.descendant(
+      of: dialog,
+      matching: find.textContaining(
+        RegExp('^${RegExp.escape(save)}\$', caseSensitive: false),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _choose(WidgetTester tester, String label) async {
+  final target = find.text(label);
+  await _reveal(tester, target);
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
+Finder get _plannerScrollable => find
+    .descendant(of: find.byType(PlannerPage), matching: find.byType(Scrollable))
+    .first;
+
+void _scrollToTop(WidgetTester tester) =>
+    tester.state<ScrollableState>(_plannerScrollable).position.jumpTo(0);
+
 Future<void> _reveal(WidgetTester tester, Finder target) async {
   await tester.scrollUntilVisible(
     target,
     180,
     maxScrolls: 60,
-    scrollable: find
-        .descendant(
-          of: find.byType(PlannerPage),
-          matching: find.byType(Scrollable),
-        )
-        .first,
+    scrollable: _plannerScrollable,
   );
   await tester.pumpAndSettle();
 }
