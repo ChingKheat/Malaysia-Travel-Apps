@@ -1,7 +1,6 @@
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
-import 'package:smart_travel_planner/core/config/api_keys.dart';
 import 'package:smart_travel_planner/features/assistant/models/assistant_message.dart';
 import 'package:smart_travel_planner/features/assistant/services/travel_assistant_service.dart';
 import 'package:smart_travel_planner/features/assistant/widgets/assistant_chat_bubble.dart';
@@ -243,11 +242,7 @@ class _AssistantPageState extends State<AssistantPage> {
               ),
               Expanded(
                 child: Text(
-                  _service.isGeminiAvailable
-                      ? 'Gemini • Malaysian Travel Assistant'
-                      : (ApiKeys.hasGeminiKey
-                            ? 'Connecting • Malaysian Travel Assistant'
-                            : 'Offline • Malaysian Travel Assistant'),
+                  context.l10n.gemini15FlashMalaysianTravelAi,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

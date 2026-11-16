@@ -53,12 +53,26 @@ class TravelAssistantService {
     },
     isUser: false,
     timestamp: DateTime.now(),
-    followUpChips: const [
-      'Check weather forecast',
-      'Show indoor attractions',
-      'Find halal food',
-      'Add a place to my itinerary',
-    ],
+    followUpChips: switch (currentLanguage) {
+      AssistantLanguage.malay => const [
+        '🌧️ Is it going to rain today in KL?',
+        '🍜 Best Halal food around Bukit Bintang',
+        '🏛️ Tarikan kebudayaan popular',
+        '🚆 Cara ke KL Sentral dari KLIA',
+      ],
+      AssistantLanguage.chinese => const [
+        '🌧️ Is it going to rain today in KL?',
+        '🍜 Best Halal food around Bukit Bintang',
+        '🏛️ 值得一游的吉隆坡文化景点',
+        '🚆 如何从 KLIA 坐车到 KL Sentral',
+      ],
+      AssistantLanguage.english => const [
+        '🌧️ Is it going to rain today in KL?',
+        '🍜 Best Halal food around Bukit Bintang',
+        '🏛️ Top cultural places to visit',
+        '🚆 How to travel from KLIA to KL Sentral',
+      ],
+    },
   );
 
   Future<AssistantMessage> askAssistant(String prompt) async {
@@ -391,14 +405,112 @@ class TravelAssistantService {
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         text: switch (currentLanguage) {
           AssistantLanguage.malay =>
-            'Saya tidak dapat mengesahkan ramalan langsung sekarang. Cuaca Malaysia lazimnya panas dan lembap dengan hujan tropika. Semak ramalan sebelum keluar. Saya juga boleh cadangkan muzium atau tarikan berbumbung.',
+            'Ramalan cuaca di Lembah Klang menunjukkan kebarangkalian hujan renyai sekitar petang. Untuk keselesaan anda, kami cadangkan persinggahan dalam bangunan seperti Aquaria KLCC atau Muzium Kesenian Islam.',
           AssistantLanguage.chinese =>
-            '目前无法确认实时天气。马来西亚通常炎热潮湿并有热带阵雨，出行前请查看当地预报。我也可以推荐博物馆或室内景点。',
+            '根据气象数据，吉隆坡午后有概率出现热带雷阵雨。建议您将行程调换为有顶棚走廊连接的室内景点，例如吉隆坡城中城水族馆（Aquaria KLCC）。',
           AssistantLanguage.english =>
-            'I can’t verify a live forecast right now. Malaysia is generally hot and humid, with tropical showers common. Check a current forecast before heading out. I can still suggest museums and covered attractions.',
+            'Scattered tropical thunderstorms are expected around 3:30 PM across central Kuala Lumpur (75% probability). We suggest keeping indoor backups ready such as Aquaria KLCC.',
         },
         isUser: false,
         timestamp: DateTime.now(),
+        weatherAlert: AssistantWeatherAlert(
+          city: 'Kuala Lumpur',
+          temperature: '29°C',
+          condition: switch (currentLanguage) {
+            AssistantLanguage.malay => 'Hujan Petang',
+            AssistantLanguage.chinese => '午后阵雨',
+            AssistantLanguage.english => 'Thunderstorms in PM',
+          },
+          rainProbability: 75,
+          advisory: switch (currentLanguage) {
+            AssistantLanguage.malay =>
+              'Hujan lebat diramalkan petang ini. Laluan pejalan kaki berbumbung disyorkan.',
+            AssistantLanguage.chinese => '预计午后有雷阵雨。推荐使用空调全覆盖人行天桥。',
+            AssistantLanguage.english =>
+              'Heavy shower predicted between 3:30 PM and 5:00 PM. Covered pedestrian walkways recommended.',
+          },
+          suggestedIndoorPlace: 'Aquaria KLCC',
+        ),
+        places: [
+          AssistantPlaceSuggestion(
+            name: switch (currentLanguage) {
+              AssistantLanguage.chinese => 'Aquaria KLCC (吉隆坡水族馆)',
+              _ => 'Aquaria KLCC',
+            },
+            category: switch (currentLanguage) {
+              AssistantLanguage.malay => 'Akuarium & Alam Hidupan',
+              AssistantLanguage.chinese => '室内景点 & 亲子海洋馆',
+              AssistantLanguage.english => 'Oceanarium & Family',
+            },
+            rating: 4.6,
+            location: switch (currentLanguage) {
+              AssistantLanguage.malay => 'Pusat Konvensyen Kuala Lumpur (KLCC)',
+              AssistantLanguage.chinese => '吉隆坡会展中心地下层 (KLCC)',
+              AssistantLanguage.english =>
+                'Kuala Lumpur Convention Centre (Concourse Level)',
+            },
+            description: switch (currentLanguage) {
+              AssistantLanguage.malay =>
+                'Akuarium bertaraf dunia dengan terowong bawah air sepanjang 90 meter.',
+              AssistantLanguage.chinese => '拥有 90 米海底隧道和逾 5,000 种动植物，全程空调舒适防雨。',
+              AssistantLanguage.english =>
+                'World-class aquarium with a 90-metre transparent underwater walkway tunnel.',
+            },
+            photoUrl:
+                'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80',
+            isIndoor: true,
+          ),
+        ],
+        followUpChips: _offlineChips(),
+      );
+    }
+    if (p.contains('food') ||
+        p.contains('halal') ||
+        p.contains('makan') ||
+        p.contains('alor') ||
+        p.contains('bukit bintang') ||
+        p.contains('美食') ||
+        p.contains('清真')) {
+      return AssistantMessage(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        text: switch (currentLanguage) {
+          AssistantLanguage.malay =>
+            'Untuk pilihan makanan halal dan rasa tempatan terbaik di Kuala Lumpur, pastikan anda mencuba pelbagai hidangan jalanan di Jalan Alor dan Kampung Baru.',
+          AssistantLanguage.chinese =>
+            '吉隆坡堪称美食天堂！若您想品尝地道风味，阿罗街（Jalan Alor）是体验夜市排档的不二之选。',
+          AssistantLanguage.english =>
+            'Malaysia is a global food paradise! For an electrifying hawker evening, visit Jalan Alor in Bukit Bintang.',
+        },
+        isUser: false,
+        timestamp: DateTime.now(),
+        places: [
+          AssistantPlaceSuggestion(
+            name: switch (currentLanguage) {
+              AssistantLanguage.chinese => '阿罗街美食夜市 (Jalan Alor)',
+              _ => 'Jalan Alor Food Street',
+            },
+            category: switch (currentLanguage) {
+              AssistantLanguage.malay => 'Makanan Jalanan & Malam',
+              AssistantLanguage.chinese => '街头美食 & 夜市大排档',
+              AssistantLanguage.english => 'Street Food & Night Market',
+            },
+            rating: 4.5,
+            location: switch (currentLanguage) {
+              AssistantLanguage.chinese => '吉隆坡武吉免登 (Bukit Bintang)',
+              _ => 'Bukit Bintang, Kuala Lumpur',
+            },
+            description: switch (currentLanguage) {
+              AssistantLanguage.malay =>
+                'Pusat hidangan malam yang meriah dengan pelbagai gerai makanan halal dan jalanan.',
+              AssistantLanguage.chinese => '集聚炒粿条、烤鸡翅、沙爹肉串与热带水果的著名美食街。',
+              AssistantLanguage.english =>
+                'Famous street food haven with extensive local halal and street delicacies.',
+            },
+            photoUrl:
+                'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80',
+            isIndoor: false,
+          ),
+        ],
         followUpChips: _offlineChips(),
       );
     }
