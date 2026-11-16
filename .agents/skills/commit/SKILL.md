@@ -5,7 +5,7 @@ description: >-
   /commit or @commit. Fetches origin, checks whether teammates pushed commits
   or merged into main, commits local changes on the working branch, safely
   merges latest updates and resolves conflicts, verifies Flutter checks/tests,
-  and pushes the working branch (with safe, confirmed integration into main).
+  pushes the working branch, and automatically integrates and pushes to main.
 ---
 
 # Smart Commit, Teammate Sync & Main Push
@@ -159,7 +159,7 @@ flutter test --no-pub
 
 ---
 
-## Step 6: Push Working Branch & Safe Integration Options
+## Step 6: Push Working Branch & Automated Safe Integration into Main
 
 1. **Always Push the Working Branch First:**
 
@@ -167,29 +167,22 @@ flutter test --no-pub
 git push origin <branch>
 ```
 
-2. **Integration into `main`:**
+2. **Automated Integration into `main`:**
    - **Case A: Current branch `<branch>` IS `main`:**
      - The working branch is already `main`. Pushing `origin main` completes the push. No merge step needed.
    - **Case B: Current branch `<branch>` is a feature branch (e.g. `CK`):**
-     - **Default Safe Workflow:** The developer's work is now safely backed up on `origin/<branch>`.
-     - **Check User Intent for `main`:**
-       - If the user only asked to `/commit` (save iterative work): **Stop here.** Keep `main` clean and protected. Report that `<branch>` has been pushed and ask if they would like to merge to `main`.
-       - If the user explicitly requested merging to `main` (e.g. "commit and push to main", or user confirms merge):
-         Execute the safe integration sequence:
+     - **Automated Main Integration:** As long as Step 5 verifications (`flutter analyze` and `flutter test`) passed with zero errors, automatically integrate `<branch>` into `main` and push to `origin/main` without pausing for confirmation:
 
 ```powershell
 git checkout main
 git pull --ff-only origin main
-```
-
-   - **Divergence Guard:** If `git pull --ff-only origin main` fails (local `main` diverged from remote), **STOP**, return immediately to `<branch>` (`git checkout <branch>`), and alert the user so local `main` can be safely realigned without risking data loss.
-   - If fast-forward pull succeeds, merge and push `main`:
-
-```powershell
 git merge <branch> --no-edit
 git push origin main
 git checkout <branch>
 ```
+
+   - **Divergence Guard:** If `git pull --ff-only origin main` fails (local `main` diverged from remote), **STOP**, return immediately to `<branch>` (`git checkout <branch>`), and alert the user so local `main` can be safely realigned without risking data loss.
+   - **Always Return to `<branch>`:** Ensure the working directory returns to the feature branch `<branch>` (`git checkout <branch>`) so subsequent edits remain on the feature branch.
 
 3. **If `origin/main` rejects direct push (Branch Protection):**
    - Keep `<branch>` pushed on `origin`.
@@ -203,7 +196,7 @@ git checkout <branch>
      - **Conflict status:** "No conflicts" or list of resolved files.
      - **What was done:** Plain-language summary of branch status, commits created, and push status.
      - **Verification results:** Exact `flutter analyze` and `flutter test` outcomes.
-     - **Main integration status:** Whether changes remain on `<branch>` or were integrated into `main`.
+     - **Main integration status:** Confirm that changes were automatically merged into `main` and pushed to `origin/main`.
      - **中文翻译 / Chinese Translation:** Complete Simplified Chinese version of the report.
 
 ---
