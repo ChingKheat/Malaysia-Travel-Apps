@@ -1513,6 +1513,69 @@ class AppLocalizationsZh extends AppLocalizations {
   String get detectedLabels => '识别标签';
 
   @override
+  String get referenceScanSource => '照片扫描 · 参考照片';
+
+  @override
+  String get scanSearchPlace => '搜索地点';
+
+  @override
+  String get scanPlaceSearchHint => '地点名称、地区或线索';
+
+  @override
+  String get scanSearchWithClue => '点按一条线索，再添加城市或地区以缩小搜索范围。';
+
+  @override
+  String get scanOpenMaps => '在 Google 地图中打开';
+
+  @override
+  String get scanWebMatchFound => '网页中的匹配图片支持此结果';
+
+  @override
+  String get scanSignClue => '照片中的文字提供了线索';
+
+  @override
+  String get scanWebSource => '照片扫描 · 网页匹配';
+
+  @override
+  String get scanSignSource => '照片扫描 · 文字线索';
+
+  @override
+  String get scanSelectedSource => '照片扫描 · 您的选择';
+
+  @override
+  String get scanPlaceListingSource => '照片扫描 · 地点列表';
+
+  @override
+  String get scanCheckingPlaceDetails => '正在查询地点详情…';
+
+  @override
+  String get scanCheckPlaceDetails => '查看地点详情';
+
+  @override
+  String get scanVisualClueSource => '照片扫描 · 视觉线索';
+
+  @override
+  String get scanHoursVaryByVenue => '营业时间因商家而异。';
+
+  @override
+  String get scanHoursSource => '查看公布的开放时间';
+
+  @override
+  String get referenceMatchFound => '与参考照片高度匹配';
+
+  @override
+  String get referenceMatchSelected => '您已选定';
+
+  @override
+  String get referenceMatchUncertain => '匹配结果仍需确认';
+
+  @override
+  String get referencePossibleMatches => '可能的匹配项';
+
+  @override
+  String get referenceChooseSubject => '如果认得照片中的主体，请选择对应项。若均不符合，可以搜索地点。';
+
+  @override
   String visionConfidenceValue(String arg0) {
     return 'Vision 置信度 $arg0%';
   }

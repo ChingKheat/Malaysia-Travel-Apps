@@ -1556,6 +1556,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detectedLabels => 'Detected labels';
 
   @override
+  String get referenceScanSource => 'Photo scan · Reference photos';
+
+  @override
+  String get scanSearchPlace => 'Search for a place';
+
+  @override
+  String get scanPlaceSearchHint => 'Place name, area or clue';
+
+  @override
+  String get scanSearchWithClue =>
+      'Tap a clue and add the town or area to narrow the search.';
+
+  @override
+  String get scanOpenMaps => 'Open in Google Maps';
+
+  @override
+  String get scanWebMatchFound => 'Supported by matching web images';
+
+  @override
+  String get scanSignClue => 'Text on the photo offers a clue';
+
+  @override
+  String get scanWebSource => 'Photo scan · Web matches';
+
+  @override
+  String get scanSignSource => 'Photo scan · Text clue';
+
+  @override
+  String get scanSelectedSource => 'Photo scan · Your selection';
+
+  @override
+  String get scanPlaceListingSource => 'Photo scan · Place listings';
+
+  @override
+  String get scanCheckingPlaceDetails => 'Checking place details…';
+
+  @override
+  String get scanCheckPlaceDetails => 'Check place details';
+
+  @override
+  String get scanVisualClueSource => 'Photo scan · Visual clues';
+
+  @override
+  String get scanHoursVaryByVenue => 'Hours vary by venue.';
+
+  @override
+  String get scanHoursSource => 'Check published hours';
+
+  @override
+  String get referenceMatchFound => 'Strong reference match';
+
+  @override
+  String get referenceMatchSelected => 'Selected by you';
+
+  @override
+  String get referenceMatchUncertain => 'Match needs confirmation';
+
+  @override
+  String get referencePossibleMatches => 'Possible matches';
+
+  @override
+  String get referenceChooseSubject =>
+      'Choose the subject if you recognise it. If none fit, search for the place.';
+
+  @override
   String visionConfidenceValue(String arg0) {
     return 'Vision confidence $arg0%';
   }

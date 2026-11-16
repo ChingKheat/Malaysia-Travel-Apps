@@ -1562,6 +1562,71 @@ class AppLocalizationsMs extends AppLocalizations {
   String get detectedLabels => 'Label dikesan';
 
   @override
+  String get referenceScanSource => 'Imbasan foto · Foto rujukan';
+
+  @override
+  String get scanSearchPlace => 'Cari tempat';
+
+  @override
+  String get scanPlaceSearchHint => 'Nama tempat, kawasan atau petunjuk';
+
+  @override
+  String get scanSearchWithClue =>
+      'Ketik petunjuk dan tambah nama bandar atau kawasan untuk mengecilkan carian.';
+
+  @override
+  String get scanOpenMaps => 'Buka dalam Google Maps';
+
+  @override
+  String get scanWebMatchFound => 'Disokong oleh padanan imej web';
+
+  @override
+  String get scanSignClue => 'Teks dalam foto memberikan petunjuk';
+
+  @override
+  String get scanWebSource => 'Imbasan foto · Padanan web';
+
+  @override
+  String get scanSignSource => 'Imbasan foto · Petunjuk teks';
+
+  @override
+  String get scanSelectedSource => 'Imbasan foto · Pilihan anda';
+
+  @override
+  String get scanPlaceListingSource => 'Imbasan foto · Penyenaraian tempat';
+
+  @override
+  String get scanCheckingPlaceDetails => 'Menyemak butiran tempat…';
+
+  @override
+  String get scanCheckPlaceDetails => 'Semak butiran tempat';
+
+  @override
+  String get scanVisualClueSource => 'Imbasan foto · Petunjuk visual';
+
+  @override
+  String get scanHoursVaryByVenue => 'Waktu berbeza mengikut premis.';
+
+  @override
+  String get scanHoursSource => 'Semak waktu yang diterbitkan';
+
+  @override
+  String get referenceMatchFound => 'Padanan kukuh dengan foto rujukan';
+
+  @override
+  String get referenceMatchSelected => 'Pilihan anda';
+
+  @override
+  String get referenceMatchUncertain => 'Padanan memerlukan pengesahan';
+
+  @override
+  String get referencePossibleMatches => 'Padanan yang mungkin';
+
+  @override
+  String get referenceChooseSubject =>
+      'Pilih subjek jika anda mengenalinya. Jika tiada padanan, cari tempat itu.';
+
+  @override
   String visionConfidenceValue(String arg0) {
     return 'Keyakinan Vision $arg0%';
   }

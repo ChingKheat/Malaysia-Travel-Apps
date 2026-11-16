@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/app/travel_shell.dart';
+import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/image_recognition_page.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
 
@@ -59,59 +60,80 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Demo results stay separate from real scan history', (
+  testWidgets('History opens from the scan card and shows existing scans', (
+    tester,
+  ) async {
+    phoneSize(tester);
+    await RecognitionHistoryStore(userId: 'recognition-test').save([
+      RecognitionResult(
+        name: 'Batu Caves',
+        kind: 'landmark',
+        description: 'A landmark.',
+        location: 'Gombak',
+        recognizedAt: DateTime(2026),
+      ),
+    ]);
+    await tester.pumpWidget(page());
+    await tester.pumpAndSettle();
+
+    final history = find.byKey(const ValueKey('scan-history'));
+    expect(history.hitTestable(), findsOneWidget);
+    expect(find.text('Demo Results'), findsNothing);
+    expect(find.text('Try a sample landmark photo'), findsOneWidget);
+    await tester.tap(history);
+    await tester.pumpAndSettle();
+    expect(find.text('Batu Caves'), findsOneWidget);
+    expect(find.text('Clear history'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(history.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Landmark sample filters nearby spots and starts a new scan', (
     tester,
   ) async {
     phoneSize(tester);
     await tester.pumpWidget(page());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Demo Results'));
+    await tester.tap(find.text('Twin Steel Spires'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Sultan Abdul Samad Building'),
-      250,
-    );
+    expect(find.text('Built-in sample · Mock recognition'), findsOneWidget);
+    expect(find.text('Petronas Twin Towers'), findsOneWidget);
+    final filter = find.text('Food & Cafés');
+    await tester.scrollUntilVisible(filter, 240);
+    await tester.tap(filter);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Sultan Abdul Samad Building'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sultan Abdul Samad Building'));
-    await tester.pumpAndSettle();
-    expect(find.text('SAMPLE PREVIEW'), findsOneWidget);
-    await tester.ensureVisible(find.text('Add to Wishlist'));
+    expect(find.text("Madam Kwan's · Suria KLCC"), findsOneWidget);
+    final hours = find.text('8:00 AM–10:00 PM');
+    await tester.scrollUntilVisible(hours, 120);
+    expect(hours, findsOneWidget);
     expect(
-      tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Add to Wishlist'),
-          )
-          .onPressed,
-      isNull,
+      find.text(
+        'Signature Nasi Bojari, chicken curry, and Penang char kway teow inside Level 4.',
+      ),
+      findsOneWidget,
     );
-    await tester.ensureVisible(find.text('Done'));
-    await tester.tap(find.text('Done'));
+    expect(find.text('KLCC Park & Lake Symphony'), findsNothing);
+    final save = find.widgetWithText(FilledButton, 'Save spot').first;
+    await tester.ensureVisible(save);
+    await tester.tap(save);
     await tester.pumpAndSettle();
+    final prefs = await SharedPreferences.getInstance();
+    expect(
+      prefs.getStringList('visual_scan_saved_spots:recognition-test'),
+      contains('sample_madam_kwans'),
+    );
+    final newScan = find.text('New scan');
+    await tester.scrollUntilVisible(newScan, -240);
+    await tester.pumpAndSettle();
+    await tester.tap(newScan);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('scan-history')), findsOneWidget);
     expect(
       await RecognitionHistoryStore(userId: 'recognition-test').load(),
       isEmpty,
     );
-    await tester.tap(find.text('History (0)'));
-    await tester.pumpAndSettle();
-    expect(find.text('No scans yet'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Presets can be filtered to food', (tester) async {
-    phoneSize(tester);
-    await tester.pumpWidget(page());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Demo Results'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Food'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Food'));
-    await tester.pumpAndSettle();
-    expect(find.text('Nasi Lemak'), findsOneWidget);
-    expect(find.text('LANDMARK'), findsNothing);
-    expect(tester.takeException(), isNull);
   });
 
   for (final (width, height, scale) in [
@@ -119,32 +141,22 @@ void main() {
     (320.0, 480.0, 1.6),
   ]) {
     testWidgets(
-      'Photo guidelines fit a ${width.toInt()}px phone at ${scale}x text',
+      'Visual Scan fits a ${width.toInt()}px phone at ${scale}x text',
       (tester) async {
         phoneSize(tester, width: width, height: height);
         await tester.pumpWidget(page(textScale: scale));
         await tester.pumpAndSettle();
 
-        final images = tester.widgetList<Image>(find.byType(Image)).toList();
-        expect(images.map((image) => (image.image as AssetImage).assetName), [
-          'assets/recognition/nasi_lemak.jpg',
-          'assets/recognition/batu_caves.jpg',
-        ]);
-        final centerTip = find.text('Center the subject');
-        final featureTip = find.text('Include the key feature');
+        expect(find.text('Visual Landmark Guide'), findsOneWidget);
         expect(
-          tester.getTopLeft(centerTip).dx,
-          lessThan(tester.getTopLeft(featureTip).dx),
-        );
-        expect(
-          tester.getTopLeft(centerTip).dy,
-          tester.getTopLeft(featureTip).dy,
+          find.byKey(const ValueKey('scan-history')).hitTestable(),
+          findsOneWidget,
         );
         final camera = find.text('Take Photo');
         await tester.scrollUntilVisible(camera, 100);
         await tester.pumpAndSettle();
         expect(camera.hitTestable(), findsOneWidget);
-        final gallery = find.text('Upload from Gallery');
+        final gallery = find.text('Upload Image');
         await tester.scrollUntilVisible(gallery, 100);
         await tester.pumpAndSettle();
         expect(gallery.hitTestable(), findsOneWidget);

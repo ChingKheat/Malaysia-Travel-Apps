@@ -7,31 +7,38 @@ import 'package:smart_travel_planner/features/profile/screens/profile_page.dart'
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 
 class AppHeader extends StatelessWidget {
-  const AppHeader({super.key, this.title, this.subtitle, this.isDark = false});
+  const AppHeader({
+    super.key,
+    this.title,
+    this.subtitle,
+    this.isDark = false,
+    this.compactCitylore = false,
+  });
 
   const AppHeader.home({super.key, this.subtitle, this.isDark = true})
-    : title = null;
+    : title = null,
+      compactCitylore = false;
 
   const AppHeader.explore({
     super.key,
     this.title = 'Explore Malaysia',
     this.subtitle = 'Live Google Places API active for Malaysia',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   const AppHeader.plan({
     super.key,
     this.title = 'Plan Your Trip',
     this.subtitle = 'Tell us your preferences',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   const AppHeader.itinerary({
     super.key,
     this.title = 'My Itinerary',
     this.subtitle = 'Smart schedule & daily stops',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   const AppHeader.ai({
     super.key,
@@ -45,11 +52,12 @@ class AppHeader extends StatelessWidget {
     this.title = 'Image Recognition',
     this.subtitle = 'Landmarks & local dishes',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   final String? title;
   final String? subtitle;
   final bool isDark;
+  final bool compactCitylore;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +65,137 @@ class AppHeader extends StatelessWidget {
       listenable: AuthService(),
       builder: (context, _) {
         final user = AuthService().currentUser;
+
+        if (compactCitylore) {
+          final isExplore = title != null;
+          final headerSubtitle = isExplore
+              ? (subtitle ?? 'Kuala Lumpur · Community')
+              : (subtitle ?? 'Kuala Lumpur');
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Citylore',
+                          style: TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'serif',
+                            color: Colors.white,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        if (isExplore) ...[
+                          const SizedBox(width: 8),
+                          // Retains the localized tab title for accessibility and test matching
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFE5A93C,
+                              ).withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFFE5A93C,
+                                ).withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Text(
+                              context.tr(title!),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFE5A93C),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      headerSubtitle,
+                      style: const TextStyle(
+                        color: Color(0xFFB5AEA2),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _HeaderBadgeButton(
+                icon: Icons.chat_bubble_outline_rounded,
+                badgeText: '1',
+                iconColor: const Color(0xFFB5AEA2),
+                compact: true,
+                tooltip: 'Messages',
+                onTap: () {
+                  demoHaptic();
+                  showDemoSheet(
+                    context,
+                    title: 'Community Messages',
+                    body:
+                        'Amina Rahman: "Check out early morning Kaya Toast along Jalan Tun H.S. Lee before Central Market opens!"',
+                    icon: Icons.chat_bubble_outline_rounded,
+                    actionLabel: context.l10n.dismiss,
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+              _HeaderBadgeButton(
+                icon: Icons.notifications_none_outlined,
+                badgeText: '1',
+                iconColor: const Color(0xFFB5AEA2),
+                compact: true,
+                tooltip: context.l10n.notifications,
+                onTap: () {
+                  demoHaptic();
+                  showDemoSheet(
+                    context,
+                    title: context.l10n.notifications,
+                    body: context
+                        .l10n
+                        .weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde,
+                    icon: Icons.notifications_active_outlined,
+                    actionLabel: context.l10n.dismiss,
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () {
+                  demoHaptic();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  );
+                },
+                child: SizedBox.square(
+                  dimension: 38,
+                  child: Icon(
+                    Icons.person_outline,
+                    color: const Color(0xFFDFD8CB),
+                    size: 21,
+                    semanticLabel: context.l10n.myProfile,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
 
         final dark = title == null || isDark;
         final foreground = dark ? Colors.white : AppColors.ink;
@@ -196,6 +335,7 @@ class _HeaderBadgeButton extends StatelessWidget {
     required this.iconColor,
     required this.tooltip,
     required this.onTap,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -203,6 +343,7 @@ class _HeaderBadgeButton extends StatelessWidget {
   final Color iconColor;
   final String tooltip;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +363,7 @@ class _HeaderBadgeButton extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(icon, color: iconColor, size: 22),
+                  Icon(icon, color: iconColor, size: compact ? 21 : 22),
                   Positioned(
                     top: 2,
                     right: 2,
