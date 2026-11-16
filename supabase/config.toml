@@ -6,3 +6,7 @@ verify_jwt = false
 # The handler verifies every bearer token with Supabase Auth before Google calls.
 [functions.image-recognition]
 verify_jwt = false
+
+# The handler verifies the user through Supabase Auth before calling Gemini.
+[functions.planner-smart-fill]
+verify_jwt = false

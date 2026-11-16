@@ -20,8 +20,8 @@ class CitylorePostCard extends StatelessWidget {
   final VoidCallback onToggleLike;
   final VoidCallback onToggleSave;
   final VoidCallback onOpenDetail;
-  final VoidCallback onOpenMessage;
-  final VoidCallback onOpenLandmark;
+  final VoidCallback? onOpenMessage;
+  final VoidCallback? onOpenLandmark;
 
   Widget _buildMedia() {
     final assetPath = post.asset;
@@ -175,12 +175,14 @@ class CitylorePostCard extends StatelessWidget {
           const SizedBox(height: 13),
 
           // 2. Media Image
-          InkWell(
-            onTap: onOpenDetail,
-            borderRadius: BorderRadius.circular(16),
-            child: _buildMedia(),
-          ),
-          const SizedBox(height: 13),
+          if (post.asset.isNotEmpty) ...[
+            InkWell(
+              onTap: onOpenDetail,
+              borderRadius: BorderRadius.circular(16),
+              child: _buildMedia(),
+            ),
+            const SizedBox(height: 13),
+          ],
 
           // 3. Eyebrow Tag / Area and Place
           Row(
@@ -202,12 +204,15 @@ class CitylorePostCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
               ],
-              Text(
-                post.place,
-                style: const TextStyle(
-                  color: textMuted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                child: Text(
+                  post.place,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -247,21 +252,22 @@ class CitylorePostCard extends StatelessWidget {
           // 6. "View related landmark →" and "Read story"
           Row(
             children: [
-              InkWell(
-                onTap: onOpenLandmark,
-                borderRadius: BorderRadius.circular(6),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 3),
-                  child: Text(
-                    'View related landmark →',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+              if (onOpenLandmark != null)
+                InkWell(
+                  onTap: onOpenLandmark,
+                  borderRadius: BorderRadius.circular(6),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 3),
+                    child: Text(
+                      'View related landmark →',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
-              ),
               const Spacer(),
               TextButton(
                 onPressed: onOpenDetail,
@@ -354,36 +360,37 @@ class CitylorePostCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              InkWell(
-                onTap: onOpenMessage,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 7.5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.nightRaised,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.nightLine),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.chat_outlined, size: 14, color: accentColor),
-                      SizedBox(width: 5),
-                      Text(
-                        'Message',
-                        style: TextStyle(
-                          color: accentColor,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
+              if (onOpenMessage != null)
+                InkWell(
+                  onTap: onOpenMessage,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 7.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.nightRaised,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.nightLine),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.chat_outlined, size: 14, color: accentColor),
+                        SizedBox(width: 5),
+                        Text(
+                          'Message',
+                          style: TextStyle(
+                            color: accentColor,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(width: 8),
               Tooltip(
                 message: 'Save post',

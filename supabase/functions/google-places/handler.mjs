@@ -47,30 +47,36 @@ export function createHandler({env,fetcher=fetch}) {
         if(!Array.isArray(points) || points.length<2 || points.length>max ||
           !points.every(p=>p && typeof p.latitude==='number' && typeof p.longitude==='number' && Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && p.latitude>=1 && p.latitude<=7.5 && p.longitude>=99 && p.longitude<=120)) return json({error:'Invalid Malaysian route points'},400);
         const waypoint=p=>({location:{latLng:{latitude:p.latitude,longitude:p.longitude}}});
-        const travelMode=body.mode==='Walking'?'WALK':'DRIVE';
+        const transit=body.mode==='Public Transport';
+        const travelMode=transit?'TRANSIT':body.mode==='Walking'?'WALK':'DRIVE';
+        const time=typeof body.departureTime==='string'?Date.parse(body.departureTime):NaN;
+        const departureTime=transit&&Number.isFinite(time)?new Date(time).toISOString():undefined;
         const routeKey=env('GOOGLE_ROUTES_API_KEY') || key;
         if(body.operation==='matrix') {
           sku='route_matrix_essentials'; units=points.length*points.length;
           url='https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
-          options={method:'POST',headers:{...headers,'X-Goog-Api-Key':routeKey,'X-Goog-FieldMask':'originIndex,destinationIndex,status,condition,distanceMeters,duration'},body:JSON.stringify({origins:points.map(p=>({waypoint:waypoint(p)})),destinations:points.map(p=>({waypoint:waypoint(p)})),travelMode})};
+          options={method:'POST',headers:{...headers,'X-Goog-Api-Key':routeKey,'X-Goog-FieldMask':'originIndex,destinationIndex,status,condition,distanceMeters,duration'},body:JSON.stringify({origins:points.map(p=>({waypoint:waypoint(p)})),destinations:points.map(p=>({waypoint:waypoint(p)})),travelMode,departureTime})};
         } else {
           sku='routes_essentials';
           url='https://routes.googleapis.com/directions/v2:computeRoutes';
           options={method:'POST',headers:{...headers,'X-Goog-Api-Key':routeKey,'X-Goog-FieldMask':'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'},body:JSON.stringify({origin:waypoint(points[0]),destination:waypoint(points.at(-1)),intermediates:points.slice(1,-1).map(waypoint),travelMode,languageCode:'en',units:'METRIC'})};
         }
-      } else if(body.operation==='search') {
+      } else if(body.operation==='search' || body.operation==='planner_search') {
+        const planner=body.operation==='planner_search';
+        if(!planner) {
         // Only administrators may spend search quota to populate the catalog.
         const profile=await fetcher(`${supabaseUrl}/rest/v1/profiles?user_id=eq.${encodeURIComponent(user.id)}&select=role`,{headers:{Authorization:token,apikey:authKey},signal:AbortSignal.timeout(8000)});
         if(!profile.ok || (await profile.json())[0]?.role!=='admin') return json({error:'Only admins can sync Google places. Browse the saved catalog instead.'},403);
+        }
         if(!states.includes(body.state)) return json({error:'Select a Malaysian state or federal territory'},400);
         if(typeof body.query!=='string' || !body.query.trim() || body.query.length>200) return json({error:'Invalid search query'},400);
-        const pageSize=Math.floor(Math.max(1,Math.min(20,Number(body.pageSize)||8)));
+        const pageSize=Math.floor(Math.max(1,Math.min(planner?8:20,Number(body.pageSize)||8)));
         url='https://places.googleapis.com/v1/places:searchText';
         sku='text_search_pro';
-        const searchFields=basicFields.split(',');
-        options={method:'POST',headers:{...headers,'X-Goog-FieldMask':searchFields.map(f=>`places.${f}`).join(',')+',nextPageToken'},
-          body:JSON.stringify({textQuery:body.query,languageCode:'en',regionCode:'MY',pageSize,
-            ...(typeof body.pageToken==='string' && body.pageToken.length<2048?{pageToken:body.pageToken}:{})})};
+        const searchFields=planner?['id','displayName','formattedAddress','location','types']:basicFields.split(',');
+        options={method:'POST',headers:{...headers,'X-Goog-FieldMask':searchFields.map(f=>`places.${f}`).join(',')+(planner?'':',nextPageToken')},
+          body:JSON.stringify({textQuery:planner?`${body.query.trim()} in ${body.state}, Malaysia`:body.query,languageCode:'en',regionCode:'MY',pageSize,
+            ...(!planner && typeof body.pageToken==='string' && body.pageToken.length<2048?{pageToken:body.pageToken}:{})})};
       } else if(body.operation==='details') {
         if(typeof body.placeId!=='string' || !/^[A-Za-z0-9_-]{5,255}$/.test(body.placeId)) return json({error:'Invalid Google place ID'},400);
         if(body.profile!=null && !['basic','full'].includes(body.profile)) return json({error:'Invalid detail profile'},400);

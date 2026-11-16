@@ -38,10 +38,16 @@ String localizeLabel(AppLocalizations? strings, String label) {
     case "Language changed for this session. Could not save your preference.":
       return l.languageSessionOnly;
     case "Home":
+    case "home":
       return l.home;
     case "Explore":
+    case "explore":
       return l.explore;
+    case "Community":
+    case "community":
+      return l.community;
     case "Recognize":
+    case "recognize":
       return l.recognize;
     case "Plan":
       return l.plan;
@@ -345,12 +351,20 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.smartTourist;
     case "Explore Malaysia":
       return l.exploreMalaysia;
+    case "Kuala Lumpur · Community":
+      return 'Kuala Lumpur · ${l.community}';
     case "Discover attractions & places":
       return l.discoverAttractionsPlaces;
     case "Image Recognition":
       return l.imageRecognition;
     case "Image recognition":
       return l.imageRecognition2;
+    case "Landmarks & local dishes":
+      return l.localeName.startsWith('zh')
+          ? '地标与特色美食'
+          : l.localeName.startsWith('ms')
+              ? 'Mercu tanda & hidangan tempatan'
+              : 'Landmarks & local dishes';
     case "Discover Malaysia through your camera":
       return l.discoverMalaysiaThroughYourCamera;
     case "Plan Your Trip":
@@ -359,6 +373,12 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.tellUsYourPreferences;
     case "Trip Assistant":
       return l.tripAssistant;
+    case "AI help, translation & weather":
+      return l.localeName.startsWith('zh')
+          ? 'AI 助手、翻译及天气'
+          : l.localeName.startsWith('ms')
+              ? 'Bantuan AI, terjemahan & cuaca'
+              : 'AI help, translation & weather';
     case "AI help, translation and weather alerts":
       return l.aiHelpTranslationAndWeatherAlerts;
     case "Where would you like to explore today?":

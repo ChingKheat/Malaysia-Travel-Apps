@@ -14,12 +14,13 @@ class DayRouteService {
   final GoogleRouteService _routes;
   final _cache = <(String, LatLng, LatLng), (DateTime, Future<RouteInfo?>)>{};
 
-  static bool supports(String mode) => mode == 'Driving' || mode == 'Walking';
+  static bool supports(String mode) =>
+      const {'Driving', 'Walking', 'E-hailing'}.contains(mode);
 
   Future<List<RouteInfo?>> load(List<TravelStop> stops, String mode) =>
       Future.wait([
         for (var i = 1; i < stops.length; i++)
-          _leg(stops[i - 1], stops[i], mode),
+          _leg(stops[i - 1], stops[i], stops[i].inboundMode ?? mode),
       ]);
 
   Future<RouteInfo?> _leg(TravelStop from, TravelStop to, String mode) async {
@@ -36,7 +37,10 @@ class DayRouteService {
     final cached = _cache[key];
     if (cached != null) return cached.$2;
     if (_cache.length >= 64) _cache.remove(_cache.keys.first);
-    final request = _routes.fetchRoadRoute([start, end], mode: mode);
+    final request = _routes.fetchRoadRoute([
+      start,
+      end,
+    ], mode: mode == 'E-hailing' ? 'Driving' : mode);
     _cache[key] = (now, request);
     final route = await request;
     if (route == null && identical(_cache[key]?.$2, request)) {

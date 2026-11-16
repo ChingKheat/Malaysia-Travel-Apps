@@ -51,7 +51,7 @@ void main() {
     expect(tester.getCenter(scan).dx, closeTo(195, 0.1));
     await tester.tap(scan);
     expect(selected, 2);
-    for (final label in ['Home', 'Explore', 'Scan', 'Plan', 'AI']) {
+    for (final label in ['Explore', 'Community', 'Scan', 'Plan', 'AI']) {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.text('Itinerary'), findsNothing);

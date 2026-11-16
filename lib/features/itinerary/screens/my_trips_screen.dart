@@ -24,6 +24,8 @@ class MyTripsScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
         backgroundColor: AppColors.nightSurface,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         foregroundColor: AppColors.ink,
         elevation: 0,
         centerTitle: true,

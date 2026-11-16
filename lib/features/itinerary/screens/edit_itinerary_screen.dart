@@ -485,9 +485,17 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       ),
 
                     // Filter Choice Chips
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         ChoiceChip(
+                          showCheckmark: false,
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           label: Text(
                             context.l10n.allValue(
                               (allInDest.length).toString(),
@@ -497,8 +505,13 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           onSelected: (_) =>
                               setModalState(() => activeFilter = 'All'),
                         ),
-                        const SizedBox(width: 8),
                         ChoiceChip(
+                          showCheckmark: false,
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           label: Text(
                             context.l10n.indoorValue((indoorCount).toString()),
                           ),
@@ -506,8 +519,13 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           onSelected: (_) =>
                               setModalState(() => activeFilter = 'Indoor'),
                         ),
-                        const SizedBox(width: 8),
                         ChoiceChip(
+                          showCheckmark: false,
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           label: Text(
                             context.l10n.outdoorValue(
                               (outdoorCount).toString(),
@@ -686,17 +704,19 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.add_location_alt_outlined,
                       color: AppColors.primary,
                     ),
-                    SizedBox(width: 10),
-                    Text(
-                      context.l10n.addStopToDaySchedule,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.ink,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        context.l10n.addStopToDaySchedule,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.ink,
+                        ),
                       ),
                     ),
                   ],
@@ -1126,7 +1146,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                 return Container(
                   key: ValueKey('${stop.title}_$index'),
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.nightSurface,
                     borderRadius: BorderRadius.circular(14),
@@ -1150,7 +1173,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       ReorderableDragStartListener(
                         index: index,
                         child: Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
                             color: AppColors.nightRaised,
                             borderRadius: BorderRadius.circular(8),
@@ -1158,11 +1181,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           child: const Icon(
                             Icons.drag_indicator,
                             color: AppColors.nightMuted,
-                            size: 20,
+                            size: 18,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
 
                       // Sequence Number
                       CircleAvatar(
@@ -1181,7 +1204,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
 
                       // Stop Details
                       Expanded(
@@ -1199,7 +1222,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
-                            Row(
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
                                   context.scheduledTime(stop.time),
@@ -1209,7 +1235,6 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
@@ -1253,16 +1278,16 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.warning_amber_rounded,
                                       size: 12,
                                       color: Color(0xFFD97706),
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
                                         context.l10n.duplicateStopToday,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Color(0xFFB45309),
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
@@ -1291,16 +1316,16 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.info_outline,
                                       size: 12,
                                       color: Color(0xFF2563EB),
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
                                         context.l10n.inOtherDay,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Color(0xFF1D4ED8),
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
@@ -1316,15 +1341,17 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 4),
 
                       // Action 1: Swap Attraction
                       IconButton(
                         tooltip: context.l10n.swapAttraction2,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 36,
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
+                        visualDensity: VisualDensity.compact,
                         icon: Icon(
                           (widget.weatherForecast != null &&
                                   !widget
@@ -1348,16 +1375,23 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
                       IconButton(
                         tooltip: 'Edit visit duration',
-                        onPressed: () => _editVisitDuration(index),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        visualDensity: VisualDensity.compact,
                         icon: const Icon(Icons.timer_outlined, size: 20),
+                        onPressed: () => _editVisitDuration(index),
                       ),
                       IconButton(
                         tooltip: context.l10n.removeStop,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 36,
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
+                        visualDensity: VisualDensity.compact,
                         icon: const Icon(
                           Icons.delete_outline,
                           color: Colors.redAccent,

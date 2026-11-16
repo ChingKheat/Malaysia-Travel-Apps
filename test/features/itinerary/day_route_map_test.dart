@@ -102,7 +102,12 @@ void main() {
     expect(find.text('1 schedule conflict'), findsOneWidget);
     await tester.tap(find.text('Journey segments'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('1. First stop → 2. Second stop'));
+    expect(find.text('From 1. First stop'), findsOneWidget);
+    expect(
+      find.text('Arrives 6 min after the next visit starts'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('To 2. Second stop'));
     await tester.pumpAndSettle();
     expect(find.text('Open in Google Maps'), findsOneWidget);
     expect(find.text('Open in Waze'), findsOneWidget);

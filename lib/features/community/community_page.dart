@@ -5,9 +5,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import '../../shared/models/attraction.dart';
 import '../auth/services/auth_service.dart';
 import '../places/screens/attraction_detail_page.dart';
+import 'community_service.dart';
 
 // Feature-local copy keeps the prototype usable in all existing app languages.
 String communityText(BuildContext context, String en, String zh, String ms) =>
@@ -208,6 +210,7 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
 
 class CommunityPost {
   CommunityPost({
+    this.id,
     required this.author,
     required this.place,
     required this.topic,
@@ -225,6 +228,24 @@ class CommunityPost {
     List<String>? initialComments,
   }) : comments = initialComments ?? [];
 
+  factory CommunityPost.fromFeed(Map<String, dynamic> row) => CommunityPost(
+    id: row['id'] as String,
+    author: row['author'] as String,
+    place: row['place'] as String,
+    topic: row['topic'] as String,
+    body: row['body'] as String,
+    asset: '',
+    authorRole: '',
+    authorLocation: '',
+    area: '',
+    timeAgo: (row['created_at'] as String).split('T').first,
+    likesCount: row['likes_count'] as int,
+    liked: row['liked'] as bool,
+    saved: row['saved'] as bool,
+    initialComments: List<String>.from(row['comments'] as List),
+  );
+
+  final String? id;
   final String author;
   final String authorRole;
   final String authorLocation;
@@ -240,6 +261,34 @@ class CommunityPost {
   bool liked;
   bool saved;
   final List<String> comments;
+
+  Future<void> setReaction({
+    required bool bookmark,
+    required bool selected,
+  }) async {
+    final postId = id;
+    if (postId != null) {
+      await CommunityService().setReaction(
+        postId: postId,
+        saved: bookmark,
+        selected: selected,
+      );
+    }
+    if (bookmark) {
+      saved = selected;
+    } else if (liked != selected) {
+      liked = selected;
+      likesCount += selected ? 1 : (likesCount > 0 ? -1 : 0);
+    }
+  }
+
+  Future<void> addComment(String commentId, String text) async {
+    final postId = id;
+    if (postId != null) {
+      await CommunityService().comment(commentId, postId, text);
+    }
+    comments.add(text);
+  }
 
   String get authorInitials {
     final parts = author.trim().split(RegExp(r'\s+'));
@@ -536,6 +585,22 @@ class CommunityPostDetailPage extends StatefulWidget {
 
 class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
   final _comment = TextEditingController();
+  bool _busy = false;
+  String? _commentId;
+  String? _submittedComment;
+
+  Future<void> _update(Future<void> Function() task) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await task();
+    } catch (_) {
+      if (mounted) showCommunitySyncError(context);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   void dispose() {
     _comment.dispose();
@@ -548,13 +613,14 @@ class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Image.asset(
-            widget.post.asset,
-            semanticLabel: widget.post.place,
+        if (widget.post.asset.isNotEmpty)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.asset(
+              widget.post.asset,
+              semanticLabel: widget.post.place,
+            ),
           ),
-        ),
         const SizedBox(height: 16),
         Text(
           widget.post.author,
@@ -569,25 +635,30 @@ class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
             FilterChip(
               label: Text(communityText(context, 'Like', '点赞', 'Suka')),
               selected: widget.post.liked,
-              onSelected: (v) => setState(() => widget.post.liked = v),
+              onSelected: _busy
+                  ? null
+                  : (v) => _update(
+                      () =>
+                          widget.post.setReaction(bookmark: false, selected: v),
+                    ),
             ),
             FilterChip(
               label: Text(
                 communityText(context, 'Save post', '收藏帖子', 'Simpan siaran'),
               ),
               selected: widget.post.saved,
-              onSelected: (v) => setState(() => widget.post.saved = v),
+              onSelected: _busy
+                  ? null
+                  : (v) => _update(
+                      () =>
+                          widget.post.setReaction(bookmark: true, selected: v),
+                    ),
             ),
           ],
         ),
         const Divider(height: 32),
         Text(
-          communityText(
-            context,
-            'Comments · session preview',
-            '评论 · 当前会话预览',
-            'Komen · pratonton sesi',
-          ),
+          communityText(context, 'Comments', '评论', 'Komen'),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         for (final comment in widget.post.comments)
@@ -599,6 +670,7 @@ class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
         const SizedBox(height: 16),
         TextField(
           controller: _comment,
+          enabled: !_busy,
           minLines: 1,
           maxLines: 4,
           maxLength: 500,
@@ -615,12 +687,21 @@ class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
         Align(
           alignment: Alignment.centerRight,
           child: FilledButton(
-            onPressed: () {
-              final text = _comment.text.trim();
-              if (text.isEmpty) return;
-              setState(() => widget.post.comments.add(text));
-              _comment.clear();
-            },
+            onPressed: _busy
+                ? null
+                : () {
+                    final text = _comment.text.trim();
+                    if (text.isEmpty) return;
+                    if (_submittedComment != text || _commentId == null) {
+                      _submittedComment = text;
+                      _commentId = const Uuid().v4();
+                    }
+                    _update(() async {
+                      await widget.post.addComment(_commentId!, text);
+                      _commentId = null;
+                      if (mounted) _comment.clear();
+                    });
+                  },
             child: Text(
               communityText(context, 'Add comment', '添加评论', 'Tambah komen'),
             ),
@@ -631,8 +712,21 @@ class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
   );
 }
 
-/// Prototype composer. Only text/location drafts are persisted; photos are
-/// explicitly session-only until the durable media repository is implemented.
+void showCommunitySyncError(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        communityText(
+          context,
+          'Could not sync. Sign in and try again when online.',
+          '同步失败，请登录并在联网后重试。',
+          'Gagal menyegerak. Log masuk dan cuba lagi dalam talian.',
+        ),
+      ),
+    ),
+  );
+}
+
 class CommunityComposer extends StatefulWidget {
   const CommunityComposer({super.key});
   @override
@@ -643,6 +737,10 @@ class _CommunityComposerState extends State<CommunityComposer> {
   final _body = TextEditingController();
   final _place = TextEditingController();
   final List<Uint8List> _photos = [];
+  final _service = CommunityService();
+  String _topic = CommunityService.topics.first;
+  String? _postId;
+  (String, String, String)? _submittedPost;
   late final String _draftKey;
   bool _loading = true;
   bool _busy = false;
@@ -666,6 +764,12 @@ class _CommunityComposerState extends State<CommunityComposer> {
         final data = jsonDecode(raw) as Map<String, dynamic>;
         _body.text = data['body'] as String? ?? '';
         _place.text = data['place'] as String? ?? '';
+        final topic = data['topic'];
+        if (CommunityService.topics.contains(topic)) _topic = topic as String;
+        _postId = data['postId'] as String?;
+        if (_postId != null) {
+          _submittedPost = (_body.text.trim(), _place.text.trim(), _topic);
+        }
       }
     } catch (_) {
       if (mounted) _error = 'load';
@@ -682,7 +786,15 @@ class _CommunityComposerState extends State<CommunityComposer> {
       final prefs = await SharedPreferences.getInstance();
       final saved = await prefs.setString(
         _draftKey,
-        jsonEncode({'body': _body.text, 'place': _place.text}),
+        jsonEncode({
+          'body': _body.text,
+          'place': _place.text,
+          'topic': _topic,
+          'postId':
+              _submittedPost == (_body.text.trim(), _place.text.trim(), _topic)
+              ? _postId
+              : null,
+        }),
       );
       if (!saved) throw StateError('Draft write failed');
       return true;
@@ -691,6 +803,47 @@ class _CommunityComposerState extends State<CommunityComposer> {
       return false;
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _publish() async {
+    final body = _body.text.trim();
+    final place = _place.text.trim();
+    if (body.isEmpty || place.isEmpty) {
+      setState(() => _error = 'required');
+      return;
+    }
+    if (_submittedPost != (body, place, _topic)) {
+      _submittedPost = (body, place, _topic);
+      _postId = const Uuid().v4();
+    }
+    // Preserve the attempt ID with the draft so retries after a timeout
+    // or process restart cannot create a duplicate post.
+    if (!await _save() || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await _service.publish(
+        id: _postId!,
+        body: body,
+        place: place,
+        topic: _topic,
+      );
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_draftKey);
+      } catch (_) {
+        // The post has already been published.
+      }
+      if (!mounted) return;
+      setState(() => _allowPop = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context, true);
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        showCommunitySyncError(context);
+      }
     }
   }
 
@@ -803,9 +956,9 @@ class _CommunityComposerState extends State<CommunityComposer> {
                 Text(
                   communityText(
                     context,
-                    'Preview only · No public uploads yet. Save a text draft to continue later. Photos are not saved.',
-                    '仅供预览 · 暂不公开上传。可保存文字草稿，照片不会保存。',
-                    'Pratonton sahaja · Tiada muat naik awam. Draf teks boleh disimpan; foto tidak disimpan.',
+                    'Posts are visible to signed-in travellers. Photos are for preview only.',
+                    '登录用户可看到发布的帖子。照片仅供预览。',
+                    'Siaran boleh dilihat oleh pengguna yang log masuk. Foto untuk pratonton sahaja.',
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -841,6 +994,20 @@ class _CommunityComposerState extends State<CommunityComposer> {
                     prefixIcon: const Icon(Icons.location_on_outlined),
                     border: const OutlineInputBorder(),
                   ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _topic,
+                  decoration: InputDecoration(
+                    labelText: communityText(context, 'Topic', '分类', 'Topik'),
+                  ),
+                  items: [
+                    for (final topic in CommunityService.topics)
+                      DropdownMenuItem(value: topic, child: Text(topic)),
+                  ],
+                  onChanged: _busy
+                      ? null
+                      : (value) => setState(() => _topic = value!),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -893,18 +1060,36 @@ class _CommunityComposerState extends State<CommunityComposer> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      communityText(
-                        context,
-                        'Could not complete the action. Your current text is still here; please retry.',
-                        '操作未完成，当前文字仍保留在页面上，请重试。',
-                        'Tindakan gagal. Teks masih ada; sila cuba lagi.',
-                      ),
+                      _error == 'required'
+                          ? communityText(
+                              context,
+                              'Enter a place and post text.',
+                              '请填写地点和正文。',
+                              'Masukkan tempat dan teks siaran.',
+                            )
+                          : communityText(
+                              context,
+                              'Could not complete the action. Your current text is still here; please retry.',
+                              '操作未完成，当前文字仍保留在页面上，请重试。',
+                              'Tindakan gagal. Teks masih ada; sila cuba lagi.',
+                            ),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ),
                 const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: _busy ? null : _publish,
+                  child: Text(
+                    communityText(
+                      context,
+                      'Publish post',
+                      '发布帖子',
+                      'Terbitkan siaran',
+                    ),
+                  ),
+                ),
                 FilledButton(
                   onPressed: _busy
                       ? null

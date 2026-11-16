@@ -342,7 +342,7 @@ CREATE OR REPLACE FUNCTION public.sanitize_google_itinerary_stop() RETURNS trigg
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 DECLARE own_keys TEXT[] := ARRAY['place_id','id','schedule_id','stop_order','arrival_time','departure_time',
   'is_visited','time','duration','estimated_cost','visit_minutes','is_indoor','travel_minutes',
-  'travel_cost','travel_is_estimated','data_source','user_note'];
+  'travel_cost','travel_is_estimated','inbound_mode','data_source','user_note'];
   clean JSONB; snap JSONB;
 BEGIN
   IF EXISTS(SELECT 1 FROM public.places WHERE place_id=NEW.place_id AND data_source='google') THEN
@@ -634,5 +634,91 @@ DO $$ BEGIN
     USING (bucket_id = 'place-photos');
   END IF;
 END $$;
+
+-- Community
+CREATE TABLE IF NOT EXISTS public.community_posts (
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  author text NOT NULL CHECK (char_length(btrim(author)) BETWEEN 1 AND 100),
+  place text NOT NULL CHECK (char_length(btrim(place)) BETWEEN 1 AND 100),
+  topic text NOT NULL CHECK (topic IN ('Local Tip', 'Trip Log', 'Question', 'Photo')),
+  body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 2000),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.community_comments (
+  id uuid PRIMARY KEY,
+  post_id uuid NOT NULL REFERENCES public.community_posts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 500),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.community_likes (
+  post_id uuid NOT NULL REFERENCES public.community_posts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.community_bookmarks (
+  post_id uuid NOT NULL REFERENCES public.community_posts(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS community_posts_feed_idx ON public.community_posts (created_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS community_comments_post_idx ON public.community_comments (post_id, created_at, id);
+CREATE INDEX IF NOT EXISTS community_posts_user_idx ON public.community_posts (user_id);
+CREATE INDEX IF NOT EXISTS community_comments_user_idx ON public.community_comments (user_id);
+CREATE INDEX IF NOT EXISTS community_likes_user_idx ON public.community_likes (user_id);
+CREATE INDEX IF NOT EXISTS community_bookmarks_user_idx ON public.community_bookmarks (user_id);
+
+DO $$
+DECLARE
+  relation text;
+BEGIN
+  FOREACH relation IN ARRAY ARRAY['community_posts', 'community_comments', 'community_likes', 'community_bookmarks']
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', relation);
+    EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', relation);
+    EXECUTE format('GRANT SELECT, INSERT ON public.%I TO authenticated', relation);
+    IF relation IN ('community_likes', 'community_bookmarks') THEN
+      EXECUTE format('GRANT DELETE ON public.%I TO authenticated', relation);
+      IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = relation AND policyname = 'community_remove_own') THEN
+        EXECUTE format('CREATE POLICY community_remove_own ON public.%I FOR DELETE TO authenticated USING ((SELECT auth.uid()) = user_id)', relation);
+      END IF;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = relation AND policyname = 'community_insert_own') THEN
+      EXECUTE format('CREATE POLICY community_insert_own ON public.%I FOR INSERT TO authenticated WITH CHECK ((SELECT auth.uid()) = user_id)', relation);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = relation AND policyname = 'community_read') THEN
+      EXECUTE format('CREATE POLICY community_read ON public.%I FOR SELECT TO authenticated USING (%s)', relation,
+        CASE WHEN relation = 'community_bookmarks' THEN '(SELECT auth.uid()) = user_id' ELSE 'true' END);
+    END IF;
+  END LOOP;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.community_feed()
+RETURNS TABLE (
+  id uuid, author text, place text, topic text, body text, created_at timestamptz,
+  likes_count bigint, liked boolean, saved boolean, comments jsonb
+)
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = ''
+AS $$
+  SELECT p.id, p.author, p.place, p.topic, p.body, p.created_at,
+    (SELECT count(*) FROM public.community_likes l WHERE l.post_id = p.id),
+    EXISTS (SELECT 1 FROM public.community_likes l WHERE l.post_id = p.id AND l.user_id = (SELECT auth.uid())),
+    EXISTS (SELECT 1 FROM public.community_bookmarks b WHERE b.post_id = p.id AND b.user_id = (SELECT auth.uid())),
+    COALESCE((SELECT jsonb_agg(c.body ORDER BY c.created_at, c.id) FROM (
+      SELECT cc.id, cc.body, cc.created_at FROM public.community_comments cc
+      WHERE cc.post_id = p.id ORDER BY cc.created_at DESC, cc.id DESC LIMIT 30
+    ) c), '[]'::jsonb)
+  FROM public.community_posts p
+  ORDER BY p.created_at DESC, p.id DESC
+  LIMIT 50
+$$;
+
+REVOKE ALL ON FUNCTION public.community_feed() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.community_feed() TO authenticated;
 
 COMMIT;

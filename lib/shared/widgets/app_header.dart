@@ -36,7 +36,14 @@ class AppHeader extends StatelessWidget {
   const AppHeader.ai({
     super.key,
     this.title = 'Trip Assistant',
-    this.subtitle = 'AI help, translation and weather alerts',
+    this.subtitle = 'AI help, translation & weather',
+    this.isDark = false,
+  });
+
+  const AppHeader.recognition({
+    super.key,
+    this.title = 'Image Recognition',
+    this.subtitle = 'Landmarks & local dishes',
     this.isDark = false,
   });
 
@@ -69,19 +76,27 @@ class AppHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    displayTitle,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'serif',
-                      color: foreground,
-                      letterSpacing: 0.3,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      displayTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'serif',
+                        color: foreground,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     displaySubtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: muted,
                       fontSize: 13,
@@ -91,6 +106,7 @@ class AppHeader extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             _HeaderBadgeButton(
               icon: Icons.chat_bubble_outline_rounded,
               badgeText: '1',
@@ -108,7 +124,7 @@ class AppHeader extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             _HeaderBadgeButton(
               icon: Icons.notifications_none_outlined,
               badgeText: '1',
@@ -127,7 +143,7 @@ class AppHeader extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 4),
             GestureDetector(
               onTap: () {
                 demoHaptic();
@@ -136,27 +152,33 @@ class AppHeader extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const ProfilePage()),
                 );
               },
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: dark
-                        ? AppColors.nightAccent.withValues(alpha: 0.5)
-                        : AppColors.line,
-                    width: 1.5,
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Center(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: dark
+                            ? AppColors.nightAccent.withValues(alpha: 0.5)
+                            : AppColors.line,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 17,
+                      backgroundColor: dark
+                          ? AppColors.nightSurface
+                          : AppColors.sky,
+                      backgroundImage: user != null && user.avatarUrl.isNotEmpty
+                          ? NetworkImage(user.avatarUrl)
+                          : null,
+                      child: user == null || user.avatarUrl.isEmpty
+                          ? Icon(Icons.person_outline, color: muted, size: 18)
+                          : null,
+                    ),
                   ),
-                ),
-                child: CircleAvatar(
-                  radius: 19,
-                  backgroundColor: dark
-                      ? AppColors.nightSurface
-                      : AppColors.sky,
-                  backgroundImage: user != null && user.avatarUrl.isNotEmpty
-                      ? NetworkImage(user.avatarUrl)
-                      : null,
-                  child: user == null || user.avatarUrl.isEmpty
-                      ? Icon(Icons.person_outline, color: muted, size: 20)
-                      : null,
                 ),
               ),
             ),
@@ -195,18 +217,18 @@ class _HeaderBadgeButton extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(20),
             child: SizedBox(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(icon, color: iconColor, size: 24),
+                  Icon(icon, color: iconColor, size: 22),
                   Positioned(
                     top: 2,
                     right: 2,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
+                        horizontal: 3.5,
                         vertical: 1,
                       ),
                       constraints: const BoxConstraints(

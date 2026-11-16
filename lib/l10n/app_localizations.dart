@@ -130,6 +130,12 @@ abstract class AppLocalizations {
   /// **'Explore'**
   String get explore;
 
+  /// No description provided for @community.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get community;
+
   /// No description provided for @recognize.
   ///
   /// In en, this message translates to:
@@ -4722,6 +4728,354 @@ abstract class AppLocalizations {
   /// **'Selected photos are sent to Google Vision for scanning. Only result text is saved in History on this device.'**
   String
   get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice;
+
+  /// No description provided for @planPersonalize.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize trip preferences'**
+  String get planPersonalize;
+
+  /// No description provided for @planArrival.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrival time'**
+  String get planArrival;
+
+  /// No description provided for @planDeparture.
+  ///
+  /// In en, this message translates to:
+  /// **'Departure time'**
+  String get planDeparture;
+
+  /// No description provided for @planAirport.
+  ///
+  /// In en, this message translates to:
+  /// **'Airport departure · allow 3 hours'**
+  String get planAirport;
+
+  /// No description provided for @planAccommodation.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily starting point'**
+  String get planAccommodation;
+
+  /// No description provided for @planOptionalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional trip details'**
+  String get planOptionalDetails;
+
+  /// No description provided for @planLocalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Times are local to your destination.'**
+  String get planLocalTime;
+
+  /// No description provided for @planSetArrival.
+  ///
+  /// In en, this message translates to:
+  /// **'Set arrival time'**
+  String get planSetArrival;
+
+  /// No description provided for @planSetDeparture.
+  ///
+  /// In en, this message translates to:
+  /// **'Set departure time'**
+  String get planSetDeparture;
+
+  /// No description provided for @planChooseStartingPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose accommodation or another starting point'**
+  String get planChooseStartingPoint;
+
+  /// No description provided for @planUndecided.
+  ///
+  /// In en, this message translates to:
+  /// **'Undecided'**
+  String get planUndecided;
+
+  /// No description provided for @planTravelers.
+  ///
+  /// In en, this message translates to:
+  /// **'Traveler type'**
+  String get planTravelers;
+
+  /// No description provided for @planPace.
+  ///
+  /// In en, this message translates to:
+  /// **'Sightseeing pace'**
+  String get planPace;
+
+  /// No description provided for @planDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Dining preference'**
+  String get planDiet;
+
+  /// No description provided for @planMustVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Must-visit attractions (up to 3)'**
+  String get planMustVisit;
+
+  /// No description provided for @planPresets.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick presets'**
+  String get planPresets;
+
+  /// No description provided for @planClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'First-time explorer · culture and KL landmarks'**
+  String get planClassic;
+
+  /// No description provided for @planFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Malaysian food explorer · relaxed and street food'**
+  String get planFood;
+
+  /// No description provided for @planFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family getaway · relaxed and family activities'**
+  String get planFamily;
+
+  /// No description provided for @planSolo.
+  ///
+  /// In en, this message translates to:
+  /// **'Solo'**
+  String get planSolo;
+
+  /// No description provided for @planCouple.
+  ///
+  /// In en, this message translates to:
+  /// **'Couple'**
+  String get planCouple;
+
+  /// No description provided for @planFamilyType.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get planFamilyType;
+
+  /// No description provided for @planFriends.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get planFriends;
+
+  /// No description provided for @planSeniors.
+  ///
+  /// In en, this message translates to:
+  /// **'Seniors'**
+  String get planSeniors;
+
+  /// No description provided for @planRelaxed.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed (2–3 visits/day)'**
+  String get planRelaxed;
+
+  /// No description provided for @planBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced (3–4 visits/day)'**
+  String get planBalanced;
+
+  /// No description provided for @planPacked.
+  ///
+  /// In en, this message translates to:
+  /// **'Packed (5+ visits/day)'**
+  String get planPacked;
+
+  /// No description provided for @planNoRestriction.
+  ///
+  /// In en, this message translates to:
+  /// **'No restriction'**
+  String get planNoRestriction;
+
+  /// No description provided for @planHalal.
+  ///
+  /// In en, this message translates to:
+  /// **'Halal-friendly'**
+  String get planHalal;
+
+  /// No description provided for @planVegetarian.
+  ///
+  /// In en, this message translates to:
+  /// **'Vegetarian'**
+  String get planVegetarian;
+
+  /// No description provided for @planStreetFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Street food enthusiast'**
+  String get planStreetFood;
+
+  /// No description provided for @planRail.
+  ///
+  /// In en, this message translates to:
+  /// **'Also open to MRT / LRT'**
+  String get planRail;
+
+  /// No description provided for @planWalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Also open to walking'**
+  String get planWalk;
+
+  /// No description provided for @planEditPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit preferences'**
+  String get planEditPreferences;
+
+  /// No description provided for @planSmartFill.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Fill'**
+  String get planSmartFill;
+
+  /// No description provided for @planDescribeTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the trip you want'**
+  String get planDescribeTrip;
+
+  /// No description provided for @planSuggest.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest preferences'**
+  String get planSuggest;
+
+  /// No description provided for @planFillNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No supported preferences found. You can fill in the form below.'**
+  String get planFillNoMatch;
+
+  /// No description provided for @planFillLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local suggestions applied. Review your preferences below.'**
+  String get planFillLocal;
+
+  /// No description provided for @planFillReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini suggestions applied. Review your preferences below.'**
+  String get planFillReview;
+
+  /// No description provided for @planHailing.
+  ///
+  /// In en, this message translates to:
+  /// **'Grab / E-hailing'**
+  String get planHailing;
+
+  /// No description provided for @planSearchOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online with Google Places'**
+  String get planSearchOnline;
+
+  /// No description provided for @planNoPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching places. Try another search.'**
+  String get planNoPlaces;
+
+  /// No description provided for @planAirportTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated transfer time to the airport'**
+  String get planAirportTransfer;
+
+  /// No description provided for @planBasics.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip basics'**
+  String get planBasics;
+
+  /// No description provided for @planWhoPace.
+  ///
+  /// In en, this message translates to:
+  /// **'Who & pace'**
+  String get planWhoPace;
+
+  /// No description provided for @planBudgetDining.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget & dining'**
+  String get planBudgetDining;
+
+  /// No description provided for @planHighlightsInterests.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights & interests'**
+  String get planHighlightsInterests;
+
+  /// No description provided for @planHalalBranchNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional dining stop. Nando’s Malaysia reports JAKIM certification. Check the branch’s current status before visiting.'**
+  String get planHalalBranchNote;
+
+  /// No description provided for @planHalalDirectoryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Check current certification for a specific food premise in JAKIM’s directory.'**
+  String get planHalalDirectoryNote;
+
+  /// No description provided for @planVegetarianBranchNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional dining stop. The restaurant publishes its vegetarian menu and address.'**
+  String get planVegetarianBranchNote;
+
+  /// No description provided for @planRestaurantSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Restaurant website'**
+  String get planRestaurantSource;
+
+  /// No description provided for @planVerifyHalal.
+  ///
+  /// In en, this message translates to:
+  /// **'Check JAKIM directory'**
+  String get planVerifyHalal;
+
+  /// No description provided for @planContinueWho.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to traveler & pace'**
+  String get planContinueWho;
+
+  /// No description provided for @planContinueHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to daily hours'**
+  String get planContinueHours;
+
+  /// No description provided for @planContinueBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to budget & dining'**
+  String get planContinueBudget;
+
+  /// No description provided for @planLogisticsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Add arrival or departure times and a starting point to help schedule your day. You can leave these blank.'**
+  String get planLogisticsHelp;
+
+  /// No description provided for @planContinueHighlights.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to highlights & interests'**
+  String get planContinueHighlights;
 }
 
 class _AppLocalizationsDelegate

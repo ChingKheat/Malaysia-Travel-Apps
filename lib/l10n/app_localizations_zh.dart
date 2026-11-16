@@ -24,6 +24,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get explore => '探索';
 
   @override
+  String get community => '社区';
+
+  @override
   String get recognize => '识别';
 
   @override
@@ -2704,4 +2707,179 @@ class AppLocalizationsZh extends AppLocalizations {
   String
   get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
       '所选照片会发送至 Google Vision 进行扫描，本设备仅在历史记录中保存识别结果文字。';
+
+  @override
+  String get planPersonalize => '自定义旅行偏好';
+
+  @override
+  String get planArrival => '抵达时间';
+
+  @override
+  String get planDeparture => '离开时间';
+
+  @override
+  String get planAirport => '机场出发 · 预留 3 小时';
+
+  @override
+  String get planAccommodation => '每日出发点';
+
+  @override
+  String get planOptionalDetails => '选填行程详情';
+
+  @override
+  String get planLocalTime => '时间以目的地当地时间为准。';
+
+  @override
+  String get planSetArrival => '设置抵达时间';
+
+  @override
+  String get planSetDeparture => '设置离开时间';
+
+  @override
+  String get planChooseStartingPoint => '选择住宿或其他出发点';
+
+  @override
+  String get planUndecided => '尚未决定';
+
+  @override
+  String get planTravelers => '旅客类型';
+
+  @override
+  String get planPace => '游览节奏';
+
+  @override
+  String get planDiet => '饮食偏好';
+
+  @override
+  String get planMustVisit => '必去景点（最多 3 个）';
+
+  @override
+  String get planPresets => '快速预设';
+
+  @override
+  String get planClassic => '首次探索 · 文化与吉隆坡地标';
+
+  @override
+  String get planFood => '马来西亚美食 · 轻松与街头小吃';
+
+  @override
+  String get planFamily => '家庭度假 · 轻松与亲子活动';
+
+  @override
+  String get planSolo => '独自旅行';
+
+  @override
+  String get planCouple => '情侣';
+
+  @override
+  String get planFamilyType => '家庭';
+
+  @override
+  String get planFriends => '朋友';
+
+  @override
+  String get planSeniors => '长者';
+
+  @override
+  String get planRelaxed => '轻松（每天 2–3 站）';
+
+  @override
+  String get planBalanced => '适中（每天 3–4 站）';
+
+  @override
+  String get planPacked => '紧凑（每天 5 站以上）';
+
+  @override
+  String get planNoRestriction => '无饮食限制';
+
+  @override
+  String get planHalal => '清真友好';
+
+  @override
+  String get planVegetarian => '素食';
+
+  @override
+  String get planStreetFood => '街头美食爱好者';
+
+  @override
+  String get planRail => '也可乘坐 MRT／LRT';
+
+  @override
+  String get planWalk => '也可步行';
+
+  @override
+  String get planEditPreferences => '编辑旅行偏好';
+
+  @override
+  String get planSmartFill => '智能填表';
+
+  @override
+  String get planDescribeTrip => '描述你想要的旅行';
+
+  @override
+  String get planSuggest => '推荐旅行偏好';
+
+  @override
+  String get planFillNoMatch => '未识别到可填写的偏好。你可以在下方填写。';
+
+  @override
+  String get planFillLocal => '已应用本地建议，请在下方核对偏好。';
+
+  @override
+  String get planFillReview => '已应用 Gemini 建议，请在下方核对偏好。';
+
+  @override
+  String get planHailing => 'Grab／网约车';
+
+  @override
+  String get planSearchOnline => '使用 Google Places 在线搜索';
+
+  @override
+  String get planNoPlaces => '未找到匹配地点，请尝试其他关键词。';
+
+  @override
+  String get planAirportTransfer => '预计前往机场的交通时间';
+
+  @override
+  String get planBasics => '行程基本信息';
+
+  @override
+  String get planWhoPace => '旅客与节奏';
+
+  @override
+  String get planBudgetDining => '预算与饮食';
+
+  @override
+  String get planHighlightsInterests => '必去景点与兴趣';
+
+  @override
+  String get planHalalBranchNote =>
+      '可选用餐地点。Nando’s 马来西亚称其门店获 JAKIM 认证，请在到访前核对该分店的当前状态。';
+
+  @override
+  String get planHalalDirectoryNote => '在 JAKIM 目录核对具体餐饮门店的当前认证。';
+
+  @override
+  String get planVegetarianBranchNote => '可选用餐地点。餐厅官网提供素食菜单和地址。';
+
+  @override
+  String get planRestaurantSource => '餐厅官网';
+
+  @override
+  String get planVerifyHalal => '查看 JAKIM 认证目录';
+
+  @override
+  String get planContinueWho => '继续：旅客与节奏';
+
+  @override
+  String get planContinueHours => '继续：每日游览时间';
+
+  @override
+  String get planContinueBudget => '继续：预算与饮食';
+
+  @override
+  String get planLogisticsHelp => '填写抵达或离开时间和每日出发点，行程会按这些信息安排。也可以留空。';
+
+  @override
+  String get planContinueHighlights => '继续：必去景点与兴趣';
 }

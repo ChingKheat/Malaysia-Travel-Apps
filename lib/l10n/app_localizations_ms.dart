@@ -25,6 +25,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get explore => 'Teroka';
 
   @override
+  String get community => 'Komuniti';
+
+  @override
   String get recognize => 'Kenal Pasti';
 
   @override
@@ -2799,4 +2802,187 @@ class AppLocalizationsMs extends AppLocalizations {
   String
   get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
       'Foto yang dipilih dihantar ke Google Vision untuk diimbas. Hanya teks keputusan disimpan dalam Sejarah pada peranti ini.';
+
+  @override
+  String get planPersonalize => 'Sesuaikan pilihan perjalanan';
+
+  @override
+  String get planArrival => 'Waktu ketibaan';
+
+  @override
+  String get planDeparture => 'Waktu berlepas';
+
+  @override
+  String get planAirport => 'Pelepasan lapangan terbang · peruntukkan 3 jam';
+
+  @override
+  String get planAccommodation => 'Titik mula harian';
+
+  @override
+  String get planOptionalDetails => 'Butiran perjalanan pilihan';
+
+  @override
+  String get planLocalTime => 'Waktu mengikut zon waktu destinasi anda.';
+
+  @override
+  String get planSetArrival => 'Tetapkan waktu ketibaan';
+
+  @override
+  String get planSetDeparture => 'Tetapkan waktu berlepas';
+
+  @override
+  String get planChooseStartingPoint => 'Pilih penginapan atau titik mula lain';
+
+  @override
+  String get planUndecided => 'Belum diputuskan';
+
+  @override
+  String get planTravelers => 'Jenis pengembara';
+
+  @override
+  String get planPace => 'Rentak lawatan';
+
+  @override
+  String get planDiet => 'Pilihan makanan';
+
+  @override
+  String get planMustVisit => 'Tarikan wajib dilawati (sehingga 3)';
+
+  @override
+  String get planPresets => 'Pratetap pantas';
+
+  @override
+  String get planClassic => 'Peneroka kali pertama · budaya dan mercu tanda KL';
+
+  @override
+  String get planFood =>
+      'Peneroka makanan Malaysia · santai dan makanan jalanan';
+
+  @override
+  String get planFamily => 'Percutian keluarga · santai dan aktiviti keluarga';
+
+  @override
+  String get planSolo => 'Solo';
+
+  @override
+  String get planCouple => 'Pasangan';
+
+  @override
+  String get planFamilyType => 'Keluarga';
+
+  @override
+  String get planFriends => 'Rakan';
+
+  @override
+  String get planSeniors => 'Warga emas';
+
+  @override
+  String get planRelaxed => 'Santai (2–3 lawatan/hari)';
+
+  @override
+  String get planBalanced => 'Seimbang (3–4 lawatan/hari)';
+
+  @override
+  String get planPacked => 'Padat (5+ lawatan/hari)';
+
+  @override
+  String get planNoRestriction => 'Tiada sekatan';
+
+  @override
+  String get planHalal => 'Mesra halal';
+
+  @override
+  String get planVegetarian => 'Vegetarian';
+
+  @override
+  String get planStreetFood => 'Peminat makanan jalanan';
+
+  @override
+  String get planRail => 'Juga sedia menggunakan MRT / LRT';
+
+  @override
+  String get planWalk => 'Juga sedia berjalan kaki';
+
+  @override
+  String get planEditPreferences => 'Edit pilihan perjalanan';
+
+  @override
+  String get planSmartFill => 'Isi pintar';
+
+  @override
+  String get planDescribeTrip => 'Terangkan perjalanan yang anda inginkan';
+
+  @override
+  String get planSuggest => 'Cadangkan pilihan';
+
+  @override
+  String get planFillNoMatch =>
+      'Tiada pilihan yang disokong ditemui. Isi borang di bawah.';
+
+  @override
+  String get planFillLocal =>
+      'Cadangan setempat digunakan. Semak pilihan anda di bawah.';
+
+  @override
+  String get planFillReview =>
+      'Cadangan Gemini digunakan. Semak pilihan anda di bawah.';
+
+  @override
+  String get planHailing => 'Grab / E-panggilan';
+
+  @override
+  String get planSearchOnline => 'Cari dalam talian dengan Google Places';
+
+  @override
+  String get planNoPlaces => 'Tiada tempat sepadan. Cuba carian lain.';
+
+  @override
+  String get planAirportTransfer =>
+      'Anggaran masa perjalanan ke lapangan terbang';
+
+  @override
+  String get planBasics => 'Asas perjalanan';
+
+  @override
+  String get planWhoPace => 'Pengembara dan rentak';
+
+  @override
+  String get planBudgetDining => 'Bajet dan makanan';
+
+  @override
+  String get planHighlightsInterests => 'Tarikan dan minat';
+
+  @override
+  String get planHalalBranchNote =>
+      'Pilihan makan. Nando’s Malaysia menyatakan ia diperakui JAKIM. Semak status semasa cawangan sebelum berkunjung.';
+
+  @override
+  String get planHalalDirectoryNote =>
+      'Semak status pensijilan premis makanan dalam direktori JAKIM.';
+
+  @override
+  String get planVegetarianBranchNote =>
+      'Pilihan makan. Restoran menerbitkan menu vegetarian dan alamatnya.';
+
+  @override
+  String get planRestaurantSource => 'Laman restoran';
+
+  @override
+  String get planVerifyHalal => 'Semak direktori JAKIM';
+
+  @override
+  String get planContinueWho => 'Terus ke pengembara dan rentak';
+
+  @override
+  String get planContinueHours => 'Terus ke waktu harian';
+
+  @override
+  String get planContinueBudget => 'Terus ke bajet dan makanan';
+
+  @override
+  String get planLogisticsHelp =>
+      'Tambah waktu ketibaan atau pelepasan dan titik mula untuk merancang hari anda. Ruangan ini boleh dikosongkan.';
+
+  @override
+  String get planContinueHighlights => 'Terus ke tarikan dan minat';
 }

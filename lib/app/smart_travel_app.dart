@@ -44,6 +44,13 @@ class SmartTravelApp extends StatelessWidget {
             useMaterial3: true,
             fontFamily: 'Roboto',
             scaffoldBackgroundColor: AppColors.canvas,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: AppColors.nightSurface,
+              foregroundColor: AppColors.ink,
+              surfaceTintColor: Colors.transparent,
+              scrolledUnderElevation: 0,
+              elevation: 0,
+            ),
             colorScheme: ColorScheme.fromSeed(
               seedColor: AppColors.primary,
               brightness: Brightness.dark,

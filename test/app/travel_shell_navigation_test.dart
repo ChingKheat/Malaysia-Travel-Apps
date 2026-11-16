@@ -23,31 +23,27 @@ void main() {
   });
 
   testWidgets(
-    'Five tabs open their destinations and Home opens empty My Trips',
+    'Five tabs open their destinations and Explore opens empty My Trips',
     (tester) async {
       await _withApp(tester, () async {
         for (final entry in {
-          'Explore': 'Explore Malaysia',
+          'Community': 'Explore Malaysia',
           'Scan': 'Image Recognition',
           'Plan': 'Plan Your Trip',
           'AI': 'Trip Assistant',
         }.entries) {
           await tester.tap(_tab(entry.key));
           await tester.pumpAndSettle();
-          if (entry.key == 'Scan') {
-            expect(find.text(entry.value), findsOneWidget);
-            expect(find.byTooltip('Notifications'), findsNothing);
-          } else {
-            expect(
-              find.descendant(
-                of: find.byType(AppHeader),
-                matching: find.text(entry.value),
-              ),
-              findsOneWidget,
-            );
-          }
+          expect(
+            find.descendant(
+              of: find.byType(AppHeader),
+              matching: find.text(entry.value),
+            ),
+            findsOneWidget,
+          );
+          expect(find.byTooltip('Notifications'), findsOneWidget);
         }
-        await tester.tap(_tab('Home'));
+        await tester.tap(_tab('Explore'));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('home-my-trips')));
         await tester.pumpAndSettle();

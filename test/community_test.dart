@@ -40,6 +40,10 @@ void main() {
   );
 
   testWidgets('text draft survives reopening composer', (tester) async {
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const MaterialApp(home: CommunityComposer()));
     await tester.pumpAndSettle();
@@ -49,6 +53,7 @@ void main() {
     );
     await tester.enterText(find.byType(TextField).last, 'Ipoh');
     await tester.ensureVisible(find.text('Save text draft'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Save text draft'));
     await tester.pumpAndSettle();
     expect(find.text('Text draft saved on this device.'), findsOneWidget);
@@ -57,6 +62,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('A quiet morning in Ipoh'), findsOneWidget);
     expect(find.text('Ipoh'), findsOneWidget);
-    expect(find.textContaining('No public uploads'), findsOneWidget);
+    expect(find.textContaining('Photos are for preview only'), findsOneWidget);
   });
 }

@@ -181,5 +181,39 @@ void main() {
 
       expect(find.textContaining('appears multiple times today'), findsOneWidget);
     });
+
+    testWidgets('EditItineraryScreen renders stop cards without RenderFlex overflow on standard mobile widths', (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: EditItineraryScreen(
+            tripTitle: 'Kuala Lumpur Trip',
+            destination: 'Kuala Lumpur',
+            dayNumber: 1,
+            initialStops: [stop1, stop2, stop3],
+            otherDaysStops: [],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Petronas Twin Towers'), findsOneWidget);
+      expect(find.text('Batu Caves'), findsOneWidget);
+      expect(find.text('Central Market'), findsOneWidget);
+
+      // Tap swap button to verify bottom sheet filter chips fit without overflow
+      await tester.tap(find.byIcon(Icons.swap_horiz_rounded).first);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Swap Attraction'), findsOneWidget);
+    });
   });
 }

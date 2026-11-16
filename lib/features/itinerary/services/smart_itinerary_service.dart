@@ -42,11 +42,13 @@ class SmartItineraryService {
   static final Map<int, List<TravelStop>> _liveGeneratedDays = {};
   static String? _cacheKey;
   static int _generation = 0;
+  static int _request = 0;
   static int get revision => _generation;
   static final Map<int, String> dayWarnings = {};
   static String _key(TripPreferences prefs) => jsonEncode(prefs.toJson());
 
   static void clearLiveCache() {
+    _request++;
     _liveGeneratedDays.clear();
     _cacheKey = null;
     dayWarnings.clear();
@@ -88,12 +90,12 @@ class SmartItineraryService {
     return double.parse(totalKm.toStringAsFixed(2));
   }
 
-  static Future<void> generateLiveItineraryForAllDays({
+  static Future<bool> generateLiveItineraryForAllDays({
     required TripPreferences preferences,
     int seed = 0,
+    bool requireVisits = false,
   }) async {
-    clearLiveCache();
-    final generation = _generation;
+    final request = ++_request;
     final destination = preferences.destination ?? 'Kuala Lumpur';
     List<TravelStop> candidates = [];
     {
@@ -104,14 +106,14 @@ class SmartItineraryService {
             destinationState: destination,
             query: 'tourist attractions in $destination Malaysia',
             maxResults: 20,
-            shouldContinue: () => generation == _generation,
+            shouldContinue: () => request == _request,
           ),
           service.fetchPlacesWithDatabaseCache(
             destinationState: destination,
             query: 'local restaurants in $destination Malaysia',
             isMeal: true,
             maxResults: 12,
-            shouldContinue: () => generation == _generation,
+            shouldContinue: () => request == _request,
           ),
         ]);
         candidates = [
@@ -135,40 +137,117 @@ class SmartItineraryService {
     if (candidates.isEmpty) {
       candidates = localCandidates;
     } else if (preferences.budgetCategory == 'Low') {
-      final titles = candidates.map((stop) => _normalizedTitle(stop.title)).toSet();
-      candidates.addAll(localCandidates.where(
-        (stop) => titles.add(_normalizedTitle(stop.title)),
-      ));
+      final titles = candidates
+          .map((stop) => _normalizedTitle(stop.title))
+          .toSet();
+      candidates.addAll(
+        localCandidates.where(
+          (stop) => titles.add(_normalizedTitle(stop.title)),
+        ),
+      );
     }
-    final legs = await TravelMatrixService().fetch(
-      [?preferences.departurePoint, ...candidates],
-      preferences.travelMode ?? 'Driving',
+    final places = GooglePlacesService();
+    Future<TravelStop> resolve(TravelStop stop) async =>
+        stop.latitude != 0 && stop.longitude != 0
+        ? stop
+        : places.refreshStop(stop);
+    final resolvedPriorities = await Future.wait(
+      preferences.mustVisitPlaces.map(resolve),
     );
+    final origin = preferences.dailyOrigin;
+    final resolvedOrigin = origin == null ? null : await resolve(origin);
+    final effectivePreferences = preferences.copyWith(
+      departurePoint: resolvedOrigin,
+      mustVisitPlaces: resolvedPriorities,
+    );
+    final titles = <String>{};
+    final ids = <String>{};
+    candidates = [
+      for (final stop in [...resolvedPriorities, ...candidates])
+        if (stop.latitude != 0 &&
+            stop.longitude != 0 &&
+            !titles.contains(_normalizedTitle(stop.title)) &&
+            ids.add(SchedulingEngine.identity(stop)) &&
+            titles.add(_normalizedTitle(stop.title)))
+          stop,
+    ];
+    final matrix = TravelMatrixService();
+    final points = [
+      if (resolvedOrigin != null &&
+          resolvedOrigin.latitude != 0 &&
+          resolvedOrigin.longitude != 0)
+        resolvedOrigin,
+      ...candidates,
+    ];
+    final mode = preferences.travelMode ?? 'Driving';
+    final [legs, walkingLegs] = await Future.wait([
+      matrix.fetch(points, mode),
+      if (mode != 'Walking' &&
+          preferences.secondaryTransportModes.contains('Walking'))
+        matrix.fetch(points, 'Walking')
+      else
+        Future.value(<String, TravelLeg>{}),
+    ]);
     final visited = <String>{};
     final days = <int, List<TravelStop>>{};
     final warnings = <int, String>{};
     for (var day = 0; day < (preferences.numberOfDays ?? 3); day++) {
       final date = preferences.dateForDay(day);
+      final departureMinutes =
+          TripPreferences.minutesOf(preferences.dailyStartTime) ?? 510;
+      // Malaysia uses UTC+08:00 year-round.
+      final localSightseeingStart = DateTime.utc(
+        date.year,
+        date.month,
+        date.day,
+      ).add(Duration(minutes: departureMinutes - 8 * 60));
+      final dayLegs = mode == 'Public Transport'
+          ? await matrix.fetch(
+              points,
+              mode,
+              departureTime: localSightseeingStart,
+            )
+          : legs;
       final weather = await WeatherService().getForecastForDate(
         state: destination,
         date: date,
       );
       final stops = SchedulingEngine.schedule(
         candidates: candidates,
-        preferences: preferences,
+        preferences: effectivePreferences,
         date: date,
         visited: visited,
         weather: weather,
-        legs: legs,
+        legs: dayLegs,
+        walkingLegs: walkingLegs,
         seed: seed + day,
       );
       days[day] = stops;
       warnings[day] = _warning(stops, weather.isAvailable);
     }
-    if (generation != _generation) return;
+    final scheduled = days.values
+        .expand((stops) => stops)
+        .map((stop) => _normalizedTitle(stop.title))
+        .toSet();
+    final missed = resolvedPriorities
+        .where((stop) => !scheduled.contains(_normalizedTitle(stop.title)))
+        .map((stop) => stop.title)
+        .join(', ');
+    if (missed.isNotEmpty) {
+      warnings[0] =
+          '${warnings[0] ?? ''} Must-visit places that could not be scheduled: $missed.';
+    }
+    if (request != _request ||
+        (requireVisits && days.values.every((stops) => stops.isEmpty))) {
+      return false;
+    }
+    _generation++;
+    _liveGeneratedDays.clear();
+    dayWarnings.clear();
     _cacheKey = _key(preferences);
     _liveGeneratedDays.addAll(days);
     dayWarnings.addAll(warnings);
+    return true;
   }
 
   static String _warning(List<TravelStop> stops, bool weatherAvailable) => [
@@ -177,7 +256,9 @@ class SmartItineraryService {
     if (!weatherAvailable)
       'Forecast unavailable for this date; weather filtering was not applied.',
     if (stops.any((s) => s.travelIsEstimated && s.travelMinutes > 0))
-      'Travel times are distance-based estimates.',
+      stops.any((stop) => stop.inboundMode == 'Public Transport')
+          ? 'Public transport times are planning estimates. Check departures before traveling.'
+          : 'Travel times are distance-based estimates.',
     if (stops.any(
       (s) => s.operatingHours.isEmpty && s.openingHours.contains('unverified'),
     ))

@@ -252,6 +252,8 @@ class _RouteViewState extends State<_RouteView> {
             if (_stops.length > 1)
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
+                expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+                leading: const Icon(Icons.route_outlined),
                 title: const Text('Journey segments'),
                 children: _orderedStops(
                   routes,
@@ -543,6 +545,77 @@ class _RouteViewState extends State<_RouteView> {
   String _clock(int minutes) =>
       '${TravelStop.formatMinutes(minutes)}${minutes >= 1440 ? ' (+${minutes ~/ 1440} day)' : ''}';
 
+  Widget _segmentTile(int index, List<RouteInfo?>? routes, bool loading) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final route = routes?.elementAtOrNull(index);
+    final timing = route == null
+        ? null
+        : DayRouteTiming.between(_stops[index], _stops[index + 1], route);
+    final late = timing?.late ?? 0;
+    final waiting = timing?.waiting ?? 0;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      selected: _leg == index,
+      selectedTileColor: colors.secondaryContainer,
+      selectedColor: colors.onSecondaryContainer,
+      onTap: () => _selectLeg(index, routes),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('From ${index + 1}. ${_stops[index].title}'),
+          const SizedBox(height: 4),
+          Text('To ${index + 2}. ${_stops[index + 1].title}'),
+        ],
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (timing != null)
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  Text('Depart ${_clock(timing.departure)}'),
+                  Text('Arrive ${_clock(timing.arrival)}'),
+                ],
+              ),
+            Text(
+              route == null
+                  ? _journey(index, routes, loading: loading)
+                  : '${route.distanceKm.toStringAsFixed(1)} km · ${route.durationMinutes.ceil()} min',
+            ),
+            if (waiting > 0) Text('$waiting min free before the next visit'),
+            if (late > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 18,
+                    color: colors.error,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Arrives $late min after the next visit starts',
+                      style: TextStyle(color: colors.error),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Iterable<Widget> _orderedStops(
     List<RouteInfo?>? routes, {
     required bool includeStops,
@@ -560,17 +633,18 @@ class _RouteViewState extends State<_RouteView> {
         );
       }
       if (i + 1 < _stops.length) {
-        yield ListTile(
-          leading: const Icon(Icons.route_outlined),
-          title: Text(
-            includeStops
-                ? 'Travel to ${_stops[i + 1].title}'
-                : '${i + 1}. ${_stops[i].title} → ${i + 2}. ${_stops[i + 1].title}',
-          ),
-          subtitle: Text(_journey(i, routes, loading: loading)),
-          selected: _leg == i,
-          onTap: () => _selectLeg(index, routes),
-        );
+        if (includeStops) {
+          yield ListTile(
+            leading: const Icon(Icons.route_outlined),
+            title: Text('Travel to ${_stops[i + 1].title}'),
+            subtitle: Text(_journey(i, routes, loading: loading)),
+            selected: _leg == i,
+            onTap: () => _selectLeg(index, routes),
+          );
+        } else {
+          if (i > 0) yield const Divider(height: 1);
+          yield _segmentTile(i, routes, loading);
+        }
       }
     }
   }

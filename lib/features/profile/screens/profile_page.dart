@@ -26,22 +26,16 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _editProfile() async {
     final user = _authService.currentUser;
     if (user == null) return;
-    final name = await showDialog<String>(
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => _EditProfileDialog(initialName: user.name),
+      builder: (_) => _EditProfileDialog(
+        initialName: user.name,
+        onSave: (name) => _authService.updateProfile(name: name),
+      ),
     );
-    if (!mounted || name == null) return;
-    if (name.trim().isEmpty) {
-      showDemoSnackBar(context, AuthService.m2NameRequired);
-      return;
-    }
-    final saved = await _authService.updateProfile(name: name);
-    if (!mounted) return;
+    if (!mounted || saved != true) return;
     setState(() {});
-    showDemoSnackBar(
-      context,
-      saved ? AuthService.m1ProfileUpdated : AuthService.m3ProfileSaveError,
-    );
+    showDemoSnackBar(context, AuthService.m1ProfileUpdated);
   }
 
   void _handleLogout() {
@@ -285,22 +279,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           context,
                         ).locale.languageCode]!,
                     onTap: () => showLanguageSelector(context),
-                  ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
-                  _buildListTile(
-                    icon: Icons.explore_outlined,
-                    title: 'Citylore Welcome Setup',
-                    subtitle:
-                        'Revisit guide language, location & privacy setup',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const OnboardingSetupScreen(isRevisit: true),
-                        ),
-                      );
-                    },
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   Material(
@@ -595,9 +573,10 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _EditProfileDialog extends StatefulWidget {
-  const _EditProfileDialog({required this.initialName});
+  const _EditProfileDialog({required this.initialName, required this.onSave});
 
   final String initialName;
+  final Future<bool> Function(String) onSave;
 
   @override
   State<_EditProfileDialog> createState() => _EditProfileDialogState();
@@ -606,6 +585,9 @@ class _EditProfileDialog extends StatefulWidget {
 class _EditProfileDialogState extends State<_EditProfileDialog> {
   late final TextEditingController _controller;
   String? _inlineError;
+  bool _saving = false;
+
+  bool get _hasChanges => _controller.text.trim() != widget.initialName.trim();
 
   @override
   void initState() {
@@ -619,7 +601,8 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
     super.dispose();
   }
 
-  void _handleSave() {
+  Future<void> _handleSave() async {
+    if (_saving || !_hasChanges) return;
     final text = _controller.text.trim();
     if (text.isEmpty) {
       setState(() {
@@ -627,44 +610,127 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       });
       return;
     }
-    Navigator.pop(context, text);
+    setState(() {
+      _saving = true;
+      _inlineError = null;
+    });
+    final saved = await widget.onSave(text);
+    if (!mounted) return;
+    if (saved) {
+      Navigator.pop(context, true);
+      return;
+    }
+    setState(() {
+      _saving = false;
+      _inlineError = context.tr(AuthService.m3ProfileSaveError);
+    });
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(context.l10n.editProfile2),
-    content: TextField(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return PopScope(
+      canPop: !_saving,
+      child: AlertDialog(
+        scrollable: true,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        title: Row(
+          children: [
+            ExcludeSemantics(
+              child: CircleAvatar(
+                radius: 24,
+                backgroundColor: colors.primaryContainer,
+                foregroundColor: colors.onPrimaryContainer,
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _controller,
+                  builder: (context, value, _) {
+                    final name = value.text.trim();
+                    if (name.isEmpty) return const Icon(Icons.person_outline);
+                    return Text(
+                      name.characters.first.toUpperCase(),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: colors.onPrimaryContainer,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Text(context.l10n.editProfile2)),
+          ],
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        content: SizedBox(
+          width: 312,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildNameField(context),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _hasChanges && !_saving ? _handleSave : null,
+                child: _saving
+                    ? SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          semanticsLabel: context.l10n.save,
+                        ),
+                      )
+                    : Text(context.l10n.save),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _saving ? null : () => Navigator.pop(context),
+                child: Text(context.l10n.cancel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNameField(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return TextField(
       controller: _controller,
-      autofocus: true,
+      readOnly: _saving,
+      textInputAction: TextInputAction.done,
       textCapitalization: TextCapitalization.words,
-      onChanged: (val) {
-        if (_inlineError != null && val.trim().isNotEmpty) {
-          setState(() => _inlineError = null);
-        }
-      },
+      onChanged: (_) => setState(() => _inlineError = null),
       onSubmitted: (_) => _handleSave(),
       decoration: InputDecoration(
+        border: const OutlineInputBorder(),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: colors.outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: colors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: colors.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: colors.error, width: 2),
+        ),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(context.l10n.fullName2),
-            const Text(
-              ' *',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
+            const Text(' *', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         hintText: context.l10n.eGAliBinAhmad,
-        helperText: context.l10n.changeYourFullName,
         errorText: _inlineError,
       ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: Text(context.l10n.cancel),
-      ),
-      FilledButton(onPressed: _handleSave, child: Text(context.l10n.save)),
-    ],
-  );
+    );
+  }
 }

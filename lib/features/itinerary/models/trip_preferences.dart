@@ -1,7 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 
+enum TravelerType { solo, couple, family, friends, seniors }
+
+enum PaceCategory { relaxed, balanced, packed }
+
+enum DietaryPreference { unrestricted, halalFriendly, vegetarian, streetFood }
+
 class TripPreferences {
+  TravelStop? get dailyOrigin => departurePoint ?? accommodationArea;
+
+  static int? minutesOf(TimeOfDay? time) =>
+      time == null ? null : time.hour * 60 + time.minute;
+
+  final TravelerType travelerType;
+  final PaceCategory? paceCategory;
+  final DietaryPreference dietaryPreference;
+  final TravelStop? accommodationArea;
+  final TimeOfDay? arrivalTime;
+  final TimeOfDay? departureTime;
+  final int departureBufferMinutes;
+  final int departureTransferMinutes;
+  final List<TravelStop> mustVisitPlaces;
+  final List<String> secondaryTransportModes;
+
   final String? destination;
   final int? _numberOfDays;
   final DateTime? startDate;
@@ -38,6 +60,17 @@ class TripPreferences {
     this.travelMode,
     this.transitPlanningMinutes,
     this.departurePoint,
+    this.travelerType = TravelerType.solo,
+    this.paceCategory,
+    this.dietaryPreference = DietaryPreference.unrestricted,
+    this.accommodationArea,
+    this.arrivalTime,
+    this.departureTime,
+    this.departureBufferMinutes = 60,
+    this.departureTransferMinutes = 0,
+    this.mustVisitPlaces = const [],
+    this.secondaryTransportModes = const [],
+
     // Preserve the public named parameter used by existing forms and tests.
     // ignore: prefer_initializing_formals
   }) : _numberOfDays = numberOfDays;
@@ -65,6 +98,17 @@ class TripPreferences {
         ? null
         : dailyEndTime!.hour * 60 + dailyEndTime!.minute,
     'interests': interests,
+    'traveler_type': travelerType.name,
+    'pace_category': paceCategory?.name,
+    'dietary_preference': dietaryPreference.name,
+    'accommodation_area': accommodationArea?.toJson(),
+    'arrival_minutes': minutesOf(arrivalTime),
+    'departure_minutes': minutesOf(departureTime),
+    'departure_buffer_minutes': departureBufferMinutes,
+    'departure_transfer_minutes': departureTransferMinutes,
+    'must_visit_places': mustVisitPlaces.map((stop) => stop.toJson()).toList(),
+    'secondary_transport_modes': secondaryTransportModes,
+
     'budget': budgetCategory,
     'travel_mode': travelMode,
     if (transitPlanningMinutes != null)
@@ -73,10 +117,65 @@ class TripPreferences {
   };
 
   factory TripPreferences.fromJson(Map<String, dynamic> json) {
-    TimeOfDay? time(dynamic value) => value is num
+    TimeOfDay? time(dynamic value) => value is num && value >= 0 && value < 1440
         ? TimeOfDay(hour: value.toInt() ~/ 60, minute: value.toInt() % 60)
         : null;
+    T? parseEnum<T extends Enum>(List<T> values, String key) =>
+        values.where((value) => value.name == json[key]).firstOrNull;
+    TravelStop? place(dynamic value) {
+      if (value is! Map<String, dynamic>) return null;
+      final stop = TravelStop.fromJson(value);
+      if (stop.isGooglePlace && stop.placeId?.isNotEmpty == true) return stop;
+      return stop.title.trim().isNotEmpty &&
+              stop.latitude.isFinite &&
+              stop.longitude.isFinite &&
+              stop.latitude.abs() <= 90 &&
+              stop.longitude.abs() <= 180 &&
+              (stop.latitude != 0 || stop.longitude != 0)
+          ? stop
+          : null;
+    }
+
+    final mustVisit = json['must_visit_places'];
+    final modes = json['secondary_transport_modes'];
     return TripPreferences(
+      travelerType:
+          parseEnum(TravelerType.values, 'traveler_type') ?? TravelerType.solo,
+      paceCategory: parseEnum(PaceCategory.values, 'pace_category'),
+      dietaryPreference:
+          parseEnum(DietaryPreference.values, 'dietary_preference') ??
+          DietaryPreference.unrestricted,
+      accommodationArea: place(json['accommodation_area']),
+      arrivalTime: time(json['arrival_minutes']),
+      departureTime: time(json['departure_minutes']),
+      departureTransferMinutes: switch (json['departure_transfer_minutes']) {
+        final int minutes when minutes >= 0 && minutes <= 240 => minutes,
+        _ => 0,
+      },
+      departureBufferMinutes: switch (json['departure_buffer_minutes']) {
+        final int minutes when minutes >= 0 && minutes <= 360 => minutes,
+        _ => 60,
+      },
+      mustVisitPlaces: mustVisit is List
+          ? List.unmodifiable(
+              mustVisit.map(place).whereType<TravelStop>().take(3),
+            )
+          : const [],
+      secondaryTransportModes: modes is List
+          ? List.unmodifiable(
+              modes
+                  .whereType<String>()
+                  .where(
+                    const {
+                      'Driving',
+                      'Walking',
+                      'Public Transport',
+                      'E-hailing',
+                    }.contains,
+                  )
+                  .toSet(),
+            )
+          : const [],
       destination: json['destination'] as String?,
       numberOfDays: (json['number_of_days'] as num?)?.toInt(),
       startDate: DateTime.tryParse(json['start_date']?.toString() ?? ''),
@@ -87,7 +186,9 @@ class TripPreferences {
       budgetCategory: json['budget'] as String?,
       travelMode: json['travel_mode'] as String?,
       departurePoint: json['departure_point'] is Map
-          ? TravelStop.fromJson(Map<String, dynamic>.from(json['departure_point'] as Map))
+          ? TravelStop.fromJson(
+              Map<String, dynamic>.from(json['departure_point'] as Map),
+            )
           : null,
       transitPlanningMinutes: (json['transit_planning_minutes'] as num?)
           ?.toInt(),
@@ -105,6 +206,16 @@ class TripPreferences {
     String? budgetCategory,
     String? travelMode,
     TravelStop? departurePoint,
+    TravelerType? travelerType,
+    PaceCategory? paceCategory,
+    DietaryPreference? dietaryPreference,
+    TravelStop? accommodationArea,
+    TimeOfDay? arrivalTime,
+    TimeOfDay? departureTime,
+    int? departureBufferMinutes,
+    int? departureTransferMinutes,
+    List<TravelStop>? mustVisitPlaces,
+    List<String>? secondaryTransportModes,
   }) {
     return TripPreferences(
       destination: destination ?? this.destination,
@@ -118,6 +229,19 @@ class TripPreferences {
       travelMode: travelMode ?? this.travelMode,
       transitPlanningMinutes: transitPlanningMinutes,
       departurePoint: departurePoint ?? this.departurePoint,
+      travelerType: travelerType ?? this.travelerType,
+      paceCategory: paceCategory ?? this.paceCategory,
+      dietaryPreference: dietaryPreference ?? this.dietaryPreference,
+      accommodationArea: accommodationArea ?? this.accommodationArea,
+      arrivalTime: arrivalTime ?? this.arrivalTime,
+      departureTime: departureTime ?? this.departureTime,
+      departureTransferMinutes:
+          departureTransferMinutes ?? this.departureTransferMinutes,
+      departureBufferMinutes:
+          departureBufferMinutes ?? this.departureBufferMinutes,
+      mustVisitPlaces: mustVisitPlaces ?? this.mustVisitPlaces,
+      secondaryTransportModes:
+          secondaryTransportModes ?? this.secondaryTransportModes,
     );
   }
 }

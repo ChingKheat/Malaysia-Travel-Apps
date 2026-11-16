@@ -50,10 +50,7 @@ void main() {
       await AuthService().logout();
       final controller = LanguageController(store: MemoryLanguageStore());
       await tester.pumpWidget(
-        SmartTravelApp(
-          languageController: controller,
-          skipOnboarding: true,
-        ),
+        SmartTravelApp(languageController: controller, skipOnboarding: true),
       );
       await tester.ensureVisible(find.text('Log In / Sign Up'));
       await tester.tap(find.text('Log In / Sign Up'));
@@ -232,11 +229,11 @@ void main() {
       await tester.pumpAndSettle();
       final l = lookupAppLocalizations(Locale(code));
       for (final label in [
-        l.tripDetails2,
-        l.yourDailyPace,
-        l.dailyBudget,
+        l.planBasics,
+        l.planWhoPace,
         l.gettingAround,
-        l.makeItYourKindOfTrip,
+        l.planBudgetDining,
+        l.planHighlightsInterests,
       ]) {
         final finder = find.text(label);
         await tester.scrollUntilVisible(

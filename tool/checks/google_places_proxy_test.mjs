@@ -172,3 +172,32 @@ test('Budget status is admin-only and never spends Google allowance',async()=>{
   }});
   assert.equal((await denied(request({operation:'budget_status'}))).status,403);
 });
+
+test('Transit matrix forwards the requested date and mode to Google', async () => {
+  const {handler,calls}=setup(()=>Response.json([]));
+  const result=await handler(request({
+    operation:'matrix',mode:'Public Transport',
+    departureTime:'2026-12-07T09:00:00+08:00',
+    points:[{latitude:3.14,longitude:101.71},{latitude:3.15,longitude:101.72}],
+  }));
+  assert.equal(result.status,200);
+  const body=JSON.parse(calls.at(-1).options.body);
+  assert.equal(body.travelMode,'TRANSIT');
+  assert.equal(body.departureTime,'2026-12-07T01:00:00.000Z');
+});
+
+test('Planner search uses the shared quota gate without catalog admin access', async () => {
+  const {handler,calls}=setup(()=>Response.json({places:[]}));
+  const result=await handler(request({
+    operation:'planner_search',state:'Kuala Lumpur',query:'Museums',
+    pageSize:20,pageToken:'ignored',
+  }));
+  assert.equal(result.status,200);
+  assert.ok(!calls.some(({url})=>url.includes('/rest/v1/profiles?')));
+  assert.ok(calls.some(({url})=>url.endsWith('/rpc/reserve_google_api_usage')));
+  const google=calls.at(-1);
+  const body=JSON.parse(google.options.body);
+  assert.equal(body.pageSize,8);
+  assert.equal(body.pageToken,undefined);
+  assert.equal(body.textQuery,'Museums in Kuala Lumpur, Malaysia');
+});

@@ -1,7 +1,7 @@
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
-import 'package:smart_travel_planner/features/community/community_page.dart';
+import 'package:smart_travel_planner/features/community/explore_page.dart';
 import 'package:smart_travel_planner/features/home/widgets/popular_attractions_section.dart';
 import 'package:smart_travel_planner/features/home/widgets/trip_cards.dart';
 import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
@@ -370,7 +370,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const CommunityPage(showAppBar: true),
+                        builder: (_) => const CommunityFeedScreen(),
                       ),
                     );
                   },
@@ -451,7 +451,7 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const CommunityPage(showAppBar: true),
+                builder: (_) => const CommunityFeedScreen(),
               ),
             );
           },

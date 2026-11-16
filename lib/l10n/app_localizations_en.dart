@@ -25,6 +25,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get explore => 'Explore';
 
   @override
+  String get community => 'Community';
+
+  @override
   String get recognize => 'Recognize';
 
   @override
@@ -2791,4 +2794,186 @@ class AppLocalizationsEn extends AppLocalizations {
   String
   get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
       'Selected photos are sent to Google Vision for scanning. Only result text is saved in History on this device.';
+
+  @override
+  String get planPersonalize => 'Customize trip preferences';
+
+  @override
+  String get planArrival => 'Arrival time';
+
+  @override
+  String get planDeparture => 'Departure time';
+
+  @override
+  String get planAirport => 'Airport departure · allow 3 hours';
+
+  @override
+  String get planAccommodation => 'Daily starting point';
+
+  @override
+  String get planOptionalDetails => 'Optional trip details';
+
+  @override
+  String get planLocalTime => 'Times are local to your destination.';
+
+  @override
+  String get planSetArrival => 'Set arrival time';
+
+  @override
+  String get planSetDeparture => 'Set departure time';
+
+  @override
+  String get planChooseStartingPoint =>
+      'Choose accommodation or another starting point';
+
+  @override
+  String get planUndecided => 'Undecided';
+
+  @override
+  String get planTravelers => 'Traveler type';
+
+  @override
+  String get planPace => 'Sightseeing pace';
+
+  @override
+  String get planDiet => 'Dining preference';
+
+  @override
+  String get planMustVisit => 'Must-visit attractions (up to 3)';
+
+  @override
+  String get planPresets => 'Quick presets';
+
+  @override
+  String get planClassic => 'First-time explorer · culture and KL landmarks';
+
+  @override
+  String get planFood => 'Malaysian food explorer · relaxed and street food';
+
+  @override
+  String get planFamily => 'Family getaway · relaxed and family activities';
+
+  @override
+  String get planSolo => 'Solo';
+
+  @override
+  String get planCouple => 'Couple';
+
+  @override
+  String get planFamilyType => 'Family';
+
+  @override
+  String get planFriends => 'Friends';
+
+  @override
+  String get planSeniors => 'Seniors';
+
+  @override
+  String get planRelaxed => 'Relaxed (2–3 visits/day)';
+
+  @override
+  String get planBalanced => 'Balanced (3–4 visits/day)';
+
+  @override
+  String get planPacked => 'Packed (5+ visits/day)';
+
+  @override
+  String get planNoRestriction => 'No restriction';
+
+  @override
+  String get planHalal => 'Halal-friendly';
+
+  @override
+  String get planVegetarian => 'Vegetarian';
+
+  @override
+  String get planStreetFood => 'Street food enthusiast';
+
+  @override
+  String get planRail => 'Also open to MRT / LRT';
+
+  @override
+  String get planWalk => 'Also open to walking';
+
+  @override
+  String get planEditPreferences => 'Edit preferences';
+
+  @override
+  String get planSmartFill => 'Smart Fill';
+
+  @override
+  String get planDescribeTrip => 'Describe the trip you want';
+
+  @override
+  String get planSuggest => 'Suggest preferences';
+
+  @override
+  String get planFillNoMatch =>
+      'No supported preferences found. You can fill in the form below.';
+
+  @override
+  String get planFillLocal =>
+      'Local suggestions applied. Review your preferences below.';
+
+  @override
+  String get planFillReview =>
+      'Gemini suggestions applied. Review your preferences below.';
+
+  @override
+  String get planHailing => 'Grab / E-hailing';
+
+  @override
+  String get planSearchOnline => 'Search online with Google Places';
+
+  @override
+  String get planNoPlaces => 'No matching places. Try another search.';
+
+  @override
+  String get planAirportTransfer => 'Estimated transfer time to the airport';
+
+  @override
+  String get planBasics => 'Trip basics';
+
+  @override
+  String get planWhoPace => 'Who & pace';
+
+  @override
+  String get planBudgetDining => 'Budget & dining';
+
+  @override
+  String get planHighlightsInterests => 'Highlights & interests';
+
+  @override
+  String get planHalalBranchNote =>
+      'Optional dining stop. Nando’s Malaysia reports JAKIM certification. Check the branch’s current status before visiting.';
+
+  @override
+  String get planHalalDirectoryNote =>
+      'Check current certification for a specific food premise in JAKIM’s directory.';
+
+  @override
+  String get planVegetarianBranchNote =>
+      'Optional dining stop. The restaurant publishes its vegetarian menu and address.';
+
+  @override
+  String get planRestaurantSource => 'Restaurant website';
+
+  @override
+  String get planVerifyHalal => 'Check JAKIM directory';
+
+  @override
+  String get planContinueWho => 'Continue to traveler & pace';
+
+  @override
+  String get planContinueHours => 'Continue to daily hours';
+
+  @override
+  String get planContinueBudget => 'Continue to budget & dining';
+
+  @override
+  String get planLogisticsHelp =>
+      'Add arrival or departure times and a starting point to help schedule your day. You can leave these blank.';
+
+  @override
+  String get planContinueHighlights => 'Continue to highlights & interests';
 }

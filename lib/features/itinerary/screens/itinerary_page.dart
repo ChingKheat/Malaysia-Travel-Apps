@@ -1,3 +1,4 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'package:smart_travel_planner/features/itinerary/services/day_route_service.dart';
 import 'package:smart_travel_planner/features/itinerary/widgets/day_route_map.dart';
 import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
@@ -31,7 +32,8 @@ import 'package:smart_travel_planner/features/places/screens/place_detail_page.d
 
 class ItineraryPage extends StatefulWidget {
   final VoidCallback? onPlanTap;
-  const ItineraryPage({super.key, this.onPlanTap});
+  final bool compactResult;
+  const ItineraryPage({super.key, this.onPlanTap, this.compactResult = false});
 
   @override
   State<ItineraryPage> createState() => _ItineraryPageState();
@@ -48,6 +50,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
   bool _isLoadingWeather = false;
   bool _isRegenerating = false;
   bool _isSavingTrip = false;
+  ItinerarySaveResult? _draftSave;
   String? _loadedUserId;
   final Map<String, Map<int, List<TravelStop>>> _editedTripStops = {};
   String? _liveDayKey;
@@ -119,6 +122,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
   }
 
   Future<void> _regenerate() async {
+    if (_isRegenerating || _isSavingTrip) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -145,7 +149,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
       startDate: _dateForDay(0),
       endDate: _dateForDay(_totalDays - 1),
     );
-    final validation = TripPreferencesService.validatePreferences(preferences);
+    final validation = TripPreferencesService.validatePreferences(
+      preferences,
+      store: false,
+    );
     if (!validation.success) {
       showDemoSnackBar(
         context,
@@ -154,18 +161,35 @@ class _ItineraryPageState extends State<ItineraryPage> {
       return;
     }
     setState(() => _isRegenerating = true);
-    await SmartItineraryService.generateLiveItineraryForAllDays(
-      preferences: preferences,
-      seed: DateTime.now().microsecondsSinceEpoch,
-    );
-    if (!mounted) return;
-    setState(() {
-      _editedTripStops.clear();
-      _selectedTripIndex = 0;
-      _selectedDay = 0;
-      _isRegenerating = false;
-    });
-    await _loadWeatherForDay(0);
+    try {
+      final generated =
+          await SmartItineraryService.generateLiveItineraryForAllDays(
+            preferences: preferences,
+            seed: DateTime.now().microsecondsSinceEpoch,
+            requireVisits: true,
+          );
+      if (!mounted) return;
+      if (!generated) {
+        showDemoSnackBar(
+          context,
+          context
+              .l10n
+              .noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours,
+        );
+        return;
+      }
+      TripPreferencesService.activate(preferences);
+      setState(() {
+        _selectedTripIndex = 0;
+        _selectedDay = 0;
+        _draftSave = null;
+      });
+      await _loadWeatherForDay(0);
+    } catch (_) {
+      if (mounted) showDemoSnackBar(context, context.l10n.tryAgain);
+    } finally {
+      if (mounted) setState(() => _isRegenerating = false);
+    }
   }
 
   Future<void> _loadWeatherForDay(int dayIndex) async {
@@ -807,6 +831,75 @@ class _ItineraryPageState extends State<ItineraryPage> {
     );
   }
 
+  Widget? _diningSuggestion() {
+    final district = _preferences.destination;
+    final diet = _preferences.dietaryPreference;
+    final l = context.l10n;
+    final (title, note, links) = switch (diet) {
+      DietaryPreference.halalFriendly when district == 'Kuala Lumpur' => (
+        "Nando's · Suria KLCC",
+        l.planHalalBranchNote,
+        [
+          (l.planRestaurantSource, 'https://www.nandos.com.my/restaurants'),
+          (
+            l.planVerifyHalal,
+            'https://www.islam.gov.my/en/law-legal/halal-status-check',
+          ),
+        ],
+      ),
+      DietaryPreference.halalFriendly => (
+        l.planHalal,
+        l.planHalalDirectoryNote,
+        [
+          (
+            l.planVerifyHalal,
+            'https://www.islam.gov.my/en/law-legal/halal-status-check',
+          ),
+        ],
+      ),
+      DietaryPreference.vegetarian when district == 'Kuala Lumpur' => (
+        'WTF Bangsar',
+        l.planVegetarianBranchNote,
+        [(l.planRestaurantSource, 'https://kundrai.com/')],
+      ),
+      _ => (null, '', <(String, String)>[]),
+    };
+    if (title == null) return null;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleSmall),
+            Text(note),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final (label, address) in links)
+                  TextButton(
+                    onPressed: () async {
+                      final opened = await launchUrl(
+                        Uri.parse(address),
+                        mode: LaunchMode.externalApplication,
+                      );
+                      if (!opened && mounted) {
+                        showDemoSnackBar(
+                          context,
+                          context.l10n.unableToOpenThisLink,
+                        );
+                      }
+                    },
+                    child: Text(label),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_availableTrips.isEmpty) {
@@ -818,126 +911,141 @@ class _ItineraryPageState extends State<ItineraryPage> {
       _selectedDay = 0;
     }
     final stops = _getStopsForDay(_selectedDay);
+    final primaryMode = _preferences.travelMode;
+    final routeStops = [
+      if (_preferences.dailyOrigin case final origin? when stops.isNotEmpty)
+        origin,
+      ...stops,
+    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
       children: [
-        if (_selectedSavedItinerary == null &&
-            SmartItineraryService.dayWarnings[_selectedDay]?.isNotEmpty == true)
+        if (widget.compactResult) ...[
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 10),
             child: Text(
-              context.itineraryWarnings(
-                SmartItineraryService.dayWarnings[_selectedDay]!,
-              ),
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              '${MaterialLocalizations.of(context).formatShortDate(_dateForDay(0))}'
+              ' – ${MaterialLocalizations.of(context).formatShortDate(_dateForDay(totalDays - 1))}'
+              ' · ${context.l10n.valueDays(context.localNumber(totalDays))}',
             ),
           ),
-        // Active Trip Switcher Bar
-        InkWell(
-          onTap: _showTripSelectorSheet,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.nightSurface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.nightLine, width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+          if (_draftSave case final saved?
+              when saved.itineraryId ==
+                  TripPreferencesService.activeItineraryId)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                saved.synced
+                    ? context.l10n.itinerarySavedSuccessfullyToYourProfile
+                    : context.l10n.savedOnThisDeviceCloudSyncIsPending,
+              ),
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+        ] else
+          InkWell(
+            onTap: _showTripSelectorSheet,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.nightSurface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.nightLine, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  child: const Icon(
-                    Icons.flight_takeoff,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.l10n.activeItinerary,
-                        style: TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        context.tripTitle(trip),
-                        style: const TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        '${trip.destination} • ${context.tripDate(trip)}',
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 12,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.sky,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.flight_takeoff,
+                      color: AppColors.primary,
+                      size: 20,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        context.l10n.valueDays((totalDays).toString()),
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.l10n.activeItinerary,
+                          style: TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.unfold_more,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          context.tripTitle(trip),
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '${trip.destination} • ${context.tripDate(trip)}',
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.sky,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.l10n.valueDays((totalDays).toString()),
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.unfold_more,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         const SizedBox(height: 14),
 
         // Horizontally Scrollable Day Selector (Supports 1 to 7+ days without overflowing)
@@ -960,61 +1068,65 @@ class _ItineraryPageState extends State<ItineraryPage> {
         ),
         const SizedBox(height: 14),
 
-        // Day Theme & Highlight Summary Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-            color: AppColors.sky,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.15),
+        if (!widget.compactResult) ...[
+          // Day Theme & Highlight Summary Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              color: AppColors.sky,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.15),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.l10n.dayValueTheme(
+                          (_selectedDay + 1).toString(),
+                        ),
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        stops.isNotEmpty
+                            ? stops.take(3).map((s) => s.title).join(' • ')
+                            : context.l10n.valueDayValueHighlights(
+                                (trip.destination).toString(),
+                                (_selectedDay + 1).toString(),
+                              ),
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.calendar_today_outlined,
-                size: 18,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.l10n.dayValueTheme((_selectedDay + 1).toString()),
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      stops.isNotEmpty
-                          ? stops.take(3).map((s) => s.title).join(' • ')
-                          : context.l10n.valueDayValueHighlights(
-                              (trip.destination).toString(),
-                              (_selectedDay + 1).toString(),
-                            ),
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildDayIntelligenceBanner(stops),
-        const SizedBox(height: 16),
+          const SizedBox(height: 10),
+          _buildDayIntelligenceBanner(stops),
+          const SizedBox(height: 16),
+        ],
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1059,8 +1171,19 @@ class _ItineraryPageState extends State<ItineraryPage> {
             ),
 
             // Daily Stops List for Selected Day
-            ...stops.map(
-              (stop) => StopCard(
+            for (final stop in stops) ...[
+              if ((stop.inboundMode ?? primaryMode) case final transport?
+                  when stop.travelMinutes > 0)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, bottom: 6),
+                  child: Text(
+                    '${transport == 'E-hailing' ? context.l10n.planHailing : context.tr(transport)}'
+                    ' · ${stop.travelIsEstimated ? '~' : ''}'
+                    '${context.l10n.valueMin(context.localNumber(stop.travelMinutes))}',
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
+                ),
+              StopCard(
                 stop: stop,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -1071,7 +1194,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                   ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 12),
             KeyedSubtree(
               key: _dayRouteAnchor,
@@ -1080,11 +1203,11 @@ class _ItineraryPageState extends State<ItineraryPage> {
                   _tripKey,
                   _selectedDay,
                   _preferences.travelMode,
-                  stops
+                  routeStops
                       .map((stop) => '${stop.latitude},${stop.longitude}')
                       .join(';'),
                 )),
-                stops: stops,
+                stops: routeStops,
                 mode: _preferences.travelMode ?? 'Driving',
                 service: _dayRoutes,
               ),
@@ -1093,6 +1216,18 @@ class _ItineraryPageState extends State<ItineraryPage> {
           ],
         ),
         SummaryBar(stops: stops),
+        ?_diningSuggestion(),
+        if (_selectedSavedItinerary == null &&
+            SmartItineraryService.dayWarnings[_selectedDay]?.isNotEmpty == true)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              context.itineraryWarnings(
+                SmartItineraryService.dayWarnings[_selectedDay]!,
+              ),
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ),
         TextButton.icon(
           onPressed: _isRegenerating ? null : _regenerate,
           icon: const Icon(Icons.refresh),
@@ -1103,187 +1238,182 @@ class _ItineraryPageState extends State<ItineraryPage> {
           ),
         ),
         const SizedBox(height: 14),
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final currentStops = _getStopsForDay(_selectedDay);
-                  final otherDaysStops = <TravelStop>[];
-                  for (int d = 0; d < trip.totalDays; d++) {
-                    if (d != _selectedDay) {
-                      otherDaysStops.addAll(_getStopsForDay(d));
-                    }
+            OutlinedButton.icon(
+              onPressed: () async {
+                final currentStops = _getStopsForDay(_selectedDay);
+                final otherDaysStops = <TravelStop>[];
+                for (int d = 0; d < trip.totalDays; d++) {
+                  if (d != _selectedDay) {
+                    otherDaysStops.addAll(_getStopsForDay(d));
                   }
+                }
 
-                  String? scheduleId;
-                  final userPrefs = TripPreferencesService.storedPreferences;
-                  final dbTripIdx = userPrefs != null
-                      ? _selectedTripIndex - 1
-                      : _selectedTripIndex;
-                  if (dbTripIdx >= 0 && dbTripIdx < _rawDbItineraries.length) {
-                    final itin = _rawDbItineraries[dbTripIdx];
-                    if (_selectedDay < itin.dailySchedules.length) {
-                      scheduleId = itin.dailySchedules[_selectedDay].scheduleId;
-                    }
+                String? scheduleId;
+                final userPrefs = TripPreferencesService.storedPreferences;
+                final dbTripIdx = userPrefs != null
+                    ? _selectedTripIndex - 1
+                    : _selectedTripIndex;
+                if (dbTripIdx >= 0 && dbTripIdx < _rawDbItineraries.length) {
+                  final itin = _rawDbItineraries[dbTripIdx];
+                  if (_selectedDay < itin.dailySchedules.length) {
+                    scheduleId = itin.dailySchedules[_selectedDay].scheduleId;
                   }
+                }
 
-                  final updatedStops = await Navigator.of(context)
-                      .push<List<TravelStop>>(
-                        MaterialPageRoute(
-                          builder: (_) => EditItineraryScreen(
-                            tripTitle: trip.title,
-                            destination: trip.destination,
-                            dayNumber: _selectedDay + 1,
-                            initialStops: currentStops,
-                            otherDaysStops: otherDaysStops,
-                            weatherForecast: _currentDayForecast,
-                            scheduleId: scheduleId,
-                            preferences: _preferences,
-                            scheduleDate: _dateForDay(_selectedDay),
-                          ),
+                final updatedStops = await Navigator.of(context)
+                    .push<List<TravelStop>>(
+                      MaterialPageRoute(
+                        builder: (_) => EditItineraryScreen(
+                          tripTitle: trip.title,
+                          destination: trip.destination,
+                          dayNumber: _selectedDay + 1,
+                          initialStops: currentStops,
+                          otherDaysStops: otherDaysStops,
+                          weatherForecast: _currentDayForecast,
+                          scheduleId: scheduleId,
+                          preferences: _preferences,
+                          scheduleDate: _dateForDay(_selectedDay),
                         ),
-                      );
-
-                  if (!mounted || !context.mounted) return;
-                  if (updatedStops != null) {
-                    setState(() {
-                      final tripKey = _tripKey;
-                      _editedTripStops.putIfAbsent(
-                        tripKey,
-                        () => {},
-                      )[_selectedDay] = updatedStops;
-                    });
-                    showDemoSnackBar(
-                      context,
-                      context.l10n.dayValuePlanUpdatedValueStops(
-                        (_selectedDay + 1).toString(),
-                        (updatedStops.length).toString(),
                       ),
-                      icon: Icons.check_circle_outline,
                     );
-                  }
-                },
-                icon: const Icon(Icons.edit_calendar_outlined),
-                label: Text(
-                  context.l10n.editDayValue((_selectedDay + 1).toString()),
-                ),
-                style: demoOutlinedButtonStyle(),
+
+                if (!mounted || !context.mounted) return;
+                if (updatedStops != null) {
+                  setState(() {
+                    if (widget.compactResult) _draftSave = null;
+                    final tripKey = _tripKey;
+                    _editedTripStops.putIfAbsent(
+                      tripKey,
+                      () => {},
+                    )[_selectedDay] = updatedStops;
+                  });
+                  showDemoSnackBar(
+                    context,
+                    context.l10n.dayValuePlanUpdatedValueStops(
+                      (_selectedDay + 1).toString(),
+                      (updatedStops.length).toString(),
+                    ),
+                    icon: Icons.check_circle_outline,
+                  );
+                }
+              },
+              icon: const Icon(Icons.edit_calendar_outlined),
+              label: Text(
+                context.l10n.editDayValue((_selectedDay + 1).toString()),
               ),
+              style: demoOutlinedButtonStyle(),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: _isSavingTrip
-                    ? null
-                    : () async {
-                        setState(() => _isSavingTrip = true);
-                        final wasActive = _selectedSavedItinerary == null;
-                        final revision = SmartItineraryService.revision;
-                        final daysCount = trip.totalDays;
-                        final userPrefs = _preferences;
-                        final totalCost =
-                            List.generate(
-                              daysCount,
-                              _getStopsForDay,
-                            ).fold<double>(
-                              0,
-                              (sum, stops) =>
-                                  sum + SchedulingEngine.cost(stops),
-                            );
-                        final destState = trip.destination
-                            .split(',')
-                            .first
-                            .trim();
-
-                        final dailySchedules = <DailySchedule>[];
-                        for (int day = 0; day < daysCount; day++) {
-                          final dayStops = _getStopsForDay(day);
-                          dailySchedules.add(
-                            DailySchedule(
-                              scheduleId: '',
-                              itineraryId: '',
-                              dayNumber: day + 1,
-                              scheduleDate: _dateForDay(day),
-                              totalDistanceKm:
-                                  SmartItineraryService.calculateRouteDistanceKm(
-                                    dayStops,
-                                  ),
-                              stops: [
-                                for (int i = 0; i < dayStops.length; i++)
-                                  ItineraryStop(
-                                    snapshot: dayStops[i],
-                                    id: '',
-                                    scheduleId: '',
-                                    placeId:
-                                        (dayStops[i].placeId != null &&
-                                            dayStops[i].placeId!.isNotEmpty)
-                                        ? dayStops[i].placeId!
-                                        : 'poi_${destState.toLowerCase().replaceAll(' ', '_')}_d${day + 1}_$i',
-                                    placeName: dayStops[i].title,
-                                    stopOrder: i + 1,
-                                    arrivalTime: dayStops[i].time.contains('-')
-                                        ? dayStops[i].time
-                                              .split('-')
-                                              .first
-                                              .trim()
-                                        : '09:00 AM',
-                                    departureTime:
-                                        dayStops[i].time.contains('-')
-                                        ? dayStops[i].time
-                                              .split('-')
-                                              .last
-                                              .trim()
-                                        : '11:00 AM',
-                                    category: dayStops[i].category,
-                                    latitude: dayStops[i].latitude,
-                                    longitude: dayStops[i].longitude,
-                                    photoUrl: dayStops[i].photoUrls.isNotEmpty
-                                        ? dayStops[i].photoUrls.join('|')
-                                        : (dayStops[i].primaryPhotoUrl ?? ''),
-                                    photoUrls: dayStops[i].photoUrls,
-                                  ),
-                              ],
-                            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: _isSavingTrip || _isRegenerating
+                  ? null
+                  : () async {
+                      setState(() => _isSavingTrip = true);
+                      final wasActive = _selectedSavedItinerary == null;
+                      final revision = SmartItineraryService.revision;
+                      final daysCount = trip.totalDays;
+                      final userPrefs = _preferences;
+                      final totalCost =
+                          List.generate(
+                            daysCount,
+                            _getStopsForDay,
+                          ).fold<double>(
+                            0,
+                            (sum, stops) => sum + SchedulingEngine.cost(stops),
                           );
-                        }
+                      final destState = trip.destination
+                          .split(',')
+                          .first
+                          .trim();
 
-                        final result = await SupabaseItineraryService()
-                            .saveItinerary(
-                              preferences: userPrefs,
-                              itineraryId:
-                                  _selectedSavedItinerary?.itineraryId ??
-                                  TripPreferencesService.activeItineraryId,
-                              title: trip.title,
-                              destinationState: destState,
-                              totalCost: totalCost,
-                              dailySchedules: dailySchedules,
-                            );
+                      final dailySchedules = <DailySchedule>[];
+                      for (int day = 0; day < daysCount; day++) {
+                        final dayStops = _getStopsForDay(day);
+                        dailySchedules.add(
+                          DailySchedule(
+                            scheduleId: '',
+                            itineraryId: '',
+                            dayNumber: day + 1,
+                            scheduleDate: _dateForDay(day),
+                            totalDistanceKm:
+                                SmartItineraryService.calculateRouteDistanceKm(
+                                  dayStops,
+                                ),
+                            stops: [
+                              for (int i = 0; i < dayStops.length; i++)
+                                ItineraryStop(
+                                  snapshot: dayStops[i],
+                                  id: '',
+                                  scheduleId: '',
+                                  placeId:
+                                      (dayStops[i].placeId != null &&
+                                          dayStops[i].placeId!.isNotEmpty)
+                                      ? dayStops[i].placeId!
+                                      : 'poi_${destState.toLowerCase().replaceAll(' ', '_')}_d${day + 1}_$i',
+                                  placeName: dayStops[i].title,
+                                  stopOrder: i + 1,
+                                  arrivalTime: dayStops[i].time.contains('-')
+                                      ? dayStops[i].time.split('-').first.trim()
+                                      : '09:00 AM',
+                                  departureTime: dayStops[i].time.contains('-')
+                                      ? dayStops[i].time.split('-').last.trim()
+                                      : '11:00 AM',
+                                  category: dayStops[i].category,
+                                  latitude: dayStops[i].latitude,
+                                  longitude: dayStops[i].longitude,
+                                  photoUrl: dayStops[i].photoUrls.isNotEmpty
+                                      ? dayStops[i].photoUrls.join('|')
+                                      : (dayStops[i].primaryPhotoUrl ?? ''),
+                                  photoUrls: dayStops[i].photoUrls,
+                                ),
+                            ],
+                          ),
+                        );
+                      }
 
-                        if (mounted) setState(() => _isSavingTrip = false);
-                        if (context.mounted) {
-                          if (result.success) {
-                            if (wasActive &&
-                                revision == SmartItineraryService.revision) {
-                              TripPreferencesService.activeItineraryId =
-                                  result.itineraryId;
-                            }
-                            await _loadSavedTripsFromDatabase();
+                      final result = await SupabaseItineraryService()
+                          .saveItinerary(
+                            preferences: userPrefs,
+                            itineraryId:
+                                _selectedSavedItinerary?.itineraryId ??
+                                TripPreferencesService.activeItineraryId,
+                            title: trip.title,
+                            destinationState: destState,
+                            totalCost: totalCost,
+                            dailySchedules: dailySchedules,
+                          );
+
+                      if (mounted) {
+                        setState(() {
+                          _isSavingTrip = false;
+                          if (result.success) _draftSave = result;
+                        });
+                      }
+                      if (context.mounted) {
+                        if (result.success) {
+                          if (wasActive &&
+                              revision == SmartItineraryService.revision) {
+                            TripPreferencesService.activeItineraryId =
+                                result.itineraryId;
                           }
-                          if (!context.mounted) return;
-                          showDemoSnackBar(
-                            context,
-                            result.message,
-                            icon: result.success
-                                ? Icons.cloud_done
-                                : Icons.error_outline,
-                          );
+                          await _loadSavedTripsFromDatabase();
                         }
-                      },
-                icon: const Icon(Icons.bookmark_add_outlined),
-                label: Text(context.l10n.saveItinerary),
-                style: primaryFilledButtonStyle(),
-              ),
+                        if (!context.mounted) return;
+                        showDemoSnackBar(
+                          context,
+                          result.message,
+                          icon: result.success
+                              ? Icons.cloud_done
+                              : Icons.error_outline,
+                        );
+                      }
+                    },
+              icon: const Icon(Icons.bookmark_add_outlined),
+              label: Text(context.l10n.saveItinerary),
+              style: primaryFilledButtonStyle(),
             ),
           ],
         ),
@@ -1370,40 +1500,44 @@ class _ItineraryPageState extends State<ItineraryPage> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else if (forecast != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: forecast.badgeColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: forecast.badgeColor.withValues(alpha: 0.3),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        forecast.isSuitableForOutdoor
-                            ? Icons.wb_sunny_outlined
-                            : Icons.umbrella_outlined,
-                        size: 15,
-                        color: forecast.badgeColor,
+                    decoration: BoxDecoration(
+                      color: forecast.badgeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: forecast.badgeColor.withValues(alpha: 0.3),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        forecast.isAvailable
-                            ? '${forecast.temperatureC}°C • ${forecast.condition}'
-                            : forecast.condition,
-                        style: TextStyle(
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          forecast.isSuitableForOutdoor
+                              ? Icons.wb_sunny_outlined
+                              : Icons.umbrella_outlined,
+                          size: 15,
                           color: forecast.badgeColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            forecast.isAvailable
+                                ? '${forecast.temperatureC}°C • ${forecast.condition}'
+                                : forecast.condition,
+                            style: TextStyle(
+                              color: forecast.badgeColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
             ],

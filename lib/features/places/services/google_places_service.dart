@@ -210,11 +210,28 @@ class GooglePlacesService {
     required String query,
     required String state,
     int maxResults = 10,
+  }) => _fetchPlacesByText(query: query, state: state, maxResults: maxResults);
+
+  Future<List<Map<String, dynamic>>> searchPlannerPlaces({
+    required String query,
+    required String state,
+  }) => _fetchPlacesByText(
+    query: query,
+    state: state,
+    maxResults: 8,
+    planner: true,
+  );
+
+  Future<List<Map<String, dynamic>>> _fetchPlacesByText({
+    required String query,
+    required String state,
+    int maxResults = 10,
+    bool planner = false,
   }) async {
-    final key = '$_endpoint|${_token ?? ''}|$state|$query|$maxResults';
+    final key = '$_endpoint|${_token ?? ''}|$state|$query|$maxResults|$planner';
     final existing = _inFlight[key];
     if (existing != null) return existing;
-    final pending = _search(query, state, maxResults);
+    final pending = _search(query, state, maxResults, planner: planner);
     _inFlight[key] = pending;
     try {
       return await pending;
@@ -226,12 +243,14 @@ class GooglePlacesService {
   Future<List<Map<String, dynamic>>> _search(
     String query,
     String state,
-    int maxResults,
-  ) async {
+    int maxResults, {
+    required bool planner,
+  }) async {
     final data = await searchPage(
       query: query,
       state: state,
       pageSize: maxResults,
+      planner: planner,
     );
     if (data == null) return [];
     try {
@@ -294,9 +313,10 @@ class GooglePlacesService {
     String? state,
     int pageSize = 20,
     String? pageToken,
+    bool planner = false,
   }) async {
     final response = await _request({
-      'operation': 'search',
+      'operation': planner ? 'planner_search' : 'search',
       'query': query,
       'state': ?state,
       'pageSize': pageSize.clamp(1, 20),

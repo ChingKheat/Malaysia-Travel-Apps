@@ -19,13 +19,16 @@ class TravelMatrixService {
   /// At most 20x20 elements. Missing/error responses use labelled distance estimates.
   Future<Map<String, TravelLeg>> fetch(
     List<TravelStop> stops,
-    String mode,
-  ) async {
-    // The current routes proxy supports only driving and walking.
-    if (stops.length < 2 || mode == 'Public Transport') return {};
+    String mode, {
+    DateTime? departureTime,
+  }) async {
+    if (stops.length < 2 ||
+        (mode == 'Public Transport' && departureTime == null)) {
+      return {};
+    }
     final pool = stops.take(10).toList();
     final key =
-        '$mode:${pool.map((s) => '${SchedulingEngine.identity(s)}:${s.latitude}:${s.longitude}').join('|')}';
+        '$mode:${departureTime?.toIso8601String()}:${pool.map((s) => '${SchedulingEngine.identity(s)}:${s.latitude}:${s.longitude}').join('|')}';
     final cached = _cache[key];
     if (cached != null &&
         DateTime.now().difference(cached.at) < const Duration(minutes: 10)) {
@@ -35,6 +38,8 @@ class TravelMatrixService {
       final response = await _service.requestOperation({
         'operation': 'matrix',
         'mode': mode,
+        if (departureTime != null)
+          'departureTime': departureTime.toUtc().toIso8601String(),
         'points': pool
             .map((s) => {'latitude': s.latitude, 'longitude': s.longitude})
             .toList(),
@@ -49,6 +54,10 @@ class TravelMatrixService {
         }
         final key =
             '${SchedulingEngine.identity(pool[from])}>${SchedulingEngine.identity(pool[to])}';
+        if (row['condition'] == 'ROUTE_NOT_FOUND' &&
+            mode == 'Public Transport') {
+          continue;
+        }
         if (row['condition'] == 'ROUTE_NOT_FOUND') {
           result[key] = const TravelLeg(1 << 30, 0, estimated: false);
           continue;
@@ -64,7 +73,7 @@ class TravelMatrixService {
         result[key] = TravelLeg(
           (seconds / 60).ceil(),
           ((row['distanceMeters'] as num?)?.toDouble() ?? 0) / 1000,
-          estimated: false,
+          estimated: mode == 'Public Transport',
         );
       }
       if (result.isNotEmpty) {

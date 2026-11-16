@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
 import 'package:flutter/material.dart';
 
@@ -83,7 +84,13 @@ class StopCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    context.scheduledTime(stop.time),
+                    [
+                      context.scheduledTime(stop.time),
+                      if (stop.visitMinutes > 0 && stop.time.contains(' - '))
+                        context.l10n.valueMin(
+                          context.localNumber(stop.visitMinutes),
+                        ),
+                    ].join(' · '),
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,

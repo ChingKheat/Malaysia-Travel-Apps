@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show DateUtils;
 import 'dart:math' as math;
 import 'package:latlong2/latlong.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
@@ -218,15 +219,35 @@ class SchedulingEngine {
     required Set<String> visited,
     WeatherForecast? weather,
     Map<String, TravelLeg> legs = const {},
+    Map<String, TravelLeg> walkingLegs = const {},
     int seed = 0,
     bool preserveOrder = false,
   }) {
-    var now =
-        (preferences.dailyStartTime?.hour ?? 8) * 60 +
-        (preferences.dailyStartTime?.minute ?? 30);
-    final end =
-        (preferences.dailyEndTime?.hour ?? 22) * 60 +
-        (preferences.dailyEndTime?.minute ?? 0);
+    var now = TripPreferences.minutesOf(preferences.dailyStartTime) ?? 510;
+    var end = TripPreferences.minutesOf(preferences.dailyEndTime) ?? 1320;
+    final arrival = TripPreferences.minutesOf(preferences.arrivalTime);
+    final departure = TripPreferences.minutesOf(preferences.departureTime);
+    if (arrival != null && DateUtils.isSameDay(date, preferences.startDate)) {
+      now = math.max(now, arrival + 60);
+    }
+    if (departure != null && DateUtils.isSameDay(date, preferences.endDate)) {
+      end = math.min(
+        end,
+        departure -
+            preferences.departureBufferMinutes -
+            preferences.departureTransferMinutes,
+      );
+    }
+    final pace = switch (preferences.paceCategory) {
+      PaceCategory.relaxed => 3,
+      PaceCategory.balanced => 4,
+      PaceCategory.packed => 6,
+      null => candidates.length,
+    };
+    final primaryMode = preferences.travelMode ?? "Driving";
+    final priorities = preferences.mustVisitPlaces
+        .map((stop) => stop.title.trim().toLowerCase())
+        .toSet();
     final dayStart = now;
     final spreadLowBudgetVisits =
         preferences.budgetCategory == 'Low' &&
@@ -237,10 +258,11 @@ class SchedulingEngine {
     final selected = <TravelStop>[];
     final random = math.Random(seed);
     final ties = {for (final s in pool) identity(s): random.nextDouble()};
-    while (pool.isNotEmpty) {
+    while (pool.isNotEmpty && (preserveOrder || selected.length < pace)) {
       TravelStop? best;
       int bestStart = 0;
       int bestTravelStart = 0;
+      var bestMode = primaryMode;
       TravelLeg bestLeg = const TravelLeg(0, 0);
       var bestScore = -double.infinity;
       for (final stop in pool) {
@@ -258,13 +280,29 @@ class SchedulingEngine {
             indoor == false) {
           continue;
         }
-        final previous = selected.lastOrNull ?? preferences.departurePoint;
-        final leg = previous == null
+        final origin = preferences.dailyOrigin;
+        final previous =
+            selected.lastOrNull ??
+            (origin != null && origin.latitude != 0 && origin.longitude != 0
+                ? origin
+                : null);
+        var leg = previous == null
             ? const TravelLeg(0, 0)
             : legFor(previous, stop, preferences, legs);
-        final cost =
-            stop.estimatedCost +
-            transportCost(leg, preferences.travelMode ?? 'Driving');
+        final walking = previous == null
+            ? null
+            : walkingLegs['${identity(previous)}>${identity(stop)}'];
+        var mode = primaryMode;
+        if (!preserveOrder &&
+            walking != null &&
+            !walking.estimated &&
+            walking.minutes > 0 &&
+            walking.minutes <= 15 &&
+            walking.minutes <= leg.minutes + 5) {
+          leg = walking;
+          mode = 'Walking';
+        }
+        final cost = stop.estimatedCost + transportCost(leg, mode);
         if (cost > remaining) continue;
         final earliest = fit(stop, date, now + leg.minutes, end);
         if (earliest == null) continue;
@@ -282,8 +320,21 @@ class SchedulingEngine {
           r'food|restaurant|dining|lunch|dinner|cafe',
           caseSensitive: false,
         ).hasMatch('${stop.category} ${stop.title}');
+        final restricted =
+            preferences.dietaryPreference == DietaryPreference.halalFriendly ||
+            preferences.dietaryPreference == DietaryPreference.vegetarian;
+        if (meal && restricted) continue;
         final lunchTime = now >= 690 && now <= 840;
         final score =
+            (priorities.contains(stop.title.trim().toLowerCase()) ? 1000 : 0) +
+            (preferences.travelerType == TravelerType.family &&
+                    _interestMatch(stop, const ['Family'])
+                ? 30
+                : 0) +
+            (preferences.dietaryPreference == DietaryPreference.streetFood &&
+                    stop.title.toLowerCase().contains('market')
+                ? 40
+                : 0) +
             (_interestMatch(stop, preferences.interests) ? 100.0 : 0.0) +
             (meal &&
                     lunchTime &&
@@ -311,15 +362,13 @@ class SchedulingEngine {
           bestStart = start;
           bestTravelStart = travelStart;
           bestLeg = leg;
+          bestMode = mode;
           bestScore = score;
         }
         if (preserveOrder) break;
       }
       if (best == null) break;
-      final travelCost = transportCost(
-        bestLeg,
-        preferences.travelMode ?? 'Driving',
-      );
+      final travelCost = transportCost(bestLeg, bestMode);
       selected.add(
         best.scheduled(
           bestStart,
@@ -327,11 +376,20 @@ class SchedulingEngine {
           transit: math.min(bestLeg.minutes, bestStart - bestTravelStart),
           transportCost: travelCost,
           estimated: bestLeg.estimated,
+          inboundMode: bestLeg.minutes > 0 ? bestMode : null,
         ),
       );
       visited.add(identity(best));
       pool.remove(best);
-      now = bestStart + best.visitMinutes;
+      final restMinutes = preserveOrder
+          ? 0
+          : switch (preferences.paceCategory) {
+              PaceCategory.relaxed => 15,
+              PaceCategory.balanced => 10,
+              PaceCategory.packed => 5,
+              null => 0,
+            };
+      now = bestStart + best.visitMinutes + restMinutes;
       remaining -= best.estimatedCost + travelCost;
     }
     return selected;

@@ -42,10 +42,16 @@ class TripPreferencesService {
     activeItineraryId = null;
   }
 
+  static void activate(TripPreferences prefs) {
+    _storedPreferences = prefs;
+    activeItineraryId = null;
+  }
+
   /// Validates the trip preferences according to UC300 requirements (C1-C7)
   static PreferencesValidationResult validatePreferences(
-    TripPreferences prefs,
-  ) {
+    TripPreferences prefs, {
+    bool store = true,
+  }) {
     if ((prefs.startDate == null) != (prefs.endDate == null) ||
         (prefs.startDate != null &&
             prefs.endDate!.isBefore(prefs.startDate!))) {
@@ -133,7 +139,7 @@ class TripPreferencesService {
       );
     }
 
-    final supportedModes = {'Driving', 'Walking'};
+    final supportedModes = {'Driving', 'Walking', 'E-hailing'};
     final transitMinutes = prefs.transitPlanningMinutes ?? 0;
     final hasTransitEstimate =
         prefs.travelMode == 'Public Transport' &&
@@ -147,8 +153,7 @@ class TripPreferencesService {
     }
 
     // FR300_10: Store preferences temporarily
-    _storedPreferences = prefs;
-    activeItineraryId = null;
+    if (store) activate(prefs);
 
     return const PreferencesValidationResult(success: true, message: m1Success);
   }

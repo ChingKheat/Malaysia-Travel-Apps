@@ -40,6 +40,7 @@ class LocalItineraryStore {
     'visit_minutes',
     'is_indoor',
     'travel_minutes',
+    'inbound_mode',
     'travel_cost',
     'travel_is_estimated',
     'data_source',

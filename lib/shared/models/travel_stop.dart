@@ -22,6 +22,7 @@ class TravelStop {
     this.isIndoor,
     this.operatingHours = const {},
     this.travelMinutes = 0,
+    this.inboundMode,
     this.travelCost = 0,
     this.travelIsEstimated = true,
     this.dataSource = 'local',
@@ -47,6 +48,7 @@ class TravelStop {
   final bool? isIndoor;
   final Map<String, dynamic> operatingHours;
   final int travelMinutes;
+  final String? inboundMode;
   final double travelCost;
   final bool travelIsEstimated;
   final String dataSource;
@@ -86,6 +88,7 @@ class TravelStop {
     isIndoor: isIndoor,
     operatingHours: details.hours,
     travelMinutes: travelMinutes,
+    inboundMode: inboundMode,
     travelCost: travelCost,
     travelIsEstimated: travelIsEstimated,
     dataSource: 'google',
@@ -102,6 +105,7 @@ class TravelStop {
       travelMinutes,
       travelCost,
       travelIsEstimated,
+      inboundMode,
     );
   }
 
@@ -111,12 +115,14 @@ class TravelStop {
     int transit = 0,
     double transportCost = 0,
     bool estimated = true,
+    String? inboundMode,
   }) => _copySchedule(
     '${formatMinutes(start)} - ${formatMinutes(end)}',
     end - start,
     transit,
     transportCost,
     estimated,
+    inboundMode,
   );
 
   TravelStop _copySchedule(
@@ -125,6 +131,7 @@ class TravelStop {
     int transit,
     double transportCost,
     bool estimated,
+    String? inboundMode,
   ) => TravelStop(
     title: title,
     time: time,
@@ -145,6 +152,7 @@ class TravelStop {
     isIndoor: isIndoor,
     operatingHours: operatingHours,
     travelMinutes: transit,
+    inboundMode: inboundMode,
     travelCost: transportCost,
     travelIsEstimated: estimated,
     dataSource: dataSource,
@@ -182,6 +190,7 @@ class TravelStop {
         : operatingHours,
     'data_source': isGooglePlace ? 'google' : dataSource,
     'travel_minutes': travelMinutes,
+    if (inboundMode != null) 'inbound_mode': inboundMode,
     'travel_cost': travelCost,
     'travel_is_estimated': travelIsEstimated,
   };
@@ -214,6 +223,15 @@ class TravelStop {
       operatingHours: Map<String, dynamic>.from(
         json['operating_hours'] as Map? ?? {},
       ),
+      inboundMode:
+          const {
+            'Driving',
+            'Walking',
+            'Public Transport',
+            'E-hailing',
+          }.contains(json['inbound_mode'])
+          ? json['inbound_mode'] as String
+          : null,
       travelMinutes: (json['travel_minutes'] as num?)?.toInt() ?? 0,
       travelCost: (json['travel_cost'] as num?)?.toDouble() ?? 0,
       travelIsEstimated: json['travel_is_estimated'] as bool? ?? true,
@@ -238,6 +256,7 @@ class TravelStop {
         visitMinutes: stop.visitMinutes,
         isIndoor: stop.isIndoor,
         travelMinutes: stop.travelMinutes,
+        inboundMode: stop.inboundMode,
         travelCost: stop.travelCost,
         travelIsEstimated: stop.travelIsEstimated,
         dataSource: 'google',

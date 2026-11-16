@@ -90,10 +90,10 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
 
   static const _tabSubtitles = [
     null,
-    'Discover attractions & places',
-    'Identify Malaysian landmarks and local dishes',
+    'Kuala Lumpur · Community',
+    'Landmarks & local dishes',
     'Tell us your preferences',
-    'AI help, translation and weather alerts',
+    'AI help, translation & weather',
   ];
 
   void _goToTab(int index) {
@@ -161,37 +161,11 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                   offstage: _myTripsOpen,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    child: _selectedIndex == 2
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                context.l10n.imageRecognition,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.ink,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                context
-                                    .l10n
-                                    .identifyMalaysianLandmarksAndLocalDishes,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.muted,
-                                ),
-                              ),
-                            ],
-                          )
-                        : AppHeader(
-                            title: _tabTitles[_selectedIndex],
-                            subtitle: _selectedIndex == 1
-                                ? 'Kuala Lumpur · Community'
-                                : _tabSubtitles[_selectedIndex],
-                            isDark: true,
-                          ),
+                    child: AppHeader(
+                      title: _tabTitles[_selectedIndex],
+                      subtitle: _tabSubtitles[_selectedIndex],
+                      isDark: true,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -329,14 +303,14 @@ class TravelBottomNavigation extends StatelessWidget {
                     item(
                       0,
                       Icons.explore_outlined,
-                      'Home',
+                      'Explore',
                       selectedIcon: Icons.explore,
                     ),
                     item(
                       1,
-                      Icons.travel_explore_outlined,
-                      'Explore',
-                      selectedIcon: Icons.travel_explore,
+                      Icons.groups_outlined,
+                      'Community',
+                      selectedIcon: Icons.groups,
                     ),
                     Expanded(
                       child: Align(
