@@ -73,18 +73,20 @@ class AssistantToolHandler {
       switch (name) {
         case 'get_weather_forecast':
           final city = args['city']?.toString().trim() ?? '';
-          if (city.isEmpty)
+          if (city.isEmpty) {
             return {'success': false, 'error': 'A Malaysian city is required.'};
+          }
           final forecast = await _weather.getForecastForDate(
             state: city,
             date: DateTime.now(),
           );
-          if (!forecast.isAvailable)
+          if (!forecast.isAvailable) {
             return {
               'success': false,
               'city': city,
               'error': 'Weather forecast unavailable for this destination.',
             };
+          }
           if (forecast.rainProbability == 20.0 &&
               forecast.adviceText == 'Clear and pleasant for outdoor sights.') {
             // Existing WeatherService substitutes a demo probability when
@@ -168,18 +170,20 @@ class AssistantToolHandler {
 
   Future<Map<String, dynamic>> _addToItinerary(String placeId) async {
     final userId = AuthService().currentUser?.uid;
-    if (userId == null || userId.isEmpty)
+    if (userId == null || userId.isEmpty) {
       return {
         'success': false,
         'error': 'Sign in to add a place to a saved itinerary.',
       };
+    }
     final rows = await _places.load();
     final matches = rows.where((row) => row['place_id'] == placeId);
-    if (matches.isEmpty)
+    if (matches.isEmpty) {
       return {
         'success': false,
         'error': 'That place is no longer in the available catalog.',
       };
+    }
     final place = matches.first;
     final journal = await _itineraries.read(userId);
     final records =
@@ -196,30 +200,33 @@ class AssistantToolHandler {
                   ((a.value as Map)['trip'] as Map)['created_at'].toString(),
                 ),
           );
-    if (records.isEmpty)
+    if (records.isEmpty) {
       return {
         'success': false,
         'error': 'Create or save an itinerary before adding places.',
       };
+    }
     final record = Map<String, dynamic>.from(records.first.value as Map);
     final trip = Map<String, dynamic>.from(record['trip'] as Map);
     final days = (trip['daily_schedules'] as List? ?? [])
         .map((d) => Map<String, dynamic>.from(d as Map))
         .toList();
-    if (days.isEmpty)
+    if (days.isEmpty) {
       return {
         'success': false,
         'error': 'The selected itinerary has no day available.',
       };
+    }
     final day = days.first;
     final stops = (day['itinerary_stops'] as List? ?? [])
         .map((s) => Map<String, dynamic>.from(s as Map))
         .toList();
-    if (stops.any((stop) => stop['place_id'] == placeId))
+    if (stops.any((stop) => stop['place_id'] == placeId)) {
       return {
         'success': false,
         'error': 'This place is already on the selected day.',
       };
+    }
     final now = DateTime.now();
     final snapshot = TravelStop(
       title: place['name']?.toString() ?? 'Attraction',

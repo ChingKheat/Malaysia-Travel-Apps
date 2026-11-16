@@ -27,7 +27,7 @@ class TravelAssistantService {
   AssistantLanguage currentLanguage = AssistantLanguage.english;
   bool isGeminiAvailable = false;
   AssistantToolHandler toolHandler = AssistantToolHandler();
-  http.Client _client = http.Client();
+  final http.Client _client = http.Client();
   String? lastGeminiIssue;
   String model = const String.fromEnvironment(
     'GEMINI_MODEL',
@@ -164,8 +164,9 @@ class TravelAssistantService {
               .map((p) => Map<String, dynamic>.from(p))
               .toList() ??
           const [];
-      if (content == null)
+      if (content == null) {
         throw const FormatException('Gemini response contained no content');
+      }
       final calls = parts
           .where((p) => p['functionCall'] is Map)
           .map((p) => Map<String, dynamic>.from(p['functionCall'] as Map))
@@ -182,17 +183,20 @@ class TravelAssistantService {
           executedData.add(result);
           if (name == 'search_malaysia_places' && result['places'] is List) {
             for (final raw in result['places'] as List) {
-              if (raw is Map)
+              if (raw is Map) {
                 finalData ??= _placeData(Map<String, dynamic>.from(raw));
+              }
             }
           }
-          if (name == 'get_weather_forecast' && result['success'] == true)
+          if (name == 'get_weather_forecast' && result['success'] == true) {
             finalData ??= _weatherData(Map<String, dynamic>.from(result));
-          if (name == 'add_to_itinerary' && result['success'] == true)
+          }
+          if (name == 'add_to_itinerary' && result['success'] == true) {
             finalData ??= {
               'text': null,
               'places': <AssistantPlaceSuggestion>[],
             };
+          }
         }
         _history.add({
           'role': 'user',
@@ -213,8 +217,9 @@ class TravelAssistantService {
           .where((s) => s.isNotEmpty)
           .join('\n')
           .trim();
-      if (text.isEmpty)
+      if (text.isEmpty) {
         throw const FormatException('Gemini response text missing');
+      }
       _history.add({
         'role': 'model',
         'parts': [
@@ -253,37 +258,42 @@ class TravelAssistantService {
         final map = Map<String, dynamic>.from(decoded);
         text = map['text']?.toString() ?? raw;
         final placeList = map['places'];
-        if (placeList is List)
+        if (placeList is List) {
           places = placeList
               .whereType<Map>()
               .map((p) => _place(Map<String, dynamic>.from(p)))
               .toList();
+        }
         final w = map['weather_alert'];
         if (w is Map) weather = _weather(Map<String, dynamic>.from(w));
-        if (map['follow_up_chips'] is List)
+        if (map['follow_up_chips'] is List) {
           chips = (map['follow_up_chips'] as List)
               .whereType<String>()
               .take(4)
               .toList();
+        }
       }
     } catch (_) {
       text = raw;
     }
-    if (places.isEmpty && toolData?['places'] is List)
+    if (places.isEmpty && toolData?['places'] is List) {
       places = (toolData!['places'] as List)
           .whereType<Map>()
           .map((p) => _place(Map<String, dynamic>.from(p)))
           .toList();
-    if (weather == null && toolData?['weather_alert'] is Map)
+    }
+    if (weather == null && toolData?['weather_alert'] is Map) {
       weather = _weather(
         Map<String, dynamic>.from(toolData!['weather_alert'] as Map),
       );
-    if (chips.isEmpty)
+    }
+    if (chips.isEmpty) {
       chips = const [
         'Show more indoor attractions',
         'Find halal food nearby',
         'Plan public transport',
       ];
+    }
     return AssistantMessage(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       text: text,
@@ -376,7 +386,7 @@ class TravelAssistantService {
         p.contains('cuaca') ||
         p.contains('hujan') ||
         p.contains('天气') ||
-        p.contains('雨'))
+        p.contains('雨')) {
       return AssistantMessage(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         text: switch (currentLanguage) {
@@ -391,10 +401,11 @@ class TravelAssistantService {
         timestamp: DateTime.now(),
         followUpChips: _offlineChips(),
       );
+    }
     if (p.contains('batu cave') ||
         p.contains('etiquette') ||
         p.contains('dress') ||
-        p.contains('黑风洞'))
+        p.contains('黑风洞')) {
       return AssistantMessage(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         text:
@@ -406,6 +417,7 @@ class TravelAssistantService {
           'Find nearby indoor places',
         ],
       );
+    }
     return AssistantMessage(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       text: _offlineGeneralText(),

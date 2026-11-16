@@ -701,8 +701,9 @@ class _ItineraryPageState extends State<ItineraryPage> {
         .toSet();
     if (_liveDayKey == key &&
         ids.length == _livePlaceIds.length &&
-        ids.containsAll(_livePlaceIds))
+        ids.containsAll(_livePlaceIds)) {
       return;
+    }
     final generation = ++_detailsGeneration;
     _liveDayKey = key;
     _livePlaceIds = ids;
