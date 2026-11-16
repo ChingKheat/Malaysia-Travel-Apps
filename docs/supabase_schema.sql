@@ -342,7 +342,7 @@ CREATE OR REPLACE FUNCTION public.sanitize_google_itinerary_stop() RETURNS trigg
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 DECLARE own_keys TEXT[] := ARRAY['place_id','id','schedule_id','stop_order','arrival_time','departure_time',
   'is_visited','time','duration','estimated_cost','visit_minutes','is_indoor','travel_minutes',
-  'travel_cost','travel_is_estimated','inbound_mode','data_source','user_note'];
+  'travel_cost','travel_is_estimated','inbound_mode','data_source','user_note','title','place_name'];
   clean JSONB; snap JSONB;
 BEGIN
   IF EXISTS(SELECT 1 FROM public.places WHERE place_id=NEW.place_id AND data_source='google') THEN
@@ -352,12 +352,13 @@ BEGIN
       FROM jsonb_each(CASE WHEN jsonb_typeof(NEW.stop_data->'snapshot')='object'
         THEN NEW.stop_data->'snapshot' ELSE '{}'::jsonb END) WHERE key=ANY(own_keys);
     snap := snap || jsonb_build_object('place_id',NEW.place_id,'data_source','google',
-      'title','Saved Google place','place_name','Saved Google place','category','Attraction',
+      'title',COALESCE(NULLIF(NULLIF(snap->>'title',''),'Saved Google place'),NULLIF(NULLIF(clean->>'place_name',''),'Saved Google place'),'Saved Google place'),
+      'place_name',COALESCE(NULLIF(NULLIF(clean->>'place_name',''),'Saved Google place'),NULLIF(NULLIF(snap->>'title',''),'Saved Google place'),'Saved Google place'),'category','Attraction',
       'latitude',0,'longitude',0,'opening_hours','Hours unverified',
       'description','Place details require an internet connection.',
       'photo_urls','[]'::jsonb,'tips','[]'::jsonb,'operating_hours','{}'::jsonb);
     NEW.stop_data := clean || jsonb_build_object('place_id',NEW.place_id,
-      'data_source','google','place_name','Saved Google place','category','Attraction',
+      'data_source','google','place_name',COALESCE(NULLIF(NULLIF(clean->>'place_name',''),'Saved Google place'),NULLIF(NULLIF(snap->>'title',''),'Saved Google place'),'Saved Google place'),'category','Attraction',
       'latitude',0,'longitude',0,'snapshot',snap);
   END IF;
   RETURN NEW;
@@ -720,5 +721,175 @@ $$;
 
 REVOKE ALL ON FUNCTION public.community_feed() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.community_feed() TO authenticated;
+
+-- Community author display. Keep the original feed available to older app builds.
+CREATE SCHEMA IF NOT EXISTS community_private;
+REVOKE ALL ON SCHEMA community_private FROM PUBLIC, anon;
+GRANT USAGE ON SCHEMA community_private TO authenticated;
+
+CREATE OR REPLACE FUNCTION community_private.comment_display_name(comment_id uuid)
+RETURNS text
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+  SELECT NULLIF(btrim(p.full_name), '')
+  FROM public.community_comments c
+  JOIN public.profiles p ON p.user_id = c.user_id
+  WHERE c.id = comment_id AND (SELECT auth.uid()) IS NOT NULL
+$$;
+
+REVOKE ALL ON FUNCTION community_private.comment_display_name(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION community_private.comment_display_name(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.community_feed_v2()
+RETURNS TABLE (
+  id uuid, author text, place text, topic text, body text, created_at timestamptz,
+  likes_count bigint, liked boolean, saved boolean, comments jsonb, is_mine boolean
+)
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = ''
+AS $$
+  SELECT p.id, p.author, p.place, p.topic, p.body, p.created_at,
+    (SELECT count(*) FROM public.community_likes l WHERE l.post_id = p.id),
+    EXISTS (SELECT 1 FROM public.community_likes l WHERE l.post_id = p.id AND l.user_id = (SELECT auth.uid())),
+    EXISTS (SELECT 1 FROM public.community_bookmarks b WHERE b.post_id = p.id AND b.user_id = (SELECT auth.uid())),
+    COALESCE((SELECT jsonb_agg(jsonb_build_object(
+      'id', c.id,
+      'body', c.body,
+      'author', community_private.comment_display_name(c.id),
+      'is_mine', c.user_id = (SELECT auth.uid())
+    ) ORDER BY c.created_at, c.id) FROM (
+      SELECT cc.id, cc.user_id, cc.body, cc.created_at FROM public.community_comments cc
+      WHERE cc.post_id = p.id ORDER BY cc.created_at DESC, cc.id DESC LIMIT 30
+    ) c), '[]'::jsonb),
+    p.user_id = (SELECT auth.uid())
+  FROM public.community_posts p
+  ORDER BY p.created_at DESC, p.id DESC
+  LIMIT 50
+$$;
+
+REVOKE ALL ON FUNCTION public.community_feed_v2() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.community_feed_v2() TO authenticated;
+
+
+-- Private one-to-one messaging. Apply to an existing project only after review.
+CREATE TABLE IF NOT EXISTS public.private_conversations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_low uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  participant_high uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_activity_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT private_conversations_order CHECK (participant_low < participant_high),
+  CONSTRAINT private_conversations_pair UNIQUE (participant_low, participant_high)
+);
+CREATE TABLE IF NOT EXISTS public.private_messages (
+  id uuid PRIMARY KEY,
+  conversation_id uuid NOT NULL REFERENCES public.private_conversations(id) ON DELETE CASCADE,
+  sender_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content text NOT NULL CHECK (char_length(content) BETWEEN 1 AND 4000 AND btrim(content) <> ''),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  read_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS private_conversations_low_activity_idx ON public.private_conversations(participant_low, last_activity_at DESC);
+CREATE INDEX IF NOT EXISTS private_conversations_high_activity_idx ON public.private_conversations(participant_high, last_activity_at DESC);
+CREATE INDEX IF NOT EXISTS private_messages_history_idx ON public.private_messages(conversation_id, created_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS private_messages_unread_idx ON public.private_messages(conversation_id, sender_id) WHERE read_at IS NULL;
+ALTER TABLE public.private_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.private_messages ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.private_conversations, public.private_messages FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.private_conversations, public.private_messages TO authenticated;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='private_conversations' AND policyname='private_conversations_participant_read') THEN
+    CREATE POLICY private_conversations_participant_read ON public.private_conversations FOR SELECT TO authenticated
+      USING ((SELECT auth.uid()) IN (participant_low, participant_high));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='private_messages' AND policyname='private_messages_participant_read') THEN
+    CREATE POLICY private_messages_participant_read ON public.private_messages FOR SELECT TO authenticated
+      USING (EXISTS (SELECT 1 FROM public.private_conversations c WHERE c.id=conversation_id AND (SELECT auth.uid()) IN (c.participant_low, c.participant_high)));
+  END IF;
+END $$;
+
+-- Only authenticated callers can invoke these operations; identity is never supplied by the client.
+CREATE OR REPLACE FUNCTION public.private_conversation_get_or_create(recipient uuid)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE actor uuid := auth.uid(); result uuid;
+BEGIN
+  IF actor IS NULL OR recipient IS NULL OR actor = recipient THEN RAISE EXCEPTION 'Invalid participant'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id=recipient) THEN RAISE EXCEPTION 'Recipient unavailable'; END IF;
+  INSERT INTO public.private_conversations(participant_low, participant_high)
+    VALUES (least(actor, recipient), greatest(actor, recipient))
+    ON CONFLICT (participant_low, participant_high) DO NOTHING;
+  SELECT id INTO result FROM public.private_conversations
+    WHERE participant_low=least(actor, recipient) AND participant_high=greatest(actor, recipient);
+  RETURN result;
+END $$;
+-- A community post identifies its author without exposing profile rows.
+CREATE OR REPLACE FUNCTION public.private_conversation_from_post(post_id uuid)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE recipient uuid;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
+  SELECT user_id INTO recipient FROM public.community_posts WHERE id=post_id;
+  IF recipient IS NULL THEN RAISE EXCEPTION 'Post unavailable'; END IF;
+  RETURN public.private_conversation_get_or_create(recipient);
+END $$;
+REVOKE ALL ON FUNCTION public.private_conversation_from_post(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.private_conversation_from_post(uuid) TO authenticated;
+-- Resolve a comment author on the server; never accept a claimed sender ID.
+CREATE OR REPLACE FUNCTION public.private_conversation_from_comment(comment_id uuid)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE recipient uuid;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
+  SELECT user_id INTO recipient FROM public.community_comments WHERE id=comment_id;
+  IF recipient IS NULL THEN RAISE EXCEPTION 'Comment unavailable'; END IF;
+  RETURN public.private_conversation_get_or_create(recipient);
+END $$;
+REVOKE ALL ON FUNCTION public.private_conversation_from_comment(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.private_conversation_from_comment(uuid) TO authenticated;
+CREATE OR REPLACE FUNCTION public.private_message_send(message_id uuid, chat_id uuid, message_text text)
+RETURNS public.private_messages LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE actor uuid := auth.uid(); result public.private_messages;
+BEGIN
+  IF actor IS NULL OR NOT EXISTS (SELECT 1 FROM public.private_conversations c WHERE c.id=chat_id AND actor IN (c.participant_low,c.participant_high)) THEN
+    RAISE EXCEPTION 'Conversation unavailable';
+  END IF;
+  IF message_id IS NULL OR message_text IS NULL OR char_length(message_text) NOT BETWEEN 1 AND 4000 OR btrim(message_text) = '' THEN RAISE EXCEPTION 'Invalid message'; END IF;
+  INSERT INTO public.private_messages(id, conversation_id, sender_id, content)
+    VALUES (message_id, chat_id, actor, message_text) ON CONFLICT (id) DO NOTHING;
+  SELECT * INTO result FROM public.private_messages m WHERE m.id=message_id AND m.conversation_id=chat_id AND m.sender_id=actor AND m.content=message_text;
+  IF result.id IS NULL THEN RAISE EXCEPTION 'Message identifier conflict'; END IF;
+  UPDATE public.private_conversations SET last_activity_at=greatest(last_activity_at,result.created_at) WHERE id=chat_id;
+  RETURN result;
+END $$;
+CREATE OR REPLACE FUNCTION public.private_messages_mark_read(chat_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE actor uuid := auth.uid();
+BEGIN
+  IF actor IS NULL OR NOT EXISTS (SELECT 1 FROM public.private_conversations c WHERE c.id=chat_id AND actor IN (c.participant_low,c.participant_high)) THEN RAISE EXCEPTION 'Conversation unavailable'; END IF;
+  UPDATE public.private_messages SET read_at=now() WHERE conversation_id=chat_id AND sender_id<>actor AND read_at IS NULL;
+END $$;
+CREATE OR REPLACE FUNCTION public.private_inbox()
+RETURNS TABLE (conversation_id uuid, other_user_id uuid, display_name text, last_activity_at timestamptz, preview text, message_at timestamptz, unread_count bigint)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT c.id, other.id, COALESCE(NULLIF(btrim(p.full_name),''),'Traveller'), c.last_activity_at, latest.content, latest.created_at,
+    (SELECT count(*) FROM public.private_messages u WHERE u.conversation_id=c.id AND u.sender_id<>(SELECT auth.uid()) AND u.read_at IS NULL)
+  FROM public.private_conversations c
+  CROSS JOIN LATERAL (SELECT CASE WHEN c.participant_low=(SELECT auth.uid()) THEN c.participant_high ELSE c.participant_low END AS id) other
+  LEFT JOIN public.profiles p ON p.user_id=other.id
+  LEFT JOIN LATERAL (SELECT m.content,m.created_at FROM public.private_messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC,m.id DESC LIMIT 1) latest ON true
+  WHERE (SELECT auth.uid()) IS NOT NULL AND (SELECT auth.uid()) IN (c.participant_low,c.participant_high)
+  ORDER BY c.last_activity_at DESC,c.id DESC
+$$;
+REVOKE ALL ON FUNCTION public.private_conversation_get_or_create(uuid), public.private_message_send(uuid,uuid,text), public.private_messages_mark_read(uuid), public.private_inbox() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.private_conversation_get_or_create(uuid), public.private_message_send(uuid,uuid,text), public.private_messages_mark_read(uuid), public.private_inbox() TO authenticated;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname='supabase_realtime') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='private_messages') THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.private_messages;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='private_conversations') THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.private_conversations;
+    END IF;
+  END IF;
+END $$;
 
 COMMIT;

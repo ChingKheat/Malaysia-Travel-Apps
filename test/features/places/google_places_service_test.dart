@@ -98,7 +98,7 @@ void main() {
     expect(result.googleDetails!.rating, isNull);
   });
   test(
-    'Google persistence keeps the ID and own plan without Google content or photo references',
+    'Google persistence preserves the name and plan without transient details',
     () {
       final live = stop(
         fixture(),
@@ -106,7 +106,6 @@ void main() {
       final snapshot = live.toJson();
       final text = jsonEncode(snapshot);
       for (final content in [
-        'Google museum',
         'Address from Google',
         'Summary from Google',
         'places/ChIJ123/photos/old',
@@ -116,6 +115,7 @@ void main() {
         expect(text, isNot(contains(content)));
       }
       expect(snapshot['place_id'], 'ChIJ123');
+      expect(snapshot['title'], 'Google museum');
       final restored = TravelStop.fromJson(snapshot);
       expect(restored.isGooglePlace, true);
       expect(restored.googleDetails, isNull);
@@ -145,7 +145,7 @@ void main() {
         'latitude': 3.1,
         'longitude': 101.7,
       });
-      expect(legacy.title, 'Saved Google place');
+      expect(legacy.title, 'Old name');
       expect(legacy.primaryPhotoUrl, isNull);
       expect(legacy.latitude, 0);
       final row = ItineraryStop.fromSupabase({

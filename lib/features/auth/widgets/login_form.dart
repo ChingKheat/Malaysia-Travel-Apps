@@ -115,18 +115,22 @@ class _LoginFormState extends State<LoginForm> {
         children: [
           Text(
             context.l10n.welcomeBack,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             context.l10n.signInToManageYourMalaysiaTravelPlans,
-            style: TextStyle(fontSize: 14, color: AppColors.muted),
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.muted,
+              height: 1.35,
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Error Banner (M2 - M6)
           if (_errorMessage != null) ...[
@@ -134,24 +138,27 @@ class _LoginFormState extends State<LoginForm> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: Colors.red.shade900.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.red.shade200, width: 1.2),
+                border: Border.all(
+                  color: Colors.redAccent.withValues(alpha: 0.4),
+                  width: 1.2,
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.error_outline_rounded,
-                    color: Colors.red.shade700,
+                    color: Colors.redAccent,
                     size: 22,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       context.tr(_errorMessage!),
-                      style: TextStyle(
-                        color: Colors.red.shade900,
+                      style: const TextStyle(
+                        color: Color(0xFFFFCDD2),
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         height: 1.35,
@@ -167,23 +174,26 @@ class _LoginFormState extends State<LoginForm> {
           // Field 1: Email Address with Floating Label & Inline Validation
           TextField(
             controller: _emailController,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: AppColors.primary,
             onChanged: (_) => _clearEmailError(),
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
               label: _buildFieldLabel(context.l10n.emailAddress, isMandatory: true),
               hint: context.l10n.eGTouristExampleCom,
-              helperText: context.l10n.eGTouristExampleCom,
               errorText: emailError,
               icon: Icons.email_outlined,
               isError: _highlightedEmptyFields.contains('email') || emailError != null,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           // Field 2: Password with Floating Label, Toggle & Inline Validation
           TextField(
             controller: _passwordController,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: AppColors.primary,
             onChanged: (_) => _clearPasswordError(),
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.done,
@@ -260,7 +270,10 @@ class _LoginFormState extends State<LoginForm> {
         if (isMandatory)
           const Text(
             ' *',
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
+            ),
           ),
       ],
     );
@@ -281,39 +294,60 @@ class _LoginFormState extends State<LoginForm> {
       hintText: hint,
       helperText: helperText,
       errorText: errorText,
+      hintStyle: TextStyle(
+        color: AppColors.muted.withValues(alpha: 0.65),
+        fontSize: 14,
+      ),
+      labelStyle: const TextStyle(
+        color: AppColors.muted,
+        fontSize: 14,
+      ),
+      floatingLabelStyle: TextStyle(
+        color: hasError ? Colors.redAccent : AppColors.primary,
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
+      errorStyle: const TextStyle(
+        color: Colors.redAccent,
+        fontSize: 12,
+      ),
       prefixIcon: Icon(
         icon,
-        color: hasError ? Colors.red : AppColors.muted,
+        color: hasError ? Colors.redAccent : AppColors.muted,
         size: 20,
       ),
       suffixIcon: suffix,
       filled: true,
-      fillColor: hasError ? Colors.red.shade50 : Colors.grey.shade50,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      fillColor: hasError
+          ? Colors.red.shade900.withValues(alpha: 0.22)
+          : AppColors.nightRaised,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: hasError ? Colors.red : AppColors.line),
+        borderSide: BorderSide(
+          color: hasError ? Colors.redAccent : AppColors.line,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: hasError ? Colors.red.shade400 : AppColors.line,
+          color: hasError ? Colors.redAccent : AppColors.line,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: hasError ? Colors.red : AppColors.primary,
+          color: hasError ? Colors.redAccent : AppColors.primary,
           width: 2,
         ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red, width: 1.2),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
       ),
     );
   }

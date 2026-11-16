@@ -503,23 +503,25 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: Colors.red.shade900.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade100),
+                    border: Border.all(
+                      color: Colors.redAccent.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.error_outline,
-                        color: Colors.red.shade600,
+                        color: Colors.redAccent,
                         size: 20,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           context.tr(_errorMessage!),
-                          style: TextStyle(
-                            color: Colors.red.shade700,
+                          style: const TextStyle(
+                            color: Color(0xFFFFCDD2),
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),

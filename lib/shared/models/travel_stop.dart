@@ -160,9 +160,9 @@ class TravelStop {
   );
 
   Map<String, dynamic> toJson() => {
-    'title': isGooglePlace ? 'Saved Google place' : title,
+    'title': title,
     'time': time,
-    'note': isGooglePlace ? 'Connect to load Google place details' : note,
+    'note': isGooglePlace ? 'Google Maps place' : note,
     'description': isGooglePlace
         ? 'Place details require an internet connection.'
         : description,
@@ -242,7 +242,7 @@ class TravelStop {
     if (google) {
       final safe = stop.toJson();
       return TravelStop(
-        title: safe['title'] as String,
+        title: stop.title,
         time: stop.time,
         note: safe['note'] as String,
         description: safe['description'] as String,

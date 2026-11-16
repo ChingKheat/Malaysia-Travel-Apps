@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/features/messaging/messaging_screens.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
@@ -5,6 +6,8 @@ import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/profile/screens/profile_page.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/features/notifications/services/notification_service.dart';
+import 'package:smart_travel_planner/features/notifications/widgets/notification_sheet.dart';
 
 class AppHeader extends StatelessWidget {
   const AppHeader({
@@ -13,51 +16,59 @@ class AppHeader extends StatelessWidget {
     this.subtitle,
     this.isDark = false,
     this.compactCitylore = false,
+    this.onMyTripsTap,
   });
 
   const AppHeader.home({super.key, this.subtitle, this.isDark = true})
     : title = null,
-      compactCitylore = false;
+      compactCitylore = false,
+      onMyTripsTap = null;
 
   const AppHeader.explore({
     super.key,
     this.title = 'Explore Malaysia',
     this.subtitle = 'Live Google Places API active for Malaysia',
     this.isDark = false,
-  }) : compactCitylore = false;
+  }) : compactCitylore = false,
+       onMyTripsTap = null;
 
   const AppHeader.plan({
     super.key,
     this.title = 'Plan Your Trip',
     this.subtitle = 'Tell us your preferences',
     this.isDark = false,
-  }) : compactCitylore = false;
+  }) : compactCitylore = false,
+       onMyTripsTap = null;
 
   const AppHeader.itinerary({
     super.key,
     this.title = 'My Itinerary',
     this.subtitle = 'Smart schedule & daily stops',
     this.isDark = false,
-  }) : compactCitylore = false;
+  }) : compactCitylore = false,
+       onMyTripsTap = null;
 
   const AppHeader.ai({
     super.key,
     this.title = 'Trip Assistant',
     this.subtitle = 'AI help, translation & weather',
     this.isDark = false,
-  }) : compactCitylore = false;
+  }) : compactCitylore = false,
+       onMyTripsTap = null;
 
   const AppHeader.recognition({
     super.key,
     this.title = 'Image Recognition',
     this.subtitle = 'Landmarks & local dishes',
     this.isDark = false,
-  }) : compactCitylore = false;
+  }) : compactCitylore = false,
+       onMyTripsTap = null;
 
   final String? title;
   final String? subtitle;
   final bool isDark;
   final bool compactCitylore;
+  final VoidCallback? onMyTripsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -138,41 +149,22 @@ class AppHeader extends StatelessWidget {
               ),
               _HeaderBadgeButton(
                 icon: Icons.chat_bubble_outline_rounded,
-                badgeText: '1',
+                badgeText: '',
                 iconColor: const Color(0xFFB5AEA2),
                 compact: true,
                 tooltip: 'Messages',
                 onTap: () {
                   demoHaptic();
-                  showDemoSheet(
+                  Navigator.push(
                     context,
-                    title: 'Community Messages',
-                    body:
-                        'Amina Rahman: "Check out early morning Kaya Toast along Jalan Tun H.S. Lee before Central Market opens!"',
-                    icon: Icons.chat_bubble_outline_rounded,
-                    actionLabel: context.l10n.dismiss,
+                    MaterialPageRoute(builder: (_) => const MessagesInbox()),
                   );
                 },
               ),
               const SizedBox(width: 8),
-              _HeaderBadgeButton(
-                icon: Icons.notifications_none_outlined,
-                badgeText: '1',
+              _NotificationsButton(
                 iconColor: const Color(0xFFB5AEA2),
                 compact: true,
-                tooltip: context.l10n.notifications,
-                onTap: () {
-                  demoHaptic();
-                  showDemoSheet(
-                    context,
-                    title: context.l10n.notifications,
-                    body: context
-                        .l10n
-                        .weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde,
-                    icon: Icons.notifications_active_outlined,
-                    actionLabel: context.l10n.dismiss,
-                  );
-                },
               ),
               const SizedBox(width: 10),
               GestureDetector(
@@ -180,7 +172,9 @@ class AppHeader extends StatelessWidget {
                   demoHaptic();
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                    MaterialPageRoute(
+                      builder: (_) => ProfilePage(onMyTripsTap: onMyTripsTap),
+                    ),
                   );
                 },
                 child: SizedBox.square(
@@ -248,47 +242,28 @@ class AppHeader extends StatelessWidget {
             const SizedBox(width: 8),
             _HeaderBadgeButton(
               icon: Icons.chat_bubble_outline_rounded,
-              badgeText: '1',
+              badgeText: '',
               iconColor: muted,
               tooltip: 'Messages',
               onTap: () {
                 demoHaptic();
-                showDemoSheet(
+                Navigator.push(
                   context,
-                  title: 'Community Messages',
-                  body:
-                      'Amina Rahman: "Check out early morning Kaya Toast along Jalan Tun H.S. Lee before Central Market opens!"',
-                  icon: Icons.chat_bubble_outline_rounded,
-                  actionLabel: context.l10n.dismiss,
+                  MaterialPageRoute(builder: (_) => const MessagesInbox()),
                 );
               },
             ),
             const SizedBox(width: 4),
-            _HeaderBadgeButton(
-              icon: Icons.notifications_none_outlined,
-              badgeText: '1',
-              iconColor: muted,
-              tooltip: context.l10n.notifications,
-              onTap: () {
-                demoHaptic();
-                showDemoSheet(
-                  context,
-                  title: context.l10n.notifications,
-                  body: context
-                      .l10n
-                      .weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde,
-                  icon: Icons.notifications_active_outlined,
-                  actionLabel: context.l10n.dismiss,
-                );
-              },
-            ),
+            _NotificationsButton(iconColor: muted),
             const SizedBox(width: 4),
             GestureDetector(
               onTap: () {
                 demoHaptic();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  MaterialPageRoute(
+                    builder: (_) => ProfilePage(onMyTripsTap: onMyTripsTap),
+                  ),
                 );
               },
               child: SizedBox(
@@ -364,39 +339,73 @@ class _HeaderBadgeButton extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   Icon(icon, color: iconColor, size: compact ? 21 : 22),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 3.5,
-                        vertical: 1,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 14,
-                        minHeight: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.nightAccent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        badgeText,
-                        style: const TextStyle(
-                          color: AppColors.nightSurface,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
+                  if (badgeText.isNotEmpty)
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 3.5,
+                          vertical: 1,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 14,
+                          minHeight: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.nightAccent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          badgeText,
+                          style: const TextStyle(
+                            color: AppColors.nightSurface,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NotificationsButton extends StatelessWidget {
+  const _NotificationsButton({required this.iconColor, this.compact = false});
+
+  final Color iconColor;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final service = NotificationService();
+    return ListenableBuilder(
+      listenable: service,
+      builder: (context, _) {
+        final count = service.unreadCount;
+        return _HeaderBadgeButton(
+          icon: Icons.notifications_none_outlined,
+          badgeText: count == 0
+              ? ''
+              : count > 99
+              ? '99+'
+              : '$count',
+          iconColor: iconColor,
+          compact: compact,
+          tooltip: context.l10n.notifications,
+          onTap: () {
+            demoHaptic();
+            showNotificationSheet(context);
+          },
+        );
+      },
     );
   }
 }

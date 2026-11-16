@@ -1,3 +1,5 @@
+import 'travel_preferences.dart';
+
 class UserModel {
   final String uid;
   final String name;
@@ -11,6 +13,7 @@ class UserModel {
   final String memberSince;
   final String preferredLanguage;
   final String role;
+  final TravelPreferences? travelPreferences;
 
   const UserModel({
     required this.uid,
@@ -26,6 +29,7 @@ class UserModel {
     this.memberSince = 'Recent Member',
     this.preferredLanguage = 'en',
     this.role = 'user',
+    this.travelPreferences,
   });
 
   /// True if user has administrative privileges to access Admin Database Hub
@@ -54,6 +58,9 @@ class UserModel {
       memberSince:
           data['member_since'] ?? data['memberSince'] ?? 'Recent Member',
       preferredLanguage: data['preferred_language'] ?? 'en',
+      travelPreferences: data['travel_preferences'] is Map
+          ? TravelPreferences.fromJson(data['travel_preferences'])
+          : null,
       role: data['role']?.toString() ?? 'user',
     );
   }
@@ -66,6 +73,8 @@ class UserModel {
       'full_name': name,
       'preferred_language': preferredLanguage,
       'role': role,
+      if (travelPreferences case final preferences?)
+        'travel_preferences': preferences.toJson(),
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -93,6 +102,8 @@ class UserModel {
       'memberSince': memberSince,
       'preferred_language': preferredLanguage,
       'role': role,
+      if (travelPreferences case final preferences?)
+        'travel_preferences': preferences.toJson(),
     };
   }
 }

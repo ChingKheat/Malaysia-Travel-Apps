@@ -1,5 +1,6 @@
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/features/assistant/services/assistant_tool_handler.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/assistant/models/assistant_message.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
@@ -9,10 +10,40 @@ class AssistantPlaceCard extends StatelessWidget {
     super.key,
     required this.place,
     this.onAddToItinerary,
+    this.placeId,
   });
 
   final AssistantPlaceSuggestion place;
   final VoidCallback? onAddToItinerary;
+  final String? placeId;
+
+  Future<void> _add(BuildContext context) async {
+    if (onAddToItinerary != null) {
+      onAddToItinerary!();
+      return;
+    }
+    if (placeId == null || placeId!.isEmpty) {
+      showDemoSnackBar(
+        context,
+        'This recommendation cannot be added because its catalog ID is missing.',
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+    final result = await AssistantToolHandler().execute('add_to_itinerary', {
+      'place_id': placeId,
+    });
+    if (!context.mounted) return;
+    showDemoSnackBar(
+      context,
+      result['success'] == true
+          ? 'Added to your itinerary.'
+          : (result['error']?.toString() ?? 'Unable to add this place.'),
+      icon: result['success'] == true
+          ? Icons.bookmark_added_rounded
+          : Icons.error_outline,
+    );
+  }
 
   void _showPlaceDetails(BuildContext context) {
     demoHaptic();
@@ -55,7 +86,7 @@ class AssistantPlaceCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              place.rating.toStringAsFixed(1),
+                              place.rating?.toStringAsFixed(1) ?? '—',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -123,15 +154,9 @@ class AssistantPlaceCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        showDemoSnackBar(
-                          context,
-                          context.l10n.valueAddedToYourDay2ScheduleDraft(
-                            (place.name).toString(),
-                          ),
-                          icon: Icons.bookmark_added_rounded,
-                        );
+                        await _add(context);
                       },
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -214,19 +239,21 @@ class AssistantPlaceCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(
-                      Icons.star_rounded,
-                      size: 14,
-                      color: Colors.amber,
-                    ),
-                    Text(
-                      place.rating.toStringAsFixed(1),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink,
+                    if (place.rating != null)
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 14,
+                        color: Colors.amber,
                       ),
-                    ),
+                    if (place.rating != null)
+                      Text(
+                        place.rating!.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.ink,
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -240,15 +267,9 @@ class AssistantPlaceCard extends StatelessWidget {
                 Row(
                   children: [
                     InkWell(
-                      onTap: () {
+                      onTap: () async {
                         demoHaptic();
-                        showDemoSnackBar(
-                          context,
-                          context.l10n.valueAddedToYourPlanDraft(
-                            (place.name).toString(),
-                          ),
-                          icon: Icons.playlist_add_check_rounded,
-                        );
+                        await _add(context);
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(

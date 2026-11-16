@@ -2552,11 +2552,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String
-  get weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde =>
-      '• 天气提醒：下午 3 点后预计有小雨。\n• 路线更新：已提前安排阿罗街，避开人潮。\n• 提醒：黑风洞明天上午 7 点开放。';
-
-  @override
   String get here => '这里';
 
   @override
@@ -2945,4 +2940,156 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get planContinueHighlights => '继续：必去景点与兴趣';
+
+  @override
+  String get profileTravelPreferences => '旅行偏好';
+
+  @override
+  String get profilePace => '旅行节奏';
+
+  @override
+  String get profileModerate => '适中';
+
+  @override
+  String get profileFastPaced => '紧凑';
+
+  @override
+  String get profileBudgetTier => '预算档次';
+
+  @override
+  String get profileBudget => '经济';
+
+  @override
+  String get profileLuxury => '豪华';
+
+  @override
+  String get profileDiet => '饮食要求';
+
+  @override
+  String get profileNone => '无';
+
+  @override
+  String get profileHalal => '清真认证';
+
+  @override
+  String get profileVegetarian => '素食';
+
+  @override
+  String get profileEditPreferences => '编辑旅行偏好';
+
+  @override
+  String get profileEdit => '编辑';
+
+  @override
+  String get profilePending => '已保存到此设备，等待云端同步。';
+
+  @override
+  String get profileSaveFailed => '无法保存到此设备，请重试。';
+
+  @override
+  String get profileRegions => '州与联邦直辖区';
+
+  @override
+  String get profileRegionsVisited => '已到访的州与联邦直辖区';
+
+  @override
+  String get profileCoverage => '马来西亚有 13 个州和 3 个联邦直辖区。覆盖范围仅统计地点已确认的到访记录。';
+
+  @override
+  String get profileNoRegions => '目前没有州或联邦直辖区归属已确认的到访记录。';
+
+  @override
+  String get profileFootprint => '旅行足迹';
+
+  @override
+  String get profileNoVisits => '已保存的行程暂无到访记录。在“今日计划”中将景点标记为已到访，即可在此查看。';
+
+  @override
+  String get profileCurrency => '首选货币';
+
+  @override
+  String get profileMyr => '马来西亚林吉特';
+
+  @override
+  String get profileSgd => '新加坡元';
+
+  @override
+  String get profileUsd => '美元';
+
+  @override
+  String get profileCny => '人民币';
+
+  @override
+  String get profileEur => '欧元';
+
+  @override
+  String get profileHotlines => '游客紧急联络电话';
+
+  @override
+  String get profileHotlinesSubtitle => '马来西亚紧急电话号码';
+
+  @override
+  String get profilePoliceAmbulance => '警察与救护车';
+
+  @override
+  String get profilePoliceAmbulanceInfo => '马来西亚全国紧急电话号码。';
+
+  @override
+  String get profileMobileEmergency => '手机紧急呼叫';
+
+  @override
+  String get profileMobileEmergencyInfo => '可从手机拨打的备用紧急号码。';
+
+  @override
+  String get profileTouristPolice => 'MaTiC 旅游警察局';
+
+  @override
+  String get profileTouristPoliceInfo => '吉隆坡旅游警察局联络电话，可用于报案和求助。';
+
+  @override
+  String get profileCall => '拨打';
+
+  @override
+  String get profileDialerError => '无法打开手机拨号器。';
+
+  @override
+  String get profileAdminSignIn => '请退出后使用管理员账户登录以访问管理中心。';
+
+  @override
+  String get notificationMarkAllRead => '全部标为已读';
+
+  @override
+  String get notificationEmptyTitle => '目前没有新通知！';
+
+  @override
+  String get notificationEmptyBody => '即将开始的行程提醒和帖子评论会显示在这里。';
+
+  @override
+  String get notificationTripReminder => '行程即将开始';
+
+  @override
+  String get notificationCommunityComment => '新评论';
+
+  @override
+  String notificationTripMessage(
+    Object title,
+    Object destination,
+    Object date,
+  ) {
+    return '您的$destination行程“$title”将于$date开始。';
+  }
+
+  @override
+  String notificationCommentMessage(Object comment) {
+    return '有人评论了： “$comment”';
+  }
+
+  @override
+  String get notificationViewTrip => '查看行程';
+
+  @override
+  String get notificationViewPost => '查看帖子';
+
+  @override
+  String get notificationUnavailable => '此行程或帖子已无法查看。';
 }

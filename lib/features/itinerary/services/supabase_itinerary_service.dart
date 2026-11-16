@@ -144,6 +144,7 @@ class SupabaseItineraryService extends ChangeNotifier {
       'id': stop.id.isEmpty ? const Uuid().v4() : stop.id,
       'schedule_id': scheduleId,
       'place_name': snapshot['title'],
+      if (stop.placeState != null) 'place_state': stop.placeState,
       'category': snapshot['category'],
       'latitude': snapshot['latitude'],
       'longitude': snapshot['longitude'],

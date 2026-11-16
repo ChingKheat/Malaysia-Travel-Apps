@@ -26,14 +26,19 @@ import 'package:smart_travel_planner/features/places/models/google_place_details
 
 import 'package:smart_travel_planner/shared/widgets/demo_tap.dart';
 import 'package:smart_travel_planner/features/itinerary/widgets/stop_card.dart';
-import 'package:smart_travel_planner/features/itinerary/widgets/summary_bar.dart';
 import 'edit_itinerary_screen.dart';
 import 'package:smart_travel_planner/features/places/screens/place_detail_page.dart';
 
 class ItineraryPage extends StatefulWidget {
   final VoidCallback? onPlanTap;
   final bool compactResult;
-  const ItineraryPage({super.key, this.onPlanTap, this.compactResult = false});
+  final String? initialItineraryId;
+  const ItineraryPage({
+    super.key,
+    this.onPlanTap,
+    this.compactResult = false,
+    this.initialItineraryId,
+  });
 
   @override
   State<ItineraryPage> createState() => _ItineraryPageState();
@@ -54,8 +59,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
   String? _loadedUserId;
   final Map<String, Map<int, List<TravelStop>>> _editedTripStops = {};
   String? _liveDayKey;
+  Set<String> _livePlaceIds = {};
   Map<String, GooglePlaceDetails> _liveDetails = {};
   int _detailsGeneration = 0;
+  bool _didSelectInitialItinerary = false;
 
   @override
   void initState() {
@@ -76,6 +83,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
       setState(() {
         _editedTripStops.clear();
         _liveDayKey = null;
+        _livePlaceIds = {};
         _liveDetails.clear();
         _detailsGeneration++;
         _rawDbItineraries = [];
@@ -200,7 +208,10 @@ class _ItineraryPageState extends State<ItineraryPage> {
     final requestDate = _dateForDay(dayIndex);
     final dest = _currentTrip.destination.split(',').first.trim();
     if (dest.isEmpty) return;
-    setState(() => _isLoadingWeather = true);
+    setState(() {
+      _isLoadingWeather = true;
+      _currentDayForecast = null;
+    });
     try {
       final forecast = await WeatherService().getForecastForDate(
         state: dest,
@@ -233,6 +244,19 @@ class _ItineraryPageState extends State<ItineraryPage> {
         setState(() {
           _rawDbItineraries = dbTrips;
           _dbSavedTrips = dbTrips.map((itin) => itin.toSavedTrip()).toList();
+          if (!_didSelectInitialItinerary &&
+              widget.initialItineraryId != null) {
+            final index = dbTrips.indexWhere(
+              (trip) => trip.itineraryId == widget.initialItineraryId,
+            );
+            if (index >= 0) {
+              final offset = TripPreferencesService.storedPreferences == null
+                  ? 0
+                  : 1;
+              _selectedTripIndex = offset + index;
+            }
+            _didSelectInitialItinerary = true;
+          }
         });
         if (_availableTrips.isNotEmpty) {
           _loadGoogleDetailsForDay(_selectedDay);
@@ -671,18 +695,32 @@ class _ItineraryPageState extends State<ItineraryPage> {
 
   Future<void> _loadGoogleDetailsForDay(int day) async {
     final key = '$_tripKey:$day';
-    if (_liveDayKey == key) return;
+    final ids = _rawStopsForDay(day)
+        .where((s) => s.isGooglePlace && s.placeId?.isNotEmpty == true)
+        .map((s) => s.placeId!)
+        .toSet();
+    if (_liveDayKey == key &&
+        ids.length == _livePlaceIds.length &&
+        ids.containsAll(_livePlaceIds))
+      return;
     final generation = ++_detailsGeneration;
     _liveDayKey = key;
+    _livePlaceIds = ids;
     _liveDetails = {};
     final uid = AuthService().currentUser?.uid;
-    final stops = _rawStopsForDay(
-      day,
-    ).where((s) => s.isGooglePlace && s.placeId != null);
-    final ids = stops.map((s) => s.placeId).toSet();
+    if (ids.isEmpty) return;
     final references = await PlaceCatalogService().load();
     final rows = await GooglePlacesService().hydrateRows(
-      references.where((r) => ids.contains(r['place_id'])),
+      [
+        ...references.where((r) => ids.contains(r['place_id'])),
+        for (final id in ids)
+          if (!references.any((r) => r['place_id'] == id))
+            {
+              'place_id': id,
+              'data_source': 'google',
+              'state': _currentTrip.destination,
+            },
+      ],
       limit: 20,
       shouldContinue: () =>
           mounted &&
@@ -745,13 +783,12 @@ class _ItineraryPageState extends State<ItineraryPage> {
           : _selectedTripIndex;
       if (dbTripIdx >= 0 && dbTripIdx < _rawDbItineraries.length) {
         final itin = _rawDbItineraries[dbTripIdx];
-        if (day < itin.dailySchedules.length &&
-            itin.dailySchedules[day].stops.isNotEmpty) {
+        if (day < itin.dailySchedules.length) {
           return itin.dailySchedules[day].stops
               .map((s) => s.toTravelStop())
               .toList();
         } else {
-          return getDailyStops(day);
+          return [];
         }
       } else {
         return SmartItineraryService.generateDailyStops(
@@ -995,53 +1032,19 @@ class _ItineraryPageState extends State<ItineraryPage> {
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          '${trip.destination} • ${context.tripDate(trip)}',
+                          '${MaterialLocalizations.of(context).formatShortDate(_dateForDay(0))} – ${MaterialLocalizations.of(context).formatShortDate(_dateForDay(totalDays - 1))} · ${context.l10n.valueDays(context.localNumber(totalDays))}',
                           style: const TextStyle(
                             color: AppColors.muted,
                             fontSize: 12,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.sky,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          context.l10n.valueDays((totalDays).toString()),
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.unfold_more,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                      ],
-                    ),
-                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.unfold_more, color: AppColors.primary),
                 ],
               ),
             ),
@@ -1050,7 +1053,8 @@ class _ItineraryPageState extends State<ItineraryPage> {
 
         // Horizontally Scrollable Day Selector (Supports 1 to 7+ days without overflowing)
         SizedBox(
-          height: 46,
+          height:
+              56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -1068,65 +1072,24 @@ class _ItineraryPageState extends State<ItineraryPage> {
         ),
         const SizedBox(height: 14),
 
-        if (!widget.compactResult) ...[
-          // Day Theme & Highlight Summary Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            decoration: BoxDecoration(
-              color: AppColors.sky,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.15),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 18,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.l10n.dayValueTheme(
-                          (_selectedDay + 1).toString(),
-                        ),
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        stops.isNotEmpty
-                            ? stops.take(3).map((s) => s.title).join(' • ')
-                            : context.l10n.valueDayValueHighlights(
-                                (trip.destination).toString(),
-                                (_selectedDay + 1).toString(),
-                              ),
-                        style: const TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        _buildDayIntelligenceBanner(stops),
+        if (stops.any(
+          (s) =>
+              s.isGooglePlace &&
+              (s.title == 'Saved Google place' || s.title == 'Attraction'),
+        ))
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () {
+                _liveDayKey = null;
+                _loadGoogleDetailsForDay(_selectedDay);
+              },
+              icon: const Icon(Icons.refresh),
+              label: Text(context.l10n.retry),
             ),
           ),
-          const SizedBox(height: 10),
-          _buildDayIntelligenceBanner(stops),
-          const SizedBox(height: 16),
-        ],
+        const SizedBox(height: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1170,29 +1133,72 @@ class _ItineraryPageState extends State<ItineraryPage> {
               ],
             ),
 
-            // Daily Stops List for Selected Day
-            for (final stop in stops) ...[
-              if ((stop.inboundMode ?? primaryMode) case final transport?
-                  when stop.travelMinutes > 0)
-                Padding(
-                  padding: const EdgeInsets.only(left: 12, bottom: 6),
-                  child: Text(
-                    '${transport == 'E-hailing' ? context.l10n.planHailing : context.tr(transport)}'
-                    ' · ${stop.travelIsEstimated ? '~' : ''}'
-                    '${context.l10n.valueMin(context.localNumber(stop.travelMinutes))}',
-                    style: const TextStyle(color: AppColors.muted),
-                  ),
-                ),
-              StopCard(
-                stop: stop,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PlaceDetailPage(
-                      stop: stop,
-                      visitDate: _dateForDay(_selectedDay),
+            // A connected timeline makes the order and inbound legs explicit.
+            for (var index = 0; index < stops.length; index++) ...[
+              Builder(
+                builder: (context) {
+                  final stop = stops[index];
+                  return IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.circle,
+                                size: 10,
+                                color: AppColors.primary,
+                              ),
+                              Expanded(
+                                child: Container(
+                                  width: 2,
+                                  color: AppColors.nightLine,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if ((stop.inboundMode ?? primaryMode)
+                                  case final transport?
+                                  when index > 0 && stop.travelMinutes > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 12,
+                                    bottom: 6,
+                                  ),
+                                  child: Text(
+                                    '${transport == 'E-hailing' ? context.l10n.planHailing : context.tr(transport)}'
+                                    ' · ${stop.travelIsEstimated ? '~' : ''}'
+                                    '${context.l10n.valueMin(context.localNumber(stop.travelMinutes))}',
+                                    style: const TextStyle(
+                                      color: AppColors.muted,
+                                    ),
+                                  ),
+                                ),
+                              StopCard(
+                                stop: stop,
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => PlaceDetailPage(
+                                      stop: stop,
+                                      visitDate: _dateForDay(_selectedDay),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ],
             const SizedBox(height: 12),
@@ -1215,7 +1221,6 @@ class _ItineraryPageState extends State<ItineraryPage> {
             const SizedBox(height: 12),
           ],
         ),
-        SummaryBar(stops: stops),
         ?_diningSuggestion(),
         if (_selectedSavedItinerary == null &&
             SmartItineraryService.dayWarnings[_selectedDay]?.isNotEmpty == true)
@@ -1422,160 +1427,26 @@ class _ItineraryPageState extends State<ItineraryPage> {
   }
 
   Widget _buildDayIntelligenceBanner(List<TravelStop> stops) {
-    final distanceKm = SmartItineraryService.calculateRouteDistanceKm(stops);
+    final saved = _selectedSavedItinerary;
+    final distance =
+        saved != null &&
+            _editedTripStops[_tripKey]?[_selectedDay] == null &&
+            _selectedDay < saved.dailySchedules.length
+        ? saved.dailySchedules[_selectedDay].totalDistanceKm
+        : 0.0;
     final forecast = _currentDayForecast;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.nightSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.nightLine),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 4,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.route_outlined,
-                        color: AppColors.primary,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.l10n.dayRoute,
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            context.l10n.valueKmValueStops2(
-                              (distanceKm).toString(),
-                              (stops.length).toString(),
-                            ),
-                            style: const TextStyle(
-                              color: AppColors.ink,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (_isLoadingWeather)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else if (forecast != null)
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: forecast.badgeColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: forecast.badgeColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          forecast.isSuitableForOutdoor
-                              ? Icons.wb_sunny_outlined
-                              : Icons.umbrella_outlined,
-                          size: 15,
-                          color: forecast.badgeColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            forecast.isAvailable
-                                ? '${forecast.temperatureC}°C • ${forecast.condition}'
-                                : forecast.condition,
-                            style: TextStyle(
-                              color: forecast.badgeColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+          Text(
+            '${context.localNumber(stops.length)} ${context.l10n.attractions}',
           ),
-          if (forecast != null && forecast.adviceText.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: forecast.badgeColor.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    forecast.isSuitableForOutdoor
-                        ? Icons.check_circle_outline
-                        : Icons.info_outline,
-                    size: 14,
-                    color: forecast.badgeColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${forecast.suitabilityBadge} — ${forecast.adviceText}',
-                      style: TextStyle(
-                        color: forecast.badgeColor.withValues(alpha: 0.9),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          if (distance > 0) Text('${context.localNumber(distance)} km'),
+          if (!_isLoadingWeather && forecast != null && forecast.isAvailable)
+            Text('${forecast.temperatureC}°C · ${forecast.condition}'),
         ],
       ),
     );
@@ -1599,40 +1470,44 @@ class DayPill extends StatelessWidget {
     return DemoTapCard(
       onTap: onTap,
       borderRadius: 14,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: active
-              ? Theme.of(context).colorScheme.primary
-              : AppColors.nightSurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
+      child: Semantics(
+        button: true,
+        selected: active,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
             color: active
                 ? Theme.of(context).colorScheme.primary
-                : AppColors.nightLine,
-            width: 1.4,
+                : AppColors.nightSurface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: active
+                  ? Theme.of(context).colorScheme.primary
+                  : AppColors.nightLine,
+              width: 1.4,
+            ),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            context.tr(label),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: active ? AppColors.onNightAccent : AppColors.nightBody,
-              fontWeight: FontWeight.w800,
-              fontSize: 13.5,
+          child: Center(
+            child: Text(
+              context.tr(label),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: active ? AppColors.onNightAccent : AppColors.nightBody,
+                fontWeight: FontWeight.w800,
+                fontSize: 13.5,
+              ),
             ),
           ),
         ),

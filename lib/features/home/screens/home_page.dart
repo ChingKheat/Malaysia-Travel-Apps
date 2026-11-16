@@ -7,10 +7,8 @@ import 'package:smart_travel_planner/features/home/widgets/trip_cards.dart';
 import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
 import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
-import 'package:smart_travel_planner/features/places/screens/api_retrieval_screen.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
-import 'package:smart_travel_planner/shared/widgets/demo_tap.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -251,148 +249,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showCommunityPost(BuildContext context, _CommunityItem post) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.nightSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.65,
-          maxChildSize: 0.85,
-          minChildSize: 0.45,
-          builder: (_, scrollController) {
-            return ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    post.asset,
-                    height: 170,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  post.tag,
-                  style: const TextStyle(
-                    color: AppColors.nightAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  post.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.person_pin,
-                      color: Colors.white70,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Shared by ${post.author}',
-                      style: const TextStyle(
-                        color: AppColors.nightMuted,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      Icons.favorite_rounded,
-                      color: Colors.pink.shade300,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${post.likes}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      color: Colors.white70,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${post.comments}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  post.content,
-                  style: const TextStyle(
-                    color: AppColors.nightBody,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CommunityFeedScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.forum_outlined, size: 18),
-                  label: const Text('View All Community Stories'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.nightAccent,
-                    foregroundColor: AppColors.onNightAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final upcomingTrip = _upcomingTrip;
@@ -401,20 +257,6 @@ class _HomePageState extends State<HomePage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
       children: [
-        ListenableBuilder(
-          listenable: AuthService(),
-          builder: (context, _) {
-            if (AuthService().currentUser?.isAdmin != true) {
-              return const SizedBox.shrink();
-            }
-            return const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [_SavedPlacesInspectorBanner(), SizedBox(height: 18)],
-            );
-          },
-        ),
-
         // Hero Curated City Guide Panel ("design box") with integrated Search bar
         HeroPanel(
           onSearchTap: widget.onPlanTap,
@@ -455,7 +297,6 @@ class _HomePageState extends State<HomePage> {
               ),
             );
           },
-          onPostTap: (post) => _showCommunityPost(context, post),
         ),
         const SizedBox(height: 24),
 
@@ -810,68 +651,10 @@ class _CategoryFilterChips extends StatelessWidget {
 }
 
 /// Data model for community card posts.
-class _CommunityItem {
-  const _CommunityItem({
-    required this.tag,
-    required this.title,
-    required this.author,
-    required this.likes,
-    required this.comments,
-    required this.asset,
-    required this.content,
-  });
-
-  final String tag;
-  final String title;
-  final String author;
-  final int likes;
-  final int comments;
-  final String asset;
-  final String content;
-}
-
-/// "From the Community" section with horizontal tip cards.
 class _CommunitySection extends StatelessWidget {
-  const _CommunitySection({
-    required this.onOpenCommunity,
-    required this.onPostTap,
-  });
+  const _CommunitySection({required this.onOpenCommunity});
 
   final VoidCallback onOpenCommunity;
-  final ValueChanged<_CommunityItem> onPostTap;
-
-  static const List<_CommunityItem> _posts = [
-    _CommunityItem(
-      tag: 'Local Tip · Chinatown Edge',
-      title: 'Early kopi tarik & kaya toast before Central...',
-      author: 'Amina Rah...',
-      likes: 38,
-      comments: 2,
-      asset: 'assets/recognition/nasi_lemak.jpg',
-      content:
-          'Wake up early and head to Chinatown for authentic charcoal-toasted kaya bread and smooth kopi tarik before the Central Market crowd arrives. Pair it with half-boiled eggs with dark soy sauce.',
-    ),
-    _CommunityItem(
-      tag: 'Photo · Petaling Street',
-      title: 'After-rain lantern reflections at...',
-      author: 'Kenji Sato',
-      likes: 64,
-      comments: 1,
-      asset: 'assets/recognition/sultan_abdul_samad.jpg',
-      content:
-          'Petaling Street after an evening tropical rain turns into a mirror of glowing red lanterns and neon street lights. Truly an atmospheric photography paradise around 7:30 PM.',
-    ),
-    _CommunityItem(
-      tag: 'Guide · Batu Caves',
-      title: 'Morning climb before the midday sun & crowd',
-      author: 'David C.',
-      likes: 52,
-      comments: 5,
-      asset: 'assets/recognition/batu_caves.jpg',
-      content:
-          'Take the KTM Komuter directly to Batu Caves. Starting the 272 steps at 7:30 AM means cooler weather and magical morning lighting through the limestone cave ceiling.',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -919,215 +702,11 @@ class _CommunitySection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 228,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _posts.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, index) {
-              final post = _posts[index];
-              return _CommunityPostCard(
-                post: post,
-                onTap: () => onPostTap(post),
-              );
-            },
-          ),
-        ),
       ],
     );
   }
 }
 
-class _CommunityPostCard extends StatelessWidget {
-  const _CommunityPostCard({required this.post, required this.onTap});
-
-  final _CommunityItem post;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return DemoTapCard(
-      onTap: onTap,
-      borderRadius: 16,
-      child: Container(
-        width: 215,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: AppColors.nightSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.nightLine, width: 1.2),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Post Image
-            Expanded(
-              child: Image.asset(
-                post.asset,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppColors.nightRaised,
-                  child: const Center(
-                    child: Icon(Icons.photo, color: Colors.white24, size: 32),
-                  ),
-                ),
-              ),
-            ),
-            // Post Summary Text
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post.tag,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.nightAccent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    post.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          post.author,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.nightMuted,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.favorite_border_rounded,
-                        size: 13,
-                        color: AppColors.nightMuted,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        '${post.likes}',
-                        style: const TextStyle(
-                          color: AppColors.nightMuted,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        size: 13,
-                        color: AppColors.nightMuted,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        '${post.comments}',
-                        style: const TextStyle(
-                          color: AppColors.nightMuted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Admin-only banner on the home screen for inspecting synced place data.
-class _SavedPlacesInspectorBanner extends StatelessWidget {
-  const _SavedPlacesInspectorBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.nightLine, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            backgroundColor: Colors.white24,
-            child: Icon(Icons.api, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.l10n.savedPlacesInspector,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  context.l10n.viewAdminSyncedPlacesInspectSavedData,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ApiRetrievalScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.nightAccent,
-              foregroundColor: AppColors.onNightAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text(context.l10n.open),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _MyTripsCard extends StatelessWidget {
   const _MyTripsCard({required this.onTap});

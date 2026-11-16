@@ -2635,11 +2635,6 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String
-  get weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde =>
-      '• Amaran cuaca: hujan ringan dijangka selepas 3 petang.\n• Laluan dikemas kini: Jalan Alor diawalkan untuk mengelakkan orang ramai.\n• Peringatan: Batu Caves dibuka pada 7 pagi esok.';
-
-  @override
   String get here => 'sini';
 
   @override
@@ -3050,4 +3045,169 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get planContinueHighlights => 'Terus ke tarikan dan minat';
+
+  @override
+  String get profileTravelPreferences => 'Keutamaan Perjalanan';
+
+  @override
+  String get profilePace => 'Rentak Perjalanan';
+
+  @override
+  String get profileModerate => 'Sederhana';
+
+  @override
+  String get profileFastPaced => 'Pantas';
+
+  @override
+  String get profileBudgetTier => 'Tahap Bajet';
+
+  @override
+  String get profileBudget => 'Jimat';
+
+  @override
+  String get profileLuxury => 'Mewah';
+
+  @override
+  String get profileDiet => 'Keperluan Pemakanan';
+
+  @override
+  String get profileNone => 'Tiada';
+
+  @override
+  String get profileHalal => 'Disahkan Halal';
+
+  @override
+  String get profileVegetarian => 'Vegetarian';
+
+  @override
+  String get profileEditPreferences => 'Sunting keutamaan perjalanan';
+
+  @override
+  String get profileEdit => 'Sunting';
+
+  @override
+  String get profilePending =>
+      'Disimpan pada peranti ini. Penyegerakan awan belum selesai.';
+
+  @override
+  String get profileSaveFailed =>
+      'Tidak dapat menyimpan pada peranti ini. Cuba lagi.';
+
+  @override
+  String get profileRegions => 'Negeri dan wilayah';
+
+  @override
+  String get profileRegionsVisited => 'Negeri dan Wilayah yang Dilawati';
+
+  @override
+  String get profileCoverage =>
+      'Malaysia mempunyai 13 negeri dan 3 wilayah persekutuan. Liputan dikira berdasarkan lawatan yang direkodkan dengan lokasi yang disahkan.';
+
+  @override
+  String get profileNoRegions =>
+      'Belum ada rekod lawatan dengan negeri atau wilayah yang disahkan.';
+
+  @override
+  String get profileFootprint => 'Jejak Perjalanan';
+
+  @override
+  String get profileNoVisits =>
+      'Belum ada lawatan direkodkan untuk perjalanan tersimpan. Tandakan tempat sebagai dilawati dalam Pelan Hari Ini untuk melihatnya di sini.';
+
+  @override
+  String get profileCurrency => 'Mata Wang Pilihan';
+
+  @override
+  String get profileMyr => 'Ringgit Malaysia';
+
+  @override
+  String get profileSgd => 'Dolar Singapura';
+
+  @override
+  String get profileUsd => 'Dolar AS';
+
+  @override
+  String get profileCny => 'Yuan China';
+
+  @override
+  String get profileEur => 'Euro';
+
+  @override
+  String get profileHotlines => 'Talian Kecemasan Pelancong';
+
+  @override
+  String get profileHotlinesSubtitle => 'Nombor kecemasan di Malaysia';
+
+  @override
+  String get profilePoliceAmbulance => 'Polis dan Ambulans';
+
+  @override
+  String get profilePoliceAmbulanceInfo =>
+      'Nombor kecemasan kebangsaan Malaysia.';
+
+  @override
+  String get profileMobileEmergency => 'Kecemasan Telefon Bimbit';
+
+  @override
+  String get profileMobileEmergencyInfo =>
+      'Nombor kecemasan alternatif melalui telefon bimbit.';
+
+  @override
+  String get profileTouristPolice => 'Balai Polis Pelancong MaTiC';
+
+  @override
+  String get profileTouristPoliceInfo =>
+      'Hubungi balai di Kuala Lumpur untuk laporan polis dan bantuan pelancong.';
+
+  @override
+  String get profileCall => 'Hubungi';
+
+  @override
+  String get profileDialerError => 'Tidak dapat membuka pendail telefon.';
+
+  @override
+  String get profileAdminSignIn =>
+      'Log keluar dan log masuk dengan akaun pentadbir untuk mengakses hab.';
+
+  @override
+  String get notificationMarkAllRead => 'Tandakan semua sebagai dibaca';
+
+  @override
+  String get notificationEmptyTitle =>
+      'Anda sudah mengikuti perkembangan terkini!';
+
+  @override
+  String get notificationEmptyBody =>
+      'Peringatan perjalanan dan komen pada hantaran anda akan dipaparkan di sini.';
+
+  @override
+  String get notificationTripReminder =>
+      'Perjalanan akan bermula tidak lama lagi';
+
+  @override
+  String get notificationCommunityComment => 'Komen baharu';
+
+  @override
+  String notificationTripMessage(
+    Object title,
+    Object destination,
+    Object date,
+  ) {
+    return '$title di $destination bermula pada $date.';
+  }
+
+  @override
+  String notificationCommentMessage(Object comment) {
+    return 'Seseorang mengulas: “$comment”';
+  }
+
+  @override
+  String get notificationViewTrip => 'Lihat perjalanan';
+
+  @override
+  String get notificationViewPost => 'Lihat hantaran';
+
+  @override
+  String get notificationUnavailable =>
+      'Perjalanan atau hantaran ini tiada lagi.';
 }

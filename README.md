@@ -43,6 +43,10 @@ The existing API settings also accept `GOOGLE_MAPS_API_KEY` and
 `OPENWEATHERMAP_API_KEY` through `--dart-define`. Native and web map setup remains
 in its original platform folders. See the [current data-flow documentation](docs/architecture/google_places_data_flow.md)
 for platform configuration and the distinction between client and server keys.
+For local Gemini assistant development, provide `GEMINI_API_KEY` and optionally
+`GEMINI_MODEL` (defaults to `gemini-3.8-flash`) with `--dart-define`. A key
+embedded in a mobile build can be extracted; production should proxy assistant
+requests through a server-side function with the key stored as a secret.
 Backend function configuration remains documented by
 [`supabase/functions/.env.example`](supabase/functions/.env.example).
 

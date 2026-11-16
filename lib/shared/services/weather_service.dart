@@ -43,14 +43,15 @@ class WeatherService {
   };
 
   /// Retrieves GPS center for a given Malaysian state/city
-  (double, double) _getCoordinates(String state) {
+  (double, double)? _getCoordinates(String state) {
     final clean = state.trim().toLowerCase();
+    if (clean.isEmpty) return null;
     for (final entry in stateCoordinates.entries) {
       if (clean.contains(entry.key) || entry.key.contains(clean)) {
         return entry.value;
       }
     }
-    return (3.1390, 101.6869); // Default: Kuala Lumpur central
+    return null;
   }
 
   /// Fetches real-time / 5-day forecast snapshot for an itinerary schedule date
@@ -59,7 +60,9 @@ class WeatherService {
     required DateTime date,
     String itineraryId = '',
   }) async {
-    final (lat, lng) = _getCoordinates(state);
+    final coordinates = _getCoordinates(state);
+    if (coordinates == null) return unavailable(state, date, itineraryId);
+    final (lat, lng) = coordinates;
 
     if (ApiKeys.hasOpenWeatherMapKey || _injectedClient != null) {
       try {

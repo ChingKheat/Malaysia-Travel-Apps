@@ -156,7 +156,13 @@ class PlaceCatalogService {
       'place_id': row['place_id'],
       'state': row['state'],
       'data_source': 'google',
-      'name': 'Saved Google place',
+      // Keep the user-selected name as a lightweight reference label; all
+      // Google-sourced metadata and expiring photo data are still discarded.
+      'name': row['name'] is String &&
+              (row['name'] as String).trim().isNotEmpty &&
+              row['name'] != 'Saved Google place'
+          ? row['name']
+          : 'Saved Google place',
       'category': appCategories.contains(row['category'])
           ? row['category']
           : 'Attraction',

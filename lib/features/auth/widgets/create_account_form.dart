@@ -149,20 +149,24 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           // Header description
           Text(
             context.l10n.createAccount,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             context
                 .l10n
                 .registerAsANewTouristToPlanYourPersonalizedTripsInMalaysia,
-            style: TextStyle(fontSize: 14, color: AppColors.muted),
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.muted,
+              height: 1.35,
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Error Banner (M2 - M8)
           if (_errorMessage != null) ...[
@@ -170,24 +174,27 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: Colors.red.shade900.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.red.shade200, width: 1.2),
+                border: Border.all(
+                  color: Colors.redAccent.withValues(alpha: 0.4),
+                  width: 1.2,
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.error_outline_rounded,
-                    color: Colors.red.shade700,
+                    color: Colors.redAccent,
                     size: 22,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       context.tr(_errorMessage!),
-                      style: TextStyle(
-                        color: Colors.red.shade900,
+                      style: const TextStyle(
+                        color: Color(0xFFFFCDD2),
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         height: 1.35,
@@ -203,23 +210,26 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           // Field 1: Full Name with Floating Label & Inline Validation
           TextField(
             controller: _nameController,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: AppColors.primary,
             onChanged: (_) => _clearValidationError('name'),
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
               label: _buildFieldLabel(context.l10n.fullName, isMandatory: true),
               hint: context.l10n.eGAliBinAhmad,
-              helperText: context.l10n.eGAliBinAhmad,
               errorText: nameError,
               icon: Icons.person_outline,
               isError:
                   _highlightedEmptyFields.contains('name') || nameError != null,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           // Field 2: Email Address with Floating Label & Inline Validation
           TextField(
             controller: _emailController,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: AppColors.primary,
             onChanged: (_) => _clearValidationError('email'),
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -229,7 +239,6 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                 isMandatory: true,
               ),
               hint: context.l10n.eGTouristExampleCom,
-              helperText: context.l10n.eGTouristExampleCom,
               errorText: emailError,
               icon: Icons.email_outlined,
               isError:
@@ -237,11 +246,13 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                   emailError != null,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           // Field 3: Password with Floating Label, Toggle & Strength Checklist
           TextField(
             controller: _passwordController,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: AppColors.primary,
             onChanged: (_) => _clearValidationError('password'),
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.next,
@@ -268,13 +279,13 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Password Strength Policy Checklist (C3)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: AppColors.nightRaised,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.nightLine),
             ),
@@ -283,7 +294,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               children: [
                 Text(
                   context.l10n.passwordStrengthPolicyC3,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
@@ -310,11 +321,13 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           // Field 4: Confirm Password with Floating Label & Inline Validation
           TextField(
             controller: _confirmPasswordController,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: AppColors.primary,
             onChanged: (_) => _clearValidationError('confirmPassword'),
             obscureText: _obscureConfirmPassword,
             textInputAction: TextInputAction.done,
@@ -369,7 +382,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
                     ),
                     child: Text(
                       context.l10n.registerAccount,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -394,7 +407,10 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
         if (isMandatory)
           const Text(
             ' *',
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
+            ),
           ),
       ],
     );
@@ -415,39 +431,60 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
       hintText: hint,
       helperText: helperText,
       errorText: errorText,
+      hintStyle: TextStyle(
+        color: AppColors.muted.withValues(alpha: 0.65),
+        fontSize: 14,
+      ),
+      labelStyle: const TextStyle(
+        color: AppColors.muted,
+        fontSize: 14,
+      ),
+      floatingLabelStyle: TextStyle(
+        color: hasError ? Colors.redAccent : AppColors.primary,
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
+      errorStyle: const TextStyle(
+        color: Colors.redAccent,
+        fontSize: 12,
+      ),
       prefixIcon: Icon(
         icon,
-        color: hasError ? Colors.red : AppColors.muted,
+        color: hasError ? Colors.redAccent : AppColors.muted,
         size: 20,
       ),
       suffixIcon: suffix,
       filled: true,
-      fillColor: hasError ? Colors.red.shade50 : Colors.grey.shade50,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      fillColor: hasError
+          ? Colors.red.shade900.withValues(alpha: 0.22)
+          : AppColors.nightRaised,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: hasError ? Colors.red : AppColors.line),
+        borderSide: BorderSide(
+          color: hasError ? Colors.redAccent : AppColors.line,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: hasError ? Colors.red.shade400 : AppColors.line,
+          color: hasError ? Colors.redAccent : AppColors.line,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: hasError ? Colors.red : AppColors.primary,
+          color: hasError ? Colors.redAccent : AppColors.primary,
           width: 2,
         ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red, width: 1.2),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
       ),
     );
   }
@@ -460,7 +497,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           Icon(
             isSatisfied ? Icons.check_circle : Icons.radio_button_unchecked,
             size: 15,
-            color: isSatisfied ? Colors.green.shade600 : Colors.grey.shade400,
+            color: isSatisfied ? Colors.greenAccent.shade400 : AppColors.muted,
           ),
           const SizedBox(width: 8),
           Flexible(
@@ -469,8 +506,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               style: TextStyle(
                 fontSize: 11.5,
                 color: isSatisfied
-                    ? Colors.green.shade800
-                    : Colors.grey.shade700,
+                    ? Colors.greenAccent.shade100
+                    : AppColors.muted,
                 fontWeight: isSatisfied ? FontWeight.w600 : FontWeight.normal,
               ),
             ),

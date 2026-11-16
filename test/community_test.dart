@@ -4,40 +4,73 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/features/community/community_page.dart';
 
 void main() {
-  testWidgets(
-    'saved filter includes a bookmarked post and detail shares state',
-    (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: CommunityPage()));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byTooltip('Save post').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Save post').first);
-      await tester.scrollUntilVisible(find.text('Saved'), -400);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Saved'));
-      await tester.pumpAndSettle();
-      expect(find.text('Kuala Lumpur'), findsOneWidget);
-      await tester.ensureVisible(find.text('Read story').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Read story').first);
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<FilterChip>(find.widgetWithText(FilterChip, 'Save post'))
-            .selected,
-        isTrue,
-      );
-      await tester.ensureVisible(find.text('Save post'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Save post'));
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      expect(
-        find.text('No posts here yet. Try another filter or bookmark a post.'),
-        findsOneWidget,
-      );
-    },
-  );
+  testWidgets('post and comments show the owning account label', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 812);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final post = CommunityPost.fromFeed({
+      'id': 'post',
+      'author': 'Alex',
+      'place': 'Ipoh',
+      'topic': 'Local Tip',
+      'body': 'Visit in the morning.',
+      'created_at': '2026-11-16T01:00:00Z',
+      'likes_count': 1,
+      'liked': false,
+      'saved': false,
+      'is_mine': true,
+      'comments': [
+        {'body': 'My comment', 'author': 'Alex', 'is_mine': true},
+        {
+          'id': 'comment-1',
+          'body': 'Another comment',
+          'author': 'Alex',
+          'is_mine': false,
+        },
+        'An older cached comment',
+      ],
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: CommunityPostDetailPage(post: post),
+      ),
+    );
+    expect(find.text('Alex (me)'), findsNWidgets(2));
+    expect(find.text('Alex'), findsOneWidget);
+    expect(find.text('An older cached comment'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.text('Alex'));
+    await tester.tap(find.text('Alex'));
+    await tester.pumpAndSettle();
+    expect(find.text('Community member'), findsOneWidget);
+    expect(find.text('Message'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    tester.view.physicalSize = const Size(812, 375);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(2),
+            disableAnimations: true,
+          ),
+          child: child!,
+        ),
+        home: CommunityPostDetailPage(post: post),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Add comment'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('text draft survives reopening composer', (tester) async {
     tester.view.physicalSize = const Size(800, 900);

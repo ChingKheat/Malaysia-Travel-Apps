@@ -2,9 +2,7 @@ import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../community_page.dart';
 
-/// Editorial dark-themed feed card ("design box") inspired by Citylore.
-/// Showcases author info, rich travel media, location/landmark metadata,
-/// bold serif title, story preview, and interactive action buttons.
+/// Shows a community post preview and its available interactions.
 class CitylorePostCard extends StatelessWidget {
   const CitylorePostCard({
     super.key,
@@ -12,75 +10,12 @@ class CitylorePostCard extends StatelessWidget {
     required this.onToggleLike,
     required this.onToggleSave,
     required this.onOpenDetail,
-    required this.onOpenMessage,
-    required this.onOpenLandmark,
   });
 
   final CommunityPost post;
   final VoidCallback onToggleLike;
   final VoidCallback onToggleSave;
   final VoidCallback onOpenDetail;
-  final VoidCallback? onOpenMessage;
-  final VoidCallback? onOpenLandmark;
-
-  Widget _buildMedia() {
-    final assetPath = post.asset;
-    final isAsset = assetPath.startsWith('assets/');
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: AspectRatio(
-        aspectRatio: 16 / 10,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            isAsset
-                ? Image.asset(
-                    assetPath,
-                    fit: BoxFit.cover,
-                    semanticLabel: post.place,
-                    errorBuilder: (_, _, _) => _fallbackImage(),
-                  )
-                : Image.network(
-                    assetPath,
-                    fit: BoxFit.cover,
-                    semanticLabel: post.place,
-                    errorBuilder: (_, _, _) => _fallbackImage(),
-                  ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.15),
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.35),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _fallbackImage() {
-    return Container(
-      color: AppColors.nightRaised,
-      child: const Center(
-        child: Icon(
-          Icons.image_outlined,
-          color: AppColors.nightMuted,
-          size: 40,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     const accentColor = AppColors.nightAccent;
@@ -137,7 +72,7 @@ class CitylorePostCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      post.author,
+                      communityAuthorLabel(context, post.author, post.isMine),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -149,7 +84,7 @@ class CitylorePostCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      post.authorSubtitle,
+                      post.date,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -174,56 +109,10 @@ class CitylorePostCard extends StatelessWidget {
           ),
           const SizedBox(height: 13),
 
-          // 2. Media Image
-          if (post.asset.isNotEmpty) ...[
-            InkWell(
-              onTap: onOpenDetail,
-              borderRadius: BorderRadius.circular(16),
-              child: _buildMedia(),
-            ),
-            const SizedBox(height: 13),
-          ],
-
-          // 3. Eyebrow Tag / Area and Place
-          Row(
-            children: [
-              if (post.area.isNotEmpty) ...[
-                Text(
-                  post.area,
-                  style: const TextStyle(
-                    color: textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                const Text(
-                  '·',
-                  style: TextStyle(color: textMuted, fontSize: 12),
-                ),
-                const SizedBox(width: 6),
-              ],
-              Flexible(
-                child: Text(
-                  post.place,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          // 4. Headline / Title (Editorial Serif Typography)
           InkWell(
             onTap: onOpenDetail,
             child: Text(
-              post.title.isNotEmpty ? post.title : post.place,
+              post.place,
               style: const TextStyle(
                 color: AppColors.nightBody,
                 fontSize: 19,
@@ -252,22 +141,6 @@ class CitylorePostCard extends StatelessWidget {
           // 6. "View related landmark →" and "Read story"
           Row(
             children: [
-              if (onOpenLandmark != null)
-                InkWell(
-                  onTap: onOpenLandmark,
-                  borderRadius: BorderRadius.circular(6),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 3),
-                    child: Text(
-                      'View related landmark →',
-                      style: TextStyle(
-                        color: accentColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
               const Spacer(),
               TextButton(
                 onPressed: onOpenDetail,
@@ -360,37 +233,6 @@ class CitylorePostCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              if (onOpenMessage != null)
-                InkWell(
-                  onTap: onOpenMessage,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 7.5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.nightRaised,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.nightLine),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.chat_outlined, size: 14, color: accentColor),
-                        SizedBox(width: 5),
-                        Text(
-                          'Message',
-                          style: TextStyle(
-                            color: accentColor,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               const SizedBox(width: 8),
               Tooltip(
                 message: 'Save post',

@@ -2627,11 +2627,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String
-  get weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde =>
-      '• Weather alert: light rain expected after 3 PM.\n• Route updated: Jalan Alor moved earlier to avoid crowds.\n• Reminder: Batu Caves opens at 7:00 AM tomorrow.';
-
-  @override
   String get here => 'here';
 
   @override
@@ -3041,4 +3036,165 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planContinueHighlights => 'Continue to highlights & interests';
+
+  @override
+  String get profileTravelPreferences => 'Travel Preferences';
+
+  @override
+  String get profilePace => 'Travel Pace';
+
+  @override
+  String get profileModerate => 'Moderate';
+
+  @override
+  String get profileFastPaced => 'Fast-paced';
+
+  @override
+  String get profileBudgetTier => 'Budget Tier';
+
+  @override
+  String get profileBudget => 'Budget';
+
+  @override
+  String get profileLuxury => 'Luxury';
+
+  @override
+  String get profileDiet => 'Dietary Requirement';
+
+  @override
+  String get profileNone => 'None';
+
+  @override
+  String get profileHalal => 'Halal Certified';
+
+  @override
+  String get profileVegetarian => 'Vegetarian';
+
+  @override
+  String get profileEditPreferences => 'Edit travel preferences';
+
+  @override
+  String get profileEdit => 'Edit';
+
+  @override
+  String get profilePending => 'Saved on this device. Cloud sync is pending.';
+
+  @override
+  String get profileSaveFailed => 'Could not save on this device. Try again.';
+
+  @override
+  String get profileRegions => 'States & territories';
+
+  @override
+  String get profileRegionsVisited => 'States and Territories Visited';
+
+  @override
+  String get profileCoverage =>
+      'Malaysia has 13 states and 3 federal territories. Coverage counts recorded visits with a verified location.';
+
+  @override
+  String get profileNoRegions =>
+      'No recorded visits have a confirmed state or territory yet.';
+
+  @override
+  String get profileFootprint => 'Travel Footprint';
+
+  @override
+  String get profileNoVisits =>
+      'No visits recorded for your saved trips yet. Mark a stop as visited in Today’s Plan to see it here.';
+
+  @override
+  String get profileCurrency => 'Preferred Currency';
+
+  @override
+  String get profileMyr => 'Malaysian Ringgit';
+
+  @override
+  String get profileSgd => 'Singapore Dollar';
+
+  @override
+  String get profileUsd => 'US Dollar';
+
+  @override
+  String get profileCny => 'Chinese Yuan';
+
+  @override
+  String get profileEur => 'Euro';
+
+  @override
+  String get profileHotlines => 'Tourist Emergency Hotlines';
+
+  @override
+  String get profileHotlinesSubtitle => 'Emergency numbers in Malaysia';
+
+  @override
+  String get profilePoliceAmbulance => 'Police & Ambulance';
+
+  @override
+  String get profilePoliceAmbulanceInfo =>
+      'Malaysia’s national emergency number.';
+
+  @override
+  String get profileMobileEmergency => 'Mobile Emergency';
+
+  @override
+  String get profileMobileEmergencyInfo =>
+      'Alternate emergency number from a mobile phone.';
+
+  @override
+  String get profileTouristPolice => 'MaTiC Tourist Police Station';
+
+  @override
+  String get profileTouristPoliceInfo =>
+      'Kuala Lumpur station contact for tourist police reports and assistance.';
+
+  @override
+  String get profileCall => 'Call';
+
+  @override
+  String get profileDialerError => 'Could not open the phone dialer.';
+
+  @override
+  String get profileAdminSignIn =>
+      'Sign out and sign in with an administrator account to access the hub.';
+
+  @override
+  String get notificationMarkAllRead => 'Mark all as read';
+
+  @override
+  String get notificationEmptyTitle => 'You\'re all caught up!';
+
+  @override
+  String get notificationEmptyBody =>
+      'Upcoming trip reminders and comments on your posts will appear here.';
+
+  @override
+  String get notificationTripReminder => 'Trip starting soon';
+
+  @override
+  String get notificationCommunityComment => 'New comment';
+
+  @override
+  String notificationTripMessage(
+    Object title,
+    Object destination,
+    Object date,
+  ) {
+    return '$title in $destination starts on $date.';
+  }
+
+  @override
+  String notificationCommentMessage(Object comment) {
+    return 'Someone commented: “$comment”';
+  }
+
+  @override
+  String get notificationViewTrip => 'View trip';
+
+  @override
+  String get notificationViewPost => 'View post';
+
+  @override
+  String get notificationUnavailable =>
+      'This trip or post is no longer available.';
 }

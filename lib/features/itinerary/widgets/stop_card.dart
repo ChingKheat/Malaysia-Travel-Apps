@@ -75,12 +75,9 @@ class StopCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    stop.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.ink,
-                    ),
+                  _StopTitle(
+                    key: ValueKey('stop-title-${stop.placeId ?? stop.title}'),
+                    stop: stop,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -106,8 +103,6 @@ class StopCard extends StatelessWidget {
                             color: AppColors.muted,
                             fontSize: 12,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (!stop.isGooglePlace && stop.photoUrls.length > 1) ...[
@@ -153,6 +148,56 @@ class StopCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _StopTitle extends StatefulWidget {
+  const _StopTitle({super.key, required this.stop});
+
+  final TravelStop stop;
+
+  @override
+  State<_StopTitle> createState() => _StopTitleState();
+}
+
+class _StopTitleState extends State<_StopTitle> {
+  late final Future<GooglePlaceDetails?>? _details =
+      widget.stop.isGooglePlace &&
+          (widget.stop.title.trim().isEmpty ||
+              widget.stop.title == 'Saved Google place' ||
+              widget.stop.title == 'Attraction') &&
+          widget.stop.placeId != null
+      ? GooglePlacesService().fetchDetails(widget.stop.placeId!, basic: true)
+      : null;
+
+  @override
+  Widget build(BuildContext context) {
+    final stop = widget.stop;
+    final knownTitle = stop.title.trim().isNotEmpty &&
+        stop.title != 'Saved Google place' &&
+        !(stop.title == 'Attraction' && stop.isGooglePlace);
+    final title = knownTitle ? stop.title : null;
+    if (title != null) return _text(title);
+    if (_details == null) return _text(context.l10n.placeDetailsAreUnavailable);
+    return FutureBuilder<GooglePlaceDetails?>(
+      future: _details,
+      builder: (context, snapshot) {
+        final fetchedName = snapshot.data?.name?.trim();
+        return _text(
+          fetchedName != null && fetchedName.isNotEmpty
+              ? fetchedName
+              : context.l10n.placeDetailsAreUnavailable,
+        );
+      },
+    );
+  }
+
+  Widget _text(String value) => Text(
+    value,
+    style: const TextStyle(
+      fontWeight: FontWeight.w900,
+      color: AppColors.ink,
+    ),
+  );
 }
 
 class _GoogleStopThumbnail extends StatefulWidget {

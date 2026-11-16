@@ -1,3 +1,12 @@
+import 'dart:async';
+
+import 'package:smart_travel_planner/features/auth/models/travel_preferences.dart';
+import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
+import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
+import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
+import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
+import 'package:smart_travel_planner/features/profile/services/travel_footprint.dart';
+import 'package:smart_travel_planner/features/profile/widgets/profile_sheets.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/core/localization/language_controller.dart';
@@ -13,15 +22,209 @@ import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setu
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, this.onMyTripsTap});
+
+  final VoidCallback? onMyTripsTap;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   final _authService = AuthService();
   bool _notificationsEnabled = true;
+
+  final _settings = ProfilePreferencesService.instance;
+  final _trips = SupabaseItineraryService();
+  TravelPreferences _preferences = const TravelPreferences();
+  PreferredCurrency _currency = PreferredCurrency.myr;
+  TravelFootprint? _footprint;
+  int? _tripCount;
+  bool _preferencesLoaded = false;
+  bool _pending = false;
+  bool _choosingCurrency = false;
+  int _statsRequest = 0;
+  int _preferencesRequest = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _trips.addListener(_loadStats);
+    _settings.addListener(_loadPreferences);
+    _loadStats(refresh: true);
+    _loadPreferences();
+    _loadCurrency();
+    unawaited(_settings.syncTravel(refresh: true));
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _trips.removeListener(_loadStats);
+    _settings.removeListener(_loadPreferences);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_settings.syncTravel());
+    }
+  }
+
+  Future<void> _loadStats({bool refresh = false}) async {
+    final request = ++_statsRequest;
+    final uid = _authService.currentUser?.uid;
+    final trips = await _trips.getSavedItineraries(refresh: refresh);
+    final footprint = await TravelFootprint.fromTrips(trips);
+    if (!mounted ||
+        request != _statsRequest ||
+        uid != _authService.currentUser?.uid) {
+      return;
+    }
+    setState(() {
+      _tripCount = trips.length;
+      _footprint = footprint;
+    });
+  }
+
+  Future<void> _loadPreferences() async {
+    final request = ++_preferencesRequest;
+    final uid = _authService.currentUser?.uid;
+    final result = await _settings.loadTravel();
+    if (!mounted ||
+        request != _preferencesRequest ||
+        uid != _authService.currentUser?.uid) {
+      return;
+    }
+    setState(() {
+      _preferences = result.preferences ?? const TravelPreferences();
+      _pending = result.pending;
+      _preferencesLoaded = true;
+    });
+  }
+
+  Future<void> _loadCurrency() async {
+    final currency = await _settings.loadCurrency();
+    if (mounted) setState(() => _currency = currency);
+  }
+
+  Future<void> _editPreferences() async {
+    final uid = _authService.currentUser?.uid;
+    await showProfileSheet<void>(
+      context,
+      title: context.l10n.profileEditPreferences,
+      body: (_) => TravelPreferencesEditor(
+        initial: _preferences,
+        onSave: (value) async {
+          if (_authService.currentUser?.uid != uid) return false;
+          final saved = await _settings.saveTravel(value);
+          if (saved) unawaited(_settings.syncTravel());
+          return saved;
+        },
+      ),
+    );
+  }
+
+  Future<void> _chooseCurrency() async {
+    if (_choosingCurrency) return;
+    _choosingCurrency = true;
+    try {
+      final selection = await showCurrencySheet(context, _currency);
+      if (!mounted || selection == null || selection == _currency) return;
+      final saved = await _settings.saveCurrency(selection);
+      if (!mounted) return;
+      if (saved) {
+        setState(() => _currency = selection);
+      } else {
+        showDemoSnackBar(context, context.l10n.profileSaveFailed);
+      }
+    } finally {
+      _choosingCurrency = false;
+    }
+  }
+
+  Future<void> _openTrips() async {
+    final open = widget.onMyTripsTap;
+    if (open != null) {
+      Navigator.pop(context);
+      open();
+      return;
+    }
+    final navigator = Navigator.of(context);
+    await navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => MyTripsScreen(
+          onBackTap: () => navigator.pop(),
+          onPlanTap: () => navigator.push(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  PlannerPage(onItineraryReady: () => navigator.pop()),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (mounted) _loadStats();
+  }
+
+  void _showFootprint({required bool regions}) {
+    final footprint = _footprint;
+    if (footprint == null) return;
+    final title = regions
+        ? context.l10n.profileRegionsVisited
+        : context.l10n.profileFootprint;
+    showProfileSheet<void>(
+      context,
+      title: title,
+      body: (context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: regions
+            ? [
+                Text(_coverage(footprint)),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value:
+                      footprint.regions.length /
+                      TravelFootprint.malaysiaRegions.length,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(height: 12),
+                Text(context.l10n.profileCoverage),
+                if (footprint.regions.isEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(context.l10n.profileNoRegions),
+                ],
+              ]
+            : [
+                Text(
+                  '${context.l10n.placesVisited} · ${context.localNumber(footprint.places.length)}',
+                ),
+                if (footprint.places.isEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(context.l10n.profileNoVisits),
+                ],
+                for (final name in footprint.places)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.place_outlined,
+                      color: AppColors.primary,
+                    ),
+                    title: Text(
+                      name == 'Saved Google place'
+                          ? context.l10n.savedGooglePlace
+                          : name,
+                    ),
+                  ),
+              ],
+      ),
+    );
+  }
+
+  String _coverage(TravelFootprint footprint) =>
+      '${context.localNumber(footprint.regions.length)}/${context.localNumber(TravelFootprint.malaysiaRegions.length)}';
 
   Future<void> _editProfile() async {
     final user = _authService.currentUser;
@@ -208,6 +411,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         Colors.purple.shade50,
                         Colors.purple.shade700,
                       ),
+                      if (_preferencesLoaded)
+                        for (final (_, _, value) in _preferenceRows())
+                          _buildBadge(
+                            value,
+                            AppColors.nightAccentContainer,
+                            AppColors.primary,
+                          ),
                       if (user.isAdmin)
                         _buildBadge(
                           context.l10n.admin,
@@ -221,30 +431,9 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 20),
 
-            // Stats Grid
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    label: context.l10n.tripsPlanned,
-                    value: '${user.tripsPlanned}',
-                    icon: Icons.event_note,
-                    iconColor: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    label: context.l10n.placesVisited,
-                    value: '${user.placesVisited}',
-                    icon: Icons.explore,
-                    iconColor: AppColors.teal,
-                  ),
-                ),
-              ],
-            ),
+            _buildTravelPreferences(),
+            const SizedBox(height: 20),
+            _buildStatistics(),
             const SizedBox(height: 20),
 
             // Profile Settings
@@ -279,6 +468,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           context,
                         ).locale.languageCode]!,
                     onTap: () => showLanguageSelector(context),
+                  ),
+                  const Divider(height: 1, color: AppColors.line, indent: 56),
+                  _buildListTile(
+                    icon: Icons.currency_exchange,
+                    title: context.l10n.profileCurrency,
+                    subtitle: _currency.label,
+                    onTap: _chooseCurrency,
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   Material(
@@ -354,13 +550,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   _buildListTile(
+                    icon: Icons.emergency_outlined,
+                    title: context.l10n.profileHotlines,
+                    subtitle: context.l10n.profileHotlinesSubtitle,
+                    onTap: () => showEmergencyHotlines(context),
+                  ),
+                  const Divider(height: 1, color: AppColors.line, indent: 56),
+                  _buildListTile(
                     icon: Icons.admin_panel_settings_outlined,
                     title: context.l10n.adminDatabaseHub,
                     subtitle: user.isAdmin
                         ? context.l10n.secretPortalToFetchSyncPlaces
-                        : context.l10n.adminAccessTapToLogInAsAdmin,
+                        : context.l10n.adminHubAccess,
                     onTap: () {
-                      if (!user.isAdmin) {
+                      if (_authService.currentUser?.isAdmin != true) {
                         _showAdminLoginDialog(context);
                         return;
                       }
@@ -423,47 +626,141 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatCard(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
-                ),
+  List<(IconData, String, String)> _preferenceRows() => [
+    (
+      Icons.speed,
+      context.l10n.profilePace,
+      profilePaceLabel(context, _preferences.pace),
+    ),
+    (
+      Icons.wallet_outlined,
+      context.l10n.profileBudgetTier,
+      profileBudgetLabel(context, _preferences.budget),
+    ),
+    (
+      Icons.restaurant_outlined,
+      context.l10n.profileDiet,
+      profileDietLabel(context, _preferences.diet),
+    ),
+  ];
+
+  Widget _buildTravelPreferences() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+    decoration: cardDecoration(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                context.l10n.profileTravelPreferences,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: iconColor.withValues(alpha: 0.12),
-                child: Icon(icon, color: iconColor, size: 18),
-              ),
-            ],
+            ),
+            TextButton(
+              onPressed: _preferencesLoaded ? _editPreferences : null,
+              child: Text(context.l10n.profileEdit),
+            ),
+          ],
+        ),
+        for (final (icon, label, value) in _preferenceRows())
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(icon, color: AppColors.primary),
+            title: Text(label),
+            subtitle: Text(_preferencesLoaded ? value : '—'),
           ),
-          const SizedBox(height: 6),
+        if (_pending)
           Text(
-            context.tr(label),
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+            context.l10n.profilePending,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+          ),
+      ],
+    ),
+  );
+
+  Widget _buildStatistics() {
+    final count = _tripCount;
+    final footprint = _footprint;
+    final cards = [
+      _buildStatCard(
+        context.l10n.tripsPlanned,
+        count == null ? null : context.localNumber(count),
+        Icons.event_note,
+        _openTrips,
+      ),
+      _buildStatCard(
+        context.l10n.placesVisited,
+        footprint == null ? null : context.localNumber(footprint.places.length),
+        Icons.explore_outlined,
+        footprint == null ? null : () => _showFootprint(regions: false),
+      ),
+      _buildStatCard(
+        context.l10n.profileRegions,
+        footprint == null ? null : _coverage(footprint),
+        Icons.map_outlined,
+        footprint == null ? null : () => _showFootprint(regions: true),
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final columns = width / scale >= 270
+            ? 3
+            : (width / scale >= 180 ? 2 : 1);
+        const gap = 8.0;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final card in cards)
+              SizedBox(
+                width: (width - gap * (columns - 1)) / columns,
+                child: card,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(
+    String label,
+    String? value,
+    IconData icon,
+    VoidCallback? onTap,
+  ) {
+    final decoration = cardDecoration();
+    return DecoratedBox(
+      decoration: decoration,
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: decoration.borderRadius as BorderRadius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: AppColors.primary, size: 20),
+                const SizedBox(height: 6),
+                Text(
+                  value ?? '—',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -513,58 +810,14 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Icon(Icons.admin_panel_settings, color: AppColors.primary),
             SizedBox(width: 8),
-            Text(context.l10n.adminHubAccess),
+            Expanded(child: Text(ctx.l10n.adminHubAccess)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context
-                  .l10n
-                  .theAdminDatabaseHubRequiresAdministratorPrivilegesToFetchSyncAndImportPlacesFromGoogle,
-              style: TextStyle(fontSize: 14),
-            ),
-            SizedBox(height: 14),
-            Text(
-              '${context.l10n.emailAddress}: chingkheat@example.com\n${context.l10n.password}: SafeP@ss123!',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
+        content: Text(ctx.l10n.profileAdminSignIn),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton.icon(
-            icon: const Icon(Icons.login, size: 18),
-            label: Text(context.l10n.loginAsAdmin),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final res = await AuthService().login(
-                'chingkheat@example.com',
-                'SafeP@ss123!',
-              );
-              if (res && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      context.l10n.loggedInAsAdministratorChingKheat,
-                    ),
-                  ),
-                );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminPlacesScreen()),
-                );
-              }
-            },
+            child: Text(ctx.l10n.cancel),
           ),
         ],
       ),

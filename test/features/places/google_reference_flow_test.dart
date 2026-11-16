@@ -278,14 +278,14 @@ void main() {
         },
       });
       final result = await store.read('opaque-user');
-      expect(result['stop']['place_name'], 'Saved Google place');
+      expect(result['stop']['place_name'], 'Provider name');
       expect(result['stop']['place_id'], 'opaque_google_id');
       expect(result['stop']['arrival_time'], '11:00');
     },
   );
 
   test(
-    'Legacy itinerary journals discard provider data and preserve saved timing',
+    'Legacy itinerary journals preserve names and timing while removing provider photos',
     () async {
       SharedPreferences.setMockInitialValues({
         'itinerary_journal_v1_user': jsonEncode({
@@ -313,7 +313,7 @@ void main() {
       final stored = (await SharedPreferences.getInstance()).getString(
         'itinerary_journal_v1_user',
       )!;
-      expect(stored, isNot(contains('Provider museum')));
+      expect(stored, contains('Provider museum')); 
       expect(stored, isNot(contains('places.googleapis.com')));
     },
   );

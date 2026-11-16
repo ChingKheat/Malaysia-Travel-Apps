@@ -210,7 +210,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     final totalPhotos = galleryPhotos.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: AppColors.nightCanvas,
       body: CustomScrollView(
         slivers: [
           // ==================== HERO SLIVER APP BAR ====================
@@ -475,15 +475,15 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF4E5),
+                        color: AppColors.nightAccentContainer,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFFFD199)),
+                        border: Border.all(color: AppColors.nightLine),
                       ),
                       child: Row(
                         children: [
                           const Icon(
                             Icons.info_outline_rounded,
-                            color: Color(0xFFD97706),
+                            color: AppColors.nightAccent,
                             size: 22,
                           ),
                           const SizedBox(width: 10),
@@ -494,7 +494,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                 Text(
                                   context.tr(_error!),
                                   style: const TextStyle(
-                                    color: Color(0xFF92400E),
+                                    color: AppColors.nightBody,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
                                   ),
@@ -502,7 +502,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                 Text(
                                   context.l10n.showingAvailablePlaceInformation,
                                   style: TextStyle(
-                                    color: Color(0xFFB45309),
+                                    color: AppColors.nightAccent,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -512,7 +512,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                           TextButton(
                             onPressed: _refresh,
                             style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFFB45309),
+                              foregroundColor: AppColors.nightAccent,
                               textStyle: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -566,7 +566,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
+                              color: AppColors.nightAccentContainer,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -575,7 +575,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                 const Icon(
                                   Icons.star_rounded,
                                   size: 16,
-                                  color: Color(0xFFD97706),
+                                  color: AppColors.nightAccent,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -583,7 +583,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
-                                    color: Color(0xFF92400E),
+                                    color: AppColors.nightBody,
                                   ),
                                 ),
                               ],
@@ -654,7 +654,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                               icon: Icons.confirmation_number_outlined,
                               label: context.l10n.entry,
                               value: admission,
-                              color: const Color(0xFFD97706),
+                              color: AppColors.nightAccent,
                             ),
                           ),
                         ],
@@ -700,7 +700,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                         style: const TextStyle(
                           fontSize: 14.5,
                           height: 1.6,
-                          color: Color(0xFF334155),
+                          color: AppColors.nightBody,
                         ),
                       ),
                       if (description.length > 140)
@@ -817,10 +817,10 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFBEB),
+                            color: AppColors.nightAccentContainer,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
-                              color: const Color(0xFFFDE68A),
+                              color: AppColors.nightLine,
                               width: 1.2,
                             ),
                           ),
@@ -832,13 +832,13 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                   Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFEF3C7),
+                                      color: AppColors.nightAccentContainer,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
                                       Icons.lightbulb_rounded,
                                       size: 18,
-                                      color: Color(0xFFD97706),
+                                      color: AppColors.nightAccent,
                                     ),
                                   ),
                                   const SizedBox(width: 10),
@@ -847,7 +847,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
-                                      color: Color(0xFF92400E),
+                                      color: AppColors.nightBody,
                                     ),
                                   ),
                                 ],
@@ -865,7 +865,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                         child: Icon(
                                           Icons.check_circle_rounded,
                                           size: 14,
-                                          color: Color(0xFFD97706),
+                                          color: AppColors.nightAccent,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -875,7 +875,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                           style: const TextStyle(
                                             fontSize: 13,
                                             height: 1.45,
-                                            color: Color(0xFF78350F),
+                                            color: AppColors.nightBody,
                                           ),
                                         ),
                                       ),

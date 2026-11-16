@@ -36,95 +36,11 @@ class _ExplorePageState extends State<ExplorePage> {
   final _community = CommunityService();
   final _pendingReactions = <CommunityPost>{};
   List<CommunityPost> _sharedPosts = [];
+  bool _loadingFeed = true;
+  bool _feedUnavailable = false;
   String? _feedAccount;
   int _loadVersion = 0;
   String _selectedCategory = 'All';
-
-  final List<CommunityPost> _feedPosts = [
-    CommunityPost(
-      author: 'Amina Rahman',
-      authorRole: 'Architect',
-      authorLocation: 'Penang',
-      timeAgo: '2h ago',
-      place: 'Kuala Lumpur',
-      area: 'Chinatown Edge',
-      topic: 'Local Tip',
-      title: 'Early kopi tarik & kaya toast before Central Market opens',
-      body:
-          'Skip the midday rush by arriving along Jalan Tun H.S. Lee around 08:15. Wooden shutters open onto the street, kaya toast is grilled over charcoal, and the aromatic kopi tarik warms the morning.',
-      asset: 'assets/recognition/kaya_toast.jpg',
-      relatedLandmark: 'Central Market',
-      likesCount: 38,
-      saved: true,
-      initialComments: [
-        'Such a nostalgic spot in KL!',
-        'The kaya toast is indeed the best here.',
-      ],
-    ),
-    CommunityPost(
-      author: 'Kenji Sato',
-      authorRole: 'Photographer',
-      authorLocation: 'Tokyo',
-      timeAgo: '4h ago',
-      place: 'Kuala Lumpur',
-      area: 'KLCC Park',
-      topic: 'Trip Log',
-      title: 'Sunset reflections & fountain symphony at Petronas Towers',
-      body:
-          'An evening around the Petronas Twin Towers. Leave some time to walk through the park and enjoy the city views.',
-      asset: 'assets/recognition/petronas.jpg',
-      relatedLandmark: 'Petronas Twin Towers',
-      likesCount: 64,
-      initialComments: ['Great photo composition!'],
-    ),
-    CommunityPost(
-      author: 'Sarah Jenkins',
-      authorRole: 'Backpacker',
-      authorLocation: 'Melbourne',
-      timeAgo: '6h ago',
-      place: 'Selangor',
-      area: 'Batu Caves, Selangor',
-      topic: 'Local Tip',
-      title: 'Morning climb at Batu Caves before the midday sun',
-      body:
-          'Planning a visit to Batu Caves? Bring drinking water and comfortable shoes for the steps. Arrive right around 07:30 to beat the scorching heat!',
-      asset: 'assets/recognition/batu_caves.jpg',
-      relatedLandmark: 'Batu Caves',
-      likesCount: 42,
-    ),
-    CommunityPost(
-      author: 'Hafiz Zainal',
-      authorRole: 'Foodie',
-      authorLocation: 'Kuala Lumpur',
-      timeAgo: '8h ago',
-      place: 'Kuala Lumpur',
-      area: 'Kampung Baru',
-      topic: 'Photo',
-      title: 'Fragrant pandan coconut rice & spicy sambal sotong',
-      body:
-          'A Malaysian breakfast inspiration: nasi lemak. Ask the stall about ingredients and available options before ordering.',
-      asset: 'assets/recognition/nasi_lemak.jpg',
-      relatedLandmark: 'Kampung Baru',
-      likesCount: 89,
-      saved: true,
-      initialComments: ['The sambal sotong looks incredibly rich!'],
-    ),
-    CommunityPost(
-      author: 'David Chen',
-      authorRole: 'Historian',
-      authorLocation: 'Singapore',
-      timeAgo: '1d ago',
-      place: 'Kuala Lumpur',
-      area: 'Merdeka Square',
-      topic: 'Question',
-      title: 'Best vantage point for Sultan Abdul Samad Building illumination?',
-      body:
-          'Looking for recommendations on capturing the historic copper domes lit up after dark. Is the riverfront bridge pedestrian-friendly at night?',
-      asset: 'assets/recognition/sultan_abdul_samad.jpg',
-      relatedLandmark: 'Sultan Abdul Samad Building',
-      likesCount: 27,
-    ),
-  ];
 
   @override
   void initState() {
@@ -142,14 +58,16 @@ class _ExplorePageState extends State<ExplorePage> {
   Future<void> _refreshFeed() async {
     final version = ++_loadVersion;
     final account = _community.accountId;
-    final rows = await _community.loadFeed();
+    final feed = await _community.loadFeed();
     if (!mounted || version != _loadVersion || account != _community.accountId) {
       return;
     }
-    final posts = rows.map(CommunityPost.fromFeed).toList();
+    final posts = feed.rows.map(CommunityPost.fromFeed).toList();
     setState(() {
       _feedAccount = account;
       _sharedPosts = posts;
+      _loadingFeed = false;
+      _feedUnavailable = feed.unavailable;
     });
   }
 
@@ -219,22 +137,10 @@ class _ExplorePageState extends State<ExplorePage> {
       );
     }
 
-    final filteredPosts = [
-      if (_feedAccount == _community.accountId) ..._sharedPosts,
-      ..._feedPosts,
-    ].where((p) {
+    final posts = _feedAccount == _community.accountId ? _sharedPosts : <CommunityPost>[];
+    final filteredPosts = posts.where((p) {
       if (_selectedCategory == 'All') return true;
       if (_selectedCategory == 'Saved') return p.saved;
-      if (_selectedCategory == 'Local Tip') {
-        return p.topic == 'Local Tip' || p.topic == 'Tips';
-      }
-      if (_selectedCategory == 'Trip Log') {
-        return p.topic == 'Trip Log' || p.topic == 'Sights';
-      }
-      if (_selectedCategory == 'Question') return p.topic == 'Question';
-      if (_selectedCategory == 'Photo') {
-        return p.topic == 'Photo' || p.topic == 'Food';
-      }
       return p.topic == _selectedCategory;
     }).toList();
 
@@ -275,7 +181,7 @@ class _ExplorePageState extends State<ExplorePage> {
                           ),
                           SizedBox(height: 3),
                           Text(
-                            'Post a photo, local tip, or itinerary...',
+                            'Share a local tip, trip story, or question.',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -343,14 +249,18 @@ class _ExplorePageState extends State<ExplorePage> {
 
             // 3. Post Feed Cards
             if (filteredPosts.isEmpty)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(40),
+                  padding: const EdgeInsets.all(40),
                   child: Center(
-                    child: Text(
-                      'No stories in this topic yet. Be the first to share!',
-                      style: TextStyle(color: AppColors.nightMuted),
-                    ),
+                    child: _loadingFeed
+                        ? const CircularProgressIndicator()
+                        : Text(
+                            _feedUnavailable
+                                ? communityText(context, 'Could not load posts. Pull down to retry.', '暂时无法载入帖子，下拉重试。', 'Siaran gagal dimuatkan. Tarik ke bawah untuk mencuba lagi.')
+                                : communityText(context, 'No posts yet.', '暂无帖子。', 'Tiada siaran lagi.'),
+                            style: const TextStyle(color: AppColors.nightMuted),
+                          ),
                   ),
                 ),
               )
@@ -364,12 +274,6 @@ class _ExplorePageState extends State<ExplorePage> {
                     onToggleLike: () => _toggleReaction(post, bookmark: false),
                     onToggleSave: () => _toggleReaction(post, bookmark: true),
                     onOpenDetail: () => _openPostDetail(post),
-                    onOpenMessage: post.id == null
-                        ? () => showDirectMessageDialog(context, post)
-                        : null,
-                    onOpenLandmark: post.relatedLandmark == null
-                        ? null
-                        : () => openLandmarkDetail(context, post),
                   );
                 },
               ),

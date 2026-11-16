@@ -1,4 +1,5 @@
-import 'package:smart_travel_planner/core/theme/app_colors.dart';
+import '../messaging/messaging_service.dart';
+import '../messaging/messaging_screens.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -6,12 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../../shared/models/attraction.dart';
 import '../auth/services/auth_service.dart';
-import '../places/screens/attraction_detail_page.dart';
+import '../../core/theme/app_colors.dart';
 import 'community_service.dart';
 
-// Feature-local copy keeps the prototype usable in all existing app languages.
+// Feature-local translations for the community screens.
 String communityText(BuildContext context, String en, String zh, String ms) =>
     switch (Localizations.localeOf(context).languageCode) {
       'zh' => zh,
@@ -19,214 +19,55 @@ String communityText(BuildContext context, String en, String zh, String ms) =>
       _ => en,
     };
 
-void openLandmarkDetail(BuildContext context, CommunityPost post) {
-  final name =
-      post.relatedLandmark ?? (post.area.isNotEmpty ? post.area : post.place);
-  final attraction = Attraction(
-    xid: 'landmark_${name.toLowerCase().replaceAll(RegExp(r'\s+'), '_')}',
-    name: name,
-    category: post.topic == 'Food' ? 'foods' : 'historic',
-    latitude: 3.1430,
-    longitude: 101.6960,
-    description: post.area.isNotEmpty
-        ? '${post.area}, ${post.place}'
-        : post.place,
-    rating: 4.8,
-    userRatingsTotal: 342,
-    photoUrl: post.asset,
-  );
-
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => AttractionDetailPage(attraction: attraction),
-    ),
-  );
+String communityAuthorLabel(BuildContext context, String author, bool isMine) {
+  final name = author.isEmpty
+      ? communityText(context, 'Traveller', '旅友', 'Pengembara')
+      : author;
+  return isMine
+      ? '$name ${communityText(context, '(me)', '（我）', '(saya)')}'
+      : name;
 }
 
-void showDirectMessageDialog(BuildContext context, CommunityPost post) {
-  final controller = TextEditingController();
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.nightSurface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      side: BorderSide(color: AppColors.nightLine),
-    ),
-    builder: (ctx) {
-      return Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.nightAccentContainer,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    post.authorInitials,
-                    style: const TextStyle(
-                      color: AppColors.nightAccent,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Message ${post.author}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        'Inquire about ${post.area.isNotEmpty ? post.area : post.place}',
-                        style: const TextStyle(
-                          color: AppColors.nightMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.close, color: Colors.white70),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children:
-                  [
-                        'Where is this located?',
-                        'What time does it open?',
-                        'Is it suitable for families?',
-                      ]
-                      .map(
-                        (q) => ActionChip(
-                          backgroundColor: AppColors.nightRaised,
-                          side: const BorderSide(color: AppColors.nightLine),
-                          label: Text(
-                            q,
-                            style: const TextStyle(
-                              color: AppColors.nightBody,
-                              fontSize: 12,
-                            ),
-                          ),
-                          onPressed: () => controller.text = q,
-                        ),
-                      )
-                      .toList(),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: controller,
-              maxLines: 3,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Type your message to ${post.author}...',
-                hintStyle: const TextStyle(color: AppColors.nightMuted),
-                filled: true,
-                fillColor: AppColors.nightRaised,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.nightLine),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.nightLine),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.nightAccent),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () {
-                  final text = controller.text.trim();
-                  if (text.isEmpty) return;
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: AppColors.nightSurface,
-                      content: Text(
-                        'Message sent to ${post.author}!',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(
-                  Icons.send_rounded,
-                  size: 16,
-                  color: AppColors.onNightAccent,
-                ),
-                label: const Text(
-                  'Send Message',
-                  style: TextStyle(
-                    color: AppColors.onNightAccent,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.nightAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
+class CommunityComment {
+  const CommunityComment({
+    required this.body,
+    this.id,
+    this.author = '',
+    this.isMine = false,
+  });
+
+  factory CommunityComment.fromFeed(Object? value) {
+    // Cached feeds from older versions store the comment body as a string.
+    if (value is String) return CommunityComment(body: value);
+    final row = value as Map<String, dynamic>;
+    return CommunityComment(
+      body: row['body'] as String,
+      id: row['id'] as String?,
+      author: row['author'] as String? ?? '',
+      isMine: row['is_mine'] == true,
+    );
+  }
+
+  final String body;
+  final String? id;
+  final String author;
+  final bool isMine;
 }
 
 class CommunityPost {
   CommunityPost({
-    this.id,
+    required this.id,
     required this.author,
     required this.place,
     required this.topic,
     required this.body,
-    required this.asset,
-    this.authorRole = 'Architect',
-    this.authorLocation = 'Penang',
-    this.timeAgo = '2h ago',
-    this.area = 'Chinatown Edge',
-    this.title = '',
-    this.relatedLandmark,
-    this.likesCount = 38,
-    this.liked = false,
-    this.saved = false,
-    List<String>? initialComments,
-  }) : comments = initialComments ?? [];
+    required this.date,
+    required this.likesCount,
+    required this.liked,
+    required this.saved,
+    required this.comments,
+    this.isMine = false,
+  });
 
   factory CommunityPost.fromFeed(Map<String, dynamic> row) => CommunityPost(
     id: row['id'] as String,
@@ -234,46 +75,35 @@ class CommunityPost {
     place: row['place'] as String,
     topic: row['topic'] as String,
     body: row['body'] as String,
-    asset: '',
-    authorRole: '',
-    authorLocation: '',
-    area: '',
-    timeAgo: (row['created_at'] as String).split('T').first,
+    date: (row['created_at'] as String).split('T').first,
     likesCount: row['likes_count'] as int,
     liked: row['liked'] as bool,
     saved: row['saved'] as bool,
-    initialComments: List<String>.from(row['comments'] as List),
+    isMine: row['is_mine'] == true,
+    comments: (row['comments'] as List).map(CommunityComment.fromFeed).toList(),
   );
 
-  final String? id;
+  final String id;
   final String author;
-  final String authorRole;
-  final String authorLocation;
-  final String timeAgo;
   final String place;
-  final String area;
   final String topic;
-  final String title;
   final String body;
-  final String asset;
-  final String? relatedLandmark;
+  final String date;
   int likesCount;
   bool liked;
   bool saved;
-  final List<String> comments;
+  final List<CommunityComment> comments;
+  final bool isMine;
 
   Future<void> setReaction({
     required bool bookmark,
     required bool selected,
   }) async {
-    final postId = id;
-    if (postId != null) {
-      await CommunityService().setReaction(
-        postId: postId,
-        saved: bookmark,
-        selected: selected,
-      );
-    }
+    await CommunityService().setReaction(
+      postId: id,
+      saved: bookmark,
+      selected: selected,
+    );
     if (bookmark) {
       saved = selected;
     } else if (liked != selected) {
@@ -283,297 +113,174 @@ class CommunityPost {
   }
 
   Future<void> addComment(String commentId, String text) async {
-    final postId = id;
-    if (postId != null) {
-      await CommunityService().comment(commentId, postId, text);
-    }
-    comments.add(text);
+    final author = AuthService().currentUser?.name.trim() ?? '';
+    await CommunityService().comment(commentId, id, text);
+    comments.add(CommunityComment(body: text, author: author, isMine: true));
   }
 
   String get authorInitials {
     final parts = author.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts.first.isEmpty) return 'AR';
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
-
-  String get authorSubtitle => authorLocation.isNotEmpty
-      ? '$authorLocation · $authorRole · $timeAgo'
-      : place;
 }
 
-class CommunityPage extends StatefulWidget {
-  const CommunityPage({super.key, this.showAppBar = false});
-  final bool showAppBar;
+/// A minimal member view uses community display data, not private profile fields.
+class CommunityMemberPage extends StatefulWidget {
+  const CommunityMemberPage({
+    super.key,
+    required this.name,
+    required this.commentId,
+  });
+  final String name;
+  final String commentId;
   @override
-  State<CommunityPage> createState() => _CommunityPageState();
+  State<CommunityMemberPage> createState() => _CommunityMemberPageState();
 }
 
-class _CommunityPageState extends State<CommunityPage> {
-  final _posts = [
-    CommunityPost(
-      author: 'Sample traveler',
-      place: 'Kuala Lumpur',
-      topic: 'Sights',
-      body:
-          'An evening around the Petronas Twin Towers. Leave some time to walk through the park and enjoy the city views.',
-      asset: 'assets/recognition/petronas.jpg',
-    ),
-    CommunityPost(
-      author: 'Sample traveler',
-      place: 'Selangor',
-      topic: 'Tips',
-      body:
-          'Planning a visit to Batu Caves? Bring drinking water and comfortable shoes for the steps.',
-      asset: 'assets/recognition/batu_caves.jpg',
-    ),
-    CommunityPost(
-      author: 'Sample traveler',
-      place: 'Kuala Lumpur',
-      topic: 'Food',
-      body:
-          'A Malaysian breakfast inspiration: nasi lemak. Ask the stall about ingredients and available options before ordering.',
-      asset: 'assets/recognition/nasi_lemak.jpg',
-    ),
-  ];
-  String _topic = 'All';
-  bool _savedOnly = false;
-
-  Future<void> _open(CommunityPost post) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => _PostDetail(post: post)));
-    if (mounted) setState(() {});
+class _CommunityMemberPageState extends State<CommunityMemberPage> {
+  bool busy = false;
+  Future<void> _message() async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      final id = await MessagingService().fromComment(widget.commentId);
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PrivateChat(id: id, name: widget.name),
+        ),
+      );
+    } catch (_) {
+      if (mounted) showCommunitySyncError(context);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final posts = _posts
-        .where(
-          (p) =>
-              (_topic == 'All' || p.topic == _topic) &&
-              (!_savedOnly || p.saved),
-        )
-        .toList();
+    final name = widget.name.trim().isEmpty
+        ? communityText(context, 'Traveller', '旅友', 'Pengembara')
+        : widget.name;
     return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(
-              title: Text(
-                communityText(
-                  context,
-                  'Traveler stories',
-                  '旅人分享',
-                  'Kisah pengembara',
-                ),
-              ),
-            )
-          : null,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'community-compose',
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const CommunityComposer()),
-        ),
-        icon: const Icon(Icons.edit_outlined),
-        label: Text(
-          communityText(context, 'Create post', '发布帖子', 'Cipta siaran'),
+      appBar: AppBar(
+        title: Text(
+          communityText(context, 'Community member', '社区成员', 'Ahli komuniti'),
         ),
       ),
-      body: CustomScrollView(
-        key: const PageStorageKey('community-feed'),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.nightHeroEnd,
+                          AppColors.nightSurface,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.nightLine),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.nightAccent),
+                          ),
+                          child: const CircleAvatar(
+                            radius: 42,
+                            backgroundColor: AppColors.nightAccentContainer,
+                            foregroundColor: AppColors.nightAccent,
+                            child: Icon(Icons.person_outline, size: 42),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          communityText(
+                            context,
+                            'Community traveller',
+                            '社区旅友',
+                            'Pengembara komuniti',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.nightMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   Text(
                     communityText(
                       context,
-                      'Travel inspiration, shared',
-                      '分享旅途，发现灵感',
-                      'Inspirasi perjalanan bersama',
+                      'Start a conversation',
+                      '开始聊天',
+                      'Mulakan perbualan',
                     ),
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     communityText(
                       context,
-                      'Preview mode · Sample posts. Interactions stay in this session; nothing is published.',
-                      '预览模式 · 示例帖子，互动仅保留在当前会话，不会公开发布。',
-                      'Mod pratonton · Siaran contoh. Interaksi hanya untuk sesi ini; tiada penerbitan.',
+                      'Connect with this traveller and share your travel experiences.',
+                      '与这位旅友联系，分享你的旅行经历。',
+                      'Berhubung dengan pengembara ini dan kongsi pengalaman perjalanan anda.',
                     ),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.nightMuted,
+                      height: 1.5,
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      for (final topic in ['All', 'Sights', 'Food', 'Tips'])
-                        ChoiceChip(
-                          label: Text(switch (topic) {
-                            'Sights' => communityText(
-                              context,
-                              'Sights',
-                              '景点',
-                              'Tarikan',
-                            ),
-                            'Food' => communityText(
-                              context,
-                              'Food',
-                              '美食',
-                              'Makanan',
-                            ),
-                            'Tips' => communityText(
-                              context,
-                              'Tips',
-                              '贴士',
-                              'Petua',
-                            ),
-                            _ => communityText(context, 'All', '全部', 'Semua'),
-                          }),
-                          selected: _topic == topic,
-                          onSelected: (_) => setState(() => _topic = topic),
-                        ),
-                      FilterChip(
-                        avatar: const Icon(Icons.bookmark_outline, size: 18),
-                        label: Text(
-                          communityText(context, 'Saved', '已收藏', 'Disimpan'),
-                        ),
-                        selected: _savedOnly,
-                        onSelected: (v) => setState(() => _savedOnly = v),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 56,
+                    child: FilledButton.icon(
+                      onPressed: busy ? null : _message,
+                      icon: busy
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.chat_bubble_outline),
+                      label: Text(
+                        communityText(context, 'Message', '发送消息', 'Mesej'),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          if (posts.isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  communityText(
-                    context,
-                    'No posts here yet. Try another filter or bookmark a post.',
-                    '暂无帖子。请更换筛选，或先收藏帖子。',
-                    'Tiada siaran. Cuba penapis lain atau simpan siaran.',
-                  ),
-                ),
-              ),
-            ),
-          SliverList.builder(
-            itemCount: posts.length,
-            itemBuilder: (context, index) {
-              final post = posts[index];
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.person_outline),
-                        ),
-                        title: Text(post.author),
-                        subtitle: Text(post.place),
-                        trailing: const Icon(Icons.location_on_outlined),
-                      ),
-                      InkWell(
-                        onTap: () => _open(post),
-                        child: AspectRatio(
-                          aspectRatio: 4 / 3,
-                          child: Image.asset(
-                            post.asset,
-                            fit: BoxFit.cover,
-                            semanticLabel: post.place,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          post.body,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          IconButton(
-                            tooltip: communityText(
-                              context,
-                              'Like',
-                              '点赞',
-                              'Suka',
-                            ),
-                            isSelected: post.liked,
-                            selectedIcon: const Icon(Icons.favorite),
-                            icon: const Icon(Icons.favorite_border),
-                            onPressed: () =>
-                                setState(() => post.liked = !post.liked),
-                          ),
-                          IconButton(
-                            tooltip: communityText(
-                              context,
-                              'Comments',
-                              '评论',
-                              'Komen',
-                            ),
-                            icon: Badge(
-                              label: Text('${post.comments.length}'),
-                              isLabelVisible: post.comments.isNotEmpty,
-                              child: const Icon(Icons.chat_bubble_outline),
-                            ),
-                            onPressed: () => _open(post),
-                          ),
-                          IconButton(
-                            tooltip: communityText(
-                              context,
-                              'Save post',
-                              '收藏帖子',
-                              'Simpan siaran',
-                            ),
-                            isSelected: post.saved,
-                            selectedIcon: const Icon(Icons.bookmark),
-                            icon: const Icon(Icons.bookmark_outline),
-                            onPressed: () =>
-                                setState(() => post.saved = !post.saved),
-                          ),
-                          TextButton(
-                            onPressed: () => _open(post),
-                            child: Text(
-                              communityText(
-                                context,
-                                'Read story',
-                                '查看帖子',
-                                'Baca kisah',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+        ),
       ),
     );
   }
 }
-
-typedef _PostDetail = CommunityPostDetailPage;
 
 class CommunityPostDetailPage extends StatefulWidget {
   const CommunityPostDetailPage({super.key, required this.post});
@@ -607,109 +314,323 @@ class _CommunityPostDetailPageState extends State<CommunityPostDetailPage> {
     super.dispose();
   }
 
+  Future<void> _submitComment() async {
+    final text = _comment.text.trim();
+    if (text.isEmpty || _busy) return;
+    if (_submittedComment != text || _commentId == null) {
+      _submittedComment = text;
+      _commentId = const Uuid().v4();
+    }
+    await _update(() async {
+      await widget.post.addComment(_commentId!, text);
+      _commentId = null;
+      if (mounted) _comment.clear();
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.post.place)),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        if (widget.post.asset.isNotEmpty)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.asset(
-              widget.post.asset,
-              semanticLabel: widget.post.place,
-            ),
-          ),
-        const SizedBox(height: 16),
-        Text(
-          widget.post.author,
-          style: Theme.of(context).textTheme.titleMedium,
+  Widget build(BuildContext context) {
+    final post = widget.post;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final text = theme.textTheme;
+    final surface = colors.surfaceContainerLow;
+    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(16));
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          communityText(context, 'Community post', '社区帖子', 'Siaran komuniti'),
         ),
-        const SizedBox(height: 12),
-        Text(widget.post.body),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: [
-            FilterChip(
-              label: Text(communityText(context, 'Like', '点赞', 'Suka')),
-              selected: widget.post.liked,
-              onSelected: _busy
-                  ? null
-                  : (v) => _update(
-                      () =>
-                          widget.post.setReaction(bookmark: false, selected: v),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              children: [
+                Card(
+                  margin: EdgeInsets.zero,
+                  color: surface,
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ExcludeSemantics(
+                              child: CircleAvatar(
+                                backgroundColor: colors.primaryContainer,
+                                foregroundColor: colors.onPrimaryContainer,
+                                child: Text(post.authorInitials, maxLines: 1),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    communityAuthorLabel(
+                                      context,
+                                      post.author,
+                                      post.isMine,
+                                    ),
+                                    style: text.titleMedium,
+                                  ),
+                                  Text(
+                                    post.date,
+                                    style: text.bodySmall?.copyWith(
+                                      color: colors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!post.isMine)
+                              IconButton(
+                                tooltip: communityText(
+                                  context,
+                                  'Message',
+                                  '发送消息',
+                                  'Mesej',
+                                ),
+                                onPressed: _busy
+                                    ? null
+                                    : () async {
+                                        setState(() => _busy = true);
+                                        try {
+                                          final id = await MessagingService()
+                                              .fromPost(post.id);
+                                          if (!context.mounted) return;
+                                          await Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) => PrivateChat(
+                                                id: id,
+                                                name: post.author,
+                                              ),
+                                            ),
+                                          );
+                                        } catch (_) {
+                                          if (context.mounted) {
+                                            showCommunitySyncError(context);
+                                          }
+                                        } finally {
+                                          if (mounted) {
+                                            setState(() => _busy = false);
+                                          }
+                                        }
+                                      },
+                                icon: const Icon(Icons.chat_bubble_outline),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '${post.topic} · ${post.place}',
+                          style: text.labelLarge?.copyWith(
+                            color: colors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          post.body,
+                          style: text.bodyLarge?.copyWith(height: 1.5),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilterChip(
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.padded,
+                              label: Text(
+                                '${communityText(context, 'Like', '点赞', 'Suka')} · ${post.likesCount}',
+                              ),
+                              selected: post.liked,
+                              onSelected: _busy
+                                  ? null
+                                  : (v) => _update(
+                                      () => post.setReaction(
+                                        bookmark: false,
+                                        selected: v,
+                                      ),
+                                    ),
+                            ),
+                            FilterChip(
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.padded,
+                              label: Text(
+                                communityText(
+                                  context,
+                                  'Save post',
+                                  '收藏帖子',
+                                  'Simpan siaran',
+                                ),
+                              ),
+                              selected: post.saved,
+                              onSelected: _busy
+                                  ? null
+                                  : (v) => _update(
+                                      () => post.setReaction(
+                                        bookmark: true,
+                                        selected: v,
+                                      ),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-            ),
-            FilterChip(
-              label: Text(
-                communityText(context, 'Save post', '收藏帖子', 'Simpan siaran'),
-              ),
-              selected: widget.post.saved,
-              onSelected: _busy
-                  ? null
-                  : (v) => _update(
-                      () =>
-                          widget.post.setReaction(bookmark: true, selected: v),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Semantics(
+                  header: true,
+                  child: Text(
+                    '${communityText(context, 'Comments', '评论', 'Komen')} (${post.comments.length})',
+                    style: text.titleLarge,
+                  ),
+                ),
+                if (post.comments.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      communityText(
+                        context,
+                        'No comments yet.',
+                        '暂无评论。',
+                        'Tiada komen lagi.',
+                      ),
+                      style: text.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
                     ),
+                  ),
+                for (final comment in post.comments)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      color: surface,
+                      elevation: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (!comment.isMine && comment.id != null)
+                              InkWell(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => CommunityMemberPage(
+                                      name: comment.author,
+                                      commentId: comment.id!,
+                                    ),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          communityAuthorLabel(
+                                            context,
+                                            comment.author,
+                                            false,
+                                          ),
+                                          style: text.titleSmall?.copyWith(
+                                            color: colors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.chevron_right,
+                                        color: colors.primary,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              Text(
+                                communityAuthorLabel(
+                                  context,
+                                  comment.author,
+                                  comment.isMine,
+                                ),
+                                style: text.titleSmall,
+                              ),
+                            const SizedBox(height: 4),
+                            Text(
+                              comment.body,
+                              style: text.bodyMedium?.copyWith(height: 1.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _comment,
+                  readOnly: _busy,
+                  minLines: 2,
+                  maxLines: 4,
+                  maxLength: 500,
+                  decoration: InputDecoration(
+                    labelText: communityText(
+                      context,
+                      'Write a comment',
+                      '写评论',
+                      'Tulis komen',
+                    ),
+                    border: border,
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _comment,
+                    builder: (context, value, _) => FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                      ),
+                      onPressed: _busy || value.text.trim().isEmpty
+                          ? null
+                          : _submitComment,
+                      child: Text(
+                        communityText(
+                          context,
+                          'Add comment',
+                          '添加评论',
+                          'Tambah komen',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (_busy)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: LinearProgressIndicator(),
+                  ),
+              ],
             ),
-          ],
-        ),
-        const Divider(height: 32),
-        Text(
-          communityText(context, 'Comments', '评论', 'Komen'),
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        for (final comment in widget.post.comments)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.person_outline),
-            title: Text(comment),
-          ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _comment,
-          enabled: !_busy,
-          minLines: 1,
-          maxLines: 4,
-          maxLength: 500,
-          decoration: InputDecoration(
-            labelText: communityText(
-              context,
-              'Write a comment',
-              '写评论',
-              'Tulis komen',
-            ),
-            border: const OutlineInputBorder(),
           ),
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton(
-            onPressed: _busy
-                ? null
-                : () {
-                    final text = _comment.text.trim();
-                    if (text.isEmpty) return;
-                    if (_submittedComment != text || _commentId == null) {
-                      _submittedComment = text;
-                      _commentId = const Uuid().v4();
-                    }
-                    _update(() async {
-                      await widget.post.addComment(_commentId!, text);
-                      _commentId = null;
-                      if (mounted) _comment.clear();
-                    });
-                  },
-            child: Text(
-              communityText(context, 'Add comment', '添加评论', 'Tambah komen'),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 void showCommunitySyncError(BuildContext context) {
@@ -951,7 +872,13 @@ class _CommunityComposerState extends State<CommunityComposer> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(20),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + MediaQuery.paddingOf(context).bottom,
+              ),
               children: [
                 Text(
                   communityText(
@@ -959,6 +886,9 @@ class _CommunityComposerState extends State<CommunityComposer> {
                     'Posts are visible to signed-in travellers. Photos are for preview only.',
                     '登录用户可看到发布的帖子。照片仅供预览。',
                     'Siaran boleh dilihat oleh pengguna yang log masuk. Foto untuk pratonton sahaja.',
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -998,8 +928,11 @@ class _CommunityComposerState extends State<CommunityComposer> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _topic,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: communityText(context, 'Topic', '分类', 'Topik'),
+                    prefixIcon: const Icon(Icons.label_outline),
+                    border: const OutlineInputBorder(),
                   ),
                   items: [
                     for (final topic in CommunityService.topics)
@@ -1049,7 +982,11 @@ class _CommunityComposerState extends State<CommunityComposer> {
                       ),
                   ],
                 ),
+                if (_photos.isNotEmpty) const SizedBox(height: 12),
                 OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                  ),
                   onPressed: _busy || _photos.length >= 5 ? null : _pick,
                   icon: const Icon(Icons.add_photo_alternate_outlined),
                   label: Text(
@@ -1080,6 +1017,7 @@ class _CommunityComposerState extends State<CommunityComposer> {
                   ),
                 const SizedBox(height: 16),
                 FilledButton(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
                   onPressed: _busy ? null : _publish,
                   child: Text(
                     communityText(
@@ -1090,7 +1028,11 @@ class _CommunityComposerState extends State<CommunityComposer> {
                     ),
                   ),
                 ),
-                FilledButton(
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                  ),
                   onPressed: _busy
                       ? null
                       : () async {
@@ -1118,7 +1060,9 @@ class _CommunityComposerState extends State<CommunityComposer> {
                     ),
                   ),
                 ),
-                OutlinedButton(
+                const SizedBox(height: 8),
+                TextButton(
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
                   onPressed: _busy
                       ? null
                       : () {

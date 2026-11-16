@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/home/screens/home_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
-import 'package:smart_travel_planner/features/places/screens/api_retrieval_screen.dart';
 import 'package:smart_travel_planner/l10n/app_localizations.dart';
 
 void main() {
@@ -18,7 +17,7 @@ void main() {
   });
 
   testWidgets(
-    'Saved Places Inspector banner is hidden for non-admins and shown for admins',
+    'HomePage renders HeroPanel cleanly and does not display inspector banner',
     (tester) async {
       debugNetworkImageHttpClientProvider = () => _FakeImageClient();
       try {
@@ -51,20 +50,15 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text('Saved Places Inspector'), findsNothing);
+        expect(find.byType(HeroPanel), findsOneWidget);
 
-        // Visible when logged in as admin, and opens ApiRetrievalScreen.
+        // Hidden for admin account as well.
         await tester.runAsync(
           () => AuthService().login('chingkheat@example.com', 'SafeP@ss123!'),
         );
         await tester.pumpAndSettle();
-        expect(find.text('Saved Places Inspector'), findsOneWidget);
-
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        expect(find.byType(ApiRetrievalScreen), findsOneWidget);
-
-        await tester.pageBack();
-        await tester.pumpAndSettle();
+        expect(find.text('Saved Places Inspector'), findsNothing);
+        expect(find.byType(HeroPanel), findsOneWidget);
 
         // Hidden again after logging out.
         await tester.runAsync(() => AuthService().logout());

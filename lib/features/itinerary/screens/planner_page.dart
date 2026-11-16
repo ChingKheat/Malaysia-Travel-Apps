@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import '../services/planner_smart_fill.dart';
@@ -321,6 +322,7 @@ class _PlannerPageState extends State<PlannerPage> {
 
   @override
   void dispose() {
+    ProfilePreferencesService.instance.removeListener(_loadProfileDefaults);
     _description.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -338,6 +340,10 @@ class _PlannerPageState extends State<PlannerPage> {
   void initState() {
     super.initState();
     _testingForm = widget.enableTestingBypass;
+    if (!_testingForm) {
+      ProfilePreferencesService.instance.addListener(_loadProfileDefaults);
+      _loadProfileDefaults();
+    }
     if (widget.initialDestination != null) {
       destination = widget.initialDestination;
       _destinationConfirmed = true;
@@ -416,6 +422,23 @@ class _PlannerPageState extends State<PlannerPage> {
 
   bool _isSuggestedEndTime(TimeOfDay time) {
     return time.hour == 18 || time.hour == 21 || time.hour == 22;
+  }
+
+  bool _profilePaceOverridden = false;
+  bool _profileDietOverridden = false;
+  bool _profileBudgetOverridden = false;
+
+  Future<void> _loadProfileDefaults() async {
+    final result = await ProfilePreferencesService.instance.loadTravel();
+    if (!mounted || result.preferences == null) return;
+    final preferences = result.preferences!;
+    setState(() {
+      if (!_paceConfirmed && !_profilePaceOverridden) _pace = preferences.pace;
+      if (!_profileDietOverridden) _diet = preferences.diet;
+      if (!_budgetConfirmed && !_profileBudgetOverridden) {
+        budgetCategory = preferences.budget.plannerValue;
+      }
+    });
   }
 
   Widget _buildTimePresetChip({
@@ -829,6 +852,8 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   void _applyPreset(int index) {
+    _profilePaceOverridden = true;
+    _profileDietOverridden = true;
     setState(() {
       switch (index) {
         case 0:
@@ -883,8 +908,14 @@ class _PlannerPageState extends State<PlannerPage> {
     setState(() {
       _travelerType =
           suggested(TravelerType.values, 'traveler') ?? _travelerType;
-      _pace = suggested(PaceCategory.values, 'pace') ?? _pace;
-      _diet = suggested(DietaryPreference.values, 'diet') ?? _diet;
+      if (suggested(PaceCategory.values, 'pace') case final pace?) {
+        _profilePaceOverridden = true;
+        _pace = pace;
+      }
+      if (suggested(DietaryPreference.values, 'diet') case final diet?) {
+        _profileDietOverridden = true;
+        _diet = diet;
+      }
       if (suggestions['interest'] case final String interest) {
         interests.add(interest);
       }
@@ -1057,7 +1088,10 @@ class _PlannerPageState extends State<PlannerPage> {
           PaceCategory.values,
           [l.planRelaxed, l.planBalanced, l.planPacked],
           _selectedPace,
-          (value) => _pace = value,
+          (value) {
+            _profilePaceOverridden = true;
+            _pace = value;
+          },
         ),
       ],
       _PlannerGroup.backupTransport => [
@@ -1089,7 +1123,10 @@ class _PlannerPageState extends State<PlannerPage> {
             l.planStreetFood,
           ],
           _diet,
-          (value) => _diet = value,
+          (value) {
+            _profileDietOverridden = true;
+            _diet = value;
+          },
         ),
       ],
       _PlannerGroup.highlights => [
@@ -1527,6 +1564,7 @@ class _PlannerPageState extends State<PlannerPage> {
                       selected: budgetCategory == option.$1,
                       onTap: () {
                         setState(() {
+                          _profileBudgetOverridden = true;
                           budgetCategory = option.$1;
                           _budgetConfirmed = false;
                           _errorMessage = null;

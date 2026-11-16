@@ -9,6 +9,7 @@ import 'package:smart_travel_planner/app/travel_shell.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/itinerary_ready_page.dart';
+import 'package:smart_travel_planner/features/itinerary/screens/itinerary_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
@@ -133,7 +134,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Day 2'));
       await tester.pumpAndSettle();
-      expect(find.text('Day 2 Theme'), findsOneWidget);
+      expect(tester.widget<DayPill>(find.byWidgetPredicate((w) => w is DayPill && w.label == 'Day 2')).active, isTrue);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-my-trips')), findsOneWidget);
@@ -141,7 +142,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('plan-my-trips')));
       await tester.pumpAndSettle();
-      expect(find.text('Day 2 Theme'), findsOneWidget);
+      expect(tester.widget<DayPill>(find.byWidgetPredicate((w) => w is DayPill && w.label == 'Day 2')).active, isTrue);
       expect(tester.takeException(), isNull);
     });
   });

@@ -4474,13 +4474,6 @@ abstract class AppLocalizations {
   /// **'Estimated for {arg0} days · per person'**
   String estimatedForValueDaysPerPerson(String arg0);
 
-  /// No description provided for @weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde.
-  ///
-  /// In en, this message translates to:
-  /// **'• Weather alert: light rain expected after 3 PM.\n• Route updated: Jalan Alor moved earlier to avoid crowds.\n• Reminder: Batu Caves opens at 7:00 AM tomorrow.'**
-  String
-  get weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde;
-
   /// No description provided for @here.
   ///
   /// In en, this message translates to:
@@ -5202,6 +5195,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue to highlights & interests'**
   String get planContinueHighlights;
+
+  /// No description provided for @profileTravelPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Preferences'**
+  String get profileTravelPreferences;
+
+  /// No description provided for @profilePace.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Pace'**
+  String get profilePace;
+
+  /// No description provided for @profileModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get profileModerate;
+
+  /// No description provided for @profileFastPaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast-paced'**
+  String get profileFastPaced;
+
+  /// No description provided for @profileBudgetTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget Tier'**
+  String get profileBudgetTier;
+
+  /// No description provided for @profileBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget'**
+  String get profileBudget;
+
+  /// No description provided for @profileLuxury.
+  ///
+  /// In en, this message translates to:
+  /// **'Luxury'**
+  String get profileLuxury;
+
+  /// No description provided for @profileDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Dietary Requirement'**
+  String get profileDiet;
+
+  /// No description provided for @profileNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get profileNone;
+
+  /// No description provided for @profileHalal.
+  ///
+  /// In en, this message translates to:
+  /// **'Halal Certified'**
+  String get profileHalal;
+
+  /// No description provided for @profileVegetarian.
+  ///
+  /// In en, this message translates to:
+  /// **'Vegetarian'**
+  String get profileVegetarian;
+
+  /// No description provided for @profileEditPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit travel preferences'**
+  String get profileEditPreferences;
+
+  /// No description provided for @profileEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get profileEdit;
+
+  /// No description provided for @profilePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this device. Cloud sync is pending.'**
+  String get profilePending;
+
+  /// No description provided for @profileSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save on this device. Try again.'**
+  String get profileSaveFailed;
+
+  /// No description provided for @profileRegions.
+  ///
+  /// In en, this message translates to:
+  /// **'States & territories'**
+  String get profileRegions;
+
+  /// No description provided for @profileRegionsVisited.
+  ///
+  /// In en, this message translates to:
+  /// **'States and Territories Visited'**
+  String get profileRegionsVisited;
+
+  /// No description provided for @profileCoverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Malaysia has 13 states and 3 federal territories. Coverage counts recorded visits with a verified location.'**
+  String get profileCoverage;
+
+  /// No description provided for @profileNoRegions.
+  ///
+  /// In en, this message translates to:
+  /// **'No recorded visits have a confirmed state or territory yet.'**
+  String get profileNoRegions;
+
+  /// No description provided for @profileFootprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Footprint'**
+  String get profileFootprint;
+
+  /// No description provided for @profileNoVisits.
+  ///
+  /// In en, this message translates to:
+  /// **'No visits recorded for your saved trips yet. Mark a stop as visited in Today’s Plan to see it here.'**
+  String get profileNoVisits;
+
+  /// No description provided for @profileCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Currency'**
+  String get profileCurrency;
+
+  /// No description provided for @profileMyr.
+  ///
+  /// In en, this message translates to:
+  /// **'Malaysian Ringgit'**
+  String get profileMyr;
+
+  /// No description provided for @profileSgd.
+  ///
+  /// In en, this message translates to:
+  /// **'Singapore Dollar'**
+  String get profileSgd;
+
+  /// No description provided for @profileUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'US Dollar'**
+  String get profileUsd;
+
+  /// No description provided for @profileCny.
+  ///
+  /// In en, this message translates to:
+  /// **'Chinese Yuan'**
+  String get profileCny;
+
+  /// No description provided for @profileEur.
+  ///
+  /// In en, this message translates to:
+  /// **'Euro'**
+  String get profileEur;
+
+  /// No description provided for @profileHotlines.
+  ///
+  /// In en, this message translates to:
+  /// **'Tourist Emergency Hotlines'**
+  String get profileHotlines;
+
+  /// No description provided for @profileHotlinesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency numbers in Malaysia'**
+  String get profileHotlinesSubtitle;
+
+  /// No description provided for @profilePoliceAmbulance.
+  ///
+  /// In en, this message translates to:
+  /// **'Police & Ambulance'**
+  String get profilePoliceAmbulance;
+
+  /// No description provided for @profilePoliceAmbulanceInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Malaysia’s national emergency number.'**
+  String get profilePoliceAmbulanceInfo;
+
+  /// No description provided for @profileMobileEmergency.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile Emergency'**
+  String get profileMobileEmergency;
+
+  /// No description provided for @profileMobileEmergencyInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate emergency number from a mobile phone.'**
+  String get profileMobileEmergencyInfo;
+
+  /// No description provided for @profileTouristPolice.
+  ///
+  /// In en, this message translates to:
+  /// **'MaTiC Tourist Police Station'**
+  String get profileTouristPolice;
+
+  /// No description provided for @profileTouristPoliceInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Kuala Lumpur station contact for tourist police reports and assistance.'**
+  String get profileTouristPoliceInfo;
+
+  /// No description provided for @profileCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get profileCall;
+
+  /// No description provided for @profileDialerError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the phone dialer.'**
+  String get profileDialerError;
+
+  /// No description provided for @profileAdminSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out and sign in with an administrator account to access the hub.'**
+  String get profileAdminSignIn;
+
+  /// No description provided for @notificationMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get notificationMarkAllRead;
+
+  /// No description provided for @notificationEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re all caught up!'**
+  String get notificationEmptyTitle;
+
+  /// No description provided for @notificationEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming trip reminders and comments on your posts will appear here.'**
+  String get notificationEmptyBody;
+
+  /// No description provided for @notificationTripReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip starting soon'**
+  String get notificationTripReminder;
+
+  /// No description provided for @notificationCommunityComment.
+  ///
+  /// In en, this message translates to:
+  /// **'New comment'**
+  String get notificationCommunityComment;
+
+  /// No description provided for @notificationTripMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} in {destination} starts on {date}.'**
+  String notificationTripMessage(Object title, Object destination, Object date);
+
+  /// No description provided for @notificationCommentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone commented: “{comment}”'**
+  String notificationCommentMessage(Object comment);
+
+  /// No description provided for @notificationViewTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'View trip'**
+  String get notificationViewTrip;
+
+  /// No description provided for @notificationViewPost.
+  ///
+  /// In en, this message translates to:
+  /// **'View post'**
+  String get notificationViewPost;
+
+  /// No description provided for @notificationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This trip or post is no longer available.'**
+  String get notificationUnavailable;
 }
 
 class _AppLocalizationsDelegate

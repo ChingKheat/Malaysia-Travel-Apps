@@ -35,18 +35,19 @@ class AssistantWeatherCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+              if (alert.rainProbability != null)
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.thunderstorm_rounded,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.thunderstorm_rounded,
-                  size: 18,
-                  color: AppColors.primary,
-                ),
-              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -87,9 +88,7 @@ class AssistantWeatherCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      context.l10n.valueRain(
-                        (alert.rainProbability).toString(),
-                      ),
+                      context.l10n.valueRain(alert.rainProbability!.toString()),
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,

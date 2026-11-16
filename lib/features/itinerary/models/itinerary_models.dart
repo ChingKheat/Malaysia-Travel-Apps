@@ -20,6 +20,7 @@ class ItineraryStop {
   final double latitude;
   final double longitude;
   final TravelStop? snapshot;
+  final String? placeState;
 
   const ItineraryStop({
     required this.id,
@@ -36,6 +37,7 @@ class ItineraryStop {
     this.latitude = 0.0,
     this.longitude = 0.0,
     this.snapshot,
+    this.placeState,
   });
 
   factory ItineraryStop.fromSupabase(Map<String, dynamic> data) {
@@ -65,6 +67,7 @@ class ItineraryStop {
       stopOrder: (data['stop_order'] as num?)?.toInt() ?? 1,
       arrivalTime: data['arrival_time']?.toString() ?? '09:00',
       departureTime: data['departure_time']?.toString() ?? '11:00',
+      placeState: (place['state'] ?? data['place_state'])?.toString(),
       isVisited: data['is_visited'] == true,
       category:
           place['category']?.toString() ??
@@ -96,13 +99,23 @@ class ItineraryStop {
 
   /// Converts a database stop into a UI-renderable TravelStop
   TravelStop toTravelStop() {
-    if (snapshot != null) return snapshot!;
+    if (snapshot != null) {
+      final saved = snapshot!;
+      if ((saved.title.trim().isEmpty || saved.title == 'Saved Google place' ||
+              saved.title == 'Attraction') &&
+          placeName.trim().isNotEmpty &&
+          placeName != 'Saved Google place' && placeName != 'Attraction') {
+        return TravelStop.fromJson({...saved.toJson(), 'title': placeName});
+      }
+      return saved;
+    }
     if (placeId.startsWith('ChI') ||
         placeName == 'Saved Google place' ||
         photoUrl.contains('places.googleapis.com')) {
       return TravelStop.fromJson({
         'data_source': 'google',
         'place_id': placeId,
+        'title': placeName,
         'time': '$arrivalTime - $departureTime',
         'duration': '90 min',
       });

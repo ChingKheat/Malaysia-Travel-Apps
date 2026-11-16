@@ -2,20 +2,22 @@ class AssistantPlaceSuggestion {
   const AssistantPlaceSuggestion({
     required this.name,
     required this.category,
-    required this.rating,
-    required this.location,
-    required this.description,
+    this.rating,
+    this.location = '',
+    this.description = '',
     this.photoUrl,
     this.isIndoor = true,
+    this.placeId,
   });
 
   final String name;
   final String category;
-  final double rating;
+  final double? rating;
   final String location;
   final String description;
   final String? photoUrl;
   final bool isIndoor;
+  final String? placeId;
 }
 
 class AssistantWeatherAlert {
@@ -23,7 +25,7 @@ class AssistantWeatherAlert {
     required this.city,
     required this.temperature,
     required this.condition,
-    required this.rainProbability,
+    this.rainProbability,
     required this.advisory,
     this.suggestedIndoorPlace,
   });
@@ -31,7 +33,7 @@ class AssistantWeatherAlert {
   final String city;
   final String temperature;
   final String condition;
-  final int rainProbability;
+  final int? rainProbability;
   final String advisory;
   final String? suggestedIndoorPlace;
 }

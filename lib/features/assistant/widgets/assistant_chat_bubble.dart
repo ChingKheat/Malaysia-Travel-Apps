@@ -156,7 +156,10 @@ class AssistantChatBubble extends StatelessWidget {
                       // Place suggestion cards if present
                       if (message.places.isNotEmpty)
                         ...message.places.map(
-                          (place) => AssistantPlaceCard(place: place),
+                          (place) => AssistantPlaceCard(
+                            place: place,
+                            placeId: place.placeId,
+                          ),
                         ),
                     ],
                   ),

@@ -34,6 +34,7 @@ class LocalItineraryStore {
     'arrival_time',
     'departure_time',
     'is_visited',
+    'place_state',
     'time',
     'duration',
     'estimated_cost',
@@ -47,6 +48,8 @@ class LocalItineraryStore {
     'snapshot',
     'stop_data',
     'user_note',
+    'title',
+    'place_name',
   };
 
   static dynamic _sanitize(dynamic value) {
@@ -62,12 +65,15 @@ class LocalItineraryStore {
         (map['place_id']?.toString().startsWith('ChI') ?? false);
     return <String, dynamic>{
       for (final entry in map.entries)
-        if (!google || _ownStopKeys.contains(entry.key))
+        // The user-facing place name is stable itinerary data. Keep it in
+        // local snapshots while continuing to discard provider metadata.
+        if (!google || _ownStopKeys.contains(entry.key) || entry.key == 'title')
           entry.key: _sanitize(entry.value),
       if (google) ...{
         'data_source': 'google',
-        'title': 'Saved Google place',
-        'place_name': 'Saved Google place',
+        if (map['title'] == null || map['title'] == 'Saved Google place')
+          'title': map['place_name'] ?? map['title'] ?? 'Saved Google place',
+        if (map['place_name'] == null) 'place_name': 'Saved Google place',
         'category': 'Attraction',
         'latitude': 0.0,
         'longitude': 0.0,

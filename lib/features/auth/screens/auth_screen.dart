@@ -262,7 +262,7 @@ class _AuthScreenState extends State<AuthScreen>
                           width: 44,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
+                            color: AppColors.nightLine,
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),

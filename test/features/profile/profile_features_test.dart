@@ -1,0 +1,210 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_travel_planner/features/auth/models/travel_preferences.dart';
+import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
+import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
+import 'package:smart_travel_planner/features/profile/screens/profile_page.dart';
+import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
+import 'package:smart_travel_planner/features/profile/services/travel_footprint.dart';
+import 'package:smart_travel_planner/l10n/app_localizations.dart';
+
+void main() {
+  final auth = AuthService();
+  final settings = ProfilePreferencesService.instance;
+
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  tearDown(() async => auth.logout());
+
+  test(
+    'handles legacy and unknown values and round trips planner defaults',
+    () {
+      const defaults = {
+        'travel_pace': 'moderate',
+        'budget_tier': 'standard',
+        'dietary_requirement': 'none',
+      };
+      for (final raw in [
+        null,
+        [],
+        {'travel_pace': 'unknown', 'budget_tier': 4},
+      ]) {
+        expect(TravelPreferences.fromJson(raw).toJson(), defaults);
+      }
+      const value = TravelPreferences(
+        pace: PaceCategory.packed,
+        budget: BudgetTier.luxury,
+        diet: DietaryPreference.halalFriendly,
+      );
+      final restored = TravelPreferences.fromJson(value.toJson());
+      expect(restored.pace, PaceCategory.packed);
+      expect(restored.budget.plannerValue, 'High');
+      expect(restored.diet, DietaryPreference.halalFriendly);
+    },
+  );
+
+  test('retains an offline account save with pending sync', () async {
+    expect(await auth.login('tourist@example.com', 'SafeP@ss123!'), isTrue);
+    expect(
+      await settings.saveTravel(
+        const TravelPreferences(diet: DietaryPreference.vegetarian),
+      ),
+      isTrue,
+    );
+    await settings.syncTravel();
+    final saved = await settings.loadTravel();
+    expect(saved.preferences?.diet, DietaryPreference.vegetarian);
+    expect(saved.pending, isTrue);
+    await auth.logout();
+    await auth.loginAsGuest();
+    expect((await settings.loadTravel()).preferences, isNull);
+  });
+
+  test(
+    'footprint counts completed places and deduplicates valid regions',
+    () async {
+      final day = DateTime(2026, 1, 2);
+      final storage = await SharedPreferences.getInstance();
+      await storage.setString(
+        'trip-execution-v1:trip:0:${day.toIso8601String()}',
+        jsonEncode({
+          'completed': ['place-b', 'place-c'],
+        }),
+      );
+      ItineraryStop stop(String id, String region, {bool visited = false}) =>
+          ItineraryStop(
+            id: id,
+            scheduleId: 'day',
+            placeId: id,
+            placeName: id,
+            stopOrder: 1,
+            arrivalTime: '09:00',
+            departureTime: '10:00',
+            placeState: region,
+            isVisited: visited,
+          );
+      final footprint = await TravelFootprint.fromTrips([
+        Itinerary(
+          itineraryId: 'trip',
+          userId: 'user',
+          title: 'Trip',
+          destinationState: 'Johor',
+          createdAt: day,
+          dailySchedules: [
+            DailySchedule(
+              scheduleId: 'day',
+              itineraryId: 'trip',
+              dayNumber: 1,
+              scheduleDate: day,
+              stops: [
+                stop('place-a', 'Pulau Pinang', visited: true),
+                stop('place-a', 'Penang', visited: true),
+                stop('place-b', 'Penang'),
+                stop('place-c', 'Unknown'),
+                stop('planned-only', 'Johor'),
+              ],
+            ),
+          ],
+        ),
+      ]);
+      expect(footprint.places, ['place-a', 'place-b', 'place-c']);
+      expect(footprint.regions, {'penang'});
+    },
+  );
+
+  testWidgets('preferences, footprint and currency work on a narrow screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.runAsync(auth.loginAsGuest);
+
+    var openedTrips = false;
+    Widget app(Key key) => MaterialApp(
+      key: key,
+      locale: const Locale('en'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    ProfilePage(onMyTripsTap: () => openedTrips = true),
+              ),
+            ),
+            child: const Text('Open profile'),
+          ),
+        ),
+      ),
+    );
+
+    Future<void> tap(String label) async {
+      final target = find.text(label).last;
+      await tester.ensureVisible(target);
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.pumpWidget(app(const ValueKey(1)));
+    await tap('Open profile');
+    await tap('Edit');
+    await tap('Fast-paced');
+    await tap('Vegetarian');
+    await tap('Save');
+    expect(find.text('Fast-paced'), findsNWidgets(2));
+
+    await tap('Places Visited');
+    expect(find.text('Travel Footprint'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tap('States & territories');
+    expect(find.text('States and Territories Visited'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    await tap('Preferred Currency');
+    await tap('EUR (€)');
+    expect(find.text('EUR (€)'), findsOneWidget);
+    await tap('Tourist Emergency Hotlines');
+    expect(find.text('999'), findsOneWidget);
+    expect(find.text('112'), findsOneWidget);
+    const launcher = MethodChannel('plugins.flutter.io/url_launcher');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    final launched = <String>[];
+    messenger.setMockMethodCallHandler(launcher, (call) async {
+      expect(call.method, 'launch');
+      launched.add((call.arguments as Map)['url'] as String);
+      return launched.length > 1;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(launcher, null));
+    expect(launched, isEmpty);
+    final callButton = find.widgetWithText(TextButton, 'Call').first;
+    await tester.ensureVisible(callButton);
+    await tester.tap(callButton);
+    await tester.pumpAndSettle();
+    expect(launched, ['tel:999']);
+    expect(find.text('Could not open the phone dialer.'), findsOneWidget);
+    await tester.tap(callButton);
+    await tester.pumpAndSettle();
+    expect(launched, ['tel:999', 'tel:999']);
+    expect(find.text('Could not open the phone dialer.'), findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(app(const ValueKey(2)));
+    await tap('Open profile');
+    expect(find.text('Fast-paced'), findsNWidgets(2));
+    expect(find.text('EUR (€)'), findsOneWidget);
+    await tap('Trips Planned');
+    expect(openedTrips, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+}

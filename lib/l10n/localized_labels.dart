@@ -62,26 +62,26 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.localeName.startsWith('zh')
           ? '正在取消…'
           : l.localeName.startsWith('ms')
-              ? 'Membatalkan…'
-              : 'Cancelling…';
+          ? 'Membatalkan…'
+          : 'Cancelling…';
     case "Cancelling sync...":
       return l.localeName.startsWith('zh')
           ? '正在取消同步…'
           : l.localeName.startsWith('ms')
-              ? 'Membatalkan penyelarasan…'
-              : 'Cancelling sync...';
+          ? 'Membatalkan penyelarasan…'
+          : 'Cancelling sync...';
     case "Stopping Google Places search...":
       return l.localeName.startsWith('zh')
           ? '正在停止 Google 地点搜索…'
           : l.localeName.startsWith('ms')
-              ? 'Menghentikan carian Google Places…'
-              : 'Stopping Google Places search...';
+          ? 'Menghentikan carian Google Places…'
+          : 'Stopping Google Places search...';
     case "Sync cancelled":
       return l.localeName.startsWith('zh')
           ? '已取消同步'
           : l.localeName.startsWith('ms')
-              ? 'Penyelarasan dibatalkan'
-              : 'Sync cancelled';
+          ? 'Penyelarasan dibatalkan'
+          : 'Sync cancelled';
     case "Save":
       return l.save;
     case "Delete":
@@ -363,8 +363,8 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.localeName.startsWith('zh')
           ? '地标与特色美食'
           : l.localeName.startsWith('ms')
-              ? 'Mercu tanda & hidangan tempatan'
-              : 'Landmarks & local dishes';
+          ? 'Mercu tanda & hidangan tempatan'
+          : 'Landmarks & local dishes';
     case "Discover Malaysia through your camera":
       return l.discoverMalaysiaThroughYourCamera;
     case "Plan Your Trip":
@@ -377,8 +377,8 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.localeName.startsWith('zh')
           ? 'AI 助手、翻译及天气'
           : l.localeName.startsWith('ms')
-              ? 'Bantuan AI, terjemahan & cuaca'
-              : 'AI help, translation & weather';
+          ? 'Bantuan AI, terjemahan & cuaca'
+          : 'AI help, translation & weather';
     case "AI help, translation and weather alerts":
       return l.aiHelpTranslationAndWeatherAlerts;
     case "Where would you like to explore today?":
@@ -1286,9 +1286,6 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.text9Am6Pm;
     case "9 AM – 9 PM":
       return l.text9Am9Pm;
-    case "• Weather alert: light rain expected after 3 PM.\n• Route updated: Jalan Alor moved earlier to avoid crowds.\n• Reminder: Batu Caves opens at 7:00 AM tomorrow.":
-      return l
-          .weatherAlertLightRainExpectedAfter3PmRouteUpdatedJalanAlorMovedEarlierToAvoidCrowdsReminde;
     case "here":
       return l.here;
     case "this area":

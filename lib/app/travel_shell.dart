@@ -162,6 +162,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                     child: AppHeader(
+                      onMyTripsTap: _openMyTrips,
                       title: _tabTitles[_selectedIndex],
                       subtitle: _tabSubtitles[_selectedIndex],
                       isDark: true,

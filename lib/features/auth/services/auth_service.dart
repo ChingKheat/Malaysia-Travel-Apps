@@ -559,6 +559,7 @@ class AuthService extends ChangeNotifier {
       memberSince: user.memberSince,
       preferredLanguage: preferredLanguage ?? user.preferredLanguage,
       role: user.role,
+      travelPreferences: user.travelPreferences,
     );
     if (_inMemoryUsers.containsKey(user.uid)) {
       _inMemoryUsers[user.uid] = _currentUser!.toFirestore();

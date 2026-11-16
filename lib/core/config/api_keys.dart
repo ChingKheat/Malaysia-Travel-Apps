@@ -10,9 +10,15 @@ class ApiKeys {
   static String get openWeatherMap => _runtimeWeatherKey ?? openWeatherMapEnv;
   static set openWeatherMap(String key) => _runtimeWeatherKey = key;
 
-  static const googleMapsEnv = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-  );
+  static const googleMapsEnv = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+
+  /// Client-side Gemini key. Mobile binaries can be inspected, so production
+  /// deployments should proxy Gemini through a trusted backend.
+  static const geminiEnv = String.fromEnvironment('GEMINI_API_KEY');
+  static String? _runtimeGeminiKey;
+  static String get gemini => _runtimeGeminiKey ?? geminiEnv;
+  static set gemini(String key) => _runtimeGeminiKey = key;
+  static bool get hasGeminiKey => gemini.trim().isNotEmpty;
 
   // Allow setting or overriding Google Maps key dynamically at runtime
   static String? _runtimeGoogleKey;
