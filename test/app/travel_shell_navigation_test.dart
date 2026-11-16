@@ -26,28 +26,29 @@ void main() {
     'Five tabs open their destinations and Home opens empty My Trips',
     (tester) async {
       await _withApp(tester, () async {
-        for (final entry in {
-          'Explore': 'Explore Malaysia',
-          'Scan': 'Image Recognition',
-          'Plan': 'Plan Your Trip',
-          'AI': 'Trip Assistant',
-        }.entries) {
-          await tester.tap(_tab(entry.key));
+        for (final (index, label, section) in [
+          (0, 'Explore', 'Explore'),
+          (1, 'Community', 'Community'),
+          (2, 'Scan', 'Visual Scan'),
+          (3, 'Route', 'Route'),
+          (4, 'AI', 'AI'),
+        ]) {
+          await tester.tap(_tab(label));
           await tester.pumpAndSettle();
-          if (entry.key == 'Scan') {
-            expect(find.text(entry.value), findsOneWidget);
-            expect(find.byTooltip('Notifications'), findsNothing);
-          } else {
-            expect(
-              find.descendant(
-                of: find.byType(AppHeader),
-                matching: find.text(entry.value),
-              ),
-              findsOneWidget,
-            );
-          }
+          expect(
+            find.descendant(
+              of: find.byType(AppHeader),
+              matching: find.text('Kuala Lumpur · $section'),
+            ),
+            findsOneWidget,
+          );
+          expect(find.byTooltip('Notifications'), findsWidgets);
+          final navigation = tester.widget<TravelBottomNavigation>(
+            find.byType(TravelBottomNavigation),
+          );
+          expect(navigation.selectedIndex, index);
         }
-        await tester.tap(_tab('Home'));
+        await tester.tap(_tab('Explore'));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('home-my-trips')));
         await tester.pumpAndSettle();
@@ -92,7 +93,7 @@ void main() {
     tester,
   ) async {
     await _withApp(tester, () async {
-      await tester.tap(_tab('Plan'));
+      await tester.tap(_tab('Route'));
       await tester.pumpAndSettle();
       final planner = tester.widget<PlannerPage>(find.byType(PlannerPage));
       // Use the planner's completion callback without requesting live APIs.
@@ -141,7 +142,7 @@ void main() {
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-my-trips')), findsOneWidget);
-      await tester.tap(_tab('Plan'));
+      await tester.tap(_tab('Route'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('plan-my-trips')));
       await tester.pumpAndSettle();

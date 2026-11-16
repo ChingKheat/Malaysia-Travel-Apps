@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_travel_planner/features/image_recognition/data/recognition_presets.dart';
+import 'package:smart_travel_planner/l10n/app_localizations.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/image_recognition_page.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
@@ -101,7 +101,7 @@ void main() {
 
   for (final entry in {
     ImageSource.camera: 'Take Photo',
-    ImageSource.gallery: 'Upload from Gallery',
+    ImageSource.gallery: 'Upload Image',
   }.entries) {
     testWidgets(
       '${entry.key.name} starts one scan and saves only result text',
@@ -137,7 +137,9 @@ void main() {
           find.byType(RecognitionResultSheet),
         );
         expect(sheet.image, isNotNull);
-        expect(find.text('Vision confidence 90%'), findsOneWidget);
+        expect(find.text('Confident visual match'), findsOneWidget);
+        expect(find.text('Original photo'), findsOneWidget);
+        expect(find.text('Nearby attractions & food'), findsOneWidget);
         expect(api.scans, 1);
         final history = await RecognitionHistoryStore(userId: 'live').load();
         expect(history, hasLength(1));
@@ -173,11 +175,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tapPhotoSource(tester, 'Upload from Gallery');
+      await tapPhotoSource(tester, 'Upload Image');
       await tester.pumpAndSettle();
       expect(picker.sources, [ImageSource.gallery]);
       expect(api.scans, 0);
-      expect(find.text('Upload from Gallery').hitTestable(), findsOneWidget);
+      expect(find.text('Upload Image').hitTestable(), findsOneWidget);
       expect(find.text('Scanning photo…'), findsNothing);
       expect(
         find.byType(SnackBar),
@@ -205,7 +207,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tapPhotoSource(tester, 'Upload from Gallery');
+    await tapPhotoSource(tester, 'Upload Image');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
     expect(api.scans, 1);
@@ -216,7 +218,7 @@ void main() {
 
     expect(find.text('Scanning photo…'), findsNothing);
     expect(find.byType(RecognitionResultSheet), findsNothing);
-    expect(find.text('Upload from Gallery'), findsOneWidget);
+    expect(find.text('Upload Image'), findsOneWidget);
     expect(await RecognitionHistoryStore(userId: 'cancelled').load(), isEmpty);
     expect(tester.takeException(), isNull);
   });
@@ -238,81 +240,53 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tapPhotoSource(tester, 'Upload from Gallery');
+      await tapPhotoSource(tester, 'Upload Image');
       await tester.pumpAndSettle();
       expect(api.scans, 1);
       expect(find.text('Service is offline. Try a sample.'), findsOneWidget);
       expect(await RecognitionHistoryStore(userId: 'offline').load(), isEmpty);
-      expect(find.text('History (0)'), findsOneWidget);
+      final history = find.byKey(const ValueKey('scan-history'));
+      await tester.ensureVisible(history);
+      await tester.pump();
+      expect(history.hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
       api.dispose();
     },
   );
 
-  testWidgets(
-    'Translation switches back to English and reuses the cached translation',
-    (tester) async {
-      phone(tester);
-      final api = _Service();
-      final original = recognitionPresets[1].sampleResult();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: RecognitionResultSheet(result: original, service: api),
+  for (final fail in [false, true]) {
+    testWidgets(
+      'Result follows app language with translation failure = $fail',
+      (tester) async {
+        phone(tester);
+        final api = _Service()..failTranslation = fail;
+        addTearDown(api.dispose);
+        final result = await api.recognize(Uint8List(0));
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('ms'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: Scaffold(
+              body: RecognitionResultSheet(
+                result: result,
+                service: api,
+                onNewScan: () {},
+              ),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      Future<void> language(String value) async {
-        await tester.ensureVisible(find.byType(DropdownButton<String>));
-        await tester.tap(find.byType(DropdownButton<String>));
+        );
         await tester.pumpAndSettle();
-        await tester.tap(find.text(value).last);
-        await tester.pumpAndSettle();
-      }
-
-      await language('Bahasa Melayu');
-      expect(find.text('Menara Berkembar Petronas'), findsOneWidget);
-      await language('English');
-      expect(find.text('Petronas Twin Towers'), findsOneWidget);
-      await language('Bahasa Melayu');
-      expect(api.translations, 1);
-      expect(original.name, 'Petronas Twin Towers');
-      expect(tester.takeException(), isNull);
-      api.dispose();
-    },
-  );
-
-  testWidgets('Failed translation keeps original text and selected language', (
-    tester,
-  ) async {
-    phone(tester);
-    final api = _Service()..failTranslation = true;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: RecognitionResultSheet(
-            result: recognitionPresets[1].sampleResult(),
-            service: api,
+        expect(find.byType(DropdownButton<String>), findsNothing);
+        expect(
+          find.text(
+            fail ? 'Petronas Twin Towers' : 'Menara Berkembar Petronas',
           ),
-        ),
-      ),
+          findsOneWidget,
+        );
+        expect(api.translations, 1);
+        expect(tester.takeException(), isNull);
+      },
     );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byType(DropdownButton<String>));
-    await tester.tap(find.byType(DropdownButton<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('简体中文').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Petronas Twin Towers'), findsOneWidget);
-    expect(find.text('Translation unavailable.'), findsOneWidget);
-    expect(
-      tester
-          .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
-          .value,
-      'en',
-    );
-    expect(tester.takeException(), isNull);
-    api.dispose();
-  });
+  }
 }

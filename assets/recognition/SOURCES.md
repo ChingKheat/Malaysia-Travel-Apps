@@ -7,3 +7,5 @@ The downloaded JPEG is unchanged; the UI uses `BoxFit.cover` for its display.
 
 The other sample images were already present in the workspace before this UI
 update.
+
+The scan result and sample PNGs are photo crops from the supplied Citylore references.

@@ -7,42 +7,50 @@ import 'package:smart_travel_planner/features/profile/screens/profile_page.dart'
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 
 class AppHeader extends StatelessWidget {
-  const AppHeader({super.key, this.title, this.subtitle, this.isDark = false});
+  const AppHeader({
+    super.key,
+    this.title,
+    this.subtitle,
+    this.isDark = false,
+    this.compactCitylore = false,
+  });
 
   const AppHeader.home({super.key, this.subtitle, this.isDark = true})
-      : title = null;
+    : title = null,
+      compactCitylore = false;
 
   const AppHeader.explore({
     super.key,
     this.title = 'Explore Malaysia',
     this.subtitle = 'Live Google Places API active for Malaysia',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   const AppHeader.plan({
     super.key,
     this.title = 'Plan Your Trip',
     this.subtitle = 'Tell us your preferences',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   const AppHeader.itinerary({
     super.key,
     this.title = 'My Itinerary',
     this.subtitle = 'Smart schedule & daily stops',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   const AppHeader.ai({
     super.key,
     this.title = 'Trip Assistant',
     this.subtitle = 'AI help, translation and weather alerts',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   final String? title;
   final String? subtitle;
   final bool isDark;
+  final bool compactCitylore;
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +61,11 @@ class AppHeader extends StatelessWidget {
 
         // When title == null or isDark is true, display the refined Citylore dark header.
         if (title == null || isDark) {
-          final isExplore = title != null;
+          final isExplore = title != null && !compactCitylore;
           final headerSubtitle = isExplore
               ? (subtitle ?? 'Kuala Lumpur · Community')
+              : compactCitylore
+              ? (subtitle ?? 'Kuala Lumpur')
               : 'Kuala Lumpur';
 
           return Row(
@@ -68,10 +78,10 @@ class AppHeader extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Citylore',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: compactCitylore ? 21 : 24,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'serif',
                             color: Colors.white,
@@ -87,10 +97,14 @@ class AppHeader extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE5A93C).withValues(alpha: 0.16),
+                              color: const Color(
+                                0xFFE5A93C,
+                              ).withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: const Color(0xFFE5A93C).withValues(alpha: 0.35),
+                                color: const Color(
+                                  0xFFE5A93C,
+                                ).withValues(alpha: 0.35),
                               ),
                             ),
                             child: Text(
@@ -109,9 +123,11 @@ class AppHeader extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       headerSubtitle,
-                      style: const TextStyle(
-                        color: Color(0xFF8F93A0),
-                        fontSize: 13,
+                      style: TextStyle(
+                        color: compactCitylore
+                            ? const Color(0xFFB5AEA2)
+                            : const Color(0xFF8F93A0),
+                        fontSize: compactCitylore ? 12 : 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -121,6 +137,7 @@ class AppHeader extends StatelessWidget {
               _HeaderBadgeButton(
                 icon: Icons.chat_bubble_outline_rounded,
                 badgeText: '1',
+                compact: compactCitylore,
                 tooltip: 'Messages',
                 onTap: () {
                   demoHaptic();
@@ -138,6 +155,7 @@ class AppHeader extends StatelessWidget {
               _HeaderBadgeButton(
                 icon: Icons.notifications_none_outlined,
                 badgeText: '1',
+                compact: compactCitylore,
                 tooltip: context.l10n.notifications,
                 onTap: () {
                   demoHaptic();
@@ -161,29 +179,42 @@ class AppHeader extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const ProfilePage()),
                   );
                 },
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFE5A93C).withValues(alpha: 0.5),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    radius: 19,
-                    backgroundColor: const Color(0xFF1E2026),
-                    backgroundImage: user != null && user.avatarUrl.isNotEmpty
-                        ? NetworkImage(user.avatarUrl)
-                        : null,
-                    child: user == null || user.avatarUrl.isEmpty
-                        ? const Icon(
-                            Icons.person_outline,
-                            color: Colors.white70,
-                            size: 20,
-                          )
-                        : null,
-                  ),
-                ),
+                child: compactCitylore
+                    ? SizedBox.square(
+                        dimension: 38,
+                        child: Icon(
+                          Icons.person_outline,
+                          color: const Color(0xFFDFD8CB),
+                          size: 21,
+                          semanticLabel: context.l10n.myProfile,
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(
+                              0xFFE5A93C,
+                            ).withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 19,
+                          backgroundColor: const Color(0xFF1E2026),
+                          backgroundImage:
+                              user != null && user.avatarUrl.isNotEmpty
+                              ? NetworkImage(user.avatarUrl)
+                              : null,
+                          child: user == null || user.avatarUrl.isEmpty
+                              ? const Icon(
+                                  Icons.person_outline,
+                                  color: Colors.white70,
+                                  size: 20,
+                                )
+                              : null,
+                        ),
+                      ),
               ),
             ],
           );
@@ -279,12 +310,14 @@ class _HeaderBadgeButton extends StatelessWidget {
     required this.badgeText,
     required this.tooltip,
     required this.onTap,
+    this.compact = false,
   });
 
   final IconData icon;
   final String badgeText;
   final String tooltip;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +337,7 @@ class _HeaderBadgeButton extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(icon, color: Colors.white70, size: 24),
+                  Icon(icon, color: Colors.white70, size: compact ? 21 : 24),
                   Positioned(
                     top: 2,
                     right: 2,
