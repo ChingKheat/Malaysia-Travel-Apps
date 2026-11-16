@@ -149,6 +149,7 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
   final subjects = <String, ReferenceSubject>{};
   final aliases = <String, Set<String>>{};
   final signSubjects = <String>{};
+  final webSubjects = <String>{};
   final webNames = (data['names'] as List? ?? const []).whereType<String>();
   final area = [
     ...(data['lines'] as List? ?? const []).whereType<String>(),
@@ -184,6 +185,7 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
     final exact = _knownNames[key];
     if (exact != null) {
       add(exact, key);
+      webSubjects.add(exact.id);
       continue;
     }
     final known = _knownNames.entries
@@ -191,6 +193,7 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
         .firstOrNull;
     if (known != null) {
       add(known.value, known.key);
+      webSubjects.add(known.value.id);
       continue;
     }
     if (!key.contains(' ') ||
@@ -209,6 +212,7 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
       continue;
     }
     add(ReferenceSubject(id: 'web:$key', name: name, kind: 'landmark'), key);
+    webSubjects.add('web:$key');
   }
 
   final ranked =
@@ -234,7 +238,8 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
             (entry) =>
                 entry.pages.any((page) => page.full) ||
                 entry.pages.map((page) => page.domain).toSet().length >= 2 ||
-                signSubjects.contains(entry.subject.id),
+                signSubjects.contains(entry.subject.id) ||
+                webSubjects.contains(entry.subject.id),
           )
           .toList();
 
@@ -274,7 +279,10 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
     identified: strong && !competing ? first.subject : null,
     candidates: [for (final entry in ranked.take(3)) entry.subject],
     domains: domains.take(3).toList(),
-    web: ranked.any((entry) => entry.pages.isNotEmpty),
+    web: ranked.any(
+      (entry) =>
+          entry.pages.isNotEmpty || webSubjects.contains(entry.subject.id),
+    ),
     searchNames: searchNames.take(2).toList(),
     area: area,
   );

@@ -45,7 +45,7 @@ class AppHeader extends StatelessWidget {
     this.title = 'Trip Assistant',
     this.subtitle = 'AI help, translation & weather',
     this.isDark = false,
-  });
+  }) : compactCitylore = false;
 
   const AppHeader.recognition({
     super.key,
