@@ -14,20 +14,24 @@ typedef ScanSpot = ({
 
 const twinSpiresPhoto = 'assets/recognition/scan_twin_spires.png';
 
-Attraction? scanLandmark(RecognitionResult result) {
-  if (result.kind != 'landmark') return null;
-  final name = result.name.trim().toLowerCase();
+Attraction? scanLandmark(RecognitionResult result) =>
+    result.kind == 'landmark' ? scanLandmarkByName(result.name) : null;
+
+Attraction? scanLandmarkByName(String landmark) {
+  final name = landmark.trim().toLowerCase().replaceAll('’', "'");
+  final knownId = switch (name) {
+    'batu caves & lord murugan' => 'curated_kl_02',
+    'kuala lumpur tower' => 'curated_kl_06',
+    _ => null,
+  };
   return curatedMalaysianAttractions.where((place) {
-        final title = place.name.toLowerCase();
-        return title == name ||
+        final title = place.name.toLowerCase().replaceAll('’', "'");
+        return place.xid == knownId ||
+            title == name ||
             title.startsWith('$name (') ||
             title.startsWith('$name ');
       }).firstOrNull ??
       switch (name) {
-        'batu caves & lord murugan' =>
-          curatedMalaysianAttractions
-              .where((place) => place.xid == 'curated_kl_02')
-              .firstOrNull,
         'sultan abdul samad building' => const Attraction(
           xid: 'scan_sultan_abdul_samad',
           name: 'Sultan Abdul Samad Building',

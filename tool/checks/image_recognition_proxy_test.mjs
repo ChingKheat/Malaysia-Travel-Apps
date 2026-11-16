@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHandler} from '../../supabase/functions/image-recognition/handler.mjs';
+import {searchScanPlaces} from '../../supabase/functions/image-recognition-context-yh/scan_places.mjs';
 
 const image = Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...Array(12).fill(0)]).toString('base64');
 const config = {SUPABASE_URL: 'https://db.test', SUPABASE_ANON_KEY: 'public', GOOGLE_BACKEND_API_KEY: 'server-only'};
@@ -8,9 +9,9 @@ const request = (body, token = 'valid') => new Request('https://app.test', {
   method: 'POST', headers: {...(token ? {Authorization: `Bearer ${token}`} : {}), 'Content-Type': 'application/json'},
   body: JSON.stringify(body),
 });
-function setup({user = {id: 'tourist'}, upstream, missingKey = false, secrets = {}} = {}) {
+function setup({user = {id: 'tourist'}, upstream, missingKey = false, secrets = {}, contextOnly = false, placeSearch} = {}) {
   const calls = [];
-  const handler = createHandler({env: name => missingKey && name === 'GOOGLE_BACKEND_API_KEY' ? '' : {...config,...secrets}[name], fetcher: async (url, options) => {
+  const handler = createHandler({contextOnly, searchScanPlaces: placeSearch, env: name => missingKey && name === 'GOOGLE_BACKEND_API_KEY' ? '' : {...config,...secrets}[name], fetcher: async (url, options) => {
     calls.push({url, options});
     if (url.endsWith('/auth/v1/user')) return user ? Response.json(user) : new Response('', {status: 401});
     return upstream ? upstream(url, options) : Response.json({responses: [{
@@ -20,6 +21,39 @@ function setup({user = {id: 'tourist'}, upstream, missingKey = false, secrets = 
   }});
   return {handler, calls};
 }
+
+test('Scan place search reserves quota and returns Malaysian listings only', async () => {
+  const body = {operation: 'scan_places', query: 'Kinta Tin Mining Museum'};
+  const listing = (id, country) => ({
+    id, displayName: {text: body.query},
+    addressComponents: [{shortText: country, types: ['country']}],
+  });
+  const options = {
+    contextOnly: true,
+    placeSearch: searchScanPlaces,
+    secrets: {SUPABASE_SERVICE_ROLE_KEY: 'service-role'},
+  };
+  const {handler, calls} = setup({...options, upstream(url, init) {
+    if (url.includes('/rpc/reserve_google_api_usage')) {
+      assert.deepEqual(JSON.parse(init.body), {p_sku: 'text_search_pro', p_units: 1});
+      return Response.json(true);
+    }
+    assert.equal(url, 'https://places.googleapis.com/v1/places:searchText');
+    assert.equal(JSON.parse(init.body).textQuery, 'Kinta Tin Mining Museum, Malaysia');
+    assert.equal(JSON.parse(init.body).image, undefined);
+    return Response.json({places: [listing('malaysiaId', 'MY'), listing('foreignId', 'SG')]});
+  }});
+  assert.equal((await handler(request(body, ''))).status, 401);
+  assert.equal((await handler(request({...body, query: ''}))).status, 400);
+  const response = await handler(request(body));
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).places.map(place => place.id), ['malaysiaId']);
+  assert.equal(calls.filter(({url}) => url.includes('places.googleapis.com')).length, 1);
+  const denied = setup({...options, upstream: () => Response.json(false)});
+  assert.equal((await denied.handler(request(body))).status, 429);
+  assert.equal(denied.calls.length, 2);
+  assert.equal((await setup().handler(request(body))).status, 400);
+});
 
 test('Missing, invalid and anonymous authentication cannot reach Google', async () => {
   const {handler, calls} = setup();
@@ -63,6 +97,50 @@ test('Vision and Translation use only the shared backend secret', async () => {
   assert.equal((await handler(request({image}))).status,503);
   assert.equal((await handler(request({operation:'translate',texts:['Hello'],target:'ms'}))).status,503);
   assert.equal(calls.length,2);
+});
+
+test('Context scan submits fixed web and text features and returns bounded clues', async () => {
+  const {handler, calls} = setup({upstream: () => Response.json({responses: [{
+    webDetection: {
+      webEntities: [{description: 'Telaga Tujuh Waterfall', score: 3.4}],
+      bestGuessLabels: [{label: 'Telaga Tujuh Waterfall'}],
+      pagesWithMatchingImages: [
+        {url: 'https://news.example.com.my/page?token=private', pageTitle: '<b>Telaga Tujuh Waterfall</b>, Langkawi',
+          fullMatchingImages: [{url: 'https://photo.test/image.jpg'}]},
+        {url: 'https://www.example.com.my/another', pageTitle: 'Langkawi Telaga Tujuh Waterfall',
+          partialMatchingImages: [{url: 'https://photo.test/partial.jpg'}]},
+        {url: 'https://pinterest.test/tree', pageTitle: 'Trees'},
+        {url: 'file:///private', pageTitle: 'Private'},
+      ],
+      visuallySimilarImages: [{url: 'https://similar.test/image.jpg'}],
+    },
+    fullTextAnnotation: {text: 'TELAGA\nTUJUH ' + 'X'.repeat(700)},
+  }]} )});
+  const response = await handler(request({operation: 'recognize_context', image, features: ['FACE_DETECTION']}));
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 2);
+  assert.deepEqual(JSON.parse(calls.at(-1).options.body).requests[0].features.map(f => f.type),
+    ['WEB_DETECTION', 'TEXT_DETECTION']);
+  const result = await response.json();
+  assert.deepEqual(result.names, ['Telaga Tujuh Waterfall']);
+  assert.deepEqual(result.pages, [
+    {domain: 'example.com.my', title: 'Telaga Tujuh Waterfall , Langkawi', full: true},
+    {domain: 'example.com.my', title: 'Langkawi Telaga Tujuh Waterfall', full: false},
+  ]);
+  assert.ok(result.text.startsWith('TELAGA TUJUH'));
+  assert.equal(result.text.length, 300);
+  assert.ok(!JSON.stringify(result).includes('image.jpg'));
+  assert.equal((await handler(request({operation: 'recognize_context', image: 'bad'}))).status, 400);
+  assert.equal(calls.length, 3);
+});
+
+test('The separate context endpoint authenticates and rejects other operations', async () => {
+  const {handler, calls} = setup({contextOnly: true});
+  assert.equal((await handler(request({operation: 'recognize_context', image}, ''))).status, 401);
+  assert.equal((await handler(request({operation: 'recognize', image}))).status, 400);
+  assert.equal((await handler(request({operation: 'translate', texts: ['Hi'], target: 'ms'}))).status, 400);
+  assert.equal((await handler(request({operation: 'recognize_context', image}))).status, 200);
+  assert.equal(calls.filter(call => call.url.includes('googleapis.com')).length, 1);
 });
 
 test('Rejects malformed images, arbitrary URLs, unsupported operations and oversized bodies', async () => {

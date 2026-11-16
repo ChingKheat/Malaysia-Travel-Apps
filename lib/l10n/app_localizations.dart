@@ -2795,6 +2795,132 @@ abstract class AppLocalizations {
   /// **'Detected labels'**
   String get detectedLabels;
 
+  /// No description provided for @referenceScanSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo scan · Reference photos'**
+  String get referenceScanSource;
+
+  /// No description provided for @scanSearchPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a place'**
+  String get scanSearchPlace;
+
+  /// No description provided for @scanPlaceSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Place name, area or clue'**
+  String get scanPlaceSearchHint;
+
+  /// No description provided for @scanSearchWithClue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a clue and add the town or area to narrow the search.'**
+  String get scanSearchWithClue;
+
+  /// No description provided for @scanOpenMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Google Maps'**
+  String get scanOpenMaps;
+
+  /// No description provided for @scanWebMatchFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported by matching web images'**
+  String get scanWebMatchFound;
+
+  /// No description provided for @scanSignClue.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on the photo offers a clue'**
+  String get scanSignClue;
+
+  /// No description provided for @scanWebSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo scan · Web matches'**
+  String get scanWebSource;
+
+  /// No description provided for @scanSignSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo scan · Text clue'**
+  String get scanSignSource;
+
+  /// No description provided for @scanSelectedSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo scan · Your selection'**
+  String get scanSelectedSource;
+
+  /// No description provided for @scanPlaceListingSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo scan · Place listings'**
+  String get scanPlaceListingSource;
+
+  /// No description provided for @scanCheckingPlaceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking place details…'**
+  String get scanCheckingPlaceDetails;
+
+  /// No description provided for @scanCheckPlaceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Check place details'**
+  String get scanCheckPlaceDetails;
+
+  /// No description provided for @scanVisualClueSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo scan · Visual clues'**
+  String get scanVisualClueSource;
+
+  /// No description provided for @scanHoursVaryByVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours vary by venue.'**
+  String get scanHoursVaryByVenue;
+
+  /// No description provided for @scanHoursSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Check published hours'**
+  String get scanHoursSource;
+
+  /// No description provided for @referenceMatchFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong reference match'**
+  String get referenceMatchFound;
+
+  /// No description provided for @referenceMatchSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected by you'**
+  String get referenceMatchSelected;
+
+  /// No description provided for @referenceMatchUncertain.
+  ///
+  /// In en, this message translates to:
+  /// **'Match needs confirmation'**
+  String get referenceMatchUncertain;
+
+  /// No description provided for @referencePossibleMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Possible matches'**
+  String get referencePossibleMatches;
+
+  /// No description provided for @referenceChooseSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the subject if you recognise it. If none fit, search for the place.'**
+  String get referenceChooseSubject;
+
   /// No description provided for @visionConfidenceValue.
   ///
   /// In en, this message translates to:

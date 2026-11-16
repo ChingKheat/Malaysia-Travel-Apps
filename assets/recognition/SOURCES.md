@@ -9,3 +9,7 @@ The other sample images were already present in the workspace before this UI
 update.
 
 The scan result and sample PNGs are photo crops from the supplied Citylore references.
+
+## Scan candidate photo
+
+* `kl_forest_eco_park.jpg` is a resized copy of [KL Forest Eco-Park Canopy Walk 7](https://commons.wikimedia.org/wiki/File:KL_Forest_Eco-Park_Canopy_Walk_7.jpg) by RivieraBarnes, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).

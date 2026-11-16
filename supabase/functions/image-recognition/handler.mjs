@@ -53,7 +53,47 @@ function detections(items) {
   });
 }
 
-export function createHandler({env, fetcher = fetch, now = Date.now}) {
+const rows = value => Array.isArray(value) ? value.slice(0, 16) : [];
+const cleanText = (value, limit = 200) => typeof value === 'string'
+  ? value.slice(0, limit * 2).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit)
+  : '';
+
+function pageDomain(value) {
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    const parts = url.hostname.toLowerCase().split('.');
+    const suffix = parts.at(-1);
+    if (parts.length < 2 || !/^[a-z]{2,}$/.test(suffix)) return '';
+    const multiPart = suffix.length === 2 && ['co', 'com', 'org', 'net', 'gov', 'edu'].includes(parts.at(-2));
+    return parts.slice(multiPart ? -3 : -2).join('.');
+  } catch {
+    return '';
+  }
+}
+
+function photoClues(result) {
+  const web = result.webDetection;
+  return {
+    names: [...new Set([
+      ...rows(web?.webEntities).map(item => cleanText(item?.description)),
+      ...rows(web?.bestGuessLabels).map(item => cleanText(item?.label)),
+    ].filter(Boolean))].slice(0, 20),
+    pages: rows(web?.pagesWithMatchingImages).flatMap(page => {
+      const domain = pageDomain(page?.url);
+      const title = cleanText(page?.pageTitle);
+      const full = rows(page?.fullMatchingImages).length > 0;
+      const partial = rows(page?.partialMatchingImages).length > 0;
+      return domain && title && (full || partial) ? [{domain, title, full}] : [];
+    }),
+    // Return a bounded transient clue. The client only saves matched subject names.
+    text: cleanText(result.fullTextAnnotation?.text ?? result.textAnnotations?.[0]?.description, 300),
+    lines: String(result.fullTextAnnotation?.text ?? result.textAnnotations?.[0]?.description ?? '')
+      .slice(0, 400).split(/\r?\n/).map(line => cleanText(line, 90)).filter(Boolean).slice(0, 8),
+  };
+}
+
+export function createHandler({env, fetcher = fetch, now = Date.now, contextOnly = false, searchScanPlaces}) {
   const usage = new Map();
   return async function handler(req) {
     if (req.method === 'OPTIONS') return new Response('ok', {headers});
@@ -84,7 +124,15 @@ export function createHandler({env, fetcher = fetch, now = Date.now}) {
       if (!body || typeof body !== 'object' || Array.isArray(body)) return json({error: 'Invalid request'}, 400);
       const operation = body.operation ?? 'recognize';
       let url, payload;
-      if (operation === 'recognize') {
+      const contextScan = operation === 'recognize_context';
+      const placeLookup = operation === 'scan_places' && typeof searchScanPlaces === 'function';
+      if (contextOnly && !contextScan && !placeLookup) return json({error: 'Unsupported operation'}, 400);
+      if (placeLookup) {
+        if (typeof body.query !== 'string' || !body.query.trim() ||
+            body.query.length > 120 || /[\x00-\x1f]/.test(body.query)) {
+          return json({error: 'Invalid place name'}, 400);
+        }
+      } else if (operation === 'recognize' || contextScan) {
         const image = body.image;
         if (typeof image === 'string') {
           const size = image.length / 4 * 3 - (image.endsWith('==') ? 2 : image.endsWith('=') ? 1 : 0);
@@ -92,7 +140,10 @@ export function createHandler({env, fetcher = fetch, now = Date.now}) {
         }
         if (!validImage(image)) return json({error: 'Choose a JPEG, PNG or WebP photo'}, 400);
         url = 'https://vision.googleapis.com/v1/images:annotate';
-        payload = {requests: [{image: {content: image}, features: [
+        payload = {requests: [{image: {content: image}, features: contextScan ? [
+          {type: 'WEB_DETECTION', maxResults: 12},
+          {type: 'TEXT_DETECTION', maxResults: 1},
+        ] : [
           {type: 'LANDMARK_DETECTION', maxResults: 5},
           {type: 'LABEL_DETECTION', maxResults: 10},
         ]}]};
@@ -116,6 +167,11 @@ export function createHandler({env, fetcher = fetch, now = Date.now}) {
       if (count > 10 || (!usage.has(user.id) && usage.size >= 10000)) return json({error: 'Too many requests. Try again in a minute'}, 429);
       usage.set(user.id, {minute, count});
 
+      if (placeLookup) {
+        const {status, ...result} = await searchScanPlaces({env, fetcher, supabaseUrl, query: body.query.trim(), key});
+        return json(result, status);
+      }
+
       const upstream = await fetcher(url, {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-Goog-Api-Key': key},
@@ -134,6 +190,7 @@ export function createHandler({env, fetcher = fetch, now = Date.now}) {
       }
       const result = data.responses?.[0];
       if (!result || result.error) return json({error: 'This image could not be analyzed'}, result?.error?.code === 3 ? 400 : 502);
+      if (contextScan) return json(photoClues(result));
       return json({landmarks: detections(result.landmarkAnnotations), labels: detections(result.labelAnnotations)});
     } catch {
       return json({error: 'Recognition or translation is temporarily unavailable'}, 503);

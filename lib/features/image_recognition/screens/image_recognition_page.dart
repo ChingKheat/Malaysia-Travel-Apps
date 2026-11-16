@@ -78,6 +78,20 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     });
   }
 
+  void _confirmReference(RecognitionResult result, String id) {
+    if (_result != result) return;
+    final selected = _service.confirmReference(result, id);
+    if (identical(selected, result)) return;
+    setState(() {
+      _result = selected;
+      _history = [
+        for (final entry in _history)
+          identical(entry, result) ? selected : entry,
+      ];
+    });
+    _saveHistory();
+  }
+
   void _closeResult({required bool newScan}) {
     setState(() {
       _result = null;
@@ -233,6 +247,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           service: _service,
           userId: widget.userId,
           image: _resultPhoto,
+          onReferenceSelected: (id) => _confirmReference(result, id),
           onBack: _showHistory ? () => _closeResult(newScan: false) : null,
           onNewScan: () => _closeResult(newScan: true),
         ),
@@ -485,7 +500,9 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
               color: VisualScanStyle.amber,
             ),
             title: Text(
-              result.name,
+              result.referenceCandidates.isEmpty
+                  ? result.name
+                  : context.l10n.referencePossibleMatches,
               style: const TextStyle(
                 color: VisualScanStyle.text,
                 fontWeight: FontWeight.w700,

@@ -6,3 +6,7 @@ verify_jwt = false
 # The handler verifies every bearer token with Supabase Auth before Google calls.
 [functions.image-recognition]
 verify_jwt = false
+
+# The YH context endpoint verifies bearer tokens inside the same handler.
+[functions.image-recognition-context-yh]
+verify_jwt = false

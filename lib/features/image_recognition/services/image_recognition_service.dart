@@ -1,13 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
-import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/features/image_recognition/data/recognition_presets.dart';
+import 'package:smart_travel_planner/features/image_recognition/data/scan_visual_evidence.dart';
+import 'package:smart_travel_planner/features/image_recognition/data/visual_scan_results.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
+import 'package:smart_travel_planner/features/image_recognition/services/reference_image_matcher.dart';
+import 'package:smart_travel_planner/features/image_recognition/services/recognition_clues.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 
 class ImageRecognitionException implements Exception {
   const ImageRecognitionException(this.message);
@@ -19,13 +24,20 @@ class ImageRecognitionService {
     http.Client? client,
     this.accessToken,
     String? endpoint,
+    ReferenceImageLookup? referenceLookup,
   }) : _client = client ?? http.Client(),
+       _referenceLookup = referenceLookup ?? ReferenceImageMatcher.match,
        _endpoint =
            endpoint ??
-           '${SupabaseConfig.supabaseUrl}/functions/v1/image-recognition';
+           '${SupabaseConfig.supabaseUrl}/functions/v1/image-recognition',
+       _contextEndpoint =
+           endpoint ??
+           '${SupabaseConfig.supabaseUrl}/functions/v1/image-recognition-context-yh';
 
   final http.Client _client;
   final String _endpoint;
+  final String _contextEndpoint;
+  final ReferenceImageLookup _referenceLookup;
   final String? accessToken;
   static const maxImageBytes = 4 * 1024 * 1024;
 
@@ -35,8 +47,224 @@ class ImageRecognitionService {
         'Choose an image smaller than 4 MB.',
       );
     }
-    return _parse(
-      await _request({'operation': 'recognize', 'image': base64Encode(bytes)}),
+    final image = base64Encode(bytes);
+    final detections = await _request({
+      'operation': 'recognize',
+      'image': image,
+    });
+    final vision = _parse(detections);
+    if (vision.kind != 'unknown' || vision.referenceCandidates.isNotEmpty) {
+      return vision;
+    }
+
+    final (reference, clues) = await (
+      _referenceMatch(bytes),
+      _onlineClues(image),
+    ).wait;
+    if (clues?.identified case final subject?) {
+      return _referenceResult(
+        subject,
+        vision,
+        RecognitionSource.web,
+        webSources: clues!.domains,
+      );
+    }
+    final suggestions = clues?.candidates ?? const <ReferenceSubject>[];
+    final names = <String>{};
+    final candidateNames = {...?clues?.searchNames}
+      ..removeWhere(
+        (name) => suggestions.any(
+          (subject) => scanNameKey(subject.name) == scanNameKey(name),
+        ),
+      );
+    final verified = await Future.wait(
+      candidateNames.take(2).map(_verifyPlaceName),
+    );
+    final online = [...suggestions, ...verified.nonNulls];
+    if (reference?.identified case final subject?
+        when online.every(
+          (other) =>
+              other.id == subject.id ||
+              scanNameKey(other.name) == scanNameKey(subject.name),
+        )) {
+      return _referenceResult(subject, vision, RecognitionSource.reference);
+    }
+    final candidates = [
+      for (final subject in [
+        ...online,
+        ?reference?.identified,
+        ...?reference?.candidates,
+        ...suggestionsFromVisualEvidence(vision.labels),
+      ])
+        if (names.add(scanNameKey(subject.name))) subject,
+    ].take(3).toList();
+    if (candidates.isEmpty) {
+      if (clues?.area == null) return vision;
+      return RecognitionResult(
+        name: vision.name,
+        kind: vision.kind,
+        description: vision.description,
+        location: vision.location,
+        recognizedAt: vision.recognizedAt,
+        labels: vision.labels,
+        areaHint: clues!.area,
+      );
+    }
+    return _possibleMatches(
+      vision,
+      candidates,
+      areaHint: clues?.area,
+      source: suggestions.isNotEmpty
+          ? (clues!.web ? RecognitionSource.web : RecognitionSource.sign)
+          : online.isNotEmpty
+          ? RecognitionSource.placeLookup
+          : reference != null
+          ? RecognitionSource.reference
+          : RecognitionSource.visualEvidence,
+    );
+  }
+
+  RecognitionResult _possibleMatches(
+    RecognitionResult vision,
+    List<ReferenceSubject> candidates, {
+    RecognitionSource source = RecognitionSource.vision,
+    String? areaHint,
+  }) => RecognitionResult(
+    name: 'Possible matches',
+    kind: 'unknown',
+    description: '',
+    location: '',
+    recognizedAt: vision.recognizedAt,
+    labels: vision.labels,
+    source: source,
+    referenceCandidates: candidates,
+    areaHint: areaHint,
+  );
+
+  Future<List<GooglePlaceDetails>> searchPlaces(String query) async {
+    final name = query.trim();
+    if (name.isEmpty || name.length > 120) return const [];
+    try {
+      final response = await _request(
+        {'operation': 'scan_places', 'query': name},
+        endpoint: _contextEndpoint,
+        timeout: const Duration(seconds: 23),
+      );
+      return [
+        for (final row
+            in (response['places'] as List? ?? const [])
+                .whereType<Map<String, dynamic>>())
+          if (row['id'] is String && row['displayName'] is Map)
+            GooglePlaceDetails.fromApi(row),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<GooglePlaceDetails?> lookupPlace(String name) async {
+    final key = scanNameKey(name);
+    final places = await searchPlaces(name);
+    final matches = places.where((place) {
+      final label = place.name ?? '';
+      return key.isEmpty
+          ? label.trim().toLowerCase() == name.trim().toLowerCase()
+          : scanNameKey(label) == key;
+    }).toList();
+    if (matches.isNotEmpty) return matches.length == 1 ? matches.single : null;
+
+    // A sign or image label may omit part of a listing's official name.
+    final words = key.split(' ');
+    if (words.length < 2 || key.length < 8) return null;
+    final expanded = places.where((place) {
+      final listed = scanNameKey(place.name ?? '');
+      return listed.split(' ').length <= words.length + 3 &&
+          ' $listed '.contains(' $key ');
+    }).toList();
+    return expanded.length == 1 ? expanded.single : null;
+  }
+
+  Future<ReferenceSubject?> _verifyPlaceName(String name) async {
+    final place = await lookupPlace(name);
+    if (place == null) return null;
+    return ReferenceSubject(
+      id: 'google:${place.id}',
+      name: place.name ?? name,
+      kind: 'landmark',
+    );
+  }
+
+  Future<ReferenceImageMatch?> _referenceMatch(Uint8List bytes) async {
+    try {
+      return await _referenceLookup(bytes).timeout(const Duration(seconds: 8));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ClueMatch?> _onlineClues(String image) async {
+    try {
+      final data = await _request(
+        {'operation': 'recognize_context', 'image': image},
+        endpoint: _contextEndpoint,
+        timeout: const Duration(seconds: 26),
+      );
+      return matchPhotoClues(data);
+    } catch (_) {
+      // Context detection is optional, including on older hosted functions.
+      return null;
+    }
+  }
+
+  RecognitionResult confirmReference(RecognitionResult result, String id) {
+    final subject = result.referenceCandidates
+        .where((candidate) => candidate.id == id)
+        .firstOrNull;
+    return subject == null
+        ? result
+        : _referenceResult(
+            subject,
+            result,
+            result.source == RecognitionSource.reference
+                ? RecognitionSource.userConfirmedReference
+                : RecognitionSource.userConfirmedClue,
+          );
+  }
+
+  RecognitionResult _referenceResult(
+    ReferenceSubject subject,
+    RecognitionResult original,
+    RecognitionSource source, {
+    List<String> webSources = const [],
+  }) {
+    final known = subject.kind == 'landmark'
+        ? knownScanLandmark(subject.name)
+        : null;
+    final preset = recognitionPresets
+        .where((entry) => entry.id == (known?.id ?? subject.id))
+        .firstOrNull;
+    final identity = RecognitionResult(
+      name: preset?.name ?? known?.name ?? subject.name,
+      kind: subject.kind,
+      description: '',
+      location: preset?.location ?? '',
+      recognizedAt: original.recognizedAt,
+    );
+    final attraction = scanLandmark(identity);
+    return RecognitionResult(
+      name: identity.name,
+      kind: identity.kind,
+      description: preset?.description ?? attraction?.description ?? '',
+      location: identity.location,
+      recognizedAt: identity.recognizedAt,
+      labels: original.labels,
+      confidence: subject.visionConfidence,
+      visionLandmarkName: subject.visionConfidence == null
+          ? null
+          : subject.name,
+      source: source,
+      webSources: webSources,
+      placeId: subject.placeId,
     );
   }
 
@@ -86,6 +314,12 @@ class ImageRecognitionService {
       confidence: result.confidence,
       sampleId: result.sampleId,
       labels: source.skip(3).toList(),
+      source: result.source,
+      referenceCandidates: result.referenceCandidates,
+      webSources: result.webSources,
+      placeId: result.placeId,
+      visionLandmarkName: result.visionLandmarkName,
+      areaHint: result.areaHint,
     );
   }
 
@@ -113,7 +347,11 @@ class ImageRecognitionService {
     },
   );
 
-  Future<Map<String, dynamic>> _request(Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> _request(
+    Map<String, dynamic> body, {
+    String? endpoint,
+    Duration timeout = const Duration(seconds: 40),
+  }) async {
     final session = SupabaseConfig.client?.auth.currentSession;
     final token =
         accessToken ??
@@ -130,7 +368,7 @@ class ImageRecognitionService {
     try {
       final response = await _client
           .post(
-            Uri.parse(_endpoint),
+            Uri.parse(endpoint ?? _endpoint),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -138,7 +376,7 @@ class ImageRecognitionService {
             },
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 40));
+          .timeout(timeout);
       if (response.statusCode != 200) {
         final message = switch (response.statusCode) {
           401 ||
@@ -176,16 +414,49 @@ class ImageRecognitionService {
       return value.isFinite ? value.clamp(0, 1) : 0;
     }
 
-    landmarks.sort((a, b) => score(b).compareTo(score(a)));
-    final descriptions = [...landmarks, ...entities, ...labels];
     final labelNames = labels
+        .where((item) => score(item) >= 0.55)
         .map((item) => item['name'])
         .whereType<String>()
         .take(8)
         .toList();
-    // Exact tourism names or aliases are required; generic "rice" or "tower"
-    // labels must never be presented as a confidently identified Malaysian item.
-    for (final detection in descriptions) {
+    final noMatch = RecognitionResult(
+      name: 'No confident match',
+      kind: 'unknown',
+      description:
+          'Google Vision did not identify a specific landmark or dish. '
+          'Use the visual clues below or search for the place by name.',
+      location: '',
+      recognizedAt: DateTime.now(),
+      labels: labelNames,
+    );
+    landmarks.sort((a, b) => score(b).compareTo(score(a)));
+    final seen = <String>{};
+    final namedLandmarks = [
+      for (final detection in landmarks)
+        if (detection['name'] case final String name
+            when name.trim().isNotEmpty && seen.add(name.trim().toLowerCase()))
+          ReferenceSubject(
+            id: 'vision:${name.trim()}',
+            name: name.trim(),
+            kind: 'landmark',
+            visionConfidence: score(detection),
+          ),
+    ];
+    if (namedLandmarks.isNotEmpty) {
+      final first = namedLandmarks.first;
+      final known = knownScanLandmark(first.name);
+      if (namedLandmarks.length == 1 &&
+          known != null &&
+          first.visionConfidence! >= 0.65) {
+        return _referenceResult(first, noMatch, RecognitionSource.vision);
+      }
+      return _possibleMatches(noMatch, namedLandmarks);
+    }
+
+    // Generic labels such as "rice" or "tower" do not identify an exact dish
+    // or landmark.
+    for (final detection in [...entities, ...labels]) {
       final name = (detection['name'] as String? ?? '').toLowerCase();
       if (score(detection) < 0.65) continue;
       for (final preset in recognitionPresets) {
@@ -199,45 +470,13 @@ class ImageRecognitionService {
           kind: preset.kind,
           description: preset.description,
           location: preset.location,
-          confidence:
-              landmarks.contains(detection) || labels.contains(detection)
-              ? score(detection)
-              : null,
+          confidence: labels.contains(detection) ? score(detection) : null,
           recognizedAt: DateTime.now(),
           labels: labelNames,
         );
       }
     }
-    for (final landmark in landmarks.where((item) => score(item) >= 0.65)) {
-      final name = landmark['name'] as String? ?? '';
-      for (final attraction in curatedMalaysianAttractions) {
-        final localName = attraction.name.toLowerCase();
-        if (name.length < 5 || !localName.contains(name.toLowerCase())) {
-          continue;
-        }
-        return RecognitionResult(
-          name: attraction.name,
-          kind: 'landmark',
-          description:
-              attraction.description ??
-              'An attraction in the Malaysian tourism guide.',
-          location: 'Malaysia',
-          confidence: score(landmark),
-          recognizedAt: DateTime.now(),
-          labels: labelNames,
-        );
-      }
-    }
-    return RecognitionResult(
-      name: 'No confident match',
-      kind: 'unknown',
-      description:
-          'We could not confidently identify a Malaysian landmark or dish. '
-          'Try a closer, well-lit photo with one clear subject.',
-      location: '',
-      recognizedAt: DateTime.now(),
-      labels: labelNames,
-    );
+    return noMatch;
   }
 
   void dispose() => _client.close();

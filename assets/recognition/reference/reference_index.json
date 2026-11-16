@@ -1,0 +1,197 @@
+{
+  "dimensions": 1280,
+  "subjects": [
+    {
+      "id": "a_famosa",
+      "label": "A Famosa",
+      "kind": "landmark",
+      "count": 4
+    },
+    {
+      "id": "ayam_goreng",
+      "label": "Ayam Goreng",
+      "kind": "food",
+      "count": 43
+    },
+    {
+      "id": "batu_caves",
+      "label": "Batu Caves",
+      "kind": "landmark",
+      "count": 2
+    },
+    {
+      "id": "char_kway_teow",
+      "label": "Char Kway Teow",
+      "kind": "food",
+      "count": 48
+    },
+    {
+      "id": "cucur_udang",
+      "label": "Cucur Udang",
+      "kind": "food",
+      "count": 23
+    },
+    {
+      "id": "curry_puff",
+      "label": "Curry Puff",
+      "kind": "food",
+      "count": 38
+    },
+    {
+      "id": "durian",
+      "label": "Durian",
+      "kind": "food",
+      "count": 21
+    },
+    {
+      "id": "guava",
+      "label": "Guava",
+      "kind": "food",
+      "count": 38
+    },
+    {
+      "id": "ikan_bakar",
+      "label": "Ikan Bakar",
+      "kind": "food",
+      "count": 48
+    },
+    {
+      "id": "kaya_toast",
+      "label": "Kaya Toast",
+      "kind": "food",
+      "count": 46
+    },
+    {
+      "id": "kellies_castle",
+      "label": "Kellie's Castle",
+      "kind": "landmark",
+      "count": 5
+    },
+    {
+      "id": "kl_forest_eco_park",
+      "label": "KL Forest Eco Park",
+      "kind": "landmark",
+      "count": 4
+    },
+    {
+      "id": "kl_tower",
+      "label": "Kuala Lumpur Tower",
+      "kind": "landmark",
+      "count": 2
+    },
+    {
+      "id": "kota_kinabalu_city_mosque",
+      "label": "Kota Kinabalu City Mosque",
+      "kind": "landmark",
+      "count": 3
+    },
+    {
+      "id": "kuching_state_assembly",
+      "label": "Sarawak State Legislative Assembly Building",
+      "kind": "landmark",
+      "count": 5
+    },
+    {
+      "id": "kuih_lapis",
+      "label": "Kuih Lapis",
+      "kind": "food",
+      "count": 22
+    },
+    {
+      "id": "laksa_sarawak",
+      "label": "Laksa Sarawak",
+      "kind": "food",
+      "count": 48
+    },
+    {
+      "id": "langkawi_sky_bridge",
+      "label": "Langkawi Sky Bridge",
+      "kind": "landmark",
+      "count": 5
+    },
+    {
+      "id": "milo",
+      "label": "Milo",
+      "kind": "food",
+      "count": 48
+    },
+    {
+      "id": "mount_kinabalu",
+      "label": "Mount Kinabalu",
+      "kind": "landmark",
+      "count": 1
+    },
+    {
+      "id": "nasi_goreng",
+      "label": "Nasi Goreng",
+      "kind": "food",
+      "count": 48
+    },
+    {
+      "id": "nasi_kerabu",
+      "label": "Nasi Kerabu",
+      "kind": "food",
+      "count": 15
+    },
+    {
+      "id": "nasi_lemak",
+      "label": "Nasi Lemak",
+      "kind": "food",
+      "count": 35
+    },
+    {
+      "id": "penang_city_hall",
+      "label": "Penang City Hall",
+      "kind": "landmark",
+      "count": 5
+    },
+    {
+      "id": "petronas",
+      "label": "Petronas Twin Towers",
+      "kind": "landmark",
+      "count": 4
+    },
+    {
+      "id": "pisang_goreng",
+      "label": "Pisang Goreng",
+      "kind": "food",
+      "count": 24
+    },
+    {
+      "id": "putra_mosque",
+      "label": "Putra Mosque",
+      "kind": "landmark",
+      "count": 2
+    },
+    {
+      "id": "rendang_daging",
+      "label": "Rendang Daging",
+      "kind": "food",
+      "count": 48
+    },
+    {
+      "id": "roti_canai",
+      "label": "Roti Canai",
+      "kind": "food",
+      "count": 48
+    },
+    {
+      "id": "satay",
+      "label": "Satay",
+      "kind": "food",
+      "count": 11
+    },
+    {
+      "id": "sultan_abdul_samad",
+      "label": "Sultan Abdul Samad Building",
+      "kind": "landmark",
+      "count": 2
+    },
+    {
+      "id": "teh_tarik",
+      "label": "Teh Tarik",
+      "kind": "food",
+      "count": 48
+    }
+  ]
+}

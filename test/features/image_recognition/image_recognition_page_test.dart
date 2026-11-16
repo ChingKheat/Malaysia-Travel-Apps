@@ -105,6 +105,15 @@ void main() {
     await tester.tap(filter);
     await tester.pumpAndSettle();
     expect(find.text("Madam Kwan's · Suria KLCC"), findsOneWidget);
+    final hours = find.text('8:00 AM–10:00 PM');
+    await tester.scrollUntilVisible(hours, 120);
+    expect(hours, findsOneWidget);
+    expect(
+      find.text(
+        'Signature Nasi Bojari, chicken curry, and Penang char kway teow inside Level 4.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('KLCC Park & Lake Symphony'), findsNothing);
     final save = find.widgetWithText(FilledButton, 'Save spot').first;
     await tester.ensureVisible(save);

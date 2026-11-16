@@ -12,6 +12,7 @@ import 'package:smart_travel_planner/features/image_recognition/screens/image_re
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
 import 'package:smart_travel_planner/features/image_recognition/widgets/recognition_result_sheet.dart';
+import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 
 class _Picker extends ImagePicker {
   _Picker({this.pick});
@@ -44,6 +45,21 @@ class _Service extends ImageRecognitionService {
   bool fail = false;
   bool failTranslation = false;
   Completer<void>? pendingScan;
+  RecognitionResult? resultOverride;
+  final placeQueries = <String>[];
+
+  @override
+  Future<List<GooglePlaceDetails>> searchPlaces(String query) async {
+    placeQueries.add(query);
+    return [
+      GooglePlaceDetails.fromApi({
+        'id': 'khooKongsiId',
+        'displayName': {'text': 'Leong San Tong Khoo Kongsi'},
+        'formattedAddress': 'Cannon Square, George Town',
+      }),
+    ];
+  }
+
   @override
   Future<RecognitionResult> recognize(Uint8List bytes) async {
     scans++;
@@ -53,14 +69,15 @@ class _Service extends ImageRecognitionService {
         'Service is offline. Try a sample.',
       );
     }
-    return RecognitionResult(
-      name: 'Petronas Twin Towers',
-      kind: 'landmark',
-      description: 'Curated guide text.',
-      location: 'Kuala Lumpur',
-      recognizedAt: DateTime(2026),
-      confidence: 0.9,
-    );
+    return resultOverride ??
+        RecognitionResult(
+          name: 'Petronas Twin Towers',
+          kind: 'landmark',
+          description: 'Curated guide text.',
+          location: 'Kuala Lumpur',
+          recognizedAt: DateTime(2026),
+          confidence: 0.9,
+        );
   }
 
   @override
@@ -98,6 +115,114 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(source);
   }
+
+  testWidgets('Choosing a reference match updates the one history entry', (
+    tester,
+  ) async {
+    phone(tester);
+    final api = _Service()
+      ..resultOverride = RecognitionResult(
+        name: 'Possible matches',
+        kind: 'unknown',
+        description: '',
+        location: '',
+        recognizedAt: DateTime(2026),
+        source: RecognitionSource.reference,
+        referenceCandidates: const [
+          ReferenceSubject(id: 'satay', name: 'Satay', kind: 'food'),
+          ReferenceSubject(id: 'roti_canai', name: 'Roti Canai', kind: 'food'),
+        ],
+      );
+    addTearDown(api.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ImageRecognitionPage(
+            userId: 'reference-choice',
+            service: api,
+            imagePicker: _Picker(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tapPhotoSource(tester, 'Upload Image');
+    await tester.pumpAndSettle();
+    expect(find.text('Possible matches'), findsOneWidget);
+    expect(find.text('Photo scan · Reference photos'), findsOneWidget);
+    expect(
+      find.text(
+        'Grilled meat skewers commonly served with peanut sauce, cucumber and rice cakes.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Hours vary by venue.').first, findsOneWidget);
+    final option = find.text('Satay');
+    await tester.ensureVisible(option);
+    await tester.tap(option);
+    await tester.pumpAndSettle();
+    expect(find.text('Selected by you'), findsOneWidget);
+    expect(find.text('Original photo'), findsOneWidget);
+    expect(api.scans, 1);
+    final history = await RecognitionHistoryStore(
+      userId: 'reference-choice',
+    ).load();
+    expect(history.single.name, 'Satay');
+    expect(history.single.source, RecognitionSource.userConfirmedReference);
+    expect(history.single.referenceCandidates, isEmpty);
+  });
+
+  testWidgets('Place search leaves the inconclusive upload and scan in place', (
+    tester,
+  ) async {
+    phone(tester);
+    final api = _Service()
+      ..resultOverride = RecognitionResult(
+        name: 'No confident match',
+        kind: 'unknown',
+        description: '',
+        location: '',
+        recognizedAt: DateTime(2026),
+        labels: const ['Temple'],
+      );
+    addTearDown(api.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ImageRecognitionPage(service: api, imagePicker: _Picker()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tapPhotoSource(tester, 'Upload Image');
+    await tester.pumpAndSettle();
+    final search = find.text('Search for a place');
+    await tester.ensureVisible(search);
+    await tester.tap(search);
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('Open in Google Maps'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    final clue = find.widgetWithText(ActionChip, 'Temple');
+    await tester.ensureVisible(clue);
+    await tester.tap(clue);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'Temple ',
+    );
+    await tester.enterText(find.byType(TextField), 'Temple George Town');
+    await tester.tap(find.widgetWithText(FilledButton, 'Search'));
+    await tester.pumpAndSettle();
+    expect(api.placeQueries, ['Temple George Town']);
+    expect(find.text('Leong San Tong Khoo Kongsi'), findsOneWidget);
+    Navigator.of(tester.element(find.text('Leong San Tong Khoo Kongsi'))).pop();
+    await tester.pumpAndSettle();
+    expect(find.text('No confident match'), findsOneWidget);
+    expect(find.text('Original photo'), findsOneWidget);
+    expect(api.scans, 1);
+  });
 
   for (final entry in {
     ImageSource.camera: 'Take Photo',
