@@ -6,6 +6,8 @@ enum RecognitionSource {
   sign,
   visualEvidence,
   placeLookup,
+  areaLookup,
+  foodSuggestion,
   userConfirmedClue,
 }
 

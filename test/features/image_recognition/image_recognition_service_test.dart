@@ -20,6 +20,68 @@ void main() {
     referenceLookup: referenceLookup ?? (_) async => null,
   );
 
+  test(
+    'Gemini can suggest a dish outside the bundled index without Places',
+    () async {
+      final operations = <String>[];
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map;
+        operations.add(body['operation'] as String);
+        return http.Response(
+          jsonEncode(
+            body['operation'] == 'recognize_context'
+                ? {
+                    'foodSuggestion': 'Nasi Dagang',
+                    'lines': ['Terengganu'],
+                  }
+                : {
+                    'labels': [
+                      {'name': 'Rice', 'score': 0.95},
+                    ],
+                  },
+          ),
+          200,
+        );
+      });
+      addTearDown(client.close);
+      final api = service(client);
+      final result = await api.recognize(Uint8List.fromList([1]));
+      expect(result.source, RecognitionSource.foodSuggestion);
+      expect(result.referenceCandidates.single.name, 'Nasi Dagang');
+      expect(
+        api.confirmReference(result, result.referenceCandidates.single.id).kind,
+        'food',
+      );
+      expect(operations, ['recognize', 'recognize_context']);
+    },
+  );
+
+  test(
+    'Matching Gemini and reference food evidence confirms the dish',
+    () async {
+      const dish = ReferenceSubject(id: 'satay', name: 'Satay', kind: 'food');
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map;
+        return http.Response(
+          body['operation'] == 'recognize_context'
+              ? '{"foodSuggestion":"Satay"}'
+              : '{}',
+          200,
+        );
+      });
+      addTearDown(client.close);
+      final api = service(
+        client,
+        referenceLookup: (_) async =>
+            const ReferenceImageMatch.identified(dish),
+      );
+      final result = await api.recognize(Uint8List.fromList([1]));
+      expect(result.name, 'Satay');
+      expect(result.kind, 'food');
+      expect(result.source, RecognitionSource.reference);
+    },
+  );
+
   test('Rejects guests and oversized images before any HTTP request', () async {
     var calls = 0;
     final client = MockClient((_) async {
@@ -75,6 +137,77 @@ void main() {
     expect(result.labels, ['Tower']);
     client.close();
   });
+
+  test(
+    'Multiple Vision names for the same known landmark resolve as one match',
+    () async {
+      var requests = 0;
+      final client = MockClient((request) async {
+        requests++;
+        expect((jsonDecode(request.body) as Map)['operation'], 'recognize');
+        return http.Response(
+          jsonEncode({
+            'landmarks': [
+              {'name': 'Petronas Twin Towers', 'score': 0.71},
+              {'name': 'Petronas Towers', 'score': 0.91},
+            ],
+          }),
+          200,
+        );
+      });
+      final api = service(client);
+      addTearDown(api.dispose);
+
+      final result = await api.recognize(Uint8List.fromList([1]));
+
+      expect(result.kind, 'landmark');
+      expect(result.name, 'Petronas Twin Towers');
+      expect(result.visionLandmarkName, 'Petronas Towers');
+      expect(result.confidence, 0.91);
+      expect(requests, 1);
+    },
+  );
+
+  test(
+    'A Vision server failure still allows a verified Gemini landmark candidate',
+    () async {
+      final operations = <String>[];
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map;
+        final operation = body['operation'] as String;
+        operations.add(operation);
+        return switch (operation) {
+          'recognize' => http.Response('{}', 502),
+          'recognize_context' => http.Response(
+            '{"visualSuggestion":"Kinta Tin Mining Museum"}',
+            200,
+          ),
+          'scan_places' => http.Response(
+            jsonEncode({
+              'places': [
+                {
+                  'id': 'museumPlaceId',
+                  'displayName': {'text': 'Kinta Tin Mining Museum'},
+                  'formattedAddress': 'Kampar, Perak, Malaysia',
+                },
+              ],
+            }),
+            200,
+          ),
+          _ => throw StateError('Unexpected operation: $operation'),
+        };
+      });
+      final api = service(client);
+      addTearDown(api.dispose);
+
+      final result = await api.recognize(Uint8List.fromList([1]));
+
+      expect(result.name, 'Possible matches');
+      expect(result.referenceCandidates.single.name, 'Kinta Tin Mining Museum');
+      expect(result.referenceCandidates.single.placeId, 'museumPlaceId');
+      expect(operations, ['recognize', 'recognize_context', 'scan_places']);
+    },
+  );
 
   test(
     'Generic food labels and low-confidence names do not invent a specific dish',
@@ -222,7 +355,9 @@ void main() {
     'Google landmark names and scores survive without catalog or place lookup',
     () async {
       final client = MockClient((request) async {
-        expect((jsonDecode(request.body) as Map)['operation'], 'recognize');
+        if ((jsonDecode(request.body) as Map)['operation'] != 'recognize') {
+          return http.Response('{}', 200);
+        }
         return http.Response(
           jsonEncode({
             'landmarks': [
@@ -313,7 +448,7 @@ void main() {
       });
       addTearDown(client.close);
       final result = await service(client).recognize(Uint8List.fromList([1]));
-      expect(result.name, 'No confident match');
+      expect(result.name, 'Try another photo');
       expect(result.referenceCandidates, isEmpty);
     },
   );
@@ -323,6 +458,242 @@ void main() {
     'domain': domain,
     'full': full,
   };
+
+  test(
+    'A visual suggestion is shown only after a matching place in the OCR area is found',
+    () async {
+      for (final (name, area) in [
+        ('Mahsuri Tomb', 'Langkawi'),
+        ('Paddy Museum', 'Kedah'),
+      ]) {
+        for (final address in ['$area, Malaysia', 'Penang, Malaysia']) {
+          final client = MockClient((request) async {
+            final body = jsonDecode(request.body) as Map;
+            final response = switch (body['operation']) {
+              'recognize' => {
+                'labels': [
+                  {'name': 'Tourist attraction', 'score': 0.86},
+                ],
+              },
+              'recognize_context' => {
+                'lines': [area],
+                'visualSuggestion': name,
+              },
+              'scan_places' => {
+                'places': [
+                  {
+                    'id': 'verifiedPlaceId',
+                    'displayName': {'text': name},
+                    'formattedAddress': address,
+                  },
+                ],
+              },
+              _ => <String, dynamic>{},
+            };
+            if (body['operation'] == 'recognize_context') {
+              expect(body['include_visual_suggestion'], true);
+            }
+            if (body['query'] == 'tourist attractions in $area') {
+              return http.Response('{"places":[]}', 200);
+            }
+            if (body['operation'] == 'scan_places') {
+              expect(body['query'], '$name, $area');
+            }
+            return http.Response(jsonEncode(response), 200);
+          });
+          addTearDown(client.close);
+          final result = await service(
+            client,
+          ).recognize(Uint8List.fromList([1]));
+          expect(result.kind, 'unknown');
+          expect(result.areaHint, area);
+          if (address.startsWith(area)) {
+            expect(result.referenceCandidates.single.name, name);
+            expect(
+              result.referenceCandidates.single.placeId,
+              'verifiedPlaceId',
+            );
+          } else {
+            expect(result.referenceCandidates, isEmpty);
+            expect(result.name, 'Try another photo');
+          }
+        }
+      }
+    },
+  );
+
+  test(
+    'Matching Vision and Gemini landmark evidence with a Places listing confirms the photo',
+    () async {
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map;
+        final response = switch (body['operation']) {
+          'recognize' => {
+            'landmarks': [
+              {'name': 'Dataran Lang', 'score': 0.61},
+            ],
+          },
+          'recognize_context' => {
+            'visualSuggestion': 'Langkawi Eagle Square',
+            'lines': ['Langkawi'],
+          },
+          'scan_places' => {
+            'places': [
+              {
+                'id': 'eagleId',
+                'displayName': {'text': 'Eagle Square'},
+                'formattedAddress': 'Kuah, Langkawi, Malaysia',
+              },
+            ],
+          },
+          _ => <String, dynamic>{},
+        };
+        return http.Response(jsonEncode(response), 200);
+      });
+      addTearDown(client.close);
+      final result = await service(client).recognize(Uint8List.fromList([1]));
+      expect(result.name, 'Eagle Square (Dataran Lang)');
+      expect(result.placeId, 'eagleId');
+      expect(result.confidence, 0.61);
+    },
+  );
+
+  test(
+    'A catalogued Gemini landmark stays available as a candidate when Places fails',
+    () async {
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map;
+        return switch (body['operation']) {
+          'recognize_context' => http.Response(
+            '{"visualSuggestion":"Langkawi Eagle Square","lines":["Langkawi"]}',
+            200,
+          ),
+          'scan_places' => http.Response('{}', 503),
+          _ => http.Response('{}', 200),
+        };
+      });
+      addTearDown(client.close);
+      final result = await service(client).recognize(Uint8List.fromList([1]));
+      expect(result.kind, 'unknown');
+      expect(
+        result.referenceCandidates.single.name,
+        'Eagle Square (Dataran Lang)',
+      );
+      expect(result.source, RecognitionSource.visualEvidence);
+    },
+  );
+
+  test(
+    'An area-only scan automatically offers listings as area suggestions',
+    () async {
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map;
+        final response = switch (body['operation']) {
+          'recognize' => {
+            'labels': [
+              {'name': 'Tourist attraction', 'score': 0.86},
+            ],
+          },
+          'recognize_context' => {
+            'lines': ['Langkawi'],
+          },
+          'scan_places' => {
+            'places': [
+              {
+                'id': 'eagleSquareId',
+                'displayName': {'text': 'Eagle Square'},
+                'formattedAddress': 'Kuah, Langkawi, Malaysia',
+              },
+              {
+                'id': 'otherPlaceId',
+                'displayName': {'text': 'Langkawi Restaurant'},
+                'formattedAddress': 'Kuala Lumpur, Malaysia',
+              },
+            ],
+          },
+          _ => <String, dynamic>{},
+        };
+        if (body['operation'] == 'scan_places') {
+          expect(body['query'], 'tourist attractions in Langkawi');
+        }
+        return http.Response(jsonEncode(response), 200);
+      });
+      addTearDown(client.close);
+      final api = service(client);
+      final result = await api.recognize(Uint8List.fromList([1]));
+      expect(result.kind, 'unknown');
+      expect(result.source, RecognitionSource.areaLookup);
+      expect(result.referenceCandidates.single.name, 'Eagle Square');
+      final restored = RecognitionResult.fromJson(result.toJson());
+      expect(restored.source, RecognitionSource.areaLookup);
+      expect(
+        api.confirmReference(restored, 'google:eagleSquareId').kind,
+        'landmark',
+      );
+    },
+  );
+
+  test(
+    'Weak Vision candidates still use context to resolve the landmark',
+    () async {
+      final client = MockClient((request) async {
+        final operation = (jsonDecode(request.body) as Map)['operation'];
+        final response = operation == 'recognize'
+            ? {
+                'landmarks': [
+                  {'name': 'Dataran Lang', 'score': 0.61},
+                ],
+              }
+            : {
+                'names': ['Eagle Square'],
+                'pages': [
+                  page('Eagle Square Langkawi', 'site-a.test'),
+                  page('Dataran Lang in Langkawi', 'site-b.test'),
+                ],
+              };
+        return http.Response(jsonEncode(response), 200);
+      });
+      addTearDown(client.close);
+      final result = await service(client).recognize(Uint8List.fromList([1]));
+      expect(result.name, 'Eagle Square (Dataran Lang)');
+      expect(result.source, RecognitionSource.web);
+    },
+  );
+
+  test(
+    'An OCR area and a web name can find a place without the Gemini suggestion',
+    () async {
+      const name = 'Lata Iskandar Waterfall';
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map;
+        final response = switch (body['operation']) {
+          'recognize_context' => {
+            'text': 'Perak',
+            'names': [name],
+          },
+          'scan_places' => {
+            'places': [
+              {
+                'id': 'waterfallPlaceId',
+                'displayName': {'text': name},
+                'formattedAddress': 'Tapah, Perak, Malaysia',
+              },
+            ],
+          },
+          _ => <String, dynamic>{},
+        };
+        if (body['operation'] == 'scan_places') {
+          expect(body['query'], '$name, Perak');
+        }
+        return http.Response(jsonEncode(response), 200);
+      });
+      addTearDown(client.close);
+      final result = await service(client).recognize(Uint8List.fromList([1]));
+      expect(result.source, RecognitionSource.placeLookup);
+      expect(result.areaHint, 'Perak');
+      expect(result.referenceCandidates.single.name, name);
+    },
+  );
 
   test(
     'Matching sites identify several landmarks outside the image index',
@@ -540,7 +911,7 @@ void main() {
       referenceLookup: (_) async => throw StateError('Model unavailable'),
     );
     final result = await api.recognize(Uint8List.fromList([1]));
-    expect(result.name, 'No confident match');
+    expect(result.name, 'Try another photo');
     expect(result.source, RecognitionSource.vision);
   });
 

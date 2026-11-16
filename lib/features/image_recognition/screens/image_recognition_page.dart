@@ -4,14 +4,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
-import 'package:smart_travel_planner/features/image_recognition/data/visual_scan_results.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/recognition_scan_screen.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
 import 'package:smart_travel_planner/features/image_recognition/widgets/recognition_result_sheet.dart';
+import 'package:smart_travel_planner/features/image_recognition/widgets/scan_photo_guidance.dart';
 
 import 'package:smart_travel_planner/features/image_recognition/widgets/visual_scan_style.dart';
 
@@ -22,11 +23,13 @@ class ImageRecognitionPage extends StatefulWidget {
     this.userId = 'guest',
     this.service,
     this.imagePicker,
+    this.historyStore,
   });
 
   final String userId;
   final ImageRecognitionService? service;
   final ImagePicker? imagePicker;
+  final RecognitionHistoryStore? historyStore;
 
   @override
   State<ImageRecognitionPage> createState() => _ImageRecognitionPageState();
@@ -38,11 +41,12 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   late final RecognitionHistoryStore _store;
 
   Future<void> _pendingWrite = Future.value();
-  List<RecognitionResult> _history = [];
+  late final Future<void> _historyLoaded;
+  List<RecognitionHistoryEntry> _history = [];
   bool _showHistory = false;
   int _scannerVersion = 0;
   RecognitionResult? _result;
-  Widget? _resultPhoto;
+  ImageProvider<Object>? _resultPhoto;
   bool _picking = false;
   bool _recognizing = false;
 
@@ -51,42 +55,59 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     super.initState();
     _picker = widget.imagePicker ?? ImagePicker();
     _service = widget.service ?? ImageRecognitionService();
-    _store = RecognitionHistoryStore(userId: widget.userId);
-    unawaited(_loadHistory());
+    _store =
+        widget.historyStore ?? RecognitionHistoryStore(userId: widget.userId);
+    _historyLoaded = _loadHistory();
   }
 
   Future<void> _loadHistory() async {
     final history = await _store.load();
     if (mounted) {
       setState(
-        () => _history = history.where((item) => !item.isSample).toList(),
+        () =>
+            _history = history.where((item) => !item.result.isSample).toList(),
       );
     }
   }
 
-  void _saveHistory() {
-    final entries = List<RecognitionResult>.of(_history);
+  void _saveHistory({(String, Uint8List)? photo}) {
+    final entries = List<RecognitionHistoryEntry>.of(_history);
     _pendingWrite = _pendingWrite.then((_) async {
-      await _store.save(entries);
+      await _store.save(entries, photo: photo);
     });
   }
 
-  void _showResult(RecognitionResult result, {Widget? photo}) {
+  void _showResult(RecognitionResult result, {ImageProvider<Object>? photo}) {
     setState(() {
       _result = result;
       _resultPhoto = photo;
     });
   }
 
+  Future<void> _showHistoryEntry(RecognitionHistoryEntry entry) async {
+    _showResult(entry.result);
+    if (entry.photoId == null) return;
+    await _pendingWrite;
+    final bytes = await _store.loadPhoto(entry.photoId);
+    if (mounted && identical(_result, entry.result) && bytes != null) {
+      setState(() => _resultPhoto = MemoryImage(bytes));
+    }
+  }
+
   void _confirmReference(RecognitionResult result, String id) {
+    _replaceResult(result, _service.confirmReference(result, id));
+  }
+
+  void _replaceResult(RecognitionResult result, RecognitionResult selected) {
     if (_result != result) return;
-    final selected = _service.confirmReference(result, id);
     if (identical(selected, result)) return;
     setState(() {
       _result = selected;
       _history = [
         for (final entry in _history)
-          identical(entry, result) ? selected : entry,
+          identical(entry.result, result)
+              ? (result: selected, photoId: entry.photoId)
+              : entry,
       ];
     });
     _saveHistory();
@@ -130,12 +151,10 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       _notify('Restart the app to enable the camera and photo library.');
       return;
     } on PlatformException {
-      _notify(
-        'Camera or photo library unavailable. Check access in Settings or try a sample.',
-      );
+      _notify('Camera or photo library unavailable. Check access in Settings.');
       return;
     } catch (_) {
-      _notify('This photo could not be opened. Try another photo or a sample.');
+      _notify('This photo could not be opened. Try another photo.');
       return;
     } finally {
       if (mounted) setState(() => _picking = false);
@@ -163,14 +182,17 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         _notify(outcome.error!);
         return;
       }
+      await _historyLoaded;
+      if (!mounted) return;
+      final photoId = const Uuid().v4();
       setState(
         () => _history = [
-          result,
+          (result: result, photoId: photoId),
           ..._history,
         ].take(RecognitionHistoryStore.maxEntries).toList(),
       );
-      _saveHistory();
-      _showResult(result, photo: _photo(bytes));
+      _saveHistory(photo: (photoId, bytes));
+      _showResult(result, photo: MemoryImage(bytes));
     } finally {
       if (mounted) setState(() => _recognizing = false);
     }
@@ -190,20 +212,6 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         ),
       );
   }
-
-  Widget _photo(Uint8List bytes) => ColoredBox(
-    color: VisualScanStyle.navigation,
-    child: Image.memory(
-      bytes,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) => Center(
-        child: Text(
-          context.l10n.photoPreviewUnavailable,
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-    ),
-  );
 
   Future<void> _clearHistory() async {
     final clear = await showDialog<bool>(
@@ -246,8 +254,14 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           result: result,
           service: _service,
           userId: widget.userId,
-          image: _resultPhoto,
+          photo: _resultPhoto,
           onReferenceSelected: (id) => _confirmReference(result, id),
+          onTakeAnotherPhoto: _picking || _recognizing
+              ? null
+              : () => _pickPhoto(ImageSource.camera),
+          onUploadAnotherPhoto: _picking || _recognizing
+              ? null
+              : () => _pickPhoto(ImageSource.gallery),
           onBack: _showHistory ? () => _closeResult(newScan: false) : null,
           onNewScan: () => _closeResult(newScan: true),
         ),
@@ -278,28 +292,18 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   onPressed: () => setState(() => _showHistory = true),
                   icon: const Icon(Icons.history, size: 17),
                   label: Text(context.l10n.history),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: VisualScanStyle.amber,
-                    minimumSize: const Size(0, 44),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    side: BorderSide(
-                      color: VisualScanStyle.amber.withValues(alpha: 0.35),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  style: VisualScanStyle.headerButton,
                 ),
               ],
             ),
             Text(
-              'Identify any facade, dome, or plaque',
+              context.l10n.scanIdentifyLandmark,
               style: VisualScanStyle.heading(22),
             ),
             const SizedBox(height: 19),
-            const Text(
-              'Snap a building or upload a travel photo. If the shot is ambiguous, crop to the building or scan an entrance sign.',
-              style: TextStyle(
+            Text(
+              context.l10n.scanPhotoIntro,
+              style: const TextStyle(
                 color: VisualScanStyle.muted,
                 fontSize: 14,
                 height: 1.5,
@@ -350,60 +354,14 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         ),
       ),
       const SizedBox(height: 25),
-      Text('Try a sample landmark photo', style: VisualScanStyle.heading(20)),
-      const SizedBox(height: 4),
-      const Text(
-        'Test confident, multi-candidate, and inconclusive outcomes',
-        style: TextStyle(
-          color: VisualScanStyle.muted,
-          fontSize: 13,
-          height: 1.4,
-        ),
+      Container(
+        decoration: _scanPanel(),
+        padding: const EdgeInsets.all(16),
+        child: const ScanPhotoGuidance(),
       ),
-      const SizedBox(height: 12),
-      for (final sample in visualScanSamples) ...[
-        Material(
-          color: VisualScanStyle.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: VisualScanStyle.border),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 9,
-            ),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                sample.image,
-                width: 56,
-                height: 56,
-                fit: BoxFit.cover,
-                excludeFromSemantics: true,
-              ),
-            ),
-            title: Text(sample.title, style: VisualScanStyle.heading(16)),
-            subtitle: Text(sample.outcome, style: _scanEyebrow),
-            trailing: const Icon(
-              Icons.arrow_forward,
-              color: VisualScanStyle.muted,
-              size: 16,
-            ),
-            onTap: () => _showResult(
-              visualSampleResult(sample.id),
-              photo: Image.asset(sample.image, fit: BoxFit.cover),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-      ],
-      const SizedBox(height: 4),
+      const SizedBox(height: 14),
       Text(
-        context
-            .l10n
-            .selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice,
+        context.l10n.scanHistoryPhotoPrivacy,
         style: const TextStyle(color: VisualScanStyle.muted, fontSize: 12),
       ),
     ],
@@ -487,7 +445,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
             ],
           ),
         ),
-      for (final result in _history) ...[
+      for (final entry in _history) ...[
         Material(
           color: VisualScanStyle.surface,
           shape: RoundedRectangleBorder(
@@ -500,24 +458,28 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
               color: VisualScanStyle.amber,
             ),
             title: Text(
-              result.referenceCandidates.isEmpty
-                  ? result.name
-                  : context.l10n.referencePossibleMatches,
+              entry.result.source == RecognitionSource.areaLookup
+                  ? context.l10n.scanPlacesInArea
+                  : entry.result.referenceCandidates.isNotEmpty
+                  ? context.l10n.referencePossibleMatches
+                  : entry.result.kind == 'unknown'
+                  ? context.l10n.scanTryAnotherPhoto
+                  : entry.result.name,
               style: const TextStyle(
                 color: VisualScanStyle.text,
                 fontWeight: FontWeight.w700,
               ),
             ),
             subtitle: Text(
-              '${MaterialLocalizations.of(context).formatShortDate(result.recognizedAt.toLocal())}'
-              ' · ${TimeOfDay.fromDateTime(result.recognizedAt.toLocal()).format(context)}',
+              '${MaterialLocalizations.of(context).formatShortDate(entry.result.recognizedAt.toLocal())}'
+              ' · ${TimeOfDay.fromDateTime(entry.result.recognizedAt.toLocal()).format(context)}',
               style: const TextStyle(color: VisualScanStyle.muted),
             ),
             trailing: const Icon(
               Icons.chevron_right,
               color: VisualScanStyle.muted,
             ),
-            onTap: () => _showResult(result),
+            onTap: () => _showHistoryEntry(entry),
           ),
         ),
         const SizedBox(height: 8),

@@ -1476,23 +1476,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Recognize sends this photo to Google Vision through our secure service. ';
 
   @override
-  String get cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample =>
-      'Camera or photo library unavailable. Check access in Settings or try a sample.';
+  String get scanCameraAccessError =>
+      'Camera or photo library unavailable. Check access in Settings.';
 
   @override
   String get restartTheAppToEnableTheCameraAndPhotoLibrary =>
       'Restart the app to enable the camera and photo library.';
 
   @override
-  String get thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample =>
-      'This photo could not be opened. Try another photo or a sample.';
+  String get scanOpenPhotoError =>
+      'This photo could not be opened. Try another photo.';
 
   @override
   String get chooseAPhotoSmallerThan4Mb => 'Choose a photo smaller than 4 MB.';
 
   @override
-  String get imageRecognitionIsTemporarilyUnavailableTryASample =>
-      'Image recognition is temporarily unavailable. Try a sample.';
+  String get scanRecognitionUnavailable =>
+      'Image recognition is temporarily unavailable. Try again later.';
 
   @override
   String get recentScans => 'Recent scans';
@@ -1559,14 +1559,109 @@ class AppLocalizationsEn extends AppLocalizations {
   String get referenceScanSource => 'Photo scan · Reference photos';
 
   @override
-  String get scanSearchPlace => 'Search for a place';
+  String get scanTryAnotherPhoto => 'Try another photo';
 
   @override
-  String get scanPlaceSearchHint => 'Place name, area or clue';
+  String get scanAnotherPhotoHelp =>
+      'We couldn’t identify a specific landmark from this photo. Retake it or choose a clearer image from your gallery.';
 
   @override
-  String get scanSearchWithClue =>
-      'Tap a clue and add the town or area to narrow the search.';
+  String get scanIdentifyLandmark => 'Identify a landmark';
+
+  @override
+  String get scanPhotoIntro =>
+      'Take a photo of a landmark or choose one from your gallery.';
+
+  @override
+  String get scanPhotoTips => 'Tips for a clearer photo';
+
+  @override
+  String get scanTipLight => 'Use good light';
+
+  @override
+  String get scanTipLightDetail =>
+      'Hold the camera steady and tap the landmark to focus. Avoid blur, glare and deep shadows.';
+
+  @override
+  String get scanTipFrame => 'Show the whole landmark';
+
+  @override
+  String get scanTipFrameDetail =>
+      'Step back to include its outline and distinctive features. Keep cars and crowds out of the way where possible.';
+
+  @override
+  String get scanTipSign => 'Include a readable sign';
+
+  @override
+  String get scanTipSignDetail =>
+      'If the building is hard to recognise, photograph the entrance or name plaque so the words are legible.';
+
+  @override
+  String get scanNeedsClue => 'No clear match yet';
+
+  @override
+  String get scanRetakePhoto => 'Retake photo';
+
+  @override
+  String get scanUploadAnotherPhoto => 'Upload another photo';
+
+  @override
+  String get scanPhotoClues => 'Clues from your photo';
+
+  @override
+  String get scanAboutLandmark => 'About this landmark';
+
+  @override
+  String get scanNearbyPlaces => 'Nearby attractions & food';
+
+  @override
+  String scanNearbyDistance(String place) {
+    return 'Guide distances from $place are straight-line estimates.';
+  }
+
+  @override
+  String scanNearbyArea(String place) {
+    return 'Places around $place';
+  }
+
+  @override
+  String get scanNearbyNoLocation =>
+      'This scan has no confirmed location. Use Maps to explore around you.';
+
+  @override
+  String get scanGuideDishVenues =>
+      'Places in the travel guide that mention this dish';
+
+  @override
+  String get scanFoodAndCafes => 'Food & Cafés';
+
+  @override
+  String get scanFindAttractions => 'Find attractions';
+
+  @override
+  String get scanFindingNearby => 'Looking up nearby places…';
+
+  @override
+  String get scanNoNearbyListings =>
+      'No listings available here. You can also search in Maps.';
+
+  @override
+  String get scanTakeAnotherPhoto => 'Take another photo';
+
+  @override
+  String get scanAreaOnly => 'Area identified';
+
+  @override
+  String get scanPlacesInArea => 'Places in the area';
+
+  @override
+  String get scanChooseAreaPlace =>
+      'These places are in the detected area. Select one if you recognise it, or add another photo.';
+
+  @override
+  String scanSuggestedArea(String area) {
+    return 'Area clue: $area';
+  }
 
   @override
   String get scanOpenMaps => 'Open in Google Maps';
@@ -2851,9 +2946,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use soft light from the front or side. Tap the subject to focus and hold your phone steady.';
 
   @override
-  String
-  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
-      'Selected photos are sent to Google Vision for scanning. Only result text is saved in History on this device.';
+  String get scanHistoryPhotoPrivacy =>
+      'Selected photos are sent to Google for recognition. The photo and result are saved in History on this device.';
 
   @override
   String get planPersonalize => 'Customize trip preferences';

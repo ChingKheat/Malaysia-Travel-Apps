@@ -1436,22 +1436,19 @@ class AppLocalizationsZh extends AppLocalizations {
       '识别时会通过我们的安全服务将此照片发送至 Google Vision。';
 
   @override
-  String get cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample =>
-      '相机或相册不可用，请在设置中检查权限，或尝试示例。';
+  String get scanCameraAccessError => '相机或相册不可用，请在设置中检查权限。';
 
   @override
   String get restartTheAppToEnableTheCameraAndPhotoLibrary => '请重启应用以启用相机与相册。';
 
   @override
-  String get thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample =>
-      '无法打开此照片，请选择其他照片或尝试示例。';
+  String get scanOpenPhotoError => '无法打开此照片，请选择其他照片。';
 
   @override
   String get chooseAPhotoSmallerThan4Mb => '请选择小于 4 MB 的照片。';
 
   @override
-  String get imageRecognitionIsTemporarilyUnavailableTryASample =>
-      '图像识别暂不可用，请尝试示例。';
+  String get scanRecognitionUnavailable => '图像识别暂不可用，请稍后再试。';
 
   @override
   String get recentScans => '最近识别';
@@ -1516,13 +1513,100 @@ class AppLocalizationsZh extends AppLocalizations {
   String get referenceScanSource => '照片扫描 · 参考照片';
 
   @override
-  String get scanSearchPlace => '搜索地点';
+  String get scanTryAnotherPhoto => '试试另一张照片';
 
   @override
-  String get scanPlaceSearchHint => '地点名称、地区或线索';
+  String get scanAnotherPhotoHelp => '这张照片未能提供足够线索来识别具体地标。请重新拍摄，或从相册选择更清晰的图片。';
 
   @override
-  String get scanSearchWithClue => '点按一条线索，再添加城市或地区以缩小搜索范围。';
+  String get scanIdentifyLandmark => '识别地标';
+
+  @override
+  String get scanPhotoIntro => '拍摄地标，或从相册选择一张照片。';
+
+  @override
+  String get scanPhotoTips => '拍出更清晰照片的技巧';
+
+  @override
+  String get scanTipLight => '光线要充足';
+
+  @override
+  String get scanTipLightDetail => '拿稳相机，轻点地标对焦。避免模糊、眩光和过深的阴影。';
+
+  @override
+  String get scanTipFrame => '拍入地标全貌';
+
+  @override
+  String get scanTipFrameDetail => '后退一点，拍入轮廓和独特特征。尽量避开遮挡视线的车辆和人群。';
+
+  @override
+  String get scanTipSign => '拍入清晰可读的招牌';
+
+  @override
+  String get scanTipSignDetail => '如果建筑不容易辨认，请拍摄入口或名称牌，并确保文字清晰可读。';
+
+  @override
+  String get scanNeedsClue => '暂未找到明确匹配';
+
+  @override
+  String get scanRetakePhoto => '重新拍摄';
+
+  @override
+  String get scanUploadAnotherPhoto => '上传另一张照片';
+
+  @override
+  String get scanPhotoClues => '照片中的线索';
+
+  @override
+  String get scanAboutLandmark => '关于此地标';
+
+  @override
+  String get scanNearbyPlaces => '附近景点和美食';
+
+  @override
+  String scanNearbyDistance(String place) {
+    return '指南显示的是从$place出发的直线距离估算。';
+  }
+
+  @override
+  String scanNearbyArea(String place) {
+    return '$place周边地点';
+  }
+
+  @override
+  String get scanNearbyNoLocation => '这次扫描尚未确认地点。可使用地图探索你周边的地点。';
+
+  @override
+  String get scanGuideDishVenues => '旅行指南中提到这道菜的地点';
+
+  @override
+  String get scanFoodAndCafes => '美食和咖啡馆';
+
+  @override
+  String get scanFindAttractions => '查找景点';
+
+  @override
+  String get scanFindingNearby => '正在查找附近地点…';
+
+  @override
+  String get scanNoNearbyListings => '这里暂无地点列表，也可以在地图中搜索。';
+
+  @override
+  String get scanTakeAnotherPhoto => '再拍一张';
+
+  @override
+  String get scanAreaOnly => '已找到地区';
+
+  @override
+  String get scanPlacesInArea => '这个地区的地点';
+
+  @override
+  String get scanChooseAreaPlace => '这些地点位于识别到的地区。如果认出照片里的地点，可以点选，也可以再拍一张。';
+
+  @override
+  String scanSuggestedArea(String area) {
+    return '地区线索：$area';
+  }
 
   @override
   String get scanOpenMaps => '在 Google 地图中打开';
@@ -2762,9 +2846,8 @@ class AppLocalizationsZh extends AppLocalizations {
       '使用来自正面或侧面的柔和光线，轻点主体对焦并稳住手机。';
 
   @override
-  String
-  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
-      '所选照片会发送至 Google Vision 进行扫描，本设备仅在历史记录中保存识别结果文字。';
+  String get scanHistoryPhotoPrivacy =>
+      '所选照片会发送给 Google 进行识别，照片和结果将保存在本设备的历史记录中。';
 
   @override
   String get planPersonalize => '自定义旅行偏好';

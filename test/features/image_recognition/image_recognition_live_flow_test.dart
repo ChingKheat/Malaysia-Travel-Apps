@@ -12,7 +12,9 @@ import 'package:smart_travel_planner/features/image_recognition/screens/image_re
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
 import 'package:smart_travel_planner/features/image_recognition/widgets/recognition_result_sheet.dart';
+import 'package:smart_travel_planner/features/image_recognition/screens/recognition_scan_screen.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
+import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
 
 class _Picker extends ImagePicker {
   _Picker({this.pick});
@@ -46,20 +48,6 @@ class _Service extends ImageRecognitionService {
   bool failTranslation = false;
   Completer<void>? pendingScan;
   RecognitionResult? resultOverride;
-  final placeQueries = <String>[];
-
-  @override
-  Future<List<GooglePlaceDetails>> searchPlaces(String query) async {
-    placeQueries.add(query);
-    return [
-      GooglePlaceDetails.fromApi({
-        'id': 'khooKongsiId',
-        'displayName': {'text': 'Leong San Tong Khoo Kongsi'},
-        'formattedAddress': 'Cannon Square, George Town',
-      }),
-    ];
-  }
-
   @override
   Future<RecognitionResult> recognize(Uint8List bytes) async {
     scans++;
@@ -100,8 +88,43 @@ class _Service extends ImageRecognitionService {
   }
 }
 
+class _NearbyService extends _Service {
+  final queries = <String>[];
+
+  @override
+  Future<GooglePlaceDetails?> lookupPlace(String name, {String? area}) async =>
+      const GooglePlaceDetails('museum-id', {
+        'editorialSummary': {'text': 'A converted mining museum.'},
+        'formattedAddress': 'Kampar, Perak, Malaysia',
+      });
+
+  @override
+  Future<List<GooglePlaceDetails>> searchPlaces(String query) async {
+    queries.add(query);
+    return query.startsWith('restaurants')
+        ? const [
+            GooglePlaceDetails('cafe-id', {
+              'displayName': {'text': 'Museum Café'},
+            }),
+          ]
+        : const [
+            GooglePlaceDetails('museum-id', {
+              'displayName': {'text': 'Kinta Tin Mining Museum'},
+            }),
+            GooglePlaceDetails('park-id', {
+              'displayName': {'text': 'Kampar Heritage Park'},
+            }),
+          ];
+  }
+}
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  RecognitionHistoryStore historyFor(String userId) => RecognitionHistoryStore(
+    userId: userId,
+    applicationDirectory: () async => throw UnsupportedError('No photo folder'),
+  );
   void phone(WidgetTester tester) {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -141,6 +164,7 @@ void main() {
             userId: 'reference-choice',
             service: api,
             imagePicker: _Picker(),
+            historyStore: historyFor('reference-choice'),
           ),
         ),
       ),
@@ -167,69 +191,158 @@ void main() {
     final history = await RecognitionHistoryStore(
       userId: 'reference-choice',
     ).load();
-    expect(history.single.name, 'Satay');
-    expect(history.single.source, RecognitionSource.userConfirmedReference);
-    expect(history.single.referenceCandidates, isEmpty);
+    expect(history.single.result.name, 'Satay');
+    expect(
+      history.single.result.source,
+      RecognitionSource.userConfirmedReference,
+    );
+    expect(history.single.result.referenceCandidates, isEmpty);
+    expect(history.single.photoId, isNotNull);
   });
 
-  testWidgets('Place search leaves the inconclusive upload and scan in place', (
+  testWidgets(
+    'Area-only suggestions can be selected without typing a location',
+    (tester) async {
+      phone(tester);
+      final api = _Service()
+        ..resultOverride = RecognitionResult(
+          name: 'Places in the area',
+          kind: 'unknown',
+          description: '',
+          location: '',
+          recognizedAt: DateTime(2026),
+          areaHint: 'Langkawi',
+          source: RecognitionSource.areaLookup,
+          referenceCandidates: const [
+            ReferenceSubject(
+              id: 'google:eagleSquareId',
+              name: 'Eagle Square',
+              kind: 'landmark',
+            ),
+          ],
+        );
+      addTearDown(api.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ImageRecognitionPage(
+              service: api,
+              imagePicker: _Picker(),
+              historyStore: historyFor('guest'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tapPhotoSource(tester, 'Upload Image');
+      await tester.pumpAndSettle();
+      expect(find.text('Places in the area'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      final candidate = find.text('Eagle Square');
+      await tester.ensureVisible(candidate);
+      await tester.tap(candidate);
+      await tester.pumpAndSettle();
+      expect(find.text('Selected by you'), findsOneWidget);
+      expect(find.text('Original photo'), findsOneWidget);
+      expect(api.scans, 1);
+      final history = await RecognitionHistoryStore(userId: 'guest').load();
+      expect(history.single.result.name, 'Eagle Square (Dataran Lang)');
+    },
+  );
+
+  testWidgets('An uncertain scan offers guidance and both retry sources', (
     tester,
   ) async {
     phone(tester);
+    final picker = _Picker();
     final api = _Service()
       ..resultOverride = RecognitionResult(
-        name: 'No confident match',
+        name: 'Try another photo',
         kind: 'unknown',
         description: '',
         location: '',
         recognizedAt: DateTime(2026),
-        labels: const ['Temple'],
       );
     addTearDown(api.dispose);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ImageRecognitionPage(service: api, imagePicker: _Picker()),
+          body: ImageRecognitionPage(service: api, imagePicker: picker),
         ),
       ),
     );
     await tester.pumpAndSettle();
     await tapPhotoSource(tester, 'Upload Image');
     await tester.pumpAndSettle();
-    final search = find.text('Search for a place');
-    await tester.ensureVisible(search);
-    await tester.tap(search);
+    expect(find.text('Try another photo'), findsOneWidget);
+    final retake = find.text('Retake photo');
+    final upload = find.text('Upload another photo');
+    await tester.scrollUntilVisible(find.text('Tips for a clearer photo'), 130);
+    await tester.scrollUntilVisible(find.text('Find attractions'), 130);
+    expect(find.text('Nearby attractions & food'), findsOneWidget);
+    expect(find.text('Find Restaurants'), findsOneWidget);
+    await tester.scrollUntilVisible(retake, -130);
+    await tester.ensureVisible(retake);
+    await tester.tap(retake);
     await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsOneWidget);
-    expect(find.text('Open in Google Maps'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
+    await tester.scrollUntilVisible(upload, 100);
+    await tester.ensureVisible(upload);
+    await tester.tap(upload);
     await tester.pumpAndSettle();
-    final clue = find.widgetWithText(ActionChip, 'Temple');
-    await tester.ensureVisible(clue);
-    await tester.tap(clue);
-    await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      'Temple ',
-    );
-    await tester.enterText(find.byType(TextField), 'Temple George Town');
-    await tester.tap(find.widgetWithText(FilledButton, 'Search'));
-    await tester.pumpAndSettle();
-    expect(api.placeQueries, ['Temple George Town']);
-    expect(find.text('Leong San Tong Khoo Kongsi'), findsOneWidget);
-    Navigator.of(tester.element(find.text('Leong San Tong Khoo Kongsi'))).pop();
-    await tester.pumpAndSettle();
-    expect(find.text('No confident match'), findsOneWidget);
-    expect(find.text('Original photo'), findsOneWidget);
-    expect(api.scans, 1);
+    expect(picker.sources, [
+      ImageSource.gallery,
+      ImageSource.camera,
+      ImageSource.gallery,
+    ]);
+    expect(api.scans, 3);
   });
+
+  testWidgets(
+    'An uncatalogued landmark uses place details and both nearby searches',
+    (tester) async {
+      phone(tester);
+      final api = _NearbyService();
+      addTearDown(api.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RecognitionResultSheet(
+              result: RecognitionResult(
+                name: 'Kinta Tin Mining Museum',
+                kind: 'landmark',
+                description: '',
+                location: 'Kampar',
+                recognizedAt: DateTime(2026),
+                placeId: 'museum-id',
+              ),
+              service: api,
+              onNewScan: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('About this landmark'), findsOneWidget);
+      expect(find.text('A converted mining museum.'), findsOneWidget);
+      expect(find.text('Nearby attractions & food'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Museum Café'), 130);
+      expect(find.text('Kampar Heritage Park'), findsOneWidget);
+      expect(find.text('Kinta Tin Mining Museum'), findsOneWidget);
+      expect(find.text('Save spot'), findsWidgets);
+      expect(find.text('Story'), findsWidgets);
+      expect(api.queries, [
+        'tourist attractions near Kinta Tin Mining Museum, Kampar',
+        'restaurants near Kinta Tin Mining Museum, Kampar',
+      ]);
+    },
+  );
 
   for (final entry in {
     ImageSource.camera: 'Take Photo',
     ImageSource.gallery: 'Upload Image',
   }.entries) {
     testWidgets(
-      '${entry.key.name} starts one scan and saves only result text',
+      '${entry.key.name} opens a dark scanner and reuses the photo from history',
       (tester) async {
         phone(tester);
         final api = _Service();
@@ -242,6 +355,7 @@ void main() {
                 userId: 'live',
                 service: api,
                 imagePicker: picker,
+                historyStore: historyFor('live'),
               ),
             ),
           ),
@@ -254,6 +368,17 @@ void main() {
         expect(picker.sources, [entry.key]);
         expect(api.scans, 1);
         expect(find.text('Scanning photo…'), findsOneWidget);
+        expect(
+          tester
+              .widget<Scaffold>(
+                find.descendant(
+                  of: find.byType(RecognitionScanScreen),
+                  matching: find.byType(Scaffold),
+                ),
+              )
+              .backgroundColor,
+          Colors.black,
+        );
         expect(find.text('Your photo is ready'), findsNothing);
         expect(find.text('Recognize photo'), findsNothing);
 
@@ -261,15 +386,34 @@ void main() {
         final sheet = tester.widget<RecognitionResultSheet>(
           find.byType(RecognitionResultSheet),
         );
-        expect(sheet.image, isNotNull);
+        expect(sheet.photo, isA<MemoryImage>());
         expect(find.text('Confident visual match'), findsOneWidget);
         expect(find.text('Original photo'), findsOneWidget);
         expect(find.text('Nearby attractions & food'), findsOneWidget);
         expect(api.scans, 1);
         final history = await RecognitionHistoryStore(userId: 'live').load();
         expect(history, hasLength(1));
-        expect(history.single.isSample, isFalse);
-        expect(history.single.toJson().keys, isNot(contains('image')));
+        expect(history.single.result.isSample, isFalse);
+        expect(history.single.photoId, isNotNull);
+
+        await tester.tap(find.text('New Scan'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('scan-history')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Petronas Twin Towers'));
+        await tester.pumpAndSettle();
+        expect(find.text('Original photo'), findsOneWidget);
+        final story = find.text('Open Landmark Story');
+        await tester.scrollUntilVisible(story, 140);
+        await tester.tap(story);
+        await tester.pumpAndSettle();
+        final detail = tester.widget<AttractionDetailPage>(
+          find.byType(AttractionDetailPage),
+        );
+        expect(
+          (detail.heroPhoto as MemoryImage).bytes,
+          (sheet.photo as MemoryImage).bytes,
+        );
         expect(tester.takeException(), isNull);
       },
     );
@@ -349,7 +493,7 @@ void main() {
   });
 
   testWidgets(
-    'Offline recognition retains samples and does not save fabricated results',
+    'Offline recognition retains photo guidance and does not save fabricated results',
     (tester) async {
       phone(tester);
       final api = _Service()..fail = true;

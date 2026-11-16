@@ -93,7 +93,7 @@ function photoClues(result) {
   };
 }
 
-export function createHandler({env, fetcher = fetch, now = Date.now, contextOnly = false, searchScanPlaces}) {
+export function createHandler({env, fetcher = fetch, now = Date.now, contextOnly = false, searchScanPlaces, suggestVisualLandmark}) {
   const usage = new Map();
   return async function handler(req) {
     if (req.method === 'OPTIONS') return new Response('ok', {headers});
@@ -172,13 +172,32 @@ export function createHandler({env, fetcher = fetch, now = Date.now, contextOnly
         return json(result, status);
       }
 
-      const upstream = await fetcher(url, {
+      const visionRequest = fetcher(url, {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-Goog-Api-Key': key},
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(20000),
         redirect: 'error',
       });
+      if (contextScan) {
+        const [vision, suggestion] = await Promise.allSettled([
+          visionRequest,
+          body.include_visual_suggestion === true && suggestVisualLandmark
+            ? suggestVisualLandmark({env, fetcher, image: body.image, includeFood: body.include_food_suggestion === true})
+            : null,
+        ]);
+        const visualSuggestion = suggestion.status === 'fulfilled' ? suggestion.value : null;
+        const upstream = vision.status === 'fulfilled' ? vision.value : null;
+        const data = upstream?.ok ? await upstream.json().catch(() => null) : null;
+        const result = data?.responses?.[0];
+        if (result && !result.error) {
+          return json({...photoClues(result), ...visualSuggestion});
+        }
+        if (visualSuggestion) return json(visualSuggestion);
+        return json({error: 'This image could not be analyzed'},
+          upstream?.status === 429 ? 429 : result?.error?.code === 3 ? 400 : 502);
+      }
+      const upstream = await visionRequest;
       // Never return Google's response body on failure; it may contain credentials.
       if (!upstream.ok) return json({error: 'Google service is temporarily unavailable'}, upstream.status === 429 ? 429 : 502);
       const data = await upstream.json();
@@ -190,7 +209,6 @@ export function createHandler({env, fetcher = fetch, now = Date.now, contextOnly
       }
       const result = data.responses?.[0];
       if (!result || result.error) return json({error: 'This image could not be analyzed'}, result?.error?.code === 3 ? 400 : 502);
-      if (contextScan) return json(photoClues(result));
       return json({landmarks: detections(result.landmarkAnnotations), labels: detections(result.labelAnnotations)});
     } catch {
       return json({error: 'Recognition or translation is temporarily unavailable'}, 503);

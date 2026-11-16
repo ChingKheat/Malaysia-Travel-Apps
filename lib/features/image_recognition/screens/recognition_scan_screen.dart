@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
-import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
+import 'package:smart_travel_planner/features/image_recognition/widgets/visual_scan_style.dart';
 
 typedef ScanOutcome = ({RecognitionResult? result, String? error});
 
@@ -68,7 +68,7 @@ class _RecognitionScanScreenState extends State<RecognitionScanScreen>
     } catch (_) {
       _finish((
         result: null,
-        error: 'Image recognition is temporarily unavailable. Try a sample.',
+        error: 'Image recognition is temporarily unavailable. Try again later.',
       ));
     }
   }
@@ -90,11 +90,10 @@ class _RecognitionScanScreenState extends State<RecognitionScanScreen>
   Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
     value: SystemUiOverlayStyle.light.copyWith(
       statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: VisualScanStyle.surface,
     ),
     child: Scaffold(
-      backgroundColor: AppColors.ink,
+      backgroundColor: Colors.black,
       body: Column(
         children: [
           Expanded(
@@ -126,14 +125,14 @@ class _RecognitionScanScreenState extends State<RecognitionScanScreen>
             ),
           ),
           Material(
-            color: Colors.white,
+            color: VisualScanStyle.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
             child: SafeArea(
               top: false,
               minimum: const EdgeInsets.fromLTRB(20, 14, 14, 14),
               child: Row(
                 children: [
-                  const Icon(Icons.auto_awesome, color: AppColors.primary),
+                  const Icon(Icons.auto_awesome, color: VisualScanStyle.amber),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Semantics(
@@ -141,7 +140,7 @@ class _RecognitionScanScreenState extends State<RecognitionScanScreen>
                       child: Text(
                         context.l10n.scanningPhoto,
                         style: const TextStyle(
-                          color: AppColors.ink,
+                          color: VisualScanStyle.text,
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                         ),
@@ -149,6 +148,10 @@ class _RecognitionScanScreenState extends State<RecognitionScanScreen>
                     ),
                   ),
                   IconButton.filledTonal(
+                    style: IconButton.styleFrom(
+                      backgroundColor: VisualScanStyle.navigation,
+                      foregroundColor: VisualScanStyle.text,
+                    ),
                     tooltip: context.l10n.cancelRecognition,
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
