@@ -16,10 +16,7 @@ class AssistantWeatherCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFFF3F4FD),
-            AppColors.sky.withValues(alpha: 0.8),
-          ],
+          colors: [AppColors.nightRaised, AppColors.sky.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -134,7 +131,7 @@ class AssistantWeatherCard extends StatelessWidget {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.nightSurface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.2),

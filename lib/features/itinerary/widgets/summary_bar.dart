@@ -15,7 +15,7 @@ class SummaryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: cardDecoration(const Color(0xFFEFF7FF)),
+      decoration: cardDecoration(AppColors.nightRaised),
       child: Row(
         children: [
           Expanded(

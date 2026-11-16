@@ -11,12 +11,30 @@ class GoogleRouteService {
   String? lastError;
   Future<RouteInfo> fetchRoute(List<Attraction> stops) async {
     if (stops.length < 2) return estimate(stops);
+    final route = await fetchRoadRoute(
+      stops.take(5).map((stop) => stop.point).toList(),
+      mode: 'Driving',
+    );
+    lastError = route == null
+        ? 'Google route unavailable. Showing a distance estimate.'
+        : null;
+    return route ?? estimate(stops);
+  }
+
+  Future<RouteInfo?> fetchRoadRoute(
+    List<LatLng> points, {
+    required String mode,
+  }) async {
+    if (points.length < 2 ||
+        points.length > 5 ||
+        (mode != 'Walking' && mode != 'Driving')) {
+      return null;
+    }
     try {
-      final selected = stops.take(5).toList();
       final response = await _service.requestOperation({
         'operation': 'route',
-        'mode': 'Driving',
-        'points': selected
+        'mode': mode,
+        'points': points
             .map((s) => {'latitude': s.latitude, 'longitude': s.longitude})
             .toList(),
       });
@@ -25,27 +43,30 @@ class GoogleRouteService {
           (jsonDecode(response!.body) as Map)['routes'] as List? ?? [];
       if (routes.isEmpty) throw StateError('No route');
       final route = routes.first as Map;
-      final points = decodePolyline(
+      final geometry = decodePolyline(
         (route['polyline'] as Map?)?['encodedPolyline'] as String? ?? '',
       );
       final seconds = double.tryParse(
         '${route['duration']}'.replaceAll('s', ''),
       );
-      if (points.length < 2 ||
+      final meters = route['distanceMeters'] as num?;
+      if (geometry.length < 2 ||
           seconds == null ||
-          route['distanceMeters'] is! num) {
+          !seconds.isFinite ||
+          seconds < 0 ||
+          meters == null ||
+          !meters.isFinite ||
+          meters < 0) {
         throw StateError('Invalid route');
       }
-      lastError = null;
       return RouteInfo(
-        points: points,
-        distanceKm: (route['distanceMeters'] as num) / 1000,
+        points: geometry,
+        distanceKm: meters / 1000,
         durationMinutes: seconds / 60,
         isFallback: false,
       );
     } catch (_) {
-      lastError = 'Google route unavailable. Showing a distance estimate.';
-      return estimate(stops);
+      return null;
     }
   }
 

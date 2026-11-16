@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/features/itinerary/services/day_route_service.dart';
+import 'package:smart_travel_planner/features/itinerary/widgets/day_route_map.dart';
 import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +40,8 @@ class ItineraryPage extends StatefulWidget {
 class _ItineraryPageState extends State<ItineraryPage> {
   int _selectedTripIndex = 0;
   int _selectedDay = 0;
+  final _dayRouteAnchor = GlobalKey();
+  final _dayRoutes = DayRouteService();
   List<SavedTrip> _dbSavedTrips = [];
   List<Itinerary> _rawDbItineraries = [];
   WeatherForecast? _currentDayForecast;
@@ -286,7 +290,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.nightSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -359,7 +363,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
                             border: Border.all(
                               color: isSelected
                                   ? AppColors.primary
-                                  : const Color(0xFFE6E9F4),
+                                  : AppColors.nightLine,
                               width: isSelected ? 1.8 : 1,
                             ),
                           ),
@@ -412,12 +416,12 @@ class _ItineraryPageState extends State<ItineraryPage> {
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.primary
-                                      : Colors.white,
+                                      : AppColors.nightSurface,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isSelected
                                         ? AppColors.primary
-                                        : const Color(0xFFE6E9F4),
+                                        : AppColors.nightLine,
                                   ),
                                 ),
                                 child: Text(
@@ -787,7 +791,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
               label: Text(context.l10n.planYourTrip),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.onNightAccent,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -836,9 +840,9 @@ class _ItineraryPageState extends State<ItineraryPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.nightSurface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE6E9F4), width: 1.5),
+              border: Border.all(color: AppColors.nightLine, width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
@@ -1011,34 +1015,83 @@ class _ItineraryPageState extends State<ItineraryPage> {
         const SizedBox(height: 10),
         _buildDayIntelligenceBanner(stops),
         const SizedBox(height: 16),
-        if (stops.isNotEmpty &&
-            stops.every((stop) => stop.time.contains(' - ')))
-          OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => TodayPlanPage(
-                  storageKey:
-                      '$_tripKey:$_selectedDay:${_dateForDay(_selectedDay).toIso8601String()}',
-                  stops: stops,
-                  date: _dateForDay(_selectedDay),
-                  preferences: _preferences,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (stops.isNotEmpty &&
+                    stops.every((stop) => stop.time.contains(' - ')))
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => TodayPlanPage(
+                          storageKey:
+                              '$_tripKey:$_selectedDay:${_dateForDay(_selectedDay).toIso8601String()}',
+                          stops: stops,
+                          date: _dateForDay(_selectedDay),
+                          preferences: _preferences,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Today’s Plan'),
+                  ),
+                TextButton.icon(
+                  onPressed: () {
+                    final target = _dayRouteAnchor.currentContext;
+                    if (target != null) {
+                      Scrollable.ensureVisible(
+                        target,
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 350),
+                        curve: Curves.easeOutCubic,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.route_outlined),
+                  label: const Text('View Route'),
+                ),
+              ],
+            ),
+
+            // Daily Stops List for Selected Day
+            ...stops.map(
+              (stop) => StopCard(
+                stop: stop,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PlaceDetailPage(
+                      stop: stop,
+                      visitDate: _dateForDay(_selectedDay),
+                    ),
+                  ),
                 ),
               ),
             ),
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Today’s Plan'),
-          ),
-
-        // Daily Stops List for Selected Day
-        ...stops.map(
-          (stop) => StopCard(
-            stop: stop,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => PlaceDetailPage(stop: stop)),
+            const SizedBox(height: 12),
+            KeyedSubtree(
+              key: _dayRouteAnchor,
+              child: DayRouteMap(
+                key: ValueKey((
+                  _tripKey,
+                  _selectedDay,
+                  _preferences.travelMode,
+                  stops
+                      .map((stop) => '${stop.latitude},${stop.longitude}')
+                      .join(';'),
+                )),
+                stops: stops,
+                mode: _preferences.travelMode ?? 'Driving',
+                service: _dayRoutes,
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
+          ],
         ),
-        const SizedBox(height: 12),
         SummaryBar(stops: stops),
         TextButton.icon(
           onPressed: _isRegenerating ? null : _regenerate,
@@ -1245,9 +1298,9 @@ class _ItineraryPageState extends State<ItineraryPage> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.nightLine),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -1416,12 +1469,14 @@ class DayPill extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: active ? Theme.of(context).colorScheme.primary : Colors.white,
+          color: active
+              ? Theme.of(context).colorScheme.primary
+              : AppColors.nightSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: active
                 ? Theme.of(context).colorScheme.primary
-                : const Color(0xFFE6E9F4),
+                : AppColors.nightLine,
             width: 1.4,
           ),
           boxShadow: active
@@ -1441,7 +1496,7 @@ class DayPill extends StatelessWidget {
             context.tr(label),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: active ? Colors.white : const Color(0xFF151A3A),
+              color: active ? AppColors.onNightAccent : AppColors.nightBody,
               fontWeight: FontWeight.w800,
               fontSize: 13.5,
             ),

@@ -132,7 +132,7 @@ class MapPin extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.nightSurface,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(

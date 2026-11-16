@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/community/community_page.dart';
@@ -37,7 +38,13 @@ class _HomePageState extends State<HomePage> {
   String get _searchQuery => _searchController.text.trim();
   String _selectedCategory = 'All';
 
-  static const _categories = ['All', 'Heritage', 'Skyline', 'Culture', 'Sacred'];
+  static const _categories = [
+    'All',
+    'Heritage',
+    'Skyline',
+    'Culture',
+    'Sacred',
+  ];
 
   @override
   void initState() {
@@ -103,7 +110,8 @@ class _HomePageState extends State<HomePage> {
         final q = _searchQuery.toLowerCase();
         final matchName = attraction.name.toLowerCase().contains(q);
         final matchCat = attraction.category.toLowerCase().contains(q);
-        final matchDesc = attraction.description?.toLowerCase().contains(q) ?? false;
+        final matchDesc =
+            attraction.description?.toLowerCase().contains(q) ?? false;
         if (!matchName && !matchCat && !matchDesc) return false;
       }
 
@@ -151,7 +159,7 @@ class _HomePageState extends State<HomePage> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1A1B20),
+      backgroundColor: AppColors.nightSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -190,7 +198,7 @@ class _HomePageState extends State<HomePage> {
                 const Text(
                   'CURATED CITY GUIDE · FEATURED STORY',
                   style: TextStyle(
-                    color: Color(0xFFE5A95C),
+                    color: AppColors.nightAccent,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
@@ -211,7 +219,7 @@ class _HomePageState extends State<HomePage> {
                   'Kuala Lumpur’s story unfolds along the confluence of the Klang and Gombak rivers. What began as a 19th-century tin-mining outpost has blossomed into one of Southeast Asia’s most captivating metropolises.\n\n'
                   'From Moorish copper domes and Art Deco market halls to the soaring twin spires of steel and glass, every district tells a tale of vibrant convergence. Wander Petaling Street at dawn for kaya toast and kopi tarik, marvel at the sacred rainbow steps of Batu Caves, and finish your night watching the musical fountains dance under the illuminated skyline of KLCC.',
                   style: TextStyle(
-                    color: Color(0xFFC7CBD6),
+                    color: AppColors.nightBody,
                     fontSize: 14,
                     height: 1.5,
                   ),
@@ -223,8 +231,8 @@ class _HomePageState extends State<HomePage> {
                     widget.onPlanTap();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE5A95C),
-                    foregroundColor: const Color(0xFF141518),
+                    backgroundColor: AppColors.nightAccent,
+                    foregroundColor: AppColors.onNightAccent,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -247,7 +255,7 @@ class _HomePageState extends State<HomePage> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1A1B20),
+      backgroundColor: AppColors.nightSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -286,7 +294,7 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   post.tag,
                   style: const TextStyle(
-                    color: Color(0xFFE5A95C),
+                    color: AppColors.nightAccent,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -303,28 +311,46 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.person_pin, color: Colors.white70, size: 16),
+                    const Icon(
+                      Icons.person_pin,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Shared by ${post.author}',
                       style: const TextStyle(
-                        color: Color(0xFF8F93A0),
+                        color: AppColors.nightMuted,
                         fontSize: 12.5,
                       ),
                     ),
                     const Spacer(),
-                    Icon(Icons.favorite_rounded, color: Colors.pink.shade300, size: 16),
+                    Icon(
+                      Icons.favorite_rounded,
+                      color: Colors.pink.shade300,
+                      size: 16,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${post.likes}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white70, size: 16),
+                    const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${post.comments}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -332,7 +358,7 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   post.content,
                   style: const TextStyle(
-                    color: Color(0xFFD2D5DD),
+                    color: AppColors.nightBody,
                     fontSize: 14,
                     height: 1.5,
                   ),
@@ -351,8 +377,8 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.forum_outlined, size: 18),
                   label: const Text('View All Community Stories'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE5A95C),
-                    foregroundColor: const Color(0xFF141518),
+                    backgroundColor: AppColors.nightAccent,
+                    foregroundColor: AppColors.onNightAccent,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -443,8 +469,7 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 20),
 
-        if (upcomingTrip == null)
-          _EmptyTripCard(onPlanTap: widget.onPlanTap),
+        if (upcomingTrip == null) _EmptyTripCard(onPlanTap: widget.onPlanTap),
       ],
     );
   }
@@ -473,7 +498,7 @@ class HeroPanel extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 285),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF282A33), width: 1.2),
+            border: Border.all(color: AppColors.nightLine, width: 1.2),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.4),
@@ -493,7 +518,7 @@ class HeroPanel extends StatelessWidget {
                     'assets/recognition/petronas.jpg',
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => Container(
-                      color: const Color(0xFF1E2028),
+                      color: AppColors.nightRaised,
                       child: const Center(
                         child: Icon(
                           Icons.location_city,
@@ -538,7 +563,7 @@ class HeroPanel extends StatelessWidget {
                             Text(
                               context.l10n.smartTravelPlanning2,
                               style: const TextStyle(
-                                color: Color(0xFFE5A95C),
+                                color: AppColors.nightAccent,
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.2,
@@ -548,7 +573,7 @@ class HeroPanel extends StatelessWidget {
                             const Text(
                               '· 6 Landmarks',
                               style: TextStyle(
-                                color: Color(0xFFE5A95C),
+                                color: AppColors.nightAccent,
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -573,7 +598,7 @@ class HeroPanel extends StatelessWidget {
                       const Text(
                         'Moorish brick domes, Art Deco craft halls, and twin steel spires along the Klang valley.',
                         style: TextStyle(
-                          color: Color(0xFFD2D5DD),
+                          color: AppColors.nightBody,
                           fontSize: 13,
                           height: 1.4,
                         ),
@@ -590,7 +615,7 @@ class HeroPanel extends StatelessWidget {
                                 onPressed: onFeaturedTap ?? onSearchTap,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF141518),
+                                  foregroundColor: AppColors.onNightAccent,
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -613,7 +638,10 @@ class HeroPanel extends StatelessWidget {
                                         ),
                                       ),
                                       SizedBox(width: 4),
-                                      Icon(Icons.arrow_outward_rounded, size: 16),
+                                      Icon(
+                                        Icons.arrow_outward_rounded,
+                                        size: 16,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -628,8 +656,8 @@ class HeroPanel extends StatelessWidget {
                               child: ElevatedButton(
                                 onPressed: onAssistantTap ?? onSearchTap,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE5A95C),
-                                  foregroundColor: const Color(0xFF141518),
+                                  backgroundColor: AppColors.nightAccent,
+                                  foregroundColor: AppColors.onNightAccent,
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -647,7 +675,7 @@ class HeroPanel extends StatelessWidget {
                                       Icon(
                                         Icons.auto_awesome,
                                         size: 15,
-                                        color: Color(0xFF141518),
+                                        color: AppColors.onNightAccent,
                                       ),
                                       SizedBox(width: 6),
                                       Text(
@@ -675,27 +703,24 @@ class HeroPanel extends StatelessWidget {
         const SizedBox(height: 16),
         // Search bar matching the dark screenshot styling
         Material(
-          color: const Color(0xFF1A1B20),
+          color: AppColors.nightSurface,
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: onSearchTap,
             child: Container(
               constraints: const BoxConstraints(minHeight: 48),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1B20),
+                color: AppColors.nightSurface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF282A33), width: 1.2),
+                border: Border.all(color: AppColors.nightLine, width: 1.2),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.search_rounded,
-                    color: Color(0xFF757A88),
+                    color: AppColors.nightMuted,
                     size: 22,
                   ),
                   const SizedBox(width: 10),
@@ -703,7 +728,7 @@ class HeroPanel extends StatelessWidget {
                     child: Text(
                       context.l10n.whereToNext,
                       style: const TextStyle(
-                        color: Color(0xFF757A88),
+                        color: AppColors.nightMuted,
                         fontSize: 14,
                       ),
                     ),
@@ -752,13 +777,13 @@ class _CategoryFilterChips extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFFE5A95C)
-                        : const Color(0xFF1A1B20),
+                        ? AppColors.nightAccent
+                        : AppColors.nightSurface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFFE5A95C)
-                          : const Color(0xFF282A33),
+                          ? AppColors.nightAccent
+                          : AppColors.nightLine,
                       width: 1.2,
                     ),
                   ),
@@ -766,10 +791,12 @@ class _CategoryFilterChips extends StatelessWidget {
                     cat,
                     style: TextStyle(
                       color: isSelected
-                          ? const Color(0xFF141518)
-                          : const Color(0xFF8F93A0),
+                          ? AppColors.nightSurface
+                          : AppColors.nightMuted,
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                     ),
                   ),
                 ),
@@ -875,7 +902,7 @@ class _CommunitySection extends StatelessWidget {
                     Text(
                       'Open Community',
                       style: TextStyle(
-                        color: Color(0xFFE5A95C),
+                        color: AppColors.nightAccent,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -884,7 +911,7 @@ class _CommunitySection extends StatelessWidget {
                     Icon(
                       Icons.arrow_forward_rounded,
                       size: 15,
-                      color: Color(0xFFE5A95C),
+                      color: AppColors.nightAccent,
                     ),
                   ],
                 ),
@@ -914,10 +941,7 @@ class _CommunitySection extends StatelessWidget {
 }
 
 class _CommunityPostCard extends StatelessWidget {
-  const _CommunityPostCard({
-    required this.post,
-    required this.onTap,
-  });
+  const _CommunityPostCard({required this.post, required this.onTap});
 
   final _CommunityItem post;
   final VoidCallback onTap;
@@ -931,9 +955,9 @@ class _CommunityPostCard extends StatelessWidget {
         width: 215,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1B20),
+          color: AppColors.nightSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF282A33), width: 1.2),
+          border: Border.all(color: AppColors.nightLine, width: 1.2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -944,7 +968,7 @@ class _CommunityPostCard extends StatelessWidget {
                 post.asset,
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(
-                  color: const Color(0xFF22242D),
+                  color: AppColors.nightRaised,
                   child: const Center(
                     child: Icon(Icons.photo, color: Colors.white24, size: 32),
                   ),
@@ -962,7 +986,7 @@ class _CommunityPostCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Color(0xFFE5A95C),
+                      color: AppColors.nightAccent,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
@@ -988,7 +1012,7 @@ class _CommunityPostCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Color(0xFF8F93A0),
+                            color: AppColors.nightMuted,
                             fontSize: 11,
                           ),
                         ),
@@ -996,13 +1020,13 @@ class _CommunityPostCard extends StatelessWidget {
                       const Icon(
                         Icons.favorite_border_rounded,
                         size: 13,
-                        color: Color(0xFF8F93A0),
+                        color: AppColors.nightMuted,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         '${post.likes}',
                         style: const TextStyle(
-                          color: Color(0xFF8F93A0),
+                          color: AppColors.nightMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -1010,13 +1034,13 @@ class _CommunityPostCard extends StatelessWidget {
                       const Icon(
                         Icons.chat_bubble_outline_rounded,
                         size: 13,
-                        color: Color(0xFF8F93A0),
+                        color: AppColors.nightMuted,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         '${post.comments}',
                         style: const TextStyle(
-                          color: Color(0xFF8F93A0),
+                          color: AppColors.nightMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -1042,12 +1066,12 @@ class _SavedPlacesInspectorBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E284A), Color(0xFF2A3B6E)],
+          colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF3B4E8C), width: 1.2),
+        border: Border.all(color: AppColors.nightLine, width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -1090,8 +1114,8 @@ class _SavedPlacesInspectorBanner extends StatelessWidget {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE5A95C),
-              foregroundColor: const Color(0xFF141518),
+              backgroundColor: AppColors.nightAccent,
+              foregroundColor: AppColors.onNightAccent,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -1114,9 +1138,9 @@ class _MyTripsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1B20),
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF282A33), width: 1.2),
+        border: Border.all(color: AppColors.nightLine, width: 1.2),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1132,12 +1156,12 @@ class _MyTripsCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5A95C).withValues(alpha: 0.14),
+                    color: AppColors.nightAccent.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(
                     Icons.folder_open_outlined,
-                    color: Color(0xFFE5A95C),
+                    color: AppColors.nightAccent,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -1157,7 +1181,7 @@ class _MyTripsCard extends StatelessWidget {
                       Text(
                         context.l10n.viewSavedItinerariesAndYourCurrentPlan,
                         style: const TextStyle(
-                          color: Color(0xFF8F93A0),
+                          color: AppColors.nightMuted,
                           fontSize: 13,
                           height: 1.4,
                         ),
@@ -1166,7 +1190,7 @@ class _MyTripsCard extends StatelessWidget {
                       Text(
                         context.l10n.viewAll,
                         style: const TextStyle(
-                          color: Color(0xFFE5A95C),
+                          color: AppColors.nightAccent,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1175,7 +1199,7 @@ class _MyTripsCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: Color(0xFFE5A95C)),
+                const Icon(Icons.chevron_right, color: AppColors.nightAccent),
               ],
             ),
           ),
@@ -1198,9 +1222,9 @@ class _EmptyTripCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1B20),
+          color: AppColors.nightSurface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFF282A33), width: 1.2),
+          border: Border.all(color: AppColors.nightLine, width: 1.2),
         ),
         child: Row(
           children: [
@@ -1209,11 +1233,11 @@ class _EmptyTripCard extends StatelessWidget {
               height: 58,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: const Color(0xFFE5A95C).withValues(alpha: 0.12),
+                color: AppColors.nightAccent.withValues(alpha: 0.12),
               ),
               child: const Icon(
                 Icons.add_location_alt_outlined,
-                color: Color(0xFFE5A95C),
+                color: AppColors.nightAccent,
                 size: 28,
               ),
             ),
@@ -1234,7 +1258,7 @@ class _EmptyTripCard extends StatelessWidget {
                   Text(
                     context.l10n.tapToPlanYourSmartSchedule,
                     style: const TextStyle(
-                      color: Color(0xFF8F93A0),
+                      color: AppColors.nightMuted,
                       fontSize: 13,
                     ),
                   ),
@@ -1244,7 +1268,7 @@ class _EmptyTripCard extends StatelessWidget {
             const Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Color(0xFF8F93A0),
+              color: AppColors.nightMuted,
             ),
           ],
         ),

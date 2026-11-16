@@ -162,7 +162,7 @@ class AssistantPlaceCard extends StatelessWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.line),
         boxShadow: const [

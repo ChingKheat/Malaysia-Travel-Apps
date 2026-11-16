@@ -774,10 +774,10 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDone ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
+          color: isDone ? const Color(0xFFBBF7D0) : AppColors.nightLine,
           width: 1.5,
         ),
         boxShadow: [
@@ -849,7 +849,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: Color(0xFF0F172A),
+                                    color: AppColors.nightBody,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -937,7 +937,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                               context.tr(_syncSubStatusText),
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF64748B),
+                                color: AppColors.nightMuted,
                               ),
                             ),
                           ],
@@ -961,7 +961,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     builder: (context, value, _) => LinearProgressIndicator(
                       value: value > 0 ? value : (_isLoading ? null : 0.0),
                       minHeight: 8,
-                      backgroundColor: const Color(0xFFF1F5F9),
+                      backgroundColor: AppColors.nightRaised,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isDone
                             ? const Color(0xFF16A34A)
@@ -984,11 +984,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: AppColors.nightCanvas,
                 border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
+                  top: BorderSide(color: AppColors.nightLine),
                   bottom: _showTerminalLogs
-                      ? BorderSide(color: Colors.grey.shade200)
+                      ? BorderSide(color: AppColors.nightLine)
                       : BorderSide.none,
                 ),
                 borderRadius: _showTerminalLogs
@@ -1003,7 +1003,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       const Icon(
                         Icons.terminal,
                         size: 15,
-                        color: Color(0xFF64748B),
+                        color: AppColors.nightMuted,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -1015,7 +1015,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
+                          color: AppColors.nightMuted,
                         ),
                       ),
                     ],
@@ -1025,7 +1025,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
                     size: 18,
-                    color: const Color(0xFF64748B),
+                    color: AppColors.nightMuted,
                   ),
                 ],
               ),
@@ -1037,7 +1037,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: const BoxDecoration(
-                color: Color(0xFF0F172A),
+                color: AppColors.nightBody,
                 borderRadius: BorderRadius.vertical(
                   bottom: Radius.circular(16),
                 ),
@@ -1083,7 +1083,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FD),
+      backgroundColor: AppColors.nightCanvas,
       appBar: AppBar(
         title: Row(
           children: [
@@ -1095,7 +1095,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.nightSurface,
         elevation: 0,
       ),
       body: ListView(
@@ -1334,15 +1334,15 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     context
                         .l10n
                         .toAllowSavingPlacesRunThis1LineCommandInYourSupabaseSqlEditor,
-                    style: TextStyle(fontSize: 11, color: Colors.black87),
+                    style: TextStyle(fontSize: 11, color: AppColors.nightMuted),
                   ),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.nightSurface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppColors.nightLine),
                     ),
                     child: Row(
                       children: [
@@ -1415,15 +1415,18 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         .placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE(
                           (_selectedState).toString(),
                         ),
-                    style: const TextStyle(fontSize: 11, color: Colors.black87),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.nightMuted,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.nightSurface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppColors.nightLine),
                     ),
                     child: Row(
                       children: [
@@ -1619,7 +1622,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                 ),
               ),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFEEF2FF),
+                backgroundColor: AppColors.nightAccentContainer,
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

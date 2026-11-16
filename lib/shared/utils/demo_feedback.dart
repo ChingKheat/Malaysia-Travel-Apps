@@ -15,7 +15,11 @@ void showDemoSnackBar(BuildContext context, String message, {IconData? icon}) {
         content: Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, color: Colors.white, size: 20),
+              Icon(
+                icon,
+                color: Theme.of(context).colorScheme.onInverseSurface,
+                size: 20,
+              ),
               const SizedBox(width: 10),
             ],
             Expanded(child: Text(context.tr(message))),
@@ -124,7 +128,7 @@ Future<void> runDemoLoadingAction(
 ButtonStyle primaryFilledButtonStyle() {
   return FilledButton.styleFrom(
     backgroundColor: AppColors.primary,
-    foregroundColor: Colors.white,
+    foregroundColor: AppColors.onNightAccent,
     minimumSize: const Size.fromHeight(52),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     textStyle: const TextStyle(fontWeight: FontWeight.w800),

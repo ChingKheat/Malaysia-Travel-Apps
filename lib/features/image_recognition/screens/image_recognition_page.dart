@@ -80,7 +80,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.nightSurface,
       constraints: const BoxConstraints(maxWidth: 560),
       builder: (_) => RecognitionResultSheet(
         result: result,
@@ -204,7 +204,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     final clear = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.nightSurface,
         title: Text(
           context.l10n.clearScanHistory,
           style: TextStyle(color: AppColors.ink),
@@ -288,7 +288,9 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   Icon(
                     icon,
                     size: 15,
-                    color: _tab == index ? Colors.white : AppColors.muted,
+                    color: _tab == index
+                        ? AppColors.onNightAccent
+                        : AppColors.muted,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -296,7 +298,9 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: _tab == index ? Colors.white : AppColors.muted,
+                      color: _tab == index
+                          ? AppColors.onNightAccent
+                          : AppColors.muted,
                     ),
                   ),
                 ],
@@ -438,7 +442,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.onNightAccent,
                   minimumSize: const Size(0, 54),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -466,8 +470,8 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   textAlign: TextAlign.center,
                 ),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primaryDark,
+                  backgroundColor: AppColors.nightSurface,
+                  foregroundColor: AppColors.primary,
                   minimumSize: const Size(0, 54),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -535,10 +539,12 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                 label: Text(context.tr(entry.value)),
                 selected: _filter == entry.key,
                 selectedColor: AppColors.primary,
-                backgroundColor: Colors.white,
-                checkmarkColor: Colors.white,
+                backgroundColor: AppColors.nightSurface,
+                checkmarkColor: AppColors.onNightAccent,
                 labelStyle: TextStyle(
-                  color: _filter == entry.key ? Colors.white : AppColors.ink,
+                  color: _filter == entry.key
+                      ? AppColors.onNightAccent
+                      : AppColors.ink,
                 ),
                 onSelected: (_) => setState(() => _filter = entry.key),
               ),
@@ -549,7 +555,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: Material(
-              color: Colors.white,
+              color: AppColors.nightSurface,
               borderRadius: BorderRadius.circular(18),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -664,7 +670,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                 onPressed: () => setState(() => _tab = 0),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.onNightAccent,
                 ),
                 child: Text(context.l10n.goToScanner),
               ),
@@ -682,7 +688,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                 '${MaterialLocalizations.of(context).formatShortDate(date)} · '
                 '${TimeOfDay.fromDateTime(date).format(context)}';
             return Material(
-              color: Colors.white,
+              color: AppColors.nightSurface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
                 side: const BorderSide(color: AppColors.line),
@@ -758,7 +764,7 @@ class _PhotoTip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: AppColors.nightSurface,
       border: Border.all(color: AppColors.line),
       borderRadius: BorderRadius.circular(16),
     ),
@@ -784,7 +790,7 @@ class _PhotoTip extends StatelessWidget {
               Text(
                 category,
                 style: const TextStyle(
-                  color: AppColors.primaryDark,
+                  color: AppColors.primary,
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.6,

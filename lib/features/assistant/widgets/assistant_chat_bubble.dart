@@ -15,7 +15,9 @@ class AssistantChatBubble extends StatelessWidget {
   final ValueChanged<String>? onSelectChip;
 
   String _formatTime(DateTime time) {
-    final hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
+    final hour = time.hour > 12
+        ? time.hour - 12
+        : (time.hour == 0 ? 12 : time.hour);
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
@@ -56,7 +58,7 @@ class AssistantChatBubble extends StatelessWidget {
             child: Text(
               message.text,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.nightSurface,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
                 height: 1.4,
@@ -90,7 +92,7 @@ class AssistantChatBubble extends StatelessWidget {
             margin: const EdgeInsets.only(top: 2),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.primary, Color(0xFF8675F7)],
+                colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -103,7 +105,11 @@ class AssistantChatBubble extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 17),
+            child: const Icon(
+              Icons.smart_toy_rounded,
+              color: Colors.white,
+              size: 17,
+            ),
           ),
           const SizedBox(width: 10),
           // Response Content
@@ -112,9 +118,12 @@ class AssistantChatBubble extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.nightSurface,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(4),
                       topRight: Radius.circular(18),
@@ -146,7 +155,9 @@ class AssistantChatBubble extends StatelessWidget {
                         AssistantWeatherCard(alert: message.weatherAlert!),
                       // Place suggestion cards if present
                       if (message.places.isNotEmpty)
-                        ...message.places.map((place) => AssistantPlaceCard(place: place)),
+                        ...message.places.map(
+                          (place) => AssistantPlaceCard(place: place),
+                        ),
                     ],
                   ),
                 ),
@@ -175,12 +186,17 @@ class AssistantChatBubble extends StatelessWidget {
                             color: AppColors.primary,
                           ),
                         ),
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25)),
+                        backgroundColor: AppColors.nightSurface,
+                        side: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         onPressed: () => onSelectChip?.call(chip),
                       );
                     }).toList(),

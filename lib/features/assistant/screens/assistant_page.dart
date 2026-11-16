@@ -221,7 +221,7 @@ class _AssistantPageState extends State<AssistantPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AppColors.nightSurface,
             border: Border(
               bottom: BorderSide(color: AppColors.line, width: 0.8),
             ),
@@ -331,7 +331,7 @@ class _AssistantPageState extends State<AssistantPage> {
         // Quick Suggestion Chips Carousel
         Container(
           height: 44,
-          color: const Color(0xFFF9FAFD),
+          color: AppColors.nightCanvas,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             scrollDirection: Axis.horizontal,
@@ -348,7 +348,7 @@ class _AssistantPageState extends State<AssistantPage> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.nightSurface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: AppColors.line),
                     boxShadow: const [
@@ -378,7 +378,7 @@ class _AssistantPageState extends State<AssistantPage> {
         // Chat Messages Stream
         Expanded(
           child: Container(
-            color: const Color(0xFFF9FAFD),
+            color: AppColors.nightCanvas,
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -401,7 +401,7 @@ class _AssistantPageState extends State<AssistantPage> {
         Container(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AppColors.nightSurface,
             border: Border(top: BorderSide(color: AppColors.line, width: 0.8)),
           ),
           child: SafeArea(
@@ -429,7 +429,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F8),
+                      color: AppColors.nightRaised,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: AppColors.line),
                     ),
@@ -462,7 +462,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   icon: const Icon(
                     Icons.arrow_upward_rounded,
                     size: 20,
-                    color: Colors.white,
+                    color: AppColors.onNightAccent,
                   ),
                   tooltip: context.l10n.sendPrompt,
                   style: IconButton.styleFrom(

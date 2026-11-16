@@ -143,7 +143,7 @@ class AttractionListScreen extends StatelessWidget {
                     ),
                     child: const Icon(
                       Icons.local_fire_department_rounded,
-                      color: Colors.white,
+                      color: AppColors.nightSurface,
                       size: 18,
                     ),
                   ),
@@ -278,9 +278,9 @@ class AttractionListScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: AppColors.nightRaised,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AppColors.nightLine),
           ),
           child: Text(
             context.l10n.valueSpots((attractions.length).toString()),
@@ -430,7 +430,7 @@ class HighlightAttractionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1E293B).withValues(alpha: 0.12),
+            color: AppColors.nightBody.withValues(alpha: 0.12),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -592,7 +592,7 @@ class HighlightAttractionCard extends StatelessWidget {
                             ? Icons.bookmark_rounded
                             : Icons.bookmark_border_rounded,
                         size: 18,
-                        color: Colors.white,
+                        color: AppColors.nightSurface,
                       ),
                     ),
                   ),
@@ -707,7 +707,7 @@ class ModernAttractionCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: selected ? AppColors.primary : const Color(0xFFE8ECF4),
@@ -717,7 +717,7 @@ class ModernAttractionCard extends StatelessWidget {
           BoxShadow(
             color: selected
                 ? AppColors.primary.withValues(alpha: 0.16)
-                : const Color(0xFF1E293B).withValues(alpha: 0.06),
+                : AppColors.nightBody.withValues(alpha: 0.06),
             blurRadius: selected ? 16 : 12,
             offset: const Offset(0, 5),
           ),
@@ -873,7 +873,7 @@ class ModernAttractionCard extends StatelessWidget {
                                   ? Icons.bookmark_rounded
                                   : Icons.bookmark_border_rounded,
                               size: 20,
-                              color: Colors.white,
+                              color: AppColors.nightSurface,
                             ),
                           ),
                         ),

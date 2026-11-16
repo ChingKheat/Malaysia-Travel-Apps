@@ -43,12 +43,17 @@ class SmartTravelApp extends StatelessWidget {
           theme: ThemeData(
             useMaterial3: true,
             fontFamily: 'Roboto',
-            scaffoldBackgroundColor: const Color(0xFFF7F8FD),
+            scaffoldBackgroundColor: AppColors.canvas,
             colorScheme: ColorScheme.fromSeed(
               seedColor: AppColors.primary,
+              brightness: Brightness.dark,
               primary: AppColors.primary,
+              onPrimary: AppColors.onNightAccent,
               secondary: AppColors.teal,
-              surface: Colors.white,
+              surface: AppColors.nightSurface,
+              onSurface: AppColors.nightBody,
+              onSurfaceVariant: AppColors.nightMuted,
+              outline: AppColors.nightLine,
             ),
             filledButtonTheme: FilledButtonThemeData(
               style: primaryFilledButtonStyle(),

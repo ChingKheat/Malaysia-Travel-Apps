@@ -326,7 +326,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.nightSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -672,7 +672,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.nightSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -724,7 +724,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       return ListTile(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade200),
+                          side: BorderSide(color: AppColors.nightLine),
                         ),
                         leading: CircleAvatar(
                           backgroundColor: isIndoor
@@ -959,14 +959,14 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.nightCanvas,
       appBar: AppBar(
         title: Text(
           context.l10n.editDayValueSchedule((widget.dayNumber).toString()),
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.nightSurface,
         foregroundColor: AppColors.ink,
         actions: [
           Padding(
@@ -979,7 +979,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       height: 14,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColors.nightSurface,
                       ),
                     )
                   : const Icon(Icons.check, size: 18),
@@ -1000,7 +1000,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
           // Intelligence & Metrics Banner
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.white,
+            color: AppColors.nightSurface,
             child: Column(
               children: [
                 Row(
@@ -1070,7 +1070,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const Divider(height: 1, color: AppColors.nightLine),
 
           if (hasSameDayDuplicate)
             Container(
@@ -1128,12 +1128,12 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.nightSurface,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: hasLocalDuplicate
                           ? const Color(0xFFF59E0B)
-                          : const Color(0xFFE2E8F0),
+                          : AppColors.nightLine,
                       width: hasLocalDuplicate ? 1.5 : 1,
                     ),
                     boxShadow: [
@@ -1152,12 +1152,12 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: AppColors.nightRaised,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
                             Icons.drag_indicator,
-                            color: Color(0xFF64748B),
+                            color: AppColors.nightMuted,
                             size: 20,
                           ),
                         ),
@@ -1376,8 +1376,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+          color: AppColors.nightSurface,
+          border: const Border(top: BorderSide(color: AppColors.nightLine)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),

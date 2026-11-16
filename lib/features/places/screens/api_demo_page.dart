@@ -582,7 +582,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.nightSurface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.16),
@@ -715,12 +715,12 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   Widget _buildSearchBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _searchQuery.isNotEmpty
               ? AppColors.primary
-              : const Color(0xFFE2E8F0),
+              : AppColors.nightLine,
           width: 1.2,
         ),
         boxShadow: [
@@ -800,7 +800,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                   color: active ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: active ? AppColors.primary : const Color(0xFFE2E8F0),
+                    color: active ? AppColors.primary : AppColors.nightLine,
                     width: 1.2,
                   ),
                   boxShadow: active
@@ -878,7 +878,7 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(28),
           topRight: Radius.circular(28),
@@ -1237,7 +1237,7 @@ class _SavedPlacesView extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [AppColors.primary, Color(0xFF1E40AF)],
+              colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -1325,7 +1325,7 @@ class _SavedPlacesView extends StatelessWidget {
                       icon: const Icon(Icons.add, size: 16),
                       label: Text(context.l10n.addMore),
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppColors.nightSurface,
                         foregroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(

@@ -27,9 +27,9 @@ class TripCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: isDark
             ? BoxDecoration(
-                color: const Color(0xFF1A1B20),
+                color: AppColors.nightSurface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF282A33), width: 1.2),
+                border: Border.all(color: AppColors.nightLine, width: 1.2),
               )
             : cardDecoration(),
         child: Row(
@@ -41,10 +41,16 @@ class TripCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 gradient: isDark
                     ? const LinearGradient(
-                        colors: [Color(0xFFDCA456), Color(0xFFB8782E)],
+                        colors: [
+                          AppColors.nightHeroEnd,
+                          AppColors.nightHeroStart,
+                        ],
                       )
                     : const LinearGradient(
-                        colors: [Color(0xFF93C5FD), Color(0xFF6652E8)],
+                        colors: [
+                          AppColors.nightHeroStart,
+                          AppColors.nightHeroEnd,
+                        ],
                       ),
               ),
               child: const Icon(
@@ -70,14 +76,14 @@ class TripCard extends StatelessWidget {
                   Text(
                     context.tripDate(trip),
                     style: TextStyle(
-                      color: isDark ? const Color(0xFF8F93A0) : AppColors.muted,
+                      color: isDark ? AppColors.nightMuted : AppColors.muted,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     context.tr(trip.detail),
                     style: TextStyle(
-                      color: isDark ? const Color(0xFFE5A95C) : AppColors.primary,
+                      color: isDark ? AppColors.nightAccent : AppColors.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -86,7 +92,7 @@ class TripCard extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right,
-              color: isDark ? const Color(0xFFE5A95C) : AppColors.muted,
+              color: isDark ? AppColors.nightAccent : AppColors.muted,
             ),
           ],
         ),
@@ -113,7 +119,7 @@ class SavedTripCard extends StatelessWidget {
           children: [
             const CircleAvatar(
               radius: 28,
-              backgroundColor: Color(0xFFEAF3FF),
+              backgroundColor: AppColors.sky,
               child: Icon(Icons.card_travel, color: AppColors.primary),
             ),
             const SizedBox(width: 12),

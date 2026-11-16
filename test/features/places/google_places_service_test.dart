@@ -231,6 +231,12 @@ void main() {
     (tester) async {
       final places = service((_) async {
         final data = fixture()..remove('photos');
+        data['regularOpeningHours'] = {
+          'weekdayDescriptions': [
+            'Monday: 10:00 AM - 6:00 PM',
+            'Tuesday: 10:00 AM - 6:00 PM',
+          ],
+        };
         return http.Response(
           jsonEncode(data),
           200,
@@ -245,6 +251,7 @@ void main() {
               'time': '09:00 AM - 10:30 AM',
               'duration': '90 min',
             }),
+            visitDate: DateTime(2026, 11, 17),
             placesService: places,
           ),
         ),
@@ -253,10 +260,13 @@ void main() {
       expect(find.text('Address from Google'), findsOneWidget);
       expect(find.text('Rating unavailable'), findsNothing);
       expect(find.text('09:00 AM - 10:30 AM'), findsOneWidget);
-      await tester.drag(find.byType(ListView), const Offset(0, -400));
-      await tester.pumpAndSettle();
       expect(find.text('4.2'), findsOneWidget);
-      expect(find.text('0'), findsOneWidget);
+      expect(find.text('0 reviews'), findsOneWidget);
+      expect(find.text('Tuesday: 10:00 AM - 6:00 PM'), findsOneWidget);
+      expect(find.text('Monday: 10:00 AM - 6:00 PM'), findsNothing);
+      await tester.tap(find.text('Opening hours'));
+      await tester.pumpAndSettle();
+      expect(find.text('Monday: 10:00 AM - 6:00 PM'), findsOneWidget);
     },
   );
   testWidgets(

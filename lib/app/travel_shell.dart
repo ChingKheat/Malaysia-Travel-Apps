@@ -57,10 +57,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
     if (!AuthService().isLoggedIn && mounted) {
       final targetScreen = !OnboardingService.instance.isCompleted
           ? const OnboardingSetupScreen()
-          : const AuthScreen(
-              initialTabIndex: 0,
-              showLanguageSelector: false,
-            );
+          : const AuthScreen(initialTabIndex: 0, showLanguageSelector: false);
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => targetScreen),
         (route) => false,
@@ -84,7 +81,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   }
 
   static const _tabTitles = [
-    null, // Home: automatically shows Hello, <UserName>!
+    null,
     'Explore Malaysia',
     'Image Recognition',
     'Plan Your Trip',
@@ -92,7 +89,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   ];
 
   static const _tabSubtitles = [
-    null, // Home: automatically shows Where would you like to explore today?
+    null,
     'Discover attractions & places',
     'Identify Malaysian landmarks and local dishes',
     'Tell us your preferences',
@@ -144,28 +141,18 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
       MyTripsScreen(onBackTap: _closeMyTrips, onPlanTap: () => _goToTab(3)),
     ];
 
-    final isDarkShell =
-        (_selectedIndex == 0 || _selectedIndex == 1) && !_myTripsOpen;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDarkShell
-          ? SystemUiOverlayStyle.light.copyWith(
-              statusBarColor: Colors.transparent,
-              systemNavigationBarColor: const Color(0xFF141518),
-            )
-          : SystemUiOverlayStyle.dark.copyWith(
-              statusBarColor: Colors.transparent,
-              systemNavigationBarColor: Colors.white,
-            ),
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: AppColors.nightSurface,
+      ),
       child: PopScope(
         canPop: !_myTripsOpen,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop && _myTripsOpen) _closeMyTrips();
         },
         child: Scaffold(
-          backgroundColor: isDarkShell
-              ? const Color(0xFF121214)
-              : Theme.of(context).scaffoldBackgroundColor,
+          backgroundColor: AppColors.nightCanvas,
           body: SafeArea(
             bottom: false,
             child: Column(
@@ -175,38 +162,35 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                     child: _selectedIndex == 2
-                        ? Align(
-                            alignment: Alignment.centerLeft,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.l10n.imageRecognition,
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppColors.ink,
-                                  ),
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                context.l10n.imageRecognition,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.ink,
                                 ),
-                                SizedBox(height: 4),
-                                Text(
-                                  context
-                                      .l10n
-                                      .identifyMalaysianLandmarksAndLocalDishes,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.muted,
-                                  ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                context
+                                    .l10n
+                                    .identifyMalaysianLandmarksAndLocalDishes,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.muted,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           )
                         : AppHeader(
                             title: _tabTitles[_selectedIndex],
                             subtitle: _selectedIndex == 1
                                 ? 'Kuala Lumpur · Community'
                                 : _tabSubtitles[_selectedIndex],
-                            isDark: _selectedIndex == 1,
+                            isDark: true,
                           ),
                   ),
                 ),
@@ -224,7 +208,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
               : TravelBottomNavigation(
                   selectedIndex: _selectedIndex,
                   onSelected: _goToTab,
-                  isDark: isDarkShell,
+                  isDark: true,
                 ),
         ),
       ),
@@ -254,8 +238,8 @@ class TravelBottomNavigation extends StatelessWidget {
       IconData? selectedIcon,
     }) {
       final selected = selectedIndex == index;
-      final activeColor = isDark ? const Color(0xFFE5A95C) : AppColors.primary;
-      final inactiveColor = isDark ? const Color(0xFF757A88) : AppColors.muted;
+      final activeColor = isDark ? AppColors.nightAccent : AppColors.primary;
+      final inactiveColor = isDark ? AppColors.nightMuted : AppColors.muted;
 
       return Expanded(
         child: Padding(
@@ -324,10 +308,10 @@ class TravelBottomNavigation extends StatelessWidget {
             top: 18,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF141518) : Colors.white,
+                color: isDark ? AppColors.nightSurface : Colors.white,
                 border: Border(
                   top: BorderSide(
-                    color: isDark ? const Color(0xFF24262E) : AppColors.line,
+                    color: isDark ? AppColors.nightLine : AppColors.line,
                   ),
                 ),
               ),
@@ -421,17 +405,15 @@ class _ScanDestination extends StatelessWidget {
                   height: 42,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? (selected
-                            ? const Color(0xFFC98E45)
-                            : const Color(0xFFE5A95C))
+                        ? AppColors.nightAccent
                         : (selected
-                            ? AppColors.primaryDark
-                            : AppColors.primary),
+                              ? AppColors.primaryDark
+                              : AppColors.primary),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     Icons.center_focus_strong_rounded,
-                    color: isDark ? const Color(0xFF141518) : Colors.white,
+                    color: isDark ? AppColors.nightSurface : Colors.white,
                     size: 26,
                   ),
                 ),
@@ -444,11 +426,11 @@ class _ScanDestination extends StatelessWidget {
                       style: TextStyle(
                         color: isDark
                             ? (selected
-                                ? const Color(0xFFE5A95C)
-                                : const Color(0xFFB0B4C0))
+                                  ? AppColors.nightAccent
+                                  : AppColors.nightMuted)
                             : (selected
-                                ? AppColors.primaryDark
-                                : AppColors.ink),
+                                  ? AppColors.primaryDark
+                                  : AppColors.ink),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),

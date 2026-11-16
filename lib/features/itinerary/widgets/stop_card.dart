@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
+import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
+import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
+import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/shared/widgets/demo_tap.dart';
 
@@ -29,7 +32,17 @@ class StopCard extends StatelessWidget {
                 color: stop.color.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: stop.primaryPhotoUrl != null
+              child: stop.isGooglePlace && stop.placeId != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: _GoogleStopThumbnail(
+                        key: ValueKey(stop.placeId),
+                        placeId: stop.placeId!,
+                        photo: stop.googleDetails?.photos.firstOrNull,
+                        fallback: Icon(stop.icon, color: stop.color, size: 28),
+                      ),
+                    )
+                  : stop.primaryPhotoUrl != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(14),
                       child: Image.network(
@@ -131,6 +144,50 @@ class StopCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _GoogleStopThumbnail extends StatefulWidget {
+  const _GoogleStopThumbnail({
+    super.key,
+    required this.placeId,
+    required this.photo,
+    required this.fallback,
+  });
+
+  final String placeId;
+  final GooglePlacePhoto? photo;
+  final Widget fallback;
+
+  @override
+  State<_GoogleStopThumbnail> createState() => _GoogleStopThumbnailState();
+}
+
+class _GoogleStopThumbnailState extends State<_GoogleStopThumbnail> {
+  final _service = GooglePlacesService();
+  late final Future<GooglePlaceDetails?>? _details = widget.photo == null
+      ? _service.fetchDetails(widget.placeId, basic: true)
+      : null;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<GooglePlaceDetails?>(
+      future: _details,
+      builder: (context, snapshot) {
+        final photo = widget.photo ?? snapshot.data?.photos.firstOrNull;
+        if (photo == null) return widget.fallback;
+        return GooglePlaceImage(
+          placeId: widget.placeId,
+          photo: photo,
+          service: _service,
+          requestWidth: 160,
+          compactAttribution: true,
+          autoLoad: true,
+          fill: true,
+          fallback: widget.fallback,
+        );
+      },
     );
   }
 }

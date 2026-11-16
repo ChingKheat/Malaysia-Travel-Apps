@@ -5,12 +5,12 @@ description: >-
   /commit or @commit. Fetches origin, checks whether teammates pushed commits
   or merged into main, commits local changes on the working branch, safely
   merges latest updates and resolves conflicts, verifies Flutter checks/tests,
-  and pushes both the working branch and main.
+  and pushes the working branch (with safe, confirmed integration into main).
 ---
 
 # Smart Commit, Teammate Sync & Main Push
 
-Run this workflow when the user triggers `/commit`, `@commit`, or asks to commit their work, check teammate pushes/merges, bring their branch up to date, and push to `main`.
+Run this workflow when the user triggers `/commit`, `@commit`, or asks to commit their work, check teammate pushes/merges, bring their branch up to date, and optionally push to `main`.
 
 ## Step 1: Fetch Origin & Check Teammate / Main Status
 
@@ -22,7 +22,10 @@ git branch --show-current
 git status -uall --short
 ```
 
-Inspect what changed remotely compared to the current branch (`<branch>`) and `origin/main`:
+1. **Verify Current Branch:**
+   - If `git branch --show-current` is empty (detached HEAD), **STOP immediately** and ask the user to checkout a valid branch before proceeding.
+
+2. **Inspect Remote Updates (`HEAD` vs `origin/main`):**
 
 ```powershell
 git rev-list --left-right --count HEAD...origin/main
@@ -30,53 +33,78 @@ git log --oneline --decorate HEAD..origin/main
 git for-each-ref --format="%(refname:short) | %(committerdate:iso8601) | %(authorname)" refs/remotes/origin
 ```
 
-For every teammate remote branch (any `origin/<other>` besides `origin/HEAD`, `origin/main`, and `origin/<branch>`), check if it has unmerged commits ahead of `origin/main`:
+3. **Check Teammate Remote Branches with Squash-PR Awareness:**
+   - For every teammate remote branch (any `origin/<other>` besides `origin/HEAD`, `origin/main`, and `origin/<branch>`):
+   - **Do NOT rely solely on commit hashes** (`git log origin/main..<remote_branch>`), because if a teammate's PR was merged via **Squash and merge** or **Rebase and merge**, Git commit hashes differ and will trigger a false alarm!
+   - Use three-dot diff to check if there are actual code differences between `origin/main` and the teammate branch:
+
+```powershell
+git diff --stat origin/main...<remote_branch>
+```
+
+   - **If the three-dot diff is empty:** The teammate's changes have already been merged into `main` (via PR squash/rebase). Report it as up-to-date and merged.
+   - **If the three-dot diff has changes:** The teammate branch has unmerged work in progress (WIP). Check commit history:
 
 ```powershell
 git log --oneline origin/main..<remote_branch>
-git diff --stat origin/main..<remote_branch>
 ```
-
-Check whether any files changed in `HEAD..origin/main` or `origin/main..<remote_branch>` overlap with the user's locally modified/untracked files.
 
 ### Report Findings Clearly
 
 Before modifying git history, summarize for the user:
 1. **Current branch & local changes:** branch name, count of modified/untracked files.
-2. **`origin/main` status:** whether teammates already merged commits into `main` (`HEAD..origin/main` commits), or if `origin/main` has no new commits.
-3. **Teammate & all branch status:** check whether **all branch commits** (including teammate branches like `origin/YH` and local feature branches) are merged correctly into `main`. Report clearly if every branch is up to date and merged into `main`, or list any unmerged commits (with commit hash, author, date, summary, and overlapping files).
-
-If an **unmerged** teammate branch has commits ahead of `origin/main` (especially if files overlap), or if anything is ambiguous or confusing, **STOP and ask the user** before proceeding:
-- Option A: Sync with `origin/main` only (keep teammate's unmerged WIP separate).
-- Option B: Merge `origin/<teammate>` as well so everything is combined before pushing to `main`.
-
-If `HEAD..origin/main` has commits (already merged to `main`) and no unmerged teammate branches need confirmation, proceed automatically through the steps below.
+2. **`origin/main` status:** whether `origin/main` has new commits ahead of local `HEAD`, or if it is up to date.
+3. **Teammate branch status:** whether teammate branches (e.g. `origin/YH`) are already merged into `main`, or have unmerged WIP.
+4. **Team Safety Rule on Teammate Branches:**
+   - **Default action:** Sync with `origin/main` only. **NEVER** merge a teammate's WIP branch into `<branch>` or `main` unless the teammate or user explicitly requests integrating that specific branch. Teammates may have experimental or unfinished work on their branch.
 
 ---
 
 ## Step 2: Pre-Commit Cleanup, Safety & Workspace Rules Check
 
-Before staging files, inspect the working tree (`git status -uall --short`) and top-level repository folders to catch both **unrelated/stray folders** and **files that must not be committed**:
+Before staging files, inspect `git status -uall --short` and top-level repository folders:
 
 1. **Check for unrelated or stray folders/files:**
    - Scan modified, untracked, and top-level folders (such as `tmp/`, `temp/`, `scratch/`, `logs/`, `out/`, unexpected exports, or leftover test/script directories that do not belong to `lib/`, `test/`, `assets/`, `docs/`, `tool/`, `supabase/`, `.agents/`, or standard Flutter platform folders).
-   - Check for whitespace/line-ending-only modified files (`git diff --stat` vs `git diff -w --stat` showing zero real diff).
-   - **Cleanup action:**
-     - **Safe auto-cleanup:** Delete empty leftover scratch folders (e.g. empty `tmp/`), obvious temp/OS junk (`.DS_Store`, `Thumbs.db`), and restore tracked files with zero real diff (`git checkout -- <file>`) — report each removed/restored item.
-     - **Ask before deleting non-empty folders:** If a non-empty folder looks unrelated or ambiguous (for example, contains files you did not inspect or might be experimental work), list the folder path and files and **ask the user for confirmation before deleting** it (or exclude it from staging if they want to keep it locally).
-2. **No secrets or temp files:** Confirm no `.env`, `supabase/functions/.env*`, private keys, keystores, or debug logs (`*.log`) are included in the commit.
-3. **All required new files are included:** Do not forget untracked directories needed for build/tests (e.g. `lib/l10n/`, new services/widgets, `test/` files).
-4. **Database schema sync (`AGENTS.md` / `GEMINI.md`):** If database tables, columns, RLS policies, triggers, views, buckets, or Supabase Edge Functions changed, verify `docs/supabase_schema.sql` is updated and remains idempotent.
-5. **Stay off `main` for initial commit:** If currently on `main` with uncommitted work, create or switch to the user's working branch (or ask) unless the user explicitly asked to commit directly on `main`.
+   - **Safe auto-cleanup:** Delete empty leftover scratch folders (e.g. empty `tmp/`) and obvious temp/OS junk (`.DS_Store`, `Thumbs.db`).
+   - **Ask before deleting non-empty folders:** If a non-empty folder looks unrelated or ambiguous, list the folder path and files and **ask the user before deleting** it.
+   - **Windows Line Endings:** On Windows, avoid repeatedly reverting line endings (`CRLF` vs `LF`) with `git checkout -- <file>` if Git autocrlf marks it dirty again. Only discard files that have genuinely zero whitespace diff (`git diff -w --stat` is empty).
+
+2. **No secrets or temp files:**
+   - Confirm no `.env`, `supabase/functions/.env*`, private keys, keystores, or debug logs (`*.log`) are staged or committed.
+
+3. **All required new files are included:**
+   - Do not forget untracked files required for tests/builds (e.g. `lib/`, `assets/`, `test/`).
+
+4. **CRITICAL: Database Schema Sync & Disaster Recovery Check (`AGENTS.md` / `GEMINI.md`):**
+   - Check if database tables, columns, constraints, RLS policies, triggers, views, or Supabase Edge Functions were modified:
+
+```powershell
+git diff --name-only HEAD | Select-String -Pattern "supabase|models|services"
+```
+
+   - If database structures were altered, **verify that `docs/supabase_schema.sql` is also updated** and all DDL statements remain idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `ON CONFLICT DO NOTHING`). If missing, update `docs/supabase_schema.sql` before committing!
+
+5. **Branch Check:**
+   - If currently on `main` with uncommitted feature work, prompt the user to create or switch to a working feature branch (e.g. `CK`), unless the user explicitly intended to commit directly on `main`.
 
 ---
 
 ## Step 3: Commit Local Work on the Working Branch
 
-1. Stage the verified files:
-   - Stage intended modified and untracked files (never blind-stage ignored/secret files).
-2. Inspect `git diff --cached --stat` and write a concise Conventional Commit message (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`) matching the repository's history and accurately describing the staged changes.
-3. Commit on `<branch>`:
+1. **Check if Working Tree Has Changes:**
+
+```powershell
+git status --porcelain
+```
+
+   - **If working tree is clean:** Skip staging and commit creation! Report: *"Working tree clean; skipping commit and proceeding to sync and verification."*
+   - **If working tree has changes:**
+     - Stage intended verified files (never blind-stage secrets or `.env` files).
+     - Inspect `git diff --cached --stat`.
+     - Write a concise Conventional Commit message (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`) accurately describing the changes.
+     - **PowerShell Safe Execution:** Escape any special characters (like `$`, `` ` ``, `"`) in commit messages to prevent PowerShell variable evaluation.
+     - Commit on `<branch>`:
 
 ```powershell
 git commit -m "<subject>" -m "<optional bullet body>"
@@ -86,78 +114,104 @@ git commit -m "<subject>" -m "<optional bullet body>"
 
 ## Step 4: Merge Latest Updates & Resolve Conflicts
 
-1. Merge `origin/main` into `<branch>`:
+1. **Merge `origin/main` into `<branch>` (if `origin/main` has new commits):**
 
 ```powershell
 git merge origin/main --no-edit
 ```
 
-2. If the user approved integrating an unmerged teammate branch (e.g. `origin/YH`), merge it now:
+2. **Conflict Resolution Rules & Safe Exit:**
+   - **Stop and ask user on conflict:** If any merge conflict occurs, **DO NOT guess or auto-resolve**. **STOP immediately** and present:
+     - Conflicted files list (`git diff --name-only --diff-filter=U`).
+     - Specific conflicting code snippets.
+     - **Safe Abort Option:** Explicitly inform the user that they can run `git merge --abort` anytime to return safely to the pre-merge state.
+   - **Never** run `git checkout --ours` or `--theirs` blindly on shared code.
+   - Once conflicts are resolved with user agreement, stage the resolved files and finish the merge (`git commit --no-edit`).
+
+3. **Dependency Change Detection:**
+   - Check if the merge updated dependencies:
 
 ```powershell
-git merge origin/<teammate> --no-edit
+git diff --name-only HEAD@{1} HEAD | Select-String -Pattern "pubspec"
 ```
 
-3. **Conflict Resolution Rules:**
-   - **Stop and ask user on conflict:** If any merge conflict occurs, or if any step is confusing or ambiguous, **DO NOT guess or auto-resolve**. **STOP immediately** and ask the user how to proceed, clearly showing the conflicted files and the conflicting regions.
-   - **Never** run `git checkout --ours` or `--theirs` blindly on shared code files.
-   - When the user directs how to resolve the conflicts (or asks to review together), inspect every conflicted file (`git diff --name-only --diff-filter=U`) and verify that neither local features nor teammate changes are accidentally lost.
-   - After resolving conflict markers with user agreement, stage the resolved files and complete the merge commit (`git commit --no-edit`).
+   - If `pubspec.yaml` or `pubspec.lock` was modified by the merge, run `flutter pub get` immediately before running static analysis or tests.
 
 ---
 
 ## Step 5: Verify Build, Static Analysis & Tests
 
-After all merges and conflict resolutions are finished, run verification before pushing to `main`:
+After merges and conflict resolutions are finished, run verification:
 
 ```powershell
 flutter analyze --no-pub
 flutter test --no-pub
 ```
 
-- If `flutter analyze` has errors or tests fail:
-  - Investigate and fix any analyzer errors or test failures introduced by the merge or your local changes, then re-run `flutter analyze --no-pub` and `flutter test --no-pub`.
-  - **Do NOT push broken code to `main`.**
-  - However, if `flutter analyze --no-pub` passes cleanly and **all failures are strictly pre-existing unrelated or live-backend environment failures** (verified unchanged from before your changes/merge), proceed with pushing `<branch>` and `main` so the workflow completes in one pass, and clearly list those pre-existing failures in the final report.
+*(Note: If `pubspec.yaml` was updated in Step 4, omit `--no-pub` so new dependencies resolve cleanly).*
+
+- **Strict Test Quality Guardrail:**
+  - `flutter analyze` must pass with zero errors.
+  - If tests fail:
+    - Check if the failures were caused by the current changes or merge.
+    - **Never assume test failures are "pre-existing" without proof.**
+    - If any test fails, STOP and report the exact test failures to the user. Do NOT push broken code to `main`.
 
 ---
 
-## Step 6: Push Working Branch & Update `main`
+## Step 6: Push Working Branch & Safe Integration Options
 
-1. Push the updated working branch first:
+1. **Always Push the Working Branch First:**
 
 ```powershell
 git push origin <branch>
 ```
 
-2. Update local `main`, merge `<branch>`, and push `main`:
+2. **Integration into `main`:**
+   - **Case A: Current branch `<branch>` IS `main`:**
+     - The working branch is already `main`. Pushing `origin main` completes the push. No merge step needed.
+   - **Case B: Current branch `<branch>` is a feature branch (e.g. `CK`):**
+     - **Default Safe Workflow:** The developer's work is now safely backed up on `origin/<branch>`.
+     - **Check User Intent for `main`:**
+       - If the user only asked to `/commit` (save iterative work): **Stop here.** Keep `main` clean and protected. Report that `<branch>` has been pushed and ask if they would like to merge to `main`.
+       - If the user explicitly requested merging to `main` (e.g. "commit and push to main", or user confirms merge):
+         Execute the safe integration sequence:
 
 ```powershell
 git checkout main
 git pull --ff-only origin main
-git merge <branch> --no-edit
-git push origin main
 ```
 
-3. Switch back to `<branch>` so the user remains on their working branch:
+   - **Divergence Guard:** If `git pull --ff-only origin main` fails (local `main` diverged from remote), **STOP**, return immediately to `<branch>` (`git checkout <branch>`), and alert the user so local `main` can be safely realigned without risking data loss.
+   - If fast-forward pull succeeds, merge and push `main`:
 
 ```powershell
+git merge <branch> --no-edit
+git push origin main
 git checkout <branch>
 ```
 
-4. **If `origin/main` rejects direct push** (for example, GitHub branch protection requiring a Pull Request):
+3. **If `origin/main` rejects direct push (Branch Protection):**
    - Keep `<branch>` pushed on `origin`.
-   - Switch back to `<branch>`.
-   - If `gh` CLI is installed and authenticated, offer/create a PR; otherwise report the exact GitHub Pull Request / compare URL (`https://github.com/<owner>/<repo>/compare/main...<branch>`).
+   - Ensure the user is back on `<branch>` (`git checkout <branch>`).
+   - If `gh` CLI is installed, offer to create a Pull Request; otherwise provide the GitHub compare/PR link:
+     `https://github.com/<owner>/<repo>/compare/main...<branch>`
 
-5. **Final verification & bilingual report:** Run `git status` and `git log --graph --oneline --decorate -n 8 --all`, then present a clear report in **both simple English and Chinese (简体中文)** containing:
-   - **Conflict status:** Clearly state whether any merge conflicts happened (or "No conflicts"), which files conflicted, and how each conflict was resolved.
-   - **What was done (simple explanation):** Plain-language summary of teammate/main check, any unrelated folders/files removed or restored, the commit hash & message on `<branch>`, and push status for `<branch>` and `main`.
-   - **How it was done:** Short step-by-step explanation of the git merge/cleanup/conflict-resolution and verification (`flutter analyze` / `flutter test` exact results).
-   - **中文翻译 / Chinese Translation:** Full Simplified Chinese translation of the conflict status, what was done, how it was done, test results, and push status.
+4. **Final Status & Bilingual Report:**
+   - Run `git status` and `git log --graph --oneline --decorate -n 6 HEAD`.
+   - Present a clear report in **both simple English and Simplified Chinese (简体中文)** containing:
+     - **Conflict status:** "No conflicts" or list of resolved files.
+     - **What was done:** Plain-language summary of branch status, commits created, and push status.
+     - **Verification results:** Exact `flutter analyze` and `flutter test` outcomes.
+     - **Main integration status:** Whether changes remain on `<branch>` or were integrated into `main`.
+     - **中文翻译 / Chinese Translation:** Complete Simplified Chinese version of the report.
+
+---
 
 ## Guardrails
 
 - **Never** run `git push --force` or `git push --force-with-lease` on `main` or shared branches.
-- **Never** discard uncommitted work (`git reset --hard`, `git clean -fd`) or delete non-empty ambiguous folders without explicit user confirmation.
-- **Never** skip reporting unmerged teammate commits or removed/excluded unrelated folders.
+- **Never** discard uncommitted work (`git reset --hard`, `git clean -fd`) or delete non-empty folders without explicit user confirmation.
+- **Never** merge teammate WIP branches into `main` without explicit teammate/user authorization.
+- **Never** leave the repository stuck in an unhandled `MERGING` state without offering `git merge --abort`.
+- **Never** push to `main` if `flutter analyze` has errors or newly introduced test failures occur.

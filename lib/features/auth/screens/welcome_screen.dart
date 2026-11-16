@@ -95,7 +95,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF080B1E),
+      backgroundColor: AppColors.nightCanvas,
       body: SizedBox.expand(
         child: Stack(
           fit: StackFit.expand,
@@ -110,7 +110,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   return Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF1E1B4B), Color(0xFF0F172A)],
+                        colors: [AppColors.nightRaised, AppColors.nightCanvas],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -128,9 +128,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.black.withValues(alpha: 0.15),
-                      const Color(0xFF080B1E).withValues(alpha: 0.5),
-                      const Color(0xFF080B1E).withValues(alpha: 0.85),
-                      const Color(0xFF080B1E),
+                      AppColors.nightCanvas.withValues(alpha: 0.5),
+                      AppColors.nightCanvas.withValues(alpha: 0.85),
+                      AppColors.nightCanvas,
                     ],
                     stops: const [0.0, 0.4, 0.7, 1.0],
                   ),
@@ -254,17 +254,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                             ),
                                             gradient: const LinearGradient(
                                               colors: [
-                                                Color(0xFF7C3AED), // Violet
-                                                Color(0xFF4F46E5), // Indigo
+                                                AppColors.nightHeroStart,
+                                                AppColors.nightHeroEnd,
                                               ],
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                             ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: const Color(
-                                                  0xFF6366F1,
-                                                ).withValues(alpha: 0.4),
+                                                color: AppColors.nightAccent
+                                                    .withValues(alpha: 0.4),
                                                 blurRadius: 16,
                                                 offset: const Offset(0, 6),
                                               ),
@@ -455,7 +454,7 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(28),
           topRight: Radius.circular(28),

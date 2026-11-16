@@ -100,7 +100,7 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
         appBar: AppBar(
           title: Text(context.l10n.savedPlacesInspector),
           backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.onNightAccent,
           elevation: 0,
           bottom: TabBar(
             labelColor: Colors.white,
@@ -157,7 +157,7 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                         onPressed: _isLoading ? null : _fetchPlacesFromApi,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColors.onNightAccent,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 14,
@@ -188,28 +188,32 @@ class _ApiRetrievalScreenState extends State<ApiRetrievalScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: [
-                        'Kuala Lumpur',
-                        'Penang',
-                        'Melaka',
-                        'Johor',
-                        'Sabah',
-                      ].map((city) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ActionChip(
-                            avatar: const Icon(Icons.place_outlined, size: 14),
-                            label: Text(city),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: _isLoading
-                                ? null
-                                : () {
-                                    _cityController.text = city;
-                                    _fetchPlacesFromApi();
-                                  },
-                          ),
-                        );
-                      }).toList(),
+                      children:
+                          [
+                            'Kuala Lumpur',
+                            'Penang',
+                            'Melaka',
+                            'Johor',
+                            'Sabah',
+                          ].map((city) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ActionChip(
+                                avatar: const Icon(
+                                  Icons.place_outlined,
+                                  size: 14,
+                                ),
+                                label: Text(city),
+                                visualDensity: VisualDensity.compact,
+                                onPressed: _isLoading
+                                    ? null
+                                    : () {
+                                        _cityController.text = city;
+                                        _fetchPlacesFromApi();
+                                      },
+                              ),
+                            );
+                          }).toList(),
                     ),
                   ),
                   const SizedBox(height: 12),

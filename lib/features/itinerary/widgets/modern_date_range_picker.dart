@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -5,26 +6,22 @@ import 'package:intl/intl.dart';
 class ModernDatePickerColors {
   const ModernDatePickerColors._();
 
-  static const Color background = Color(0xFFFAFAF7);
-  static const Color surface = Colors.white;
-  static const Color primaryNavy = Color(0xFF0F172A);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color textDisabled = Color(0xFFCBD5E1);
-  static const Color borderSubtle = Color(0xFFE2E8F0);
-  static const Color tealPrimary = Color(0xFF0F766E);
-  static const Color tealLight = Color(0xFFE6F5F2);
-  static const Color tealAccent = Color(0xFF0D9488);
-  static const Color buttonDark = Color(0xFF131D31);
-  static const Color buttonDisabled = Color(0xFFE2E8F0);
+  static const Color background = AppColors.nightCanvas;
+  static const Color surface = AppColors.nightSurface;
+  static const Color primaryNavy = AppColors.nightBody;
+  static const Color textMuted = AppColors.nightMuted;
+  static const Color textDisabled = AppColors.nightLine;
+  static const Color borderSubtle = AppColors.nightLine;
+  static const Color tealPrimary = AppColors.nightAccent;
+  static const Color tealLight = AppColors.nightAccentContainer;
+  static const Color tealAccent = AppColors.nightAccent;
+  static const Color buttonDark = AppColors.primaryDark;
+  static const Color buttonDisabled = AppColors.nightLine;
   static const Color cardShadow = Color(0x0A0F172A);
 }
 
 /// Active field selection focus for the start/end date cards.
-enum _ActiveDateField {
-  start,
-  end,
-  none,
-}
+enum _ActiveDateField { start, end, none }
 
 /// Localized copy dictionary for the Date Range Picker supporting English,
 /// Chinese (Simplified), and Malay (Bahasa Melayu).
@@ -131,7 +128,8 @@ class _PickerStrings {
         selectYourDates: 'Pilih tarikh perjalanan anda',
         confirmTravelDates: confirmButtonText ?? 'Sahkan tarikh perjalanan',
         selectTravelDates: 'Pilih tarikh perjalanan',
-        subtext: subtext ?? 'Anda boleh menukar tarikh anda pada bila-bila masa.',
+        subtext:
+            subtext ?? 'Anda boleh menukar tarikh anda pada bila-bila masa.',
         weekdays: const ['I', 'S', 'R', 'K', 'J', 'S', 'A'],
         languageCode: languageCode,
       );
@@ -215,14 +213,17 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
   DateTime? _endDate;
   _ActiveDateField _activeField = _ActiveDateField.start;
 
-  static DateTime _normalize(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+  static DateTime _normalize(DateTime dt) =>
+      DateTime(dt.year, dt.month, dt.day);
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _firstDate = _normalize(widget.firstDate ?? now);
-    _lastDate = _normalize(widget.lastDate ?? now.add(const Duration(days: 365 * 2)));
+    _lastDate = _normalize(
+      widget.lastDate ?? now.add(const Duration(days: 365 * 2)),
+    );
 
     if (widget.initialDateRange != null) {
       _startDate = _normalize(widget.initialDateRange!.start);
@@ -265,7 +266,11 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
   void _onPreviousMonth() {
     if (_canGoPreviousMonth) {
       setState(() {
-        _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+        _focusedMonth = DateTime(
+          _focusedMonth.year,
+          _focusedMonth.month - 1,
+          1,
+        );
       });
     }
   }
@@ -273,7 +278,11 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
   void _onNextMonth() {
     if (_canGoNextMonth) {
       setState(() {
-        _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+        _focusedMonth = DateTime(
+          _focusedMonth.year,
+          _focusedMonth.month + 1,
+          1,
+        );
       });
     }
   }
@@ -337,7 +346,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
 
   void _onConfirm() {
     if (_isRangeComplete && widget.onDateRangeSelected != null) {
-      widget.onDateRangeSelected!(DateTimeRange(start: _startDate!, end: _endDate!));
+      widget.onDateRangeSelected!(
+        DateTimeRange(start: _startDate!, end: _endDate!),
+      );
     }
   }
 
@@ -361,7 +372,10 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -450,7 +464,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: widget.onCancel ?? () => Navigator.of(context).maybePop(),
+                    onTap:
+                        widget.onCancel ??
+                        () => Navigator.of(context).maybePop(),
                     borderRadius: BorderRadius.circular(18),
                     child: Container(
                       width: 32,
@@ -458,7 +474,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
                       decoration: BoxDecoration(
                         color: ModernDatePickerColors.surface,
                         shape: BoxShape.circle,
-                        border: Border.all(color: ModernDatePickerColors.borderSubtle),
+                        border: Border.all(
+                          color: ModernDatePickerColors.borderSubtle,
+                        ),
                       ),
                       child: const Icon(
                         Icons.close_rounded,
@@ -560,8 +578,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
     required VoidCallback onTap,
   }) {
     final locale = Localizations.localeOf(context).toString();
-    final formattedDate =
-        date != null ? DateFormat.yMMMd(locale).format(date) : placeholder;
+    final formattedDate = date != null
+        ? DateFormat.yMMMd(locale).format(date)
+        : placeholder;
 
     return Semantics(
       button: true,
@@ -754,7 +773,11 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
     final year = _focusedMonth.year;
     final month = _focusedMonth.month;
     final daysInMonth = DateTime(year, month + 1, 0).day;
-    final firstWeekday = DateTime(year, month, 1).weekday; // 1 = Monday, 7 = Sunday
+    final firstWeekday = DateTime(
+      year,
+      month,
+      1,
+    ).weekday; // 1 = Monday, 7 = Sunday
     final leadingBlanks = firstWeekday - 1;
 
     final totalSlots = leadingBlanks + daysInMonth;
@@ -797,18 +820,23 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
   }) {
     final normalized = _normalize(date);
     final nowNormalized = _normalize(DateTime.now());
-    final isPast = normalized.isBefore(_firstDate) || normalized.isAfter(_lastDate);
+    final isPast =
+        normalized.isBefore(_firstDate) || normalized.isAfter(_lastDate);
     final isToday = _isSameDay(normalized, nowNormalized);
 
     final isStart = _startDate != null && _isSameDay(normalized, _startDate!);
     final isEnd = _endDate != null && _isSameDay(normalized, _endDate!);
-    final isInRange = _startDate != null &&
+    final isInRange =
+        _startDate != null &&
         _endDate != null &&
         normalized.isAfter(_startDate!) &&
         normalized.isBefore(_endDate!);
 
     final isSingleDaySelection = isStart && isEnd;
-    final hasRange = _startDate != null && _endDate != null && !_isSameDay(_startDate!, _endDate!);
+    final hasRange =
+        _startDate != null &&
+        _endDate != null &&
+        !_isSameDay(_startDate!, _endDate!);
 
     // Range Ribbon Styling
     Widget ribbon = const SizedBox();
@@ -858,7 +886,7 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
     Color textColor;
     FontWeight fontWeight;
     if (isStart || isEnd) {
-      textColor = Colors.white;
+      textColor = AppColors.onNightAccent;
       fontWeight = FontWeight.w700;
     } else if (isPast) {
       textColor = ModernDatePickerColors.textDisabled;
@@ -876,7 +904,8 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
       button: !isPast,
       enabled: !isPast,
       selected: isStart || isEnd || isInRange,
-      label: '${DateFormat.yMMMMd(locale).format(date)}${isStart ? ', selected start date' : ''}${isEnd ? ', selected end date' : ''}',
+      label:
+          '${DateFormat.yMMMMd(locale).format(date)}${isStart ? ', selected start date' : ''}${isEnd ? ', selected end date' : ''}',
       child: GestureDetector(
         onTap: isPast ? null : () => _onDayTapped(date),
         behavior: HitTestBehavior.opaque,
@@ -1108,7 +1137,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      isEnabled ? strings.confirmTravelDates : strings.selectTravelDates,
+                      isEnabled
+                          ? strings.confirmTravelDates
+                          : strings.selectTravelDates,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,

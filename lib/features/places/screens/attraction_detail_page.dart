@@ -218,7 +218,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
             expandedHeight: 330,
             pinned: true,
             elevation: 0,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.nightSurface,
             surfaceTintColor: Colors.transparent,
             leading: Padding(
               padding: const EdgeInsets.all(8),
@@ -332,7 +332,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
                             return Container(
-                              color: const Color(0xFFE2E8F0),
+                              color: AppColors.nightLine,
                               child: const Center(
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
@@ -529,7 +529,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                   margin: const EdgeInsets.only(top: 0),
                   padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
                   decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.nightSurface,
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(26),
                     ),
@@ -607,7 +607,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                             width: 4,
                             height: 4,
                             decoration: const BoxDecoration(
-                              color: Color(0xFFCBD5E1),
+                              color: AppColors.nightLine,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -738,7 +738,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                               style: const TextStyle(
                                 fontSize: 14,
                                 height: 1.45,
-                                color: Color(0xFF1E293B),
+                                color: AppColors.nightBody,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -788,7 +788,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                 height: 1.45,
                                 color: hours.isEmpty
                                     ? AppColors.muted
-                                    : const Color(0xFF1E293B),
+                                    : AppColors.nightBody,
                                 fontWeight: hours.isEmpty
                                     ? FontWeight.normal
                                     : FontWeight.w500,
@@ -926,10 +926,10 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.nightSurface,
           border: Border(
             top: BorderSide(
-              color: const Color(0xFFE2E8F0).withValues(alpha: 0.8),
+              color: AppColors.nightLine.withValues(alpha: 0.8),
               width: 1,
             ),
           ),
@@ -949,7 +949,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
               Material(
                 color: _saved
                     ? AppColors.primary.withValues(alpha: 0.1)
-                    : const Color(0xFFF1F5F9),
+                    : AppColors.nightRaised,
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   onTap: _toggleSave,
@@ -987,7 +987,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.onNightAccent,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -1014,9 +1014,9 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppColors.nightCanvas,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.nightLine),
       ),
       child: Column(
         children: [
@@ -1057,9 +1057,9 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.nightLine),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -1121,7 +1121,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF3B28B8), Color(0xFF6652E8)],
+          colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
         ),
       ),
       child: Center(

@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -25,8 +26,9 @@ void openLandmarkDetail(BuildContext context, CommunityPost post) {
     category: post.topic == 'Food' ? 'foods' : 'historic',
     latitude: 3.1430,
     longitude: 101.6960,
-    description:
-        post.area.isNotEmpty ? '${post.area}, ${post.place}' : post.place,
+    description: post.area.isNotEmpty
+        ? '${post.area}, ${post.place}'
+        : post.place,
     rating: 4.8,
     userRatingsTotal: 342,
     photoUrl: post.asset,
@@ -45,10 +47,10 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF19191C),
+    backgroundColor: AppColors.nightSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      side: BorderSide(color: Color(0xFF2C2C34)),
+      side: BorderSide(color: AppColors.nightLine),
     ),
     builder: (ctx) {
       return Padding(
@@ -69,13 +71,13 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
                   height: 36,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFF2B2218),
+                    color: AppColors.nightAccentContainer,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     post.authorInitials,
                     style: const TextStyle(
-                      color: Color(0xFFE5A93C),
+                      color: AppColors.nightAccent,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -96,7 +98,7 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
                       Text(
                         'Inquire about ${post.area.isNotEmpty ? post.area : post.place}',
                         style: const TextStyle(
-                          color: Color(0xFF8E8E95),
+                          color: AppColors.nightMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -113,22 +115,27 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
             Wrap(
               spacing: 8,
               runSpacing: 6,
-              children: [
-                'Where is this located?',
-                'What time does it open?',
-                'Is it suitable for families?',
-              ].map((q) => ActionChip(
-                    backgroundColor: const Color(0xFF222226),
-                    side: const BorderSide(color: Color(0xFF33333E)),
-                    label: Text(
-                      q,
-                      style: const TextStyle(
-                        color: Color(0xFFEDEDED),
-                        fontSize: 12,
-                      ),
-                    ),
-                    onPressed: () => controller.text = q,
-                  )).toList(),
+              children:
+                  [
+                        'Where is this located?',
+                        'What time does it open?',
+                        'Is it suitable for families?',
+                      ]
+                      .map(
+                        (q) => ActionChip(
+                          backgroundColor: AppColors.nightRaised,
+                          side: const BorderSide(color: AppColors.nightLine),
+                          label: Text(
+                            q,
+                            style: const TextStyle(
+                              color: AppColors.nightBody,
+                              fontSize: 12,
+                            ),
+                          ),
+                          onPressed: () => controller.text = q,
+                        ),
+                      )
+                      .toList(),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -137,20 +144,20 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Type your message to ${post.author}...',
-                hintStyle: const TextStyle(color: Color(0xFF6B7280)),
+                hintStyle: const TextStyle(color: AppColors.nightMuted),
                 filled: true,
-                fillColor: const Color(0xFF222226),
+                fillColor: AppColors.nightRaised,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFF33333E)),
+                  borderSide: const BorderSide(color: AppColors.nightLine),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFF33333E)),
+                  borderSide: const BorderSide(color: AppColors.nightLine),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFE5A93C)),
+                  borderSide: const BorderSide(color: AppColors.nightAccent),
                 ),
               ),
             ),
@@ -164,7 +171,7 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      backgroundColor: const Color(0xFF1E1E22),
+                      backgroundColor: AppColors.nightSurface,
                       content: Text(
                         'Message sent to ${post.author}!',
                         style: const TextStyle(color: Colors.white),
@@ -175,17 +182,17 @@ void showDirectMessageDialog(BuildContext context, CommunityPost post) {
                 icon: const Icon(
                   Icons.send_rounded,
                   size: 16,
-                  color: Color(0xFF121212),
+                  color: AppColors.onNightAccent,
                 ),
                 label: const Text(
                   'Send Message',
                   style: TextStyle(
-                    color: Color(0xFF121212),
+                    color: AppColors.onNightAccent,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFE5A93C),
+                  backgroundColor: AppColors.nightAccent,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -241,8 +248,9 @@ class CommunityPost {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
-  String get authorSubtitle =>
-      authorLocation.isNotEmpty ? '$authorLocation · $authorRole · $timeAgo' : place;
+  String get authorSubtitle => authorLocation.isNotEmpty
+      ? '$authorLocation · $authorRole · $timeAgo'
+      : place;
 }
 
 class CommunityPage extends StatefulWidget {

@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -14,6 +15,8 @@ class GooglePlaceImage extends StatefulWidget {
     required this.photo,
     required this.service,
     this.photoIndex = 0,
+    this.requestWidth = 800,
+    this.compactAttribution = false,
     this.autoLoad = false,
     this.fill = false,
     this.attributionTop,
@@ -23,6 +26,8 @@ class GooglePlaceImage extends StatefulWidget {
   final String placeId;
   final GooglePlacePhoto photo;
   final int photoIndex;
+  final int requestWidth;
+  final bool compactAttribution;
   final GooglePlacesService service;
   final bool autoLoad;
   final bool fill;
@@ -72,7 +77,10 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
       _loading = true;
       _requested = true;
     });
-    final result = await widget.service.fetchPhotoResult(_photo);
+    final result = await widget.service.fetchPhotoResult(
+      _photo,
+      width: widget.requestWidth,
+    );
     var bytes = result.bytes;
     // A photo reference can expire. Ask Google for new details and retry once.
     if (bytes == null && result.expired) {
@@ -80,7 +88,10 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
       final photos = details?.photos ?? [];
       if (photos.length > widget.photoIndex) {
         final fresh = photos[widget.photoIndex];
-        bytes = await widget.service.fetchPhoto(fresh);
+        bytes = await widget.service.fetchPhoto(
+          fresh,
+          width: widget.requestWidth,
+        );
         if (!mounted || generation != _generation) return;
         _photo = fresh;
       }
@@ -103,12 +114,13 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
   @override
   Widget build(BuildContext context) {
     final imageWidget = (_loading || (!_requested && widget.autoLoad))
-        ? Container(
-            color: const Color(0xFFE2E8F0),
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
-          )
+        ? widget.fallback ??
+              Container(
+                color: AppColors.nightLine,
+                child: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              )
         : _bytes == null
         ? widget.fallback ??
               Center(
@@ -119,7 +131,7 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
                       Text(
                         context.l10n.photoUnavailable,
                         style: TextStyle(
-                          color: Color(0xFF64748B),
+                          color: AppColors.nightMuted,
                           fontSize: 13,
                         ),
                       ),
@@ -151,6 +163,7 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
           );
 
     if (widget.fill) {
+      final compact = widget.compactAttribution;
       final authorName = _photo.authors.firstOrNull?['displayName']?.toString();
       final authorUri = _photo.authors.firstOrNull?['uri']?.toString();
 
@@ -163,7 +176,7 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
               start: 8,
               top: 8,
               child: DecoratedBox(
-                decoration: BoxDecoration(color: Colors.black87),
+                decoration: BoxDecoration(color: AppColors.nightMuted),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Text(
@@ -175,10 +188,10 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
             ),
           if (_bytes != null && authorName != null)
             Positioned(
-              left: 14,
-              right: 14,
+              left: compact ? 0 : 14,
+              right: compact ? 0 : 14,
               top: widget.attributionTop,
-              bottom: widget.attributionTop == null ? 14 : null,
+              bottom: widget.attributionTop == null ? (compact ? 0 : 14) : null,
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -187,8 +200,8 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
                       : null,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 2 : 10,
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
@@ -202,15 +215,16 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.camera_alt_outlined,
-                          size: 13,
-                          color: Colors.white70,
-                        ),
-                        const SizedBox(width: 5),
+                        if (!compact)
+                          const Icon(
+                            Icons.camera_alt_outlined,
+                            size: 13,
+                            color: Colors.white70,
+                          ),
+                        if (!compact) const SizedBox(width: 5),
                         Flexible(
                           child: Text(
-                            'Google Maps • $authorName',
+                            compact ? authorName : 'Google Maps • $authorName',
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

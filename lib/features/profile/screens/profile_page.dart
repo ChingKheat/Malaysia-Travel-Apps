@@ -22,7 +22,6 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _authService = AuthService();
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
 
   Future<void> _editProfile() async {
     final user = _authService.currentUser;
@@ -133,7 +132,7 @@ class _ProfilePageState extends State<ProfilePage> {
           context.l10n.myProfile,
           style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.nightSurface,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -148,7 +147,7 @@ class _ProfilePageState extends State<ProfilePage> {
             // User Card
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: cardDecoration(Colors.white),
+              decoration: cardDecoration(),
               child: Column(
                 children: [
                   // Avatar
@@ -256,7 +255,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
             // Profile Settings
             Container(
-              decoration: cardDecoration(Colors.white),
+              decoration: cardDecoration(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -291,12 +290,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildListTile(
                     icon: Icons.explore_outlined,
                     title: 'Citylore Welcome Setup',
-                    subtitle: 'Revisit guide language, location & privacy setup',
+                    subtitle:
+                        'Revisit guide language, location & privacy setup',
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const OnboardingSetupScreen(isRevisit: true),
+                          builder: (context) =>
+                              const OnboardingSetupScreen(isRevisit: true),
                         ),
                       );
                     },
@@ -324,33 +325,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       activeThumbColor: AppColors.primary,
                     ),
                   ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
-                  Material(
-                    color: Colors.transparent,
-                    child: SwitchListTile(
-                      value: _darkModeEnabled,
-                      onChanged: (val) {
-                        setState(() => _darkModeEnabled = val);
-                        demoHaptic();
-                        showDemoSnackBar(
-                          context,
-                          context.l10n.darkModeIsNotSupportedInTheDemoVersion,
-                        );
-                      },
-                      secondary: const Icon(
-                        Icons.dark_mode_outlined,
-                        color: AppColors.primary,
-                      ),
-                      title: Text(
-                        context.l10n.darkMode,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      activeThumbColor: AppColors.primary,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -358,7 +332,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
             // General & Support
             Container(
-              decoration: cardDecoration(Colors.white),
+              decoration: cardDecoration(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -480,7 +454,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: cardDecoration(Colors.white),
+      decoration: cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -690,10 +664,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
         onPressed: () => Navigator.pop(context),
         child: Text(context.l10n.cancel),
       ),
-      FilledButton(
-        onPressed: _handleSave,
-        child: Text(context.l10n.save),
-      ),
+      FilledButton(onPressed: _handleSave, child: Text(context.l10n.save)),
     ],
   );
 }

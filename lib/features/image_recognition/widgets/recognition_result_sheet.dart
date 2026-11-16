@@ -271,7 +271,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.onNightAccent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 onPressed: () => Navigator.pop(context),

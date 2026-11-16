@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../community_page.dart';
 
@@ -69,11 +70,11 @@ class CitylorePostCard extends StatelessWidget {
 
   Widget _fallbackImage() {
     return Container(
-      color: const Color(0xFF26262B),
+      color: AppColors.nightRaised,
       child: const Center(
         child: Icon(
           Icons.image_outlined,
-          color: Color(0xFF8E8E95),
+          color: AppColors.nightMuted,
           size: 40,
         ),
       ),
@@ -82,11 +83,11 @@ class CitylorePostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const goldColor = Color(0xFFE5A93C);
-    const cardBg = Color(0xFF19191C);
-    const borderColor = Color(0xFF2C2C34);
-    const textMuted = Color(0xFF8E8E95);
-    const textBody = Color(0xFFA0A0A8);
+    const accentColor = AppColors.nightAccent;
+    const cardBg = AppColors.nightSurface;
+    const borderColor = AppColors.nightLine;
+    const textMuted = AppColors.nightMuted;
+    const textBody = AppColors.nightMuted;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -114,9 +115,9 @@ class CitylorePostCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF2B2218),
+                  color: AppColors.nightAccentContainer,
                   border: Border.all(
-                    color: goldColor.withValues(alpha: 0.4),
+                    color: accentColor.withValues(alpha: 0.4),
                     width: 1.2,
                   ),
                 ),
@@ -124,7 +125,7 @@ class CitylorePostCard extends StatelessWidget {
                 child: Text(
                   post.authorInitials,
                   style: const TextStyle(
-                    color: goldColor,
+                    color: accentColor,
                     fontWeight: FontWeight.w800,
                     fontSize: 13.5,
                   ),
@@ -164,7 +165,7 @@ class CitylorePostCard extends StatelessWidget {
               Text(
                 post.topic,
                 style: const TextStyle(
-                  color: goldColor,
+                  color: accentColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -219,7 +220,7 @@ class CitylorePostCard extends StatelessWidget {
             child: Text(
               post.title.isNotEmpty ? post.title : post.place,
               style: const TextStyle(
-                color: Color(0xFFEDEDED),
+                color: AppColors.nightBody,
                 fontSize: 19,
                 fontWeight: FontWeight.w700,
                 fontFamily: 'serif',
@@ -254,7 +255,7 @@ class CitylorePostCard extends StatelessWidget {
                   child: Text(
                     'View related landmark →',
                     style: TextStyle(
-                      color: goldColor,
+                      color: accentColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -265,17 +266,17 @@ class CitylorePostCard extends StatelessWidget {
               TextButton(
                 onPressed: onOpenDetail,
                 style: TextButton.styleFrom(
-                  foregroundColor: goldColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  foregroundColor: accentColor,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Text(
                   'Read story',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -362,23 +363,19 @@ class CitylorePostCard extends StatelessWidget {
                     vertical: 7.5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF222226),
+                    color: AppColors.nightRaised,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF35353E)),
+                    border: Border.all(color: AppColors.nightLine),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(
-                        Icons.chat_outlined,
-                        size: 14,
-                        color: goldColor,
-                      ),
+                      Icon(Icons.chat_outlined, size: 14, color: accentColor),
                       SizedBox(width: 5),
                       Text(
                         'Message',
                         style: TextStyle(
-                          color: goldColor,
+                          color: accentColor,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -400,11 +397,11 @@ class CitylorePostCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: post.saved
-                          ? goldColor.withValues(alpha: 0.18)
-                          : const Color(0xFF222226),
+                          ? accentColor.withValues(alpha: 0.18)
+                          : AppColors.nightRaised,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: post.saved ? goldColor : const Color(0xFF35353E),
+                        color: post.saved ? accentColor : AppColors.nightLine,
                       ),
                     ),
                     child: Row(
@@ -415,13 +412,13 @@ class CitylorePostCard extends StatelessWidget {
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
                           size: 14,
-                          color: goldColor,
+                          color: accentColor,
                         ),
                         const SizedBox(width: 5),
                         Text(
                           post.saved ? 'Saved' : 'Save',
                           style: const TextStyle(
-                            color: goldColor,
+                            color: accentColor,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                           ),

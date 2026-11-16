@@ -79,7 +79,7 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppColors.nightCanvas,
       body: Stack(
         children: [
           // Premium Background Image with Overlay
@@ -88,7 +88,7 @@ class _AuthScreenState extends State<AuthScreen>
               'https://images.unsplash.com/photo-1596436889106-be35e843f974?q=80&w=800&auto=format&fit=crop',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) =>
-                  Container(color: const Color(0xFF1E1B4B)),
+                  Container(color: AppColors.nightRaised),
             ),
           ),
           Positioned.fill(
@@ -99,8 +99,8 @@ class _AuthScreenState extends State<AuthScreen>
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.black.withValues(alpha: 0.25),
-                    const Color(0xFF080B1E).withValues(alpha: 0.6),
-                    const Color(0xFF080B1E).withValues(alpha: 0.95),
+                    AppColors.nightCanvas.withValues(alpha: 0.6),
+                    AppColors.nightCanvas.withValues(alpha: 0.95),
                   ],
                 ),
               ),
@@ -126,7 +126,9 @@ class _AuthScreenState extends State<AuthScreen>
                           } else {
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
-                                builder: (_) => const OnboardingSetupScreen(isRevisit: true),
+                                builder: (_) => const OnboardingSetupScreen(
+                                  isRevisit: true,
+                                ),
                               ),
                             );
                           }
@@ -236,7 +238,7 @@ class _AuthScreenState extends State<AuthScreen>
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.nightSurface,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(28),
                         topRight: Radius.circular(28),
@@ -277,9 +279,8 @@ class _AuthScreenState extends State<AuthScreen>
                                     2,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFFF1F5F9,
-                              ), // Light slate gray background
+                              color: AppColors
+                                  .nightRaised, // Light slate gray background
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: TabBar(
@@ -304,7 +305,7 @@ class _AuthScreenState extends State<AuthScreen>
                                   ),
                                 ],
                               ),
-                              labelColor: Colors.white,
+                              labelColor: AppColors.onNightAccent,
                               unselectedLabelColor: AppColors.muted,
                               labelStyle: const TextStyle(
                                 fontWeight: FontWeight.w700,

@@ -138,8 +138,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
 
     final String? confirmPasswordError =
         _highlightedEmptyFields.contains('confirmPassword')
-            ? context.l10n.pleaseEnterYourPassword
-            : null;
+        ? context.l10n.pleaseEnterYourPassword
+        : null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
@@ -211,7 +211,8 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               helperText: context.l10n.eGAliBinAhmad,
               errorText: nameError,
               icon: Icons.person_outline,
-              isError: _highlightedEmptyFields.contains('name') || nameError != null,
+              isError:
+                  _highlightedEmptyFields.contains('name') || nameError != null,
             ),
           ),
           const SizedBox(height: 16),
@@ -223,12 +224,17 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
-              label: _buildFieldLabel(context.l10n.emailAddress, isMandatory: true),
+              label: _buildFieldLabel(
+                context.l10n.emailAddress,
+                isMandatory: true,
+              ),
               hint: context.l10n.eGTouristExampleCom,
               helperText: context.l10n.eGTouristExampleCom,
               errorText: emailError,
               icon: Icons.email_outlined,
-              isError: _highlightedEmptyFields.contains('email') || emailError != null,
+              isError:
+                  _highlightedEmptyFields.contains('email') ||
+                  emailError != null,
             ),
           ),
           const SizedBox(height: 16),
@@ -244,7 +250,9 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
               hint: context.l10n.enterStrongPassword,
               errorText: passwordError,
               icon: Icons.lock_outline,
-              isError: _highlightedEmptyFields.contains('password') || passwordError != null,
+              isError:
+                  _highlightedEmptyFields.contains('password') ||
+                  passwordError != null,
               suffix: IconButton(
                 tooltip: _obscurePassword
                     ? context.l10n.showPassword
@@ -268,7 +276,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColors.nightLine),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,11 +320,16 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleRegister(),
             decoration: _inputDecoration(
-              label: _buildFieldLabel(context.l10n.confirmPassword, isMandatory: true),
+              label: _buildFieldLabel(
+                context.l10n.confirmPassword,
+                isMandatory: true,
+              ),
               hint: context.l10n.reEnterPassword,
               errorText: confirmPasswordError,
               icon: Icons.lock_clock_outlined,
-              isError: _highlightedEmptyFields.contains('confirmPassword') || confirmPasswordError != null,
+              isError:
+                  _highlightedEmptyFields.contains('confirmPassword') ||
+                  confirmPasswordError != null,
               suffix: IconButton(
                 tooltip: _obscureConfirmPassword
                     ? context.l10n.showPassword
@@ -375,10 +388,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
         Flexible(
           child: Text(
             context.tr(text),
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
           ),
         ),
         if (isMandatory)

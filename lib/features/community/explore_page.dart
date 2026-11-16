@@ -1,3 +1,4 @@
+import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../../shared/models/attraction.dart';
 import '../places/screens/api_demo_page.dart';
@@ -8,11 +9,7 @@ import 'widgets/citylore_post_card.dart';
 /// Full-featured Citylore Explorer screen matching the modern dark aesthetic.
 /// Features top share prompt, filter pills, and dark editorial feed cards ("design boxes").
 class ExplorePage extends StatefulWidget {
-  const ExplorePage({
-    super.key,
-    required this.isVisible,
-    this.onPlacesLoaded,
-  });
+  const ExplorePage({super.key, required this.isVisible, this.onPlacesLoaded});
 
   final bool isVisible;
   final ValueChanged<List<Attraction>>? onPlacesLoaded;
@@ -60,9 +57,7 @@ class _ExplorePageState extends State<ExplorePage> {
       asset: 'assets/recognition/petronas.jpg',
       relatedLandmark: 'Petronas Twin Towers',
       likesCount: 64,
-      initialComments: [
-        'Great photo composition!',
-      ],
+      initialComments: ['Great photo composition!'],
     ),
     CommunityPost(
       author: 'Sarah Jenkins',
@@ -94,9 +89,7 @@ class _ExplorePageState extends State<ExplorePage> {
       relatedLandmark: 'Kampung Baru',
       likesCount: 89,
       saved: true,
-      initialComments: [
-        'The sambal sotong looks incredibly rich!',
-      ],
+      initialComments: ['The sambal sotong looks incredibly rich!'],
     ),
     CommunityPost(
       author: 'David Chen',
@@ -134,11 +127,9 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 
   Future<void> _openComposer() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const CommunityComposer(),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const CommunityComposer()));
     if (mounted) setState(() {});
   }
 
@@ -183,7 +174,7 @@ class _ExplorePageState extends State<ExplorePage> {
     }).toList();
 
     return Container(
-      color: const Color(0xFF121214),
+      color: AppColors.nightCanvas,
       child: CustomScrollView(
         key: const PageStorageKey('citylore-explorer-feed'),
         slivers: [
@@ -193,9 +184,9 @@ class _ExplorePageState extends State<ExplorePage> {
               margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1C20),
+                color: AppColors.nightSurface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF2C2C34)),
+                border: Border.all(color: AppColors.nightLine),
               ),
               child: Row(
                 children: [
@@ -218,7 +209,7 @@ class _ExplorePageState extends State<ExplorePage> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF8E8E95),
+                            color: AppColors.nightMuted,
                           ),
                         ),
                       ],
@@ -240,7 +231,7 @@ class _ExplorePageState extends State<ExplorePage> {
                             vertical: 9,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE5A93C),
+                            color: AppColors.nightAccent,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -249,13 +240,13 @@ class _ExplorePageState extends State<ExplorePage> {
                               Icon(
                                 Icons.add,
                                 size: 16,
-                                color: Color(0xFF121212),
+                                color: AppColors.onNightAccent,
                               ),
                               SizedBox(width: 4),
                               Text(
                                 'New post',
                                 style: TextStyle(
-                                  color: Color(0xFF121212),
+                                  color: AppColors.onNightAccent,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 12.5,
                                 ),
@@ -287,7 +278,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 child: Center(
                   child: Text(
                     'No stories in this topic yet. Be the first to share!',
-                    style: TextStyle(color: Color(0xFF8E8E95)),
+                    style: TextStyle(color: AppColors.nightMuted),
                   ),
                 ),
               ),
@@ -316,7 +307,7 @@ class _ExplorePageState extends State<ExplorePage> {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        backgroundColor: const Color(0xFF1E1E22),
+                        backgroundColor: AppColors.nightSurface,
                         duration: const Duration(seconds: 2),
                         content: Text(
                           post.saved
@@ -369,13 +360,11 @@ class _ExplorePageState extends State<ExplorePage> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
                 color: selected
-                    ? const Color(0xFFE5A93C)
-                    : const Color(0xFF1C1C20),
+                    ? AppColors.nightAccent
+                    : AppColors.nightSurface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: selected
-                      ? const Color(0xFFE5A93C)
-                      : const Color(0xFF2C2C34),
+                  color: selected ? AppColors.nightAccent : AppColors.nightLine,
                 ),
               ),
               alignment: Alignment.center,
@@ -383,8 +372,8 @@ class _ExplorePageState extends State<ExplorePage> {
                 cat,
                 style: TextStyle(
                   color: selected
-                      ? const Color(0xFF121212)
-                      : const Color(0xFFA0A0A8),
+                      ? AppColors.onNightAccent
+                      : AppColors.nightMuted,
                   fontSize: 13,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 ),

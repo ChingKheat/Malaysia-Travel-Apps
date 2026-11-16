@@ -131,7 +131,7 @@ class PopularAttractionsSection extends StatelessWidget {
               onPressed: onSeeAllTap,
               style: TextButton.styleFrom(
                 minimumSize: const Size(48, 48),
-                foregroundColor: isDarkTheme ? const Color(0xFF8F93A0) : null,
+                foregroundColor: isDarkTheme ? AppColors.nightMuted : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -139,7 +139,7 @@ class PopularAttractionsSection extends StatelessWidget {
                   Text(
                     actionLabel ?? context.l10n.seeAll,
                     style: TextStyle(
-                      color: isDarkTheme ? const Color(0xFF8F93A0) : null,
+                      color: isDarkTheme ? AppColors.nightMuted : null,
                       fontSize: isDarkTheme ? 13 : null,
                       fontWeight: isDarkTheme ? FontWeight.w500 : null,
                     ),
@@ -257,10 +257,10 @@ class PopularAttractionCard extends StatelessWidget {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1B20) : colors.surface,
+          color: isDark ? AppColors.nightSurface : colors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF282A33) : colors.outlineVariant,
+            color: isDark ? AppColors.nightLine : colors.outlineVariant,
             width: 1.2,
           ),
         ),
@@ -303,7 +303,7 @@ class PopularAttractionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: isDark
                         ? const TextStyle(
-                            color: Color(0xFFE5A95C),
+                            color: AppColors.nightAccent,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           )
@@ -333,7 +333,7 @@ class PopularAttractionCard extends StatelessWidget {
                       Icon(
                         Icons.location_on_outlined,
                         size: 14,
-                        color: isDark ? const Color(0xFF8F93A0) : null,
+                        color: isDark ? AppColors.nightMuted : null,
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -343,7 +343,7 @@ class PopularAttractionCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: isDark
                               ? const TextStyle(
-                                  color: Color(0xFF8F93A0),
+                                  color: AppColors.nightMuted,
                                   fontSize: 12,
                                 )
                               : theme.textTheme.bodySmall,
@@ -355,7 +355,7 @@ class PopularAttractionCard extends StatelessWidget {
                           Icons.star_rounded,
                           size: 16,
                           color: isDark
-                              ? const Color(0xFFE5A95C)
+                              ? AppColors.nightAccent
                               : colors.primary,
                         ),
                         const SizedBox(width: 3),
@@ -374,9 +374,7 @@ class PopularAttractionCard extends StatelessWidget {
                       Icon(
                         Icons.arrow_outward_rounded,
                         size: 16,
-                        color: isDark
-                            ? const Color(0xFFE5A95C)
-                            : colors.primary,
+                        color: isDark ? AppColors.nightAccent : colors.primary,
                       ),
                     ],
                   ),

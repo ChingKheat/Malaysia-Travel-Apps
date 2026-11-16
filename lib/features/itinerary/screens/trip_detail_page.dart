@@ -18,7 +18,7 @@ class TripDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FD),
+      backgroundColor: AppColors.nightCanvas,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: Text(context.l10n.tripDetails),
@@ -28,7 +28,7 @@ class TripDetailPage extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: cardDecoration(AppColors.primary),
+            decoration: cardDecoration(AppColors.nightAccentContainer),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

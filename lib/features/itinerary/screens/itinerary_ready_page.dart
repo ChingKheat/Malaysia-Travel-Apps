@@ -63,7 +63,7 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
     final previewStops = days[previewDay];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FD),
+      backgroundColor: AppColors.nightCanvas,
       appBar: AppBar(backgroundColor: Colors.transparent),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -104,47 +104,46 @@ class _ItineraryReadyPageState extends State<ItineraryReadyPage> {
             ),
           ),
           const SizedBox(height: 18),
-          ...previewStops
-              .map(
-                (stop) => Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: cardDecoration(),
-                  child: Row(
-                    children: [
-                      if (stop.primaryPhotoUrl != null)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.network(
-                            stop.primaryPhotoUrl!,
-                            width: 38,
-                            height: 38,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                Icon(stop.icon, color: stop.color),
-                          ),
-                        )
-                      else
-                        Icon(stop.icon, color: stop.color),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          stop.title,
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
+          ...previewStops.map(
+            (stop) => Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: cardDecoration(),
+              child: Row(
+                children: [
+                  if (stop.primaryPhotoUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        stop.primaryPhotoUrl!,
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            Icon(stop.icon, color: stop.color),
                       ),
-                      Text(
-                        context.scheduledTime(stop.time),
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                    )
+                  else
+                    Icon(stop.icon, color: stop.color),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      stop.title,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
                   ),
-                ),
+                  Text(
+                    context.scheduledTime(stop.time),
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: () {

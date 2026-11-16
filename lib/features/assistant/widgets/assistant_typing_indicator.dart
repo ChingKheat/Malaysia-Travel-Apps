@@ -65,7 +65,7 @@ class _AssistantTypingIndicatorState extends State<AssistantTypingIndicator>
             height: 32,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.primary, Color(0xFF9080F4)],
+                colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -88,7 +88,7 @@ class _AssistantTypingIndicatorState extends State<AssistantTypingIndicator>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.nightSurface,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),

@@ -23,7 +23,7 @@ class MyTripsScreen extends StatelessWidget {
           context.l10n.myTrips,
           style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.nightSurface,
         foregroundColor: AppColors.ink,
         elevation: 0,
         centerTitle: true,

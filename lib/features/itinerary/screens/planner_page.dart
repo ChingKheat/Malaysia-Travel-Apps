@@ -419,7 +419,7 @@ class _PlannerPageState extends State<PlannerPage> {
         const SizedBox(height: 8),
         DecoratedBox(
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FD),
+            color: AppColors.nightCanvas,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: hasError ? Colors.red.shade700 : AppColors.line,
@@ -872,11 +872,11 @@ class _PlannerPageState extends State<PlannerPage> {
                     selected: interests.contains(option.$1),
                     showCheckmark: true,
                     checkmarkColor: AppColors.primary,
-                    selectedColor: const Color(0xFFEDE9FF),
-                    backgroundColor: Colors.white,
+                    selectedColor: AppColors.nightAccentContainer,
+                    backgroundColor: AppColors.nightSurface,
                     side: BorderSide(
                       color: interests.contains(option.$1)
-                          ? AppColors.primary.withValues(alpha: 0.4)
+                          ? AppColors.primary.withValues(alpha: 0.6)
                           : AppColors.line,
                     ),
                     shape: RoundedRectangleBorder(
@@ -894,7 +894,7 @@ class _PlannerPageState extends State<PlannerPage> {
                           ? FontWeight.w700
                           : FontWeight.w500,
                       color: interests.contains(option.$1)
-                          ? AppColors.primaryDark
+                          ? AppColors.primary
                           : AppColors.ink,
                     ),
                     onSelected: (selected) {
@@ -977,7 +977,7 @@ class _PlanSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: hasError ? Colors.red.shade700 : AppColors.line,
@@ -991,7 +991,7 @@ class _PlanSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0EDFF),
+                  color: AppColors.nightAccentContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, size: 21, color: AppColors.primary),
@@ -1082,7 +1082,7 @@ class _PlanPickerField extends StatelessWidget {
           button: true,
           label: label,
           child: Material(
-            color: const Color(0xFFF8F9FD),
+            color: AppColors.nightCanvas,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
               side: BorderSide(
@@ -1197,7 +1197,9 @@ class _PlanOption extends StatelessWidget {
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? const Color(0xFFF0EDFF) : const Color(0xFFF8F9FD),
+        color: selected
+            ? AppColors.nightAccentContainer
+            : AppColors.nightCanvas,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(
@@ -1229,7 +1231,7 @@ class _PlanOption extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                      color: selected ? AppColors.primaryDark : AppColors.ink,
+                      color: selected ? AppColors.primary : AppColors.ink,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -1269,14 +1271,18 @@ class _PlanNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = isError ? Colors.red.shade800 : AppColors.primaryDark;
+    final foreground = isError ? const Color(0xFFFF8A80) : AppColors.primary;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isError ? Colors.red.shade50 : const Color(0xFFF0EDFF),
+        color: isError
+            ? const Color(0xFF2C1618)
+            : AppColors.nightAccentContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isError ? Colors.red.shade200 : const Color(0xFFE4DFFF),
+          color: isError
+              ? Colors.red.shade700.withValues(alpha: 0.6)
+              : AppColors.primary.withValues(alpha: 0.35),
         ),
       ),
       child: Row(
@@ -1302,7 +1308,7 @@ class _PlanNotice extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
-                    color: isError ? foreground : AppColors.muted,
+                    color: isError ? const Color(0xFFFFCDD2) : AppColors.muted,
                   ),
                 ),
               ],
