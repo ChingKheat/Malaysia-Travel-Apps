@@ -55,8 +55,9 @@ Before modifying git history, summarize for the user:
 1. **Current branch & local changes:** branch name, count of modified/untracked files.
 2. **`origin/main` status:** whether `origin/main` has new commits ahead of local `HEAD`, or if it is up to date.
 3. **Teammate branch status:** whether teammate branches (e.g. `origin/YH`) are already merged into `main`, or have unmerged WIP.
-4. **Team Safety Rule on Teammate Branches:**
-   - **Default action:** Sync with `origin/main` only. **NEVER** merge a teammate's WIP branch into `<branch>` or `main` unless the teammate or user explicitly requests integrating that specific branch. Teammates may have experimental or unfinished work on their branch.
+4. **Team Policy on Teammate Branches (Unified Main):**
+   - In this project, all active teammate branches (e.g. `origin/YH`) are intentionally integrated into `main` so `main` always serves as the single source of truth containing everyone's latest contributions.
+   - If a teammate remote branch has unmerged updates (`git diff origin/main...<remote_branch>` has changes), include it in the Step 4 merge process so everyone's work reaches `main`.
 
 ---
 
@@ -112,7 +113,7 @@ git commit -m "<subject>" -m "<optional bullet body>"
 
 ---
 
-## Step 4: Merge Latest Updates & Resolve Conflicts
+## Step 4: Merge Latest Updates, Teammate Branches & Resolve Conflicts
 
 1. **Merge `origin/main` into `<branch>` (if `origin/main` has new commits):**
 
@@ -120,7 +121,14 @@ git commit -m "<subject>" -m "<optional bullet body>"
 git merge origin/main --no-edit
 ```
 
-2. **Conflict Resolution Rules & Safe Exit:**
+2. **Merge Teammate Branches into `<branch>` (if teammates pushed new commits):**
+   - For each active teammate branch (e.g. `origin/YH`) that has unmerged updates against `origin/main`:
+
+```powershell
+git merge <remote_branch> --no-edit
+```
+
+3. **Conflict Resolution Rules & Safe Exit:**
    - **Stop and ask user on conflict:** If any merge conflict occurs, **DO NOT guess or auto-resolve**. **STOP immediately** and present:
      - Conflicted files list (`git diff --name-only --diff-filter=U`).
      - Specific conflicting code snippets.
@@ -128,7 +136,7 @@ git merge origin/main --no-edit
    - **Never** run `git checkout --ours` or `--theirs` blindly on shared code.
    - Once conflicts are resolved with user agreement, stage the resolved files and finish the merge (`git commit --no-edit`).
 
-3. **Dependency Change Detection:**
+4. **Dependency Change Detection:**
    - Check if the merge updated dependencies:
 
 ```powershell
@@ -205,6 +213,6 @@ git checkout <branch>
 
 - **Never** run `git push --force` or `git push --force-with-lease` on `main` or shared branches.
 - **Never** discard uncommitted work (`git reset --hard`, `git clean -fd`) or delete non-empty folders without explicit user confirmation.
-- **Never** merge teammate WIP branches into `main` without explicit teammate/user authorization.
+- **Integrate All Teammate Branches into `main`:** When teammate branches have unmerged commits, integrate and test them so that `main` always unifies everyone's latest contributions.
 - **Never** leave the repository stuck in an unhandled `MERGING` state without offering `git merge --abort`.
 - **Never** push to `main` if `flutter analyze` has errors or newly introduced test failures occur.
