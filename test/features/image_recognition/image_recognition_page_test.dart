@@ -65,12 +65,15 @@ void main() {
   ) async {
     phoneSize(tester);
     await RecognitionHistoryStore(userId: 'recognition-test').save([
-      RecognitionResult(
-        name: 'Batu Caves',
-        kind: 'landmark',
-        description: 'A landmark.',
-        location: 'Gombak',
-        recognizedAt: DateTime(2026),
+      (
+        result: RecognitionResult(
+          name: 'Batu Caves',
+          kind: 'landmark',
+          description: 'A landmark.',
+          location: 'Gombak',
+          recognizedAt: DateTime(2026),
+        ),
+        photoId: null,
       ),
     ]);
     await tester.pumpWidget(page());
@@ -79,7 +82,13 @@ void main() {
     final history = find.byKey(const ValueKey('scan-history'));
     expect(history.hitTestable(), findsOneWidget);
     expect(find.text('Demo Results'), findsNothing);
-    expect(find.text('Try a sample landmark photo'), findsOneWidget);
+    final tips = find.text('Tips for a clearer photo');
+    await tester.scrollUntilVisible(tips, 160);
+    expect(find.text('Use good light'), findsOneWidget);
+    expect(find.text('Show the whole landmark'), findsOneWidget);
+    expect(find.text('Include a readable sign'), findsOneWidget);
+    expect(find.text('Try a sample landmark photo'), findsNothing);
+    await tester.scrollUntilVisible(history.hitTestable(), -160);
     await tester.tap(history);
     await tester.pumpAndSettle();
     expect(find.text('Batu Caves'), findsOneWidget);
@@ -90,51 +99,69 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Landmark sample filters nearby spots and starts a new scan', (
-    tester,
-  ) async {
-    phoneSize(tester);
-    await tester.pumpWidget(page());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Twin Steel Spires'));
-    await tester.pumpAndSettle();
-    expect(find.text('Built-in sample · Mock recognition'), findsOneWidget);
-    expect(find.text('Petronas Twin Towers'), findsOneWidget);
-    final filter = find.text('Food & Cafés');
-    await tester.scrollUntilVisible(filter, 240);
-    await tester.tap(filter);
-    await tester.pumpAndSettle();
-    expect(find.text("Madam Kwan's · Suria KLCC"), findsOneWidget);
-    final hours = find.text('8:00 AM–10:00 PM');
-    await tester.scrollUntilVisible(hours, 120);
-    expect(hours, findsOneWidget);
-    expect(
-      find.text(
-        'Signature Nasi Bojari, chicken curry, and Penang char kway teow inside Level 4.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('KLCC Park & Lake Symphony'), findsNothing);
-    final save = find.widgetWithText(FilledButton, 'Save spot').first;
-    await tester.ensureVisible(save);
-    await tester.tap(save);
-    await tester.pumpAndSettle();
-    final prefs = await SharedPreferences.getInstance();
-    expect(
-      prefs.getStringList('visual_scan_saved_spots:recognition-test'),
-      contains('sample_madam_kwans'),
-    );
-    final newScan = find.text('New scan');
-    await tester.scrollUntilVisible(newScan, -240);
-    await tester.pumpAndSettle();
-    await tester.tap(newScan);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('scan-history')), findsOneWidget);
-    expect(
-      await RecognitionHistoryStore(userId: 'recognition-test').load(),
-      isEmpty,
-    );
-  });
+  testWidgets(
+    'A landmark from history describes the place and filters nearby spots',
+    (tester) async {
+      phoneSize(tester);
+      final landmarkResult = RecognitionResult(
+        name: 'Petronas Twin Towers',
+        kind: 'landmark',
+        description: 'The double-deck Skybridge links the towers.',
+        location: 'KLCC, Kuala Lumpur',
+        recognizedAt: DateTime(2026),
+      );
+      await RecognitionHistoryStore(
+        userId: 'recognition-test',
+      ).save([(result: landmarkResult, photoId: null)]);
+      await tester.pumpWidget(page());
+      await tester.pumpAndSettle();
+      final historyStyle = tester
+          .widget<OutlinedButton>(find.byKey(const ValueKey('scan-history')))
+          .style;
+      await tester.tap(find.byKey(const ValueKey('scan-history')));
+      await tester.pumpAndSettle();
+      final landmark = find.text(landmarkResult.name);
+      await tester.scrollUntilVisible(landmark, 160);
+      await tester.tap(landmark);
+      await tester.pumpAndSettle();
+      expect(find.text('Petronas Twin Towers'), findsOneWidget);
+      expect(find.text('KLCC, Kuala Lumpur'), findsOneWidget);
+      expect(find.text('About this landmark'), findsOneWidget);
+      expect(find.text(landmarkResult.description), findsOneWidget);
+      expect(find.text('Nearby attractions & food'), findsOneWidget);
+      final filter = find.text('Food & Cafés');
+      await tester.scrollUntilVisible(filter.hitTestable(), 240);
+      await tester.tap(filter);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Jalan Alor Night Food Street'),
+        120,
+      );
+      expect(find.text('Aquaria KLCC'), findsNothing);
+      final save = find.widgetWithText(FilledButton, 'Save spot').first;
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      final prefs = await SharedPreferences.getInstance();
+      expect(
+        prefs.getStringList('visual_scan_saved_spots:recognition-test'),
+        isNotEmpty,
+      );
+      final newScan = find.widgetWithText(OutlinedButton, 'New Scan');
+      await tester.scrollUntilVisible(newScan.hitTestable(), -240);
+      await tester.pumpAndSettle();
+      expect(tester.widget<OutlinedButton>(newScan).style, historyStyle);
+      await tester.tap(newScan);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('scan-history')), findsOneWidget);
+      expect(
+        (await RecognitionHistoryStore(
+          userId: 'recognition-test',
+        ).load()).single.result.name,
+        landmarkResult.name,
+      );
+    },
+  );
 
   for (final (width, height, scale) in [
     (390.0, 844.0, 1.0),

@@ -1,5 +1,4 @@
 import 'package:latlong2/latlong.dart';
-import 'package:smart_travel_planner/features/image_recognition/data/recognition_presets.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
@@ -144,49 +143,3 @@ final _sampleSpots = <ScanSpot>[
     distance: '395 m',
   ),
 ];
-
-const visualScanSamples = [
-  (
-    id: 'petronas',
-    title: 'Twin Steel Spires',
-    outcome: 'Confident match',
-    image: twinSpiresPhoto,
-  ),
-  (
-    id: 'domes',
-    title: 'Moorish Domes & River',
-    outcome: 'Plausible matches',
-    image: 'assets/recognition/scan_sample_domes.png',
-  ),
-  (
-    id: 'archway',
-    title: 'Brick Archway Close-Up',
-    outcome: 'Needs a clue',
-    image: 'assets/recognition/scan_sample_archway.png',
-  ),
-];
-
-RecognitionResult visualSampleResult(String id) {
-  if (id == 'petronas') {
-    final preset = recognitionPresets.firstWhere((preset) => preset.id == id);
-    return RecognitionResult(
-      name: preset.name,
-      kind: preset.kind,
-      description:
-          'High-confidence visual match in KLCC based on tower silhouette, stainless-steel cladding, and central skybridge geometry.',
-      location: 'KLCC · Built 1998',
-      recognizedAt: DateTime.now(),
-      sampleId: id,
-    );
-  }
-  return RecognitionResult(
-    name: id == 'domes' ? 'Possible landmark matches' : 'No confident match',
-    kind: 'unknown',
-    description: id == 'domes'
-        ? 'Compare Masjid Jamek and the Sultan Abdul Samad Building. Include an entrance sign to narrow the match.'
-        : 'The archway alone is inconclusive. Include more of the building or photograph a sign.',
-    location: '',
-    recognizedAt: DateTime.now(),
-    sampleId: id,
-  );
-}

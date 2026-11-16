@@ -2666,11 +2666,11 @@ abstract class AppLocalizations {
   /// **'Recognize sends this photo to Google Vision through our secure service. '**
   String get recognizeSendsThisPhotoToGoogleVisionThroughOurSecureService;
 
-  /// No description provided for @cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample.
+  /// No description provided for @scanCameraAccessError.
   ///
   /// In en, this message translates to:
-  /// **'Camera or photo library unavailable. Check access in Settings or try a sample.'**
-  String get cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample;
+  /// **'Camera or photo library unavailable. Check access in Settings.'**
+  String get scanCameraAccessError;
 
   /// No description provided for @restartTheAppToEnableTheCameraAndPhotoLibrary.
   ///
@@ -2678,11 +2678,11 @@ abstract class AppLocalizations {
   /// **'Restart the app to enable the camera and photo library.'**
   String get restartTheAppToEnableTheCameraAndPhotoLibrary;
 
-  /// No description provided for @thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample.
+  /// No description provided for @scanOpenPhotoError.
   ///
   /// In en, this message translates to:
-  /// **'This photo could not be opened. Try another photo or a sample.'**
-  String get thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample;
+  /// **'This photo could not be opened. Try another photo.'**
+  String get scanOpenPhotoError;
 
   /// No description provided for @chooseAPhotoSmallerThan4Mb.
   ///
@@ -2690,11 +2690,11 @@ abstract class AppLocalizations {
   /// **'Choose a photo smaller than 4 MB.'**
   String get chooseAPhotoSmallerThan4Mb;
 
-  /// No description provided for @imageRecognitionIsTemporarilyUnavailableTryASample.
+  /// No description provided for @scanRecognitionUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Image recognition is temporarily unavailable. Try a sample.'**
-  String get imageRecognitionIsTemporarilyUnavailableTryASample;
+  /// **'Image recognition is temporarily unavailable. Try again later.'**
+  String get scanRecognitionUnavailable;
 
   /// No description provided for @recentScans.
   ///
@@ -2807,23 +2807,185 @@ abstract class AppLocalizations {
   /// **'Photo scan · Reference photos'**
   String get referenceScanSource;
 
-  /// No description provided for @scanSearchPlace.
+  /// No description provided for @scanTryAnotherPhoto.
   ///
   /// In en, this message translates to:
-  /// **'Search for a place'**
-  String get scanSearchPlace;
+  /// **'Try another photo'**
+  String get scanTryAnotherPhoto;
 
-  /// No description provided for @scanPlaceSearchHint.
+  /// No description provided for @scanAnotherPhotoHelp.
   ///
   /// In en, this message translates to:
-  /// **'Place name, area or clue'**
-  String get scanPlaceSearchHint;
+  /// **'We couldn’t identify a specific landmark from this photo. Retake it or choose a clearer image from your gallery.'**
+  String get scanAnotherPhotoHelp;
 
-  /// No description provided for @scanSearchWithClue.
+  /// No description provided for @scanIdentifyLandmark.
   ///
   /// In en, this message translates to:
-  /// **'Tap a clue and add the town or area to narrow the search.'**
-  String get scanSearchWithClue;
+  /// **'Identify a landmark'**
+  String get scanIdentifyLandmark;
+
+  /// No description provided for @scanPhotoIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo of a landmark or choose one from your gallery.'**
+  String get scanPhotoIntro;
+
+  /// No description provided for @scanPhotoTips.
+  ///
+  /// In en, this message translates to:
+  /// **'Tips for a clearer photo'**
+  String get scanPhotoTips;
+
+  /// No description provided for @scanTipLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Use good light'**
+  String get scanTipLight;
+
+  /// No description provided for @scanTipLightDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the camera steady and tap the landmark to focus. Avoid blur, glare and deep shadows.'**
+  String get scanTipLightDetail;
+
+  /// No description provided for @scanTipFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the whole landmark'**
+  String get scanTipFrame;
+
+  /// No description provided for @scanTipFrameDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Step back to include its outline and distinctive features. Keep cars and crowds out of the way where possible.'**
+  String get scanTipFrameDetail;
+
+  /// No description provided for @scanTipSign.
+  ///
+  /// In en, this message translates to:
+  /// **'Include a readable sign'**
+  String get scanTipSign;
+
+  /// No description provided for @scanTipSignDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'If the building is hard to recognise, photograph the entrance or name plaque so the words are legible.'**
+  String get scanTipSignDetail;
+
+  /// No description provided for @scanNeedsClue.
+  ///
+  /// In en, this message translates to:
+  /// **'No clear match yet'**
+  String get scanNeedsClue;
+
+  /// No description provided for @scanRetakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake photo'**
+  String get scanRetakePhoto;
+
+  /// No description provided for @scanUploadAnotherPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload another photo'**
+  String get scanUploadAnotherPhoto;
+
+  /// No description provided for @scanPhotoClues.
+  ///
+  /// In en, this message translates to:
+  /// **'Clues from your photo'**
+  String get scanPhotoClues;
+
+  /// No description provided for @scanAboutLandmark.
+  ///
+  /// In en, this message translates to:
+  /// **'About this landmark'**
+  String get scanAboutLandmark;
+
+  /// No description provided for @scanNearbyPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby attractions & food'**
+  String get scanNearbyPlaces;
+
+  /// No description provided for @scanNearbyDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Guide distances from {place} are straight-line estimates.'**
+  String scanNearbyDistance(String place);
+
+  /// No description provided for @scanNearbyArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Places around {place}'**
+  String scanNearbyArea(String place);
+
+  /// No description provided for @scanNearbyNoLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'This scan has no confirmed location. Use Maps to explore around you.'**
+  String get scanNearbyNoLocation;
+
+  /// No description provided for @scanGuideDishVenues.
+  ///
+  /// In en, this message translates to:
+  /// **'Places in the travel guide that mention this dish'**
+  String get scanGuideDishVenues;
+
+  /// No description provided for @scanFoodAndCafes.
+  ///
+  /// In en, this message translates to:
+  /// **'Food & Cafés'**
+  String get scanFoodAndCafes;
+
+  /// No description provided for @scanFindAttractions.
+  ///
+  /// In en, this message translates to:
+  /// **'Find attractions'**
+  String get scanFindAttractions;
+
+  /// No description provided for @scanFindingNearby.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up nearby places…'**
+  String get scanFindingNearby;
+
+  /// No description provided for @scanNoNearbyListings.
+  ///
+  /// In en, this message translates to:
+  /// **'No listings available here. You can also search in Maps.'**
+  String get scanNoNearbyListings;
+
+  /// No description provided for @scanTakeAnotherPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take another photo'**
+  String get scanTakeAnotherPhoto;
+
+  /// No description provided for @scanAreaOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Area identified'**
+  String get scanAreaOnly;
+
+  /// No description provided for @scanPlacesInArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Places in the area'**
+  String get scanPlacesInArea;
+
+  /// No description provided for @scanChooseAreaPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'These places are in the detected area. Select one if you recognise it, or add another photo.'**
+  String get scanChooseAreaPlace;
+
+  /// No description provided for @scanSuggestedArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Area clue: {area}'**
+  String scanSuggestedArea(String area);
 
   /// No description provided for @scanOpenMaps.
   ///
@@ -4848,12 +5010,11 @@ abstract class AppLocalizations {
   String
   get useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady;
 
-  /// No description provided for @selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice.
+  /// No description provided for @scanHistoryPhotoPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Selected photos are sent to Google Vision for scanning. Only result text is saved in History on this device.'**
-  String
-  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice;
+  /// **'Selected photos are sent to Google for recognition. The photo and result are saved in History on this device.'**
+  String get scanHistoryPhotoPrivacy;
 
   /// No description provided for @planPersonalize.
   ///

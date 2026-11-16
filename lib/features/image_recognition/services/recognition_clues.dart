@@ -123,6 +123,8 @@ typedef ClueMatch = ({
   bool web,
   List<String> searchNames,
   String? area,
+  String? visualSuggestion,
+  String? foodSuggestion,
 });
 
 ClueMatch matchPhotoClues(Map<String, dynamic> data) {
@@ -135,9 +137,11 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
           full: page['full'] == true,
         ),
   ];
-  final text = scanNameKey(data['text'] as String? ?? '');
+  final rawText = data['text'] as String? ?? '';
+  final text = scanNameKey(rawText);
+  final signLines = (data['lines'] as List? ?? const []).whereType<String>();
   final searchNames = <String>{};
-  for (final line in (data['lines'] as List? ?? const []).whereType<String>()) {
+  for (final line in signLines) {
     final name = scanNameKey(line);
     if (name.contains(' ') &&
         _landmarkWord.hasMatch(name) &&
@@ -151,13 +155,28 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
   final signSubjects = <String>{};
   final webSubjects = <String>{};
   final webNames = (data['names'] as List? ?? const []).whereType<String>();
-  final area = [
-    ...(data['lines'] as List? ?? const []).whereType<String>(),
-    ...webNames,
-  ].where((name) {
-    final key = scanNameKey(name).replaceFirst(RegExp(r' malaysia$'), '');
-    return key != 'malaysia' && _malaysia.stringMatch(key) == key;
-  }).firstOrNull?.trim();
+  final suggestion = data['visualSuggestion'];
+  final food = data['foodSuggestion'];
+  final foodSuggestion =
+      food is String && food.length <= 90 && scanNameKey(food).length >= 3
+      ? food.trim()
+      : null;
+  final visualSuggestion =
+      suggestion is String &&
+          suggestion.length <= 90 &&
+          scanNameKey(suggestion).contains(' ')
+      ? suggestion.trim()
+      : null;
+  String? findArea(Iterable<String> names) => names
+      .where((name) {
+        final key = scanNameKey(name).replaceFirst(RegExp(r' malaysia$'), '');
+        return key != 'malaysia' && _malaysia.stringMatch(key) == key;
+      })
+      .firstOrNull
+      ?.trim()
+      .replaceFirst(RegExp(r'[\s,]+malaysia$', caseSensitive: false), '');
+  final signArea = findArea([...signLines, rawText]);
+  final area = signArea ?? findArea(webNames);
 
   void add(ReferenceSubject subject, String name) {
     subjects[subject.id] = subject;
@@ -203,7 +222,8 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
       continue;
     }
     final namedPages = pages.where((page) => _containsName(page.title, key));
-    if (namedPages.any((page) => page.full) ||
+    if ((signArea != null && _landmarkWord.hasMatch(key)) ||
+        namedPages.any((page) => page.full) ||
         namedPages.map((page) => page.domain).toSet().length >= 2) {
       searchNames.add(name);
     }
@@ -256,6 +276,8 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
       web: false,
       searchNames: searchNames.take(2).toList(),
       area: area,
+      visualSuggestion: visualSuggestion,
+      foodSuggestion: foodSuggestion,
     );
   }
   final first = ranked.first;
@@ -285,5 +307,7 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
     ),
     searchNames: searchNames.take(2).toList(),
     area: area,
+    visualSuggestion: visualSuggestion,
+    foodSuggestion: foodSuggestion,
   );
 }

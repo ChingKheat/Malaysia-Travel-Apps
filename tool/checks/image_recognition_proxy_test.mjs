@@ -2,16 +2,34 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHandler} from '../../supabase/functions/image-recognition/handler.mjs';
 import {searchScanPlaces} from '../../supabase/functions/image-recognition-context-yh/scan_places.mjs';
+import {suggestVisualLandmark} from '../../supabase/functions/image-recognition-context-yh/visual_suggestion.mjs';
 
 const image = Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...Array(12).fill(0)]).toString('base64');
+
+test('Gemini food suggestions are routed to the food field for enabled clients', async () => {
+  const {handler} = setup({
+    contextOnly: true,
+    visualSuggestion: suggestVisualLandmark,
+    secrets: {GEMINI_API_KEY: 'scan-secret'},
+    upstream(url, options) {
+      if (url.includes('vision.googleapis.com')) return Response.json({responses: [{}]});
+      assert.deepEqual(JSON.parse(options.body).generationConfig.responseJsonSchema.required, ['name', 'kind']);
+      return Response.json({candidates: [{content: {parts: [{text: '{"name":"Satay","kind":"food"}'}]}}]});
+    },
+  });
+  const response = await handler(request({operation: 'recognize_context', image, include_visual_suggestion: true, include_food_suggestion: true}));
+  const result = await response.json();
+  assert.equal(result.foodSuggestion, 'Satay');
+  assert.equal(result.visualSuggestion, undefined);
+});
 const config = {SUPABASE_URL: 'https://db.test', SUPABASE_ANON_KEY: 'public', GOOGLE_BACKEND_API_KEY: 'server-only'};
 const request = (body, token = 'valid') => new Request('https://app.test', {
   method: 'POST', headers: {...(token ? {Authorization: `Bearer ${token}`} : {}), 'Content-Type': 'application/json'},
   body: JSON.stringify(body),
 });
-function setup({user = {id: 'tourist'}, upstream, missingKey = false, secrets = {}, contextOnly = false, placeSearch} = {}) {
+function setup({user = {id: 'tourist'}, upstream, missingKey = false, secrets = {}, contextOnly = false, placeSearch, visualSuggestion} = {}) {
   const calls = [];
-  const handler = createHandler({contextOnly, searchScanPlaces: placeSearch, env: name => missingKey && name === 'GOOGLE_BACKEND_API_KEY' ? '' : {...config,...secrets}[name], fetcher: async (url, options) => {
+  const handler = createHandler({contextOnly, searchScanPlaces: placeSearch, suggestVisualLandmark: visualSuggestion, env: name => missingKey && name === 'GOOGLE_BACKEND_API_KEY' ? '' : {...config,...secrets}[name], fetcher: async (url, options) => {
     calls.push({url, options});
     if (url.endsWith('/auth/v1/user')) return user ? Response.json(user) : new Response('', {status: 401});
     return upstream ? upstream(url, options) : Response.json({responses: [{
@@ -21,6 +39,40 @@ function setup({user = {id: 'tourist'}, upstream, missingKey = false, secrets = 
   }});
   return {handler, calls};
 }
+
+test('Context scan combines OCR and an optional visual suggestion, independently of provider failures', async () => {
+  for (const [visionOK, geminiOK] of [[true, true], [false, true], [true, false]]) {
+    const {handler, calls} = setup({
+      contextOnly: true,
+      visualSuggestion: suggestVisualLandmark,
+      secrets: {GEMINI_API_KEY: 'scan-secret'},
+      upstream(url, options) {
+        if (url.includes('vision.googleapis.com')) {
+          return visionOK ? Response.json({responses: [{fullTextAnnotation: {text: 'LANGKAWI'}}]})
+            : new Response(null, {status: 502});
+        }
+        assert.match(url, /^https:\/\/generativelanguage\.googleapis\.com\//);
+        assert.equal(options.headers['x-goog-api-key'], 'scan-secret');
+        assert.deepEqual(JSON.parse(options.body).contents[0].parts,
+          [{inlineData: {mimeType: 'image/jpeg', data: image}}]);
+        return geminiOK ? Response.json({candidates: [{content: {parts: [{text: '{"name":"Eagle Square"}'}]}}]})
+          : new Response(null, {status: 429});
+      },
+    });
+    const body = {operation: 'recognize_context', image, include_visual_suggestion: true};
+    assert.equal((await handler(request(body, ''))).status, 401);
+    assert.equal(calls.length, 0);
+    const result = await handler(request(body));
+    assert.equal(result.status, 200);
+    assert.deepEqual(await result.json(), {
+      ...(visionOK && {names: [], pages: [], text: 'LANGKAWI', lines: ['LANGKAWI']}),
+      ...(geminiOK && {visualSuggestion: 'Eagle Square'}),
+    });
+    assert.equal(calls.length, 3);
+    await handler(request({...body, include_visual_suggestion: false}));
+    assert.equal(calls.filter(({url}) => url.includes('generativelanguage')).length, 1);
+  }
+});
 
 test('Scan place search reserves quota and returns Malaysian listings only', async () => {
   const body = {operation: 'scan_places', query: 'Kinta Tin Mining Museum'};

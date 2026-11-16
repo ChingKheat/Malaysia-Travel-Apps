@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:smart_travel_planner/features/image_recognition/data/scan_place_facts.dart';
 import 'package:smart_travel_planner/features/image_recognition/data/visual_scan_results.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
+import 'package:smart_travel_planner/features/image_recognition/services/recognition_clues.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
+import 'package:smart_travel_planner/features/image_recognition/widgets/scan_photo_guidance.dart';
 import 'package:smart_travel_planner/features/image_recognition/widgets/visual_scan_style.dart';
 import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
@@ -21,8 +23,10 @@ class RecognitionResultSheet extends StatefulWidget {
     required this.service,
     required this.onNewScan,
     this.onBack,
-    this.image,
+    this.photo,
     this.onReferenceSelected,
+    this.onTakeAnotherPhoto,
+    this.onUploadAnotherPhoto,
     this.userId = 'guest',
   });
 
@@ -30,8 +34,10 @@ class RecognitionResultSheet extends StatefulWidget {
   final ImageRecognitionService service;
   final VoidCallback onNewScan;
   final VoidCallback? onBack;
-  final Widget? image;
+  final ImageProvider<Object>? photo;
   final ValueChanged<String>? onReferenceSelected;
+  final VoidCallback? onTakeAnotherPhoto;
+  final VoidCallback? onUploadAnotherPhoto;
   final String userId;
 
   @override
@@ -45,6 +51,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   late final _spots = scanSpots(widget.result, _origin);
   final _translations = <String, Future<RecognitionResult>>{};
   final _lookupJobs = <String, Future<GooglePlaceDetails?>>{};
+  final _nearbyJobs = <_SpotFilter, Future<List<GooglePlaceDetails>>>{};
   late final _googlePlaces = GooglePlacesService();
   Set<String> _saved = {};
   bool _saving = false;
@@ -91,16 +98,21 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     }
   }
 
-  void _story(Attraction place) {
+  void _story(
+    Attraction place, {
+    ImageProvider<Object>? photo,
+    GooglePlaceDetails? listing,
+  }) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => AttractionDetailPage(attraction: place),
+        builder: (_) => AttractionDetailPage(
+          attraction: place,
+          heroPhoto: photo,
+          initialDetails: listing,
+        ),
       ),
     );
   }
-
-  Future<void> _findRestaurants() =>
-      _openMapSearch('${widget.result.name} restaurants');
 
   Future<void> _openMapSearch(String query) async {
     final uri = Uri.https('www.google.com', '/maps/search/', {
@@ -119,139 +131,6 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     }
   }
 
-  Future<void> _searchForPlace({String? clue}) async {
-    final l10n = context.l10n;
-    var query = clue ?? '';
-    final selection = await showDialog<({String query, bool maps})>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.scanSearchPlace),
-        content: TextFormField(
-          initialValue: clue == null ? null : '$clue ',
-          autofocus: true,
-          maxLength: 120,
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(hintText: l10n.scanPlaceSearchHint),
-          onChanged: (value) => query = value,
-          onFieldSubmitted: (value) {
-            if (value.trim().isNotEmpty) {
-              Navigator.pop(context, (query: value.trim(), maps: false));
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (query.trim().isNotEmpty) {
-                Navigator.pop(context, (query: query.trim(), maps: false));
-              }
-            },
-            child: Text(MaterialLocalizations.of(context).searchFieldLabel),
-          ),
-          TextButton(
-            onPressed: () {
-              if (query.trim().isNotEmpty) {
-                Navigator.pop(context, (query: query.trim(), maps: true));
-              }
-            },
-            child: Text(l10n.scanOpenMaps),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || selection == null) return;
-    if (selection.maps) {
-      await _openMapSearch('${selection.query} Malaysia');
-      return;
-    }
-    final search = widget.service.searchPlaces(selection.query);
-    final place = await showModalBottomSheet<GooglePlaceDetails>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * .55,
-          child: FutureBuilder<List<GooglePlaceDetails>>(
-            future: search,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final places = snapshot.data ?? const [];
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Text(
-                    l10n.searchResults,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  if (places.isEmpty) Text(l10n.noPlacesFound),
-                  for (final place in places)
-                    ListTile(
-                      title: Text(place.name ?? ''),
-                      subtitle: place.address == null
-                          ? null
-                          : Text(place.address!),
-                      onTap: () => Navigator.pop(context, place),
-                    ),
-                  if (places.isNotEmpty)
-                    GoogleMapsAttribution(
-                      attributions: [
-                        for (final place in places) ...place.attributions,
-                      ],
-                    ),
-                  TextButton(
-                    onPressed: () =>
-                        _openMapSearch('${selection.query} Malaysia'),
-                    child: Text(l10n.scanOpenMaps),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-    if (!mounted || place == null) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: VisualScanStyle.surface,
-      builder: (context) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 26),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                place.name ?? selection.query,
-                style: VisualScanStyle.heading(22),
-              ),
-              const SizedBox(height: 8),
-              _ScanFactsBlock(
-                facts: scanFacts(place.name ?? selection.query),
-                initialListing: place,
-                listing: _listing(place.name ?? selection.query, place.id),
-              ),
-              _ScanButton(
-                label: l10n.scanOpenMaps,
-                icon: Icons.map_outlined,
-                onPressed: () =>
-                    _openMapSearch(place.address ?? '${place.name} Malaysia'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<GooglePlaceDetails?> _listing(String name, [String? id]) =>
       _lookupJobs.putIfAbsent(id ?? name, () async {
         try {
@@ -259,9 +138,9 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
               ? await widget.service.lookupPlace(name)
               : null;
           final placeId = id ?? summary?.id;
-          return placeId == null
-              ? null
-              : await _googlePlaces.fetchDetails(placeId) ?? summary;
+          if (placeId == null) return null;
+          final details = await _googlePlaces.fetchDetails(placeId);
+          return details ?? summary ?? await widget.service.lookupPlace(name);
         } catch (_) {
           return null;
         }
@@ -284,7 +163,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     };
     if (target == 'en' ||
         widget.result.isSample ||
-        widget.result.referenceCandidates.isNotEmpty) {
+        widget.result.kind == 'unknown') {
       return _body(widget.result);
     }
     return FutureBuilder<RecognitionResult>(
@@ -298,63 +177,51 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     final source = widget.result;
     final l10n = context.l10n;
     final candidates = source.referenceCandidates;
+    final areaSuggestions = source.source == RecognitionSource.areaLookup;
     final facts = scanFacts(source.name, description: result.description);
-    final sample = visualScanSamples
-        .where((item) => item.id == source.sampleId)
-        .firstOrNull;
-    final spots = _spots.where(
-      (spot) => switch (_filter) {
-        _SpotFilter.all => true,
-        _SpotFilter.food => spot.food,
-        _SpotFilter.attractions => !spot.food,
-      },
-    );
-    final status = switch ((source.sampleId, source.source)) {
-      ('petronas', _) => 'Confident visual match',
-      ('domes', _) => 'Plausible matches',
-      ('archway', _) => 'Needs a clue',
-      (_, RecognitionSource.userConfirmedReference) =>
-        l10n.referenceMatchSelected,
-      (_, RecognitionSource.userConfirmedClue) => l10n.referenceMatchSelected,
-      (_, RecognitionSource.web) =>
+    final needsRetry = source.kind == 'unknown' && !source.isSample;
+    final placeId = source.placeId;
+    final landmarkStory = source.kind == 'landmark'
+        ? _origin?.copyWith(description: facts.description) ??
+              Attraction(
+                xid: placeId == null
+                    ? 'scan_${scanNameKey(source.name)}'
+                    : 'google_$placeId',
+                name: source.name,
+                latitude: 0,
+                longitude: 0,
+                category: l10n.landmark,
+                description: facts.description,
+              )
+        : null;
+    final status = switch (source.source) {
+      _ when source.isSample => 'Sample landmark',
+      RecognitionSource.userConfirmedReference => l10n.referenceMatchSelected,
+      RecognitionSource.userConfirmedClue => l10n.referenceMatchSelected,
+      RecognitionSource.web =>
         candidates.isEmpty
             ? l10n.scanWebMatchFound
             : l10n.referenceMatchUncertain,
-      (_, RecognitionSource.sign) => l10n.scanSignClue,
-      (_, RecognitionSource.visualEvidence) => l10n.referenceMatchUncertain,
-      (_, RecognitionSource.placeLookup) => l10n.referenceMatchUncertain,
-      (_, RecognitionSource.vision) when candidates.isNotEmpty =>
+      RecognitionSource.sign => l10n.scanSignClue,
+      RecognitionSource.visualEvidence => l10n.referenceMatchUncertain,
+      RecognitionSource.placeLookup => l10n.referenceMatchUncertain,
+      RecognitionSource.foodSuggestion => l10n.referenceMatchUncertain,
+      RecognitionSource.areaLookup => l10n.scanAreaOnly,
+      RecognitionSource.vision when candidates.isNotEmpty =>
         l10n.referenceMatchUncertain,
-      (_, RecognitionSource.reference) =>
+      RecognitionSource.reference =>
         candidates.isEmpty
             ? l10n.referenceMatchFound
             : l10n.referenceMatchUncertain,
       _ =>
         source.kind == 'unknown'
-            ? 'Needs a clue'
+            ? l10n.scanNeedsClue
             : source.confidence == null
             ? 'Possible visual match'
             : 'Confident visual match',
     };
-    final evidence = source.sampleId == 'petronas'
-        ? const [
-            (
-              'Double-decker Skybridge',
-              'Hinged two-level span linking floors 41 and 42 at 170 m.',
-            ),
-            (
-              'Stepped Islamic Star Plan',
-              'Alternating triangular and rounded stainless-steel bays.',
-            ),
-            (
-              'KLCC Lakefront Basin',
-              'Reflective fountain promenade and tropical park foreground.',
-            ),
-          ]
-        : [for (final label in result.labels.toSet().take(3)) (label, '')];
 
     return ListView(
-      key: const PageStorageKey('visual-scan-result'),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
         Row(
@@ -367,7 +234,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             Expanded(
               child: Text(
                 source.isSample
-                    ? 'Built-in sample · Mock recognition'
+                    ? 'Offline sample'
                     : switch (source.source) {
                         RecognitionSource.vision =>
                           'Photo scan · Google Vision',
@@ -380,33 +247,50 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                           l10n.scanVisualClueSource,
                         RecognitionSource.placeLookup =>
                           l10n.scanPlaceListingSource,
+                        RecognitionSource.foodSuggestion =>
+                          'Photo scan · Gemini',
+                        RecognitionSource.areaLookup =>
+                          l10n.scanPlaceListingSource,
                         RecognitionSource.userConfirmedClue =>
                           l10n.scanSelectedSource,
                       },
                 style: _supportText,
               ),
             ),
-            _ScanButton(
-              label: 'New scan',
-              icon: Icons.restart_alt,
-              compact: true,
+            OutlinedButton.icon(
+              style: VisualScanStyle.headerButton,
               onPressed: widget.onNewScan,
+              icon: const Icon(Icons.restart_alt, size: 17),
+              label: const Text('New Scan'),
             ),
           ],
         ),
-        if (widget.image != null) ...[
+        if (widget.photo case final photo?) ...[
           const SizedBox(height: 20),
           _ResultPanel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AspectRatio(aspectRatio: 1.82, child: widget.image),
+                AspectRatio(
+                  aspectRatio: 1.82,
+                  child: ColoredBox(
+                    color: VisualScanStyle.navigation,
+                    child: Image(
+                      image: photo,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Center(
+                        child: Text(
+                          l10n.photoPreviewUnavailable,
+                          style: _supportText,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
                   child: Text(
-                    sample == null
-                        ? 'Original photo'
-                        : 'Original photo · ${sample.title}',
+                    source.isSample ? 'Sample photo' : 'Original photo',
                     style: const TextStyle(
                       fontSize: 12,
                       color: VisualScanStyle.text,
@@ -444,9 +328,13 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                 ],
                 const SizedBox(height: 5),
                 Text(
-                  candidates.isEmpty
-                      ? result.name
-                      : l10n.referencePossibleMatches,
+                  candidates.isNotEmpty
+                      ? areaSuggestions
+                            ? l10n.scanPlacesInArea
+                            : l10n.referencePossibleMatches
+                      : source.kind == 'unknown' && !source.isSample
+                      ? l10n.scanTryAnotherPhoto
+                      : result.name,
                   style: VisualScanStyle.heading(24),
                 ),
                 if (source.visionLandmarkName case final name?) ...[
@@ -462,13 +350,19 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                 ],
                 if (candidates.isNotEmpty) ...[
                   const SizedBox(height: 7),
-                  Text(l10n.referenceChooseSubject, style: _supportText),
+                  Text(
+                    areaSuggestions
+                        ? l10n.scanChooseAreaPlace
+                        : l10n.referenceChooseSubject,
+                    style: _supportText,
+                  ),
                   const SizedBox(height: 12),
                   for (final candidate in candidates)
                     _ScanCandidateCard(
                       candidate: candidate,
                       listing:
-                          candidate.kind == 'landmark' &&
+                          !areaSuggestions &&
+                              candidate.kind == 'landmark' &&
                               candidateScanFacts(candidate).hours == null
                           ? _listing(candidate.name, candidate.placeId)
                           : null,
@@ -476,6 +370,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                           ? null
                           : () => widget.onReferenceSelected!(candidate.id),
                     ),
+                  if (areaSuggestions) const GoogleMapsAttribution(),
                 ],
                 if (source.kind != 'unknown') ...[
                   const SizedBox(height: 8),
@@ -485,14 +380,18 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                     listing:
                         !source.isSample &&
                             source.kind == 'landmark' &&
-                            facts.hours == null
+                            (facts.hours == null || facts.description == null)
                         ? _listing(source.name, source.placeId)
                         : null,
+                    showDescriptionHeading: source.kind == 'landmark',
                   ),
-                ] else if (result.description.isNotEmpty) ...[
+                ] else if (candidates.isEmpty &&
+                    (!source.isSample || result.description.isNotEmpty)) ...[
                   const SizedBox(height: 7),
                   Text(
-                    result.description,
+                    source.isSample
+                        ? result.description
+                        : l10n.scanAnotherPhotoHelp,
                     style: _supportText.copyWith(fontSize: 14, height: 1.5),
                   ),
                 ],
@@ -500,12 +399,34 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                   const SizedBox(height: 10),
                   Text(source.webSources.join(' · '), style: _supportText),
                 ],
-                if (!source.isSample && source.kind == 'unknown') ...[
+                if (needsRetry) ...[
+                  if (source.areaHint case final area?) ...[
+                    const SizedBox(height: 10),
+                    Text(l10n.scanSuggestedArea(area), style: _supportText),
+                  ],
+                  if (candidates.isEmpty && result.labels.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text(l10n.scanPhotoClues, style: _amberText),
+                    const SizedBox(height: 5),
+                    Text(result.labels.join(' · '), style: _supportText),
+                  ],
                   const SizedBox(height: 14),
-                  _ScanButton(
-                    label: l10n.scanSearchPlace,
-                    icon: Icons.search,
-                    onPressed: _searchForPlace,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _ScanButton(
+                        label: l10n.scanRetakePhoto,
+                        icon: Icons.photo_camera_outlined,
+                        prominent: true,
+                        onPressed: widget.onTakeAnotherPhoto,
+                      ),
+                      _ScanButton(
+                        label: l10n.scanUploadAnotherPhoto,
+                        icon: Icons.file_upload_outlined,
+                        onPressed: widget.onUploadAnotherPhoto,
+                      ),
+                    ],
                   ),
                 ],
                 if (_origin == null && source.kind == 'landmark') ...[
@@ -516,7 +437,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                     onPressed: () => _openMapSearch('${source.name} Malaysia'),
                   ),
                 ],
-                if (_origin case final place?) ...[
+                if (landmarkStory case final place?) ...[
                   const SizedBox(height: 16),
                   Wrap(
                     spacing: 8,
@@ -527,7 +448,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                         icon: Icons.arrow_forward_rounded,
                         iconAfter: true,
                         prominent: true,
-                        onPressed: () => _story(place),
+                        onPressed: () => _story(place, photo: widget.photo),
                       ),
                       _saveButton(place),
                     ],
@@ -537,147 +458,209 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             ),
           ),
         ),
-        if (evidence.isNotEmpty) ...[
+        if (needsRetry) ...[
           const SizedBox(height: 16),
-          _ResultPanel(
+          const _ResultPanel(
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Supporting visual evidence',
-                    style: VisualScanStyle.heading(17),
-                  ),
-                  const SizedBox(height: 12),
-                  if (!source.isSample && source.kind == 'unknown') ...[
-                    Text(l10n.scanSearchWithClue, style: _supportText),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        for (final (title, _) in evidence)
-                          ActionChip(
-                            avatar: const Icon(Icons.search, size: 16),
-                            label: Text(title),
-                            onPressed: () => _searchForPlace(clue: title),
-                          ),
-                      ],
-                    ),
-                  ] else
-                    for (final (index, (title, detail))
-                        in evidence.indexed) ...[
-                      if (index > 0)
-                        const Divider(
-                          height: 20,
-                          color: VisualScanStyle.border,
-                        ),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: VisualScanStyle.text,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (detail.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(detail, style: _supportText),
-                      ],
-                    ],
-                ],
-              ),
+              padding: EdgeInsets.all(16),
+              child: ScanPhotoGuidance(),
             ),
           ),
         ],
-        if (_origin != null || _spots.isNotEmpty || source.kind == 'food') ...[
-          const SizedBox(height: 24),
-          Text(
-            source.kind == 'food'
-                ? 'Where to try it'
-                : 'Nearby attractions & food',
-            style: VisualScanStyle.heading(20),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            source.sampleId == 'petronas'
-                ? 'Walking distance around KLCC Skyline District · sample estimates'
-                : _origin != null
-                ? 'Within 15 km of ${result.name} · straight-line distances'
-                : 'Places in the travel guide that list this dish',
-            style: _supportText,
-          ),
-          if (_spots.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _ResultPanel(
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Row(
-                  children: [
-                    for (final (filter, label) in const [
-                      (_SpotFilter.all, 'All'),
-                      (_SpotFilter.food, 'Food & Cafés'),
-                      (_SpotFilter.attractions, 'Attractions'),
-                    ])
-                      Expanded(
-                        child: Semantics(
-                          selected: _filter == filter,
-                          child: TextButton(
-                            onPressed: () => setState(() => _filter = filter),
-                            style: TextButton.styleFrom(
-                              backgroundColor: _filter == filter
-                                  ? VisualScanStyle.amber
-                                  : null,
-                              foregroundColor: _filter == filter
-                                  ? VisualScanStyle.background
-                                  : VisualScanStyle.muted,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 8,
-                              ),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              textStyle: Theme.of(
-                                context,
-                              ).textTheme.labelLarge?.copyWith(fontSize: 12),
-                            ),
-                            child: Text(label, textAlign: TextAlign.center),
+        const SizedBox(height: 24),
+        ..._nearbySection(result),
+      ],
+    );
+  }
+
+  List<Widget> _nearbySection(RecognitionResult display) {
+    final l10n = context.l10n;
+    final result = widget.result;
+    final anchor = result.kind == 'landmark'
+        ? [
+            result.name,
+            if (result.location.trim().isNotEmpty) result.location,
+          ].join(', ')
+        : result.areaHint;
+    final visible = _spots.where(
+      (spot) =>
+          _filter == _SpotFilter.all ||
+          spot.food == (_filter == _SpotFilter.food),
+    );
+    return [
+      Text(l10n.scanNearbyPlaces, style: VisualScanStyle.heading(20)),
+      const SizedBox(height: 4),
+      Text(
+        _origin != null && _spots.isNotEmpty && !result.isSample
+            ? l10n.scanNearbyDistance(display.name)
+            : anchor != null
+            ? l10n.scanNearbyArea(
+                display.kind == 'landmark' ? display.name : anchor,
+              )
+            : l10n.scanNearbyNoLocation,
+        style: _supportText,
+      ),
+      const SizedBox(height: 10),
+      if (anchor != null) ...[
+        _ResultPanel(
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: [
+                for (final (filter, label) in [
+                  (_SpotFilter.all, l10n.all),
+                  (_SpotFilter.food, l10n.scanFoodAndCafes),
+                  (_SpotFilter.attractions, l10n.attractions),
+                ])
+                  Expanded(
+                    child: Semantics(
+                      selected: _filter == filter,
+                      child: TextButton(
+                        onPressed: () => setState(() => _filter = filter),
+                        style: TextButton.styleFrom(
+                          backgroundColor: _filter == filter
+                              ? VisualScanStyle.amber
+                              : null,
+                          foregroundColor: _filter == filter
+                              ? VisualScanStyle.background
+                              : VisualScanStyle.muted,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 8,
                           ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          textStyle: const TextStyle(fontSize: 12),
                         ),
+                        child: Text(label, textAlign: TextAlign.center),
                       ),
-                  ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final (filter, label, term, icon) in [
+            (
+              _SpotFilter.attractions,
+              l10n.scanFindAttractions,
+              'tourist attractions',
+              Icons.explore_outlined,
+            ),
+            (
+              _SpotFilter.food,
+              l10n.findRestaurants,
+              'restaurants',
+              Icons.restaurant,
+            ),
+          ])
+            if (anchor == null ||
+                _filter == _SpotFilter.all ||
+                _filter == filter)
+              _ScanButton(
+                label: label,
+                icon: icon,
+                onPressed: () => _openMapSearch(
+                  anchor == null
+                      ? '${filter == _SpotFilter.food && result.kind == 'food' ? result.name : term} near me'
+                      : '$term near $anchor, Malaysia',
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            if (spots.isEmpty)
-              const Text('No places in this category.', style: _supportText),
-            for (final spot in spots) ...[
-              _NearbySpotCard(
-                key: ValueKey(spot.place.xid),
-                spot: spot,
-                lookup: () =>
-                    _listing(spot.place.name, spot.place.googlePlaceId),
-                save: _saveButton(spot.place, compact: true),
-                onStory: spot.food ? null : () => _story(spot.place),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ],
-          if (source.kind == 'food')
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _ScanButton(
-                label: context.l10n.findRestaurants,
-                icon: Icons.search,
-                onPressed: _findRestaurants,
-              ),
-            ),
         ],
+      ),
+      if (anchor == null && result.kind == 'food' && visible.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Text(l10n.scanGuideDishVenues, style: _supportText),
+        ),
+      for (final spot in visible) ...[
+        const SizedBox(height: 10),
+        _NearbySpotCard(
+          key: ValueKey(spot.place.xid),
+          spot: spot,
+          lookup: () => _listing(spot.place.name, spot.place.googlePlaceId),
+          save: _saveButton(spot.place, compact: true),
+          onStory: () => _story(spot.place),
+        ),
       ],
+      if (anchor != null)
+        for (final (filter, food, term, label) in [
+          (
+            _SpotFilter.attractions,
+            false,
+            'tourist attractions',
+            l10n.attractions,
+          ),
+          (_SpotFilter.food, true, 'restaurants', l10n.scanFoodAndCafes),
+        ])
+          if ((_filter == _SpotFilter.all || _filter == filter) &&
+              !visible.any((spot) => spot.food == food)) ...[
+            const SizedBox(height: 12),
+            Text(label, style: VisualScanStyle.heading(16)),
+            FutureBuilder<List<GooglePlaceDetails>>(
+              future: _nearbyJobs.putIfAbsent(filter, () async {
+                final places = await widget.service.searchPlaces(
+                  '$term near $anchor',
+                );
+                return places
+                    .where(
+                      (place) =>
+                          place.id != result.placeId &&
+                          (place.name?.trim().isNotEmpty ?? false) &&
+                          scanNameKey(place.name ?? '') !=
+                              scanNameKey(result.name),
+                    )
+                    .take(4)
+                    .toList();
+              }),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return Text(l10n.scanFindingNearby, style: _supportText);
+                }
+                final places = snapshot.data ?? const [];
+                if (places.isEmpty) {
+                  return Text(l10n.scanNoNearbyListings, style: _supportText);
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final listing in places) ...[
+                      _listedSpotCard(listing, food: food),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
+    ];
+  }
+
+  Widget _listedSpotCard(GooglePlaceDetails listing, {required bool food}) {
+    final place = Attraction(
+      xid: 'google_${listing.id}',
+      name: listing.name!,
+      latitude: listing.latitude ?? 0,
+      longitude: listing.longitude ?? 0,
+      category:
+          listing.category ??
+          (food ? context.l10n.scanFoodAndCafes : context.l10n.attractions),
+      description: listing.description,
+    );
+    return _NearbySpotCard(
+      key: ValueKey(place.xid),
+      spot: (place: place, food: food, image: null, price: null, distance: ''),
+      initialDetails: listing,
+      lookup: () => _listing(place.name, listing.id),
+      save: _saveButton(place, compact: true),
+      onStory: () => _story(place, listing: listing),
     );
   }
 
@@ -711,11 +694,11 @@ class _ResultPanel extends StatelessWidget {
   final bool highlighted;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => Material(
+    color: VisualScanStyle.surface,
     clipBehavior: Clip.antiAlias,
-    decoration: BoxDecoration(
-      color: VisualScanStyle.surface,
-      border: Border.all(
+    shape: RoundedRectangleBorder(
+      side: BorderSide(
         color: highlighted ? const Color(0xFF805F34) : VisualScanStyle.border,
       ),
       borderRadius: BorderRadius.circular(16),
@@ -730,13 +713,15 @@ class _NearbySpotCard extends StatelessWidget {
     required this.spot,
     required this.save,
     required this.lookup,
-    this.onStory,
+    this.initialDetails,
+    required this.onStory,
   });
 
   final ScanSpot spot;
   final Widget save;
   final Future<GooglePlaceDetails?> Function() lookup;
-  final VoidCallback? onStory;
+  final GooglePlaceDetails? initialDetails;
+  final VoidCallback onStory;
 
   @override
   Widget build(BuildContext context) => _ResultPanel(
@@ -804,6 +789,7 @@ class _NearbySpotCard extends StatelessWidget {
                       _NearbyScanFacts(
                         facts: nearbyScanFacts(spot.place),
                         lookup: lookup,
+                        initialDetails: initialDetails,
                       ),
                     ],
                   ),
@@ -817,7 +803,9 @@ class _NearbySpotCard extends StatelessWidget {
           color: VisualScanStyle.navigation,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
+            alignment: spot.distance.isEmpty
+                ? WrapAlignment.end
+                : WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
             runSpacing: 6,
@@ -828,15 +816,14 @@ class _NearbySpotCard extends StatelessWidget {
                 spacing: 7,
                 children: [
                   save,
-                  if (onStory != null)
-                    _ScanButton(
-                      label: 'Story',
-                      icon: Icons.arrow_forward,
-                      iconAfter: true,
-                      prominent: true,
-                      compact: true,
-                      onPressed: onStory,
-                    ),
+                  _ScanButton(
+                    label: 'Story',
+                    icon: Icons.arrow_forward,
+                    iconAfter: true,
+                    prominent: true,
+                    compact: true,
+                    onPressed: onStory,
+                  ),
                 ],
               ),
             ],
@@ -848,9 +835,14 @@ class _NearbySpotCard extends StatelessWidget {
 }
 
 class _NearbyScanFacts extends StatefulWidget {
-  const _NearbyScanFacts({required this.facts, required this.lookup});
+  const _NearbyScanFacts({
+    required this.facts,
+    required this.lookup,
+    this.initialDetails,
+  });
   final ScanPlaceFacts facts;
   final Future<GooglePlaceDetails?> Function() lookup;
+  final GooglePlaceDetails? initialDetails;
 
   @override
   State<_NearbyScanFacts> createState() => _NearbyScanFactsState();
@@ -863,7 +855,11 @@ class _NearbyScanFactsState extends State<_NearbyScanFacts> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _ScanFactsBlock(facts: widget.facts, listing: _details),
+      _ScanFactsBlock(
+        facts: widget.facts,
+        listing: _details,
+        initialDetails: widget.initialDetails,
+      ),
       if (widget.facts.hours == null && _details == null)
         TextButton(
           style: TextButton.styleFrom(foregroundColor: VisualScanStyle.amber),
@@ -941,22 +937,24 @@ class _ScanFactsBlock extends StatelessWidget {
     required this.facts,
     this.isDish = false,
     this.listing,
-    this.initialListing,
+    this.initialDetails,
+    this.showDescriptionHeading = false,
   });
 
   final ScanPlaceFacts facts;
   final bool isDish;
   final Future<GooglePlaceDetails?>? listing;
-  final GooglePlaceDetails? initialListing;
+  final GooglePlaceDetails? initialDetails;
+  final bool showDescriptionHeading;
 
   @override
   Widget build(BuildContext context) => listing == null
-      ? _body(context, initialListing, loading: false)
+      ? _body(context, initialDetails, loading: false)
       : FutureBuilder<GooglePlaceDetails?>(
           future: listing,
           builder: (context, snapshot) => _body(
             context,
-            snapshot.data ?? initialListing,
+            snapshot.data ?? initialDetails,
             loading: snapshot.connectionState != ConnectionState.done,
           ),
         );
@@ -980,12 +978,19 @@ class _ScanFactsBlock extends StatelessWidget {
                   ? l10n.scanCheckingPlaceDetails
                   : l10n.openingHoursUnavailableCheckBeforeVisiting);
     final source = facts.source;
+    final summary = place?.description?.trim();
+    final description =
+        facts.description ??
+        (summary != null && summary.isNotEmpty ? summary : null);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (showDescriptionHeading) ...[
+          Text(l10n.scanAboutLandmark, style: _amberText),
+          const SizedBox(height: 4),
+        ],
         Text(
-          place?.description ??
-              facts.description ??
+          description ??
               place?.category ??
               (loading
                   ? l10n.scanCheckingPlaceDetails

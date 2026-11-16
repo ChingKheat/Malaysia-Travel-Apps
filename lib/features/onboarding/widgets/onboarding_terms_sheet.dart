@@ -169,7 +169,7 @@ class _TermsContent {
             (
               title: '地标识别与相机使用规范',
               body:
-                  '通过应用拍摄的照片仅在本地及高安全计算机视觉引擎中分析，专门用于识别建筑立面、历史遗迹和文化地标。图像绝不向第三方出售，亦不用于人脸识别或商业广告。',
+                  '应用会在设备上处理扫描照片，并将照片发送至 Google Cloud Vision 识别地标和菜肴。结果不确定时，Google Gemini 可能分析照片并建议地标或菜名。图像绝不向第三方出售，亦不用于人脸识别或商业广告。',
             ),
             (
               title: '位置信息与本地周边发现',
@@ -202,7 +202,7 @@ class _TermsContent {
             (
               title: 'Pengecaman Mercu Tanda & Penggunaan Kamera',
               body:
-                  'Foto yang diimbas diproses secara selamat pada peranti dan analisis penglihatan komputer semata-mata untuk mengenal pasti fasad seni bina dan mercu tanda budaya. Imej tidak akan dijual kepada pihak ketiga atau digunakan untuk pengecaman wajah atau pengiklanan.',
+                  'Aplikasi memproses foto imbasan pada peranti dan menghantarnya ke Google Cloud Vision untuk mengenal pasti mercu tanda dan hidangan. Jika hasilnya tidak pasti, Google Gemini boleh menganalisis foto untuk mencadangkan mercu tanda atau hidangan. Imej tidak akan dijual kepada pihak ketiga atau digunakan untuk pengecaman wajah atau pengiklanan.',
             ),
             (
               title: 'Maklumat Lokasi & Penemuan Tempatan',
@@ -236,7 +236,7 @@ class _TermsContent {
             (
               title: 'Landmark Recognition & Camera Usage',
               body:
-                  'Photographs scanned through the app are processed on-device and via secure computer vision analysis solely to identify architectural facades, monuments, and cultural landmarks. Images are never sold to third parties or used for facial recognition or commercial advertising.',
+                  'The app processes scan photos on your device and sends them to Google Cloud Vision to identify landmarks and dishes. When the result is uncertain, Google Gemini may analyze the photo to suggest a landmark or dish. Images are never sold to third parties or used for facial recognition or commercial advertising.',
             ),
             (
               title: 'Location Information & Local Discovery',

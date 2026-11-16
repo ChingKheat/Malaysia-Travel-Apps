@@ -1482,24 +1482,24 @@ class AppLocalizationsMs extends AppLocalizations {
       'Pengecaman menghantar foto ini ke Google Vision melalui perkhidmatan selamat kami. ';
 
   @override
-  String get cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample =>
-      'Kamera atau galeri tidak tersedia. Semak kebenaran dalam Tetapan atau cuba sampel.';
+  String get scanCameraAccessError =>
+      'Kamera atau galeri tidak tersedia. Semak kebenaran dalam Tetapan.';
 
   @override
   String get restartTheAppToEnableTheCameraAndPhotoLibrary =>
       'Mulakan semula aplikasi untuk mengaktifkan kamera dan galeri.';
 
   @override
-  String get thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample =>
-      'Foto ini tidak dapat dibuka. Cuba foto lain atau sampel.';
+  String get scanOpenPhotoError =>
+      'Foto ini tidak dapat dibuka. Cuba foto lain.';
 
   @override
   String get chooseAPhotoSmallerThan4Mb =>
       'Pilih foto lebih kecil daripada 4 MB.';
 
   @override
-  String get imageRecognitionIsTemporarilyUnavailableTryASample =>
-      'Pengecaman imej tidak tersedia buat sementara. Cuba sampel.';
+  String get scanRecognitionUnavailable =>
+      'Pengecaman imej tidak tersedia buat sementara. Cuba lagi nanti.';
 
   @override
   String get recentScans => 'Imbasan Terkini';
@@ -1565,14 +1565,109 @@ class AppLocalizationsMs extends AppLocalizations {
   String get referenceScanSource => 'Imbasan foto · Foto rujukan';
 
   @override
-  String get scanSearchPlace => 'Cari tempat';
+  String get scanTryAnotherPhoto => 'Cuba foto lain';
 
   @override
-  String get scanPlaceSearchHint => 'Nama tempat, kawasan atau petunjuk';
+  String get scanAnotherPhotoHelp =>
+      'Kami tidak dapat mengenal pasti mercu tanda tertentu daripada foto ini. Ambil semula foto atau pilih imej yang lebih jelas daripada galeri.';
 
   @override
-  String get scanSearchWithClue =>
-      'Ketik petunjuk dan tambah nama bandar atau kawasan untuk mengecilkan carian.';
+  String get scanIdentifyLandmark => 'Kenal pasti mercu tanda';
+
+  @override
+  String get scanPhotoIntro =>
+      'Ambil gambar mercu tanda atau pilih foto daripada galeri.';
+
+  @override
+  String get scanPhotoTips => 'Petua untuk foto yang lebih jelas';
+
+  @override
+  String get scanTipLight => 'Gunakan pencahayaan yang baik';
+
+  @override
+  String get scanTipLightDetail =>
+      'Pegang kamera dengan stabil dan ketik mercu tanda untuk memfokus. Elakkan gambar kabur, silau dan bayang yang gelap.';
+
+  @override
+  String get scanTipFrame => 'Rakam keseluruhan mercu tanda';
+
+  @override
+  String get scanTipFrameDetail =>
+      'Undur sedikit supaya bentuk dan ciri khasnya kelihatan. Jika boleh, elakkan kenderaan dan orang ramai menghalang pandangan.';
+
+  @override
+  String get scanTipSign => 'Sertakan papan tanda yang jelas';
+
+  @override
+  String get scanTipSignDetail =>
+      'Jika bangunan sukar dikenal pasti, ambil gambar pintu masuk atau papan nama supaya tulisannya dapat dibaca.';
+
+  @override
+  String get scanNeedsClue => 'Belum ada padanan yang jelas';
+
+  @override
+  String get scanRetakePhoto => 'Ambil semula foto';
+
+  @override
+  String get scanUploadAnotherPhoto => 'Muat naik foto lain';
+
+  @override
+  String get scanPhotoClues => 'Petunjuk daripada foto anda';
+
+  @override
+  String get scanAboutLandmark => 'Tentang mercu tanda ini';
+
+  @override
+  String get scanNearbyPlaces => 'Tarikan dan makanan berdekatan';
+
+  @override
+  String scanNearbyDistance(String place) {
+    return 'Jarak dari $place dalam panduan ialah anggaran garis lurus.';
+  }
+
+  @override
+  String scanNearbyArea(String place) {
+    return 'Tempat sekitar $place';
+  }
+
+  @override
+  String get scanNearbyNoLocation =>
+      'Lokasi belum disahkan. Gunakan Peta untuk meneroka kawasan sekitar anda.';
+
+  @override
+  String get scanGuideDishVenues =>
+      'Tempat dalam panduan perjalanan yang menyebut hidangan ini';
+
+  @override
+  String get scanFoodAndCafes => 'Makanan dan Kafe';
+
+  @override
+  String get scanFindAttractions => 'Cari tarikan';
+
+  @override
+  String get scanFindingNearby => 'Mencari tempat berdekatan…';
+
+  @override
+  String get scanNoNearbyListings =>
+      'Tiada penyenaraian tersedia di sini. Anda juga boleh mencari dalam Peta.';
+
+  @override
+  String get scanTakeAnotherPhoto => 'Ambil foto lain';
+
+  @override
+  String get scanAreaOnly => 'Kawasan dikenal pasti';
+
+  @override
+  String get scanPlacesInArea => 'Tempat di kawasan ini';
+
+  @override
+  String get scanChooseAreaPlace =>
+      'Tempat ini berada dalam kawasan yang dikenal pasti. Pilih jika anda mengenalinya, atau ambil foto lain.';
+
+  @override
+  String scanSuggestedArea(String area) {
+    return 'Petunjuk kawasan: $area';
+  }
 
   @override
   String get scanOpenMaps => 'Buka dalam Google Maps';
@@ -2864,9 +2959,8 @@ class AppLocalizationsMs extends AppLocalizations {
       'Gunakan cahaya lembut dari hadapan atau sisi. Ketik subjek untuk fokus dan pegang telefon dengan stabil.';
 
   @override
-  String
-  get selectedPhotosAreSentToGoogleVisionForScanningOnlyResultTextIsSavedInHistoryOnThisDevice =>
-      'Foto yang dipilih dihantar ke Google Vision untuk diimbas. Hanya teks keputusan disimpan dalam Sejarah pada peranti ini.';
+  String get scanHistoryPhotoPrivacy =>
+      'Foto yang dipilih dihantar kepada Google untuk pengecaman. Foto dan hasilnya disimpan dalam Sejarah pada peranti ini.';
 
   @override
   String get planPersonalize => 'Sesuaikan pilihan perjalanan';

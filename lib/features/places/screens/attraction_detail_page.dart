@@ -20,12 +20,16 @@ class AttractionDetailPage extends StatefulWidget {
     this.placesService,
     this.onToggleSaved,
     this.isSaved = false,
+    this.heroPhoto,
+    this.initialDetails,
   });
 
   final Attraction attraction;
   final GooglePlacesService? placesService;
   final bool Function(Attraction)? onToggleSaved;
   final bool isSaved;
+  final ImageProvider<Object>? heroPhoto;
+  final GooglePlaceDetails? initialDetails;
 
   @override
   State<AttractionDetailPage> createState() => _AttractionDetailPageState();
@@ -47,6 +51,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     super.initState();
     _service = widget.placesService ?? GooglePlacesService();
     _saved = widget.isSaved;
+    _details = widget.initialDetails;
     if (widget.attraction.googlePlaceId != null) {
       _refresh();
     }
@@ -72,8 +77,8 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     if (!mounted) return;
     setState(() {
       _loading = false;
-      _details = details;
-      if (details == null) {
+      _details = details ?? _details;
+      if (_details == null) {
         _error = _service.lastError ?? 'Place details are unavailable.';
       }
     });
@@ -94,11 +99,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
       }
     }
 
-    final uri = Uri.https('www.google.com', '/maps/search/', {
-      'api': '1',
-      'query': '${a.latitude},${a.longitude}',
-      if (a.googlePlaceId != null) 'query_place_id': a.googlePlaceId!,
-    });
+    final uri = _mapSearchUri(a);
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
     } catch (_) {}
@@ -108,6 +109,15 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
       );
     }
   }
+
+  Uri _mapSearchUri(Attraction a) =>
+      Uri.https('www.google.com', '/maps/search/', {
+        'api': '1',
+        'query': a.latitude == 0 && a.longitude == 0
+            ? '${a.name}, ${_details?.address ?? 'Malaysia'}'
+            : '${a.latitude},${a.longitude}',
+        'query_place_id': ?a.googlePlaceId,
+      });
 
   void _toggleSave() {
     final a = widget.attraction;
@@ -139,8 +149,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
       a,
       _details?.address,
     );
-    final mapLink =
-        'https://www.google.com/maps/search/?api=1&query=${a.latitude},${a.longitude}';
+    final mapLink = _mapSearchUri(a);
     final shareText = '${a.name}\n$address\n$mapLink';
 
     await Clipboard.setData(ClipboardData(text: shareText));
@@ -207,10 +216,10 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
 
     final localPhoto = AttractionImageResolver.resolveAsset(a);
     final galleryPhotos = AttractionMetadataResolver.resolveGallery(a);
-    final totalPhotos = galleryPhotos.length;
+    final totalPhotos = widget.heroPhoto == null ? galleryPhotos.length : 1;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: AppColors.nightCanvas,
       body: CustomScrollView(
         slivers: [
           // ==================== HERO SLIVER APP BAR ====================
@@ -234,7 +243,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                     ),
                   ],
                 ),
-                child: const BackButton(color: AppColors.ink),
+                child: const BackButton(color: AppColors.primaryDark),
               ),
             ),
             actions: [
@@ -257,7 +266,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                       _saved
                           ? Icons.bookmark_rounded
                           : Icons.bookmark_border_rounded,
-                      color: _saved ? AppColors.primary : AppColors.ink,
+                      color: _saved ? AppColors.primary : AppColors.primaryDark,
                       size: 20,
                     ),
                     tooltip: _saved
@@ -285,7 +294,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                   child: IconButton(
                     icon: const Icon(
                       Icons.share_rounded,
-                      color: AppColors.ink,
+                      color: AppColors.primaryDark,
                       size: 20,
                     ),
                     tooltip: context.l10n.sharePlace,
@@ -299,7 +308,13 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                 fit: StackFit.expand,
                 children: [
                   // Photo Pager
-                  if (galleryPhotos.isEmpty &&
+                  if (widget.heroPhoto case final photo?)
+                    Image(
+                      image: photo,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _buildFallbackHero(a.category),
+                    )
+                  else if (galleryPhotos.isEmpty &&
                       details != null &&
                       details.photos.isNotEmpty)
                     GooglePlaceImage(
@@ -558,7 +573,10 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                       const SizedBox(height: 10),
 
                       // Rating & Verification Row
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -589,8 +607,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                               ],
                             ),
                           ),
-                          if (reviewCount != null) ...[
-                            const SizedBox(width: 8),
+                          if (reviewCount != null)
                             Text(
                               context.l10n.valueReviews(
                                 (_formatReviews(reviewCount)).toString(),
@@ -601,8 +618,6 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ],
-                          const SizedBox(width: 10),
                           Container(
                             width: 4,
                             height: 4,
@@ -611,7 +626,6 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 10),
                           // Retains the exact string for tests & clarity
                           Text(
                             rating != null
@@ -700,7 +714,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                         style: const TextStyle(
                           fontSize: 14.5,
                           height: 1.6,
-                          color: Color(0xFF334155),
+                          color: AppColors.nightBody,
                         ),
                       ),
                       if (description.length > 140)
@@ -842,12 +856,14 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                     ),
                                   ),
                                   const SizedBox(width: 10),
-                                  Text(
-                                    context.l10n.travelerTipsGoodToKnow,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: Color(0xFF92400E),
+                                  Flexible(
+                                    child: Text(
+                                      context.l10n.travelerTipsGoodToKnow,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: Color(0xFF92400E),
+                                      ),
                                     ),
                                   ),
                                 ],

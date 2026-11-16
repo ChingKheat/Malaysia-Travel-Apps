@@ -9,6 +9,14 @@ abstract final class VisualScanStyle {
   static const muted = Color(0xFFB5AEA2);
   static const amber = Color(0xFFD49A45);
 
+  static final headerButton = OutlinedButton.styleFrom(
+    foregroundColor: amber,
+    minimumSize: const Size(0, 44),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    side: BorderSide(color: amber.withValues(alpha: 0.35)),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  );
+
   static TextStyle heading(double size) => TextStyle(
     fontFamily: 'serif',
     fontSize: size,

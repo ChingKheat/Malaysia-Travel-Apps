@@ -831,16 +831,16 @@ String localizeLabel(AppLocalizations? strings, String label) {
           .onlyResultTextIsSavedInYourLocalHistoryThePhotoIsNotStoredByTheApp;
     case "Recognize sends this photo to Google Vision through our secure service. ":
       return l.recognizeSendsThisPhotoToGoogleVisionThroughOurSecureService;
-    case "Camera or photo library unavailable. Check access in Settings or try a sample.":
-      return l.cameraOrPhotoLibraryUnavailableCheckAccessInSettingsOrTryASample;
+    case "Camera or photo library unavailable. Check access in Settings.":
+      return l.scanCameraAccessError;
     case "Restart the app to enable the camera and photo library.":
       return l.restartTheAppToEnableTheCameraAndPhotoLibrary;
-    case "This photo could not be opened. Try another photo or a sample.":
-      return l.thisPhotoCouldNotBeOpenedTryAnotherPhotoOrASample;
+    case "This photo could not be opened. Try another photo.":
+      return l.scanOpenPhotoError;
     case "Choose a photo smaller than 4 MB.":
       return l.chooseAPhotoSmallerThan4Mb;
-    case "Image recognition is temporarily unavailable. Try a sample.":
-      return l.imageRecognitionIsTemporarilyUnavailableTryASample;
+    case "Image recognition is temporarily unavailable. Try again later.":
+      return l.scanRecognitionUnavailable;
     case "Recent scans":
       return l.recentScans;
     case "No scans yet":

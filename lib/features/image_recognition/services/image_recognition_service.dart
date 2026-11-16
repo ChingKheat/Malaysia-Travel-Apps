@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -15,8 +16,9 @@ import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 
 class ImageRecognitionException implements Exception {
-  const ImageRecognitionException(this.message);
+  const ImageRecognitionException(this.message, {this.retryable = false});
   final String message;
+  final bool retryable;
 }
 
 class ImageRecognitionService {
@@ -48,12 +50,16 @@ class ImageRecognitionService {
       );
     }
     final image = base64Encode(bytes);
-    final detections = await _request({
-      'operation': 'recognize',
-      'image': image,
-    });
+    var detections = <String, dynamic>{};
+    ImageRecognitionException? primaryFailure;
+    try {
+      detections = await _request({'operation': 'recognize', 'image': image});
+    } on ImageRecognitionException catch (error) {
+      if (!error.retryable) rethrow;
+      primaryFailure = error;
+    }
     final vision = _parse(detections);
-    if (vision.kind != 'unknown' || vision.referenceCandidates.isNotEmpty) {
+    if (vision.kind != 'unknown') {
       return vision;
     }
 
@@ -61,7 +67,29 @@ class ImageRecognitionService {
       _referenceMatch(bytes),
       _onlineClues(image),
     ).wait;
-    if (clues?.identified case final subject?) {
+    if (clues?.foodSuggestion case final dish?
+        when vision.referenceCandidates.isEmpty &&
+            clues?.identified == null &&
+            reference?.identified?.kind != 'landmark') {
+      final key = scanNameKey(dish);
+      final local = reference?.identified;
+      if (local != null && scanNameKey(local.name) == key) {
+        return _referenceResult(local, vision, RecognitionSource.reference);
+      }
+      return _possibleMatches(
+        vision,
+        [
+          ReferenceSubject(id: 'food:$key', name: dish, kind: 'food'),
+          for (final item in [?local, ...?reference?.candidates])
+            if (item.kind == 'food' && scanNameKey(item.name) != key) item,
+        ].take(3).toList(),
+        source: RecognitionSource.foodSuggestion,
+      );
+    }
+    final proposed = [...vision.referenceCandidates, ...?reference?.candidates];
+    if (clues?.identified case final subject?
+        when _agreesWith(subject, reference?.identified) &&
+            _agreesWithVision(subject, vision)) {
       return _referenceResult(
         subject,
         vision,
@@ -71,35 +99,78 @@ class ImageRecognitionService {
     }
     final suggestions = clues?.candidates ?? const <ReferenceSubject>[];
     final names = <String>{};
-    final candidateNames = {...?clues?.searchNames}
+    final visualSuggestion = clues?.visualSuggestion;
+    final candidateNames = {?visualSuggestion, ...?clues?.searchNames}
       ..removeWhere(
         (name) => suggestions.any(
           (subject) => scanNameKey(subject.name) == scanNameKey(name),
         ),
       );
     final verified = await Future.wait(
-      candidateNames.take(2).map(_verifyPlaceName),
+      candidateNames.take(2).map((name) => _verifyPlaceName(name, clues?.area)),
     );
-    final online = [...suggestions, ...verified.nonNulls];
+    final verifiedVisual =
+        visualSuggestion == null ||
+            candidateNames.isEmpty ||
+            candidateNames.first != visualSuggestion
+        ? null
+        : verified.first;
+    final visionCandidates = vision.referenceCandidates;
+    if (verifiedVisual != null && visionCandidates.length == 1) {
+      final detection = visionCandidates.single;
+      if ((detection.visionConfidence ?? 0) >= 0.55 &&
+          _agreesWith(verifiedVisual, detection) &&
+          _agreesWith(verifiedVisual, reference?.identified) &&
+          suggestions.every((other) => _agreesWith(verifiedVisual, other))) {
+        return _referenceResult(
+          ReferenceSubject(
+            id: verifiedVisual.id,
+            name: detection.name,
+            kind: detection.kind,
+            visionConfidence: detection.visionConfidence,
+          ),
+          vision,
+          RecognitionSource.vision,
+        );
+      }
+    }
+    final catalogue = verifiedVisual == null && visualSuggestion != null
+        ? _catalogueSuggestion(visualSuggestion, clues?.area)
+        : null;
+    final online = [...suggestions, ...verified.nonNulls, ?catalogue];
     if (reference?.identified case final subject?
-        when online.every(
-          (other) =>
-              other.id == subject.id ||
-              scanNameKey(other.name) == scanNameKey(subject.name),
-        )) {
+        when _agreesWithVision(subject, vision) &&
+            online.every((other) => _agreesWith(subject, other))) {
       return _referenceResult(subject, vision, RecognitionSource.reference);
     }
     final candidates = [
       for (final subject in [
         ...online,
         ?reference?.identified,
-        ...?reference?.candidates,
+        ...proposed,
         ...suggestionsFromVisualEvidence(vision.labels),
       ])
-        if (names.add(scanNameKey(subject.name))) subject,
+        if (names.add(
+          knownScanLandmark(subject.name)?.id ?? scanNameKey(subject.name),
+        ))
+          subject,
     ].take(3).toList();
     if (candidates.isEmpty) {
-      if (clues?.area == null) return vision;
+      final area = clues?.area;
+      if (area == null) {
+        if (primaryFailure != null) throw primaryFailure;
+        return vision;
+      }
+      final nearby = await _suggestPlacesInArea(area, vision.labels);
+      if (nearby.isNotEmpty) {
+        return _possibleMatches(
+          vision,
+          nearby,
+          areaHint: area,
+          source: RecognitionSource.areaLookup,
+        );
+      }
+      if (primaryFailure != null) throw primaryFailure;
       return RecognitionResult(
         name: vision.name,
         kind: vision.kind,
@@ -107,7 +178,7 @@ class ImageRecognitionService {
         location: vision.location,
         recognizedAt: vision.recognizedAt,
         labels: vision.labels,
-        areaHint: clues!.area,
+        areaHint: area,
       );
     }
     return _possibleMatches(
@@ -116,10 +187,14 @@ class ImageRecognitionService {
       areaHint: clues?.area,
       source: suggestions.isNotEmpty
           ? (clues!.web ? RecognitionSource.web : RecognitionSource.sign)
-          : online.isNotEmpty
+          : verified.nonNulls.isNotEmpty
           ? RecognitionSource.placeLookup
+          : catalogue != null
+          ? RecognitionSource.visualEvidence
           : reference != null
           ? RecognitionSource.reference
+          : vision.referenceCandidates.isNotEmpty
+          ? RecognitionSource.vision
           : RecognitionSource.visualEvidence,
     );
   }
@@ -130,7 +205,9 @@ class ImageRecognitionService {
     RecognitionSource source = RecognitionSource.vision,
     String? areaHint,
   }) => RecognitionResult(
-    name: 'Possible matches',
+    name: source == RecognitionSource.areaLookup
+        ? 'Places in the area'
+        : 'Possible matches',
     kind: 'unknown',
     description: '',
     location: '',
@@ -162,14 +239,69 @@ class ImageRecognitionService {
     }
   }
 
-  Future<GooglePlaceDetails?> lookupPlace(String name) async {
+  bool _agreesWith(ReferenceSubject a, ReferenceSubject? b) {
+    if (b == null ||
+        a.id == b.id ||
+        scanNameKey(a.name) == scanNameKey(b.name)) {
+      return true;
+    }
+    final known = knownScanLandmark(a.name);
+    return known != null && known.id == knownScanLandmark(b.name)?.id;
+  }
+
+  bool _agreesWithVision(ReferenceSubject subject, RecognitionResult vision) =>
+      vision.referenceCandidates.isEmpty ||
+      vision.referenceCandidates.any((other) => _agreesWith(subject, other));
+
+  ReferenceSubject? _catalogueSuggestion(String name, String? area) {
+    final areaKey = scanNameKey(area ?? '');
     final key = scanNameKey(name);
-    final places = await searchPlaces(name);
+    final subject =
+        knownScanLandmark(name) ??
+        (areaKey.isEmpty
+            ? null
+            : knownScanLandmark(
+                ' $key '.replaceFirst(' $areaKey ', ' ').trim(),
+              ));
+    if (subject == null || areaKey.isEmpty) return subject;
+    final attraction = scanLandmarkByName(subject.name);
+    final preset = recognitionPresets
+        .where((item) => item.id == subject.id)
+        .firstOrNull;
+    final location = scanNameKey(
+      '${subject.name} ${subject.id} '
+      '${attraction?.description ?? ''} ${preset?.location ?? ''}',
+    );
+    return ' $location '.contains(' $areaKey ') ? subject : null;
+  }
+
+  Future<GooglePlaceDetails?> lookupPlace(String name, {String? area}) async {
+    final key = scanNameKey(name);
+    final areaKey = area == null ? '' : scanNameKey(area);
+    final query = area == null || ' $key '.contains(' $areaKey ')
+        ? name
+        : '$name, $area';
+    final places = (await searchPlaces(
+      query,
+    )).where((place) => _isInArea(place, areaKey)).toList();
+    String withoutArea(String value) {
+      final normalized = scanNameKey(value);
+      if (areaKey.isEmpty) return normalized;
+      return ' $normalized '.replaceFirst(' $areaKey ', ' ').trim();
+    }
+
+    final subject =
+        knownScanLandmark(name) ?? knownScanLandmark(withoutArea(name));
+    final shortName = withoutArea(name);
     final matches = places.where((place) {
       final label = place.name ?? '';
+      final known =
+          knownScanLandmark(label) ?? knownScanLandmark(withoutArea(label));
       return key.isEmpty
           ? label.trim().toLowerCase() == name.trim().toLowerCase()
-          : scanNameKey(label) == key;
+          : scanNameKey(label) == key ||
+                (shortName.isNotEmpty && withoutArea(label) == shortName) ||
+                (subject != null && known?.id == subject.id);
     }).toList();
     if (matches.isNotEmpty) return matches.length == 1 ? matches.single : null;
 
@@ -184,8 +316,58 @@ class ImageRecognitionService {
     return expanded.length == 1 ? expanded.single : null;
   }
 
-  Future<ReferenceSubject?> _verifyPlaceName(String name) async {
-    final place = await lookupPlace(name);
+  bool _isInArea(GooglePlaceDetails place, String areaKey) {
+    final address = scanNameKey(place.address ?? '');
+    final location = address.isEmpty ? scanNameKey(place.name ?? '') : address;
+    return areaKey.isEmpty || ' $location '.contains(' $areaKey ');
+  }
+
+  Future<List<ReferenceSubject>> _suggestPlacesInArea(
+    String area,
+    List<String> labels,
+  ) async {
+    final areaKey = scanNameKey(area);
+    final type =
+        labels
+            .map(scanNameKey)
+            .where(
+              const {
+                'temple',
+                'mosque',
+                'museum',
+                'waterfall',
+                'beach',
+                'monument',
+                'statue',
+                'bridge',
+                'tower',
+                'garden',
+                'park',
+                'cave',
+                'church',
+              }.contains,
+            )
+            .firstOrNull ??
+        'tourist attractions';
+    final places = await searchPlaces('$type in $area');
+    final seen = <String>{};
+    return [
+      for (final place in places)
+        if (place.name case final name?
+            when name.trim().isNotEmpty &&
+                _isInArea(place, areaKey) &&
+                place.id.isNotEmpty &&
+                seen.add(place.id))
+          ReferenceSubject(
+            id: 'google:${place.id}',
+            name: name,
+            kind: 'landmark',
+          ),
+    ].take(3).toList();
+  }
+
+  Future<ReferenceSubject?> _verifyPlaceName(String name, String? area) async {
+    final place = await lookupPlace(name, area: area);
     if (place == null) return null;
     return ReferenceSubject(
       id: 'google:${place.id}',
@@ -205,13 +387,21 @@ class ImageRecognitionService {
   Future<ClueMatch?> _onlineClues(String image) async {
     try {
       final data = await _request(
-        {'operation': 'recognize_context', 'image': image},
+        {
+          'operation': 'recognize_context',
+          'image': image,
+          'include_visual_suggestion': true,
+          'include_food_suggestion': true,
+        },
         endpoint: _contextEndpoint,
         timeout: const Duration(seconds: 26),
       );
       return matchPhotoClues(data);
+    } on ImageRecognitionException catch (error) {
+      developer.log(error.message, name: 'ImageRecognition.context');
+      return null;
     } catch (_) {
-      // Context detection is optional, including on older hosted functions.
+      developer.log('Invalid clue response', name: 'ImageRecognition.context');
       return null;
     }
   }
@@ -361,8 +551,7 @@ class ImageRecognitionService {
             : null);
     if (token == null) {
       throw const ImageRecognitionException(
-        'Sign in with an online account to recognize your photo. '
-        'You can explore the sample presets offline.',
+        'Sign in with an online account to recognize your photo.',
       );
     }
     try {
@@ -383,20 +572,23 @@ class ImageRecognitionService {
           403 => 'Sign in with an online account to recognize or translate.',
           413 => 'Choose an image smaller than 4 MB.',
           429 => 'Too many scans. Please try again in a minute.',
-          503 =>
-            'Recognition or translation is unavailable. Try an offline sample.',
+          503 => 'Recognition or translation is unavailable. Try again later.',
           400 =>
             'This request could not be read. For photos, try JPEG, PNG or WebP.',
-          _ => 'Recognition is unavailable. Try again later or use a sample.',
+          _ => 'Recognition is unavailable. Try again later.',
         };
-        throw ImageRecognitionException(message);
+        throw ImageRecognitionException(
+          message,
+          retryable: response.statusCode >= 500,
+        );
       }
       return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
     } on ImageRecognitionException {
       rethrow;
     } catch (_) {
       throw const ImageRecognitionException(
-        'Unable to reach recognition or translation. Your original results and offline samples are still available.',
+        'Unable to reach recognition or translation. Check your connection and try again.',
+        retryable: true,
       );
     }
   }
@@ -421,37 +613,41 @@ class ImageRecognitionService {
         .take(8)
         .toList();
     final noMatch = RecognitionResult(
-      name: 'No confident match',
+      name: 'Try another photo',
       kind: 'unknown',
       description:
-          'Google Vision did not identify a specific landmark or dish. '
-          'Use the visual clues below or search for the place by name.',
+          'Include a sign, an entrance, or a wider view of the landmark.',
       location: '',
       recognizedAt: DateTime.now(),
       labels: labelNames,
     );
     landmarks.sort((a, b) => score(b).compareTo(score(a)));
-    final seen = <String>{};
-    final namedLandmarks = [
-      for (final detection in landmarks)
-        if (detection['name'] case final String name
-            when name.trim().isNotEmpty && seen.add(name.trim().toLowerCase()))
-          ReferenceSubject(
-            id: 'vision:${name.trim()}',
-            name: name.trim(),
-            kind: 'landmark',
-            visionConfidence: score(detection),
-          ),
-    ];
+    final namedLandmarks = <String, ReferenceSubject>{};
+    for (final detection in landmarks) {
+      final rawName = detection['name'];
+      if (rawName is! String) continue;
+      final name = rawName.trim();
+      if (name.isEmpty) continue;
+      final id = knownScanLandmark(name)?.id ?? 'vision:${name.toLowerCase()}';
+      namedLandmarks.putIfAbsent(
+        id,
+        () => ReferenceSubject(
+          id: 'vision:$name',
+          name: name,
+          kind: 'landmark',
+          visionConfidence: score(detection),
+        ),
+      );
+    }
     if (namedLandmarks.isNotEmpty) {
-      final first = namedLandmarks.first;
+      final first = namedLandmarks.values.first;
       final known = knownScanLandmark(first.name);
       if (namedLandmarks.length == 1 &&
           known != null &&
           first.visionConfidence! >= 0.65) {
         return _referenceResult(first, noMatch, RecognitionSource.vision);
       }
-      return _possibleMatches(noMatch, namedLandmarks);
+      return _possibleMatches(noMatch, namedLandmarks.values.toList());
     }
 
     // Generic labels such as "rice" or "tower" do not identify an exact dish
