@@ -246,7 +246,7 @@ void main() {
       }
       expect(
         tester
-            .widget<FilterChip>(find.widgetWithText(FilterChip, l.food))
+            .widget<SelectionCard>(find.widgetWithText(SelectionCard, l.food))
             .selected,
         isTrue,
       );

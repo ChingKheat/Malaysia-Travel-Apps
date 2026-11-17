@@ -574,6 +574,121 @@ class HeroPanel extends StatelessWidget {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              Text(
+                                context.l10n.smartTravelPlanning2,
+                                style: const TextStyle(
+                                  color: AppColors.nightAccent,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                '· 6 Landmarks',
+                                style: TextStyle(
+                                  color: AppColors.nightAccent,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 42,
+                                child: ElevatedButton(
+                                  onPressed: onFeaturedTap ?? onSearchTap,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: AppColors.onNightAccent,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                  ),
+                                  child: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Featured story',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Icon(
+                                          Icons.arrow_outward_rounded,
+                                          size: 16,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: SizedBox(
+                                height: 42,
+                                child: ElevatedButton(
+                                  onPressed: onAssistantTap ?? onSearchTap,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.nightAccent,
+                                    foregroundColor: AppColors.onNightAccent,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          '✦ ',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Ask AI Assistant',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),

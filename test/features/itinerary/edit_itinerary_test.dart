@@ -62,6 +62,7 @@ void main() {
       await tester.pumpAndSettle();
       tester
           .widget<ReorderableListView>(find.byType(ReorderableListView))
+          // ignore: deprecated_member_use
           .onReorder!(0, 2);
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));

@@ -378,6 +378,39 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  // Nationality & Travel Style Badges
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildBadge(
+                        user.nationality,
+                        Colors.blue.shade50,
+                        Colors.blue.shade700,
+                      ),
+                      _buildBadge(
+                        user.travelStyle,
+                        Colors.purple.shade50,
+                        Colors.purple.shade700,
+                      ),
+                      if (_preferencesLoaded)
+                        for (final (_, _, value) in _preferenceRows())
+                          _buildBadge(
+                            value,
+                            AppColors.nightAccentContainer,
+                            AppColors.primary,
+                          ),
+                      if (user.isAdmin)
+                        _buildBadge(
+                          context.l10n.admin,
+                          const Color(0xFFFEF3C7),
+                          const Color(0xFFB45309),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: _editProfile,
                     icon: const Icon(Icons.edit_outlined),
@@ -523,6 +556,24 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     );
   }
 
+  Widget _buildBadge(String text, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
   List<(IconData, String, String)> _preferenceRows() => [
     (
       Icons.speed,
@@ -585,7 +636,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     final footprint = _footprint;
     final cards = [
       _buildStatCard(
-        context.l10n.myTrips,
+        context.l10n.tripsPlanned,
         count == null ? null : context.localNumber(count),
         Icons.event_note,
         _openTrips,
