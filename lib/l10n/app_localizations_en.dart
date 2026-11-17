@@ -9,6 +9,82 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get scanAddToItinerary => 'Add to itinerary';
+
+  @override
+  String get scanAddToWishlist => 'Add to wishlist';
+
+  @override
+  String get scanWishlist => 'Wishlist';
+
+  @override
+  String get scanClearWishlist => 'Clear wishlist';
+
+  @override
+  String get scanRemoveSelected => 'Remove selected';
+
+  @override
+  String get scanClearAll => 'Clear all';
+
+  @override
+  String get scanSelectAll => 'Select all';
+
+  @override
+  String get scanViewWishlist => 'View wishlist';
+
+  @override
+  String get scanWishlistEmpty =>
+      'Places you add to your wishlist will appear here.';
+
+  @override
+  String get scanOriginalPhoto => 'Original Photo';
+
+  @override
+  String get scanResult => 'Scan result';
+
+  @override
+  String get scanQuickLandmarks => 'Explore landmarks near you';
+
+  @override
+  String scanQuickLandmarksMap(String area) {
+    return 'Landmarks near $area';
+  }
+
+  @override
+  String get scanQuickLandmarksHint =>
+      'Tap a place to see its story and details.';
+
+  @override
+  String get scanScannedLandmark => 'the scanned landmark';
+
+  @override
+  String get scanMapLocation => 'the map location';
+
+  @override
+  String scanDistanceWalk(int minutes, String distance, String origin) {
+    return 'About $minutes min walk · $distance from $origin';
+  }
+
+  @override
+  String scanDistanceAway(String distance, String origin) {
+    return '$distance from $origin';
+  }
+
+  @override
+  String get scanMapSearchHelp => 'Search more places on Google Maps';
+
+  @override
+  String get scanNoItinerary =>
+      'Save an itinerary first, then choose a day to add this place.';
+
+  @override
+  String get scanStopAlreadyAdded => 'This place is already on that day.';
+
+  @override
+  String get scanStopLocationUnavailable =>
+      'The place location is unavailable. Try again when place details load.';
+
+  @override
   String get appLanguage => 'App Language';
 
   @override
@@ -1740,7 +1816,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Translation is unavailable. Your original result is still available.';
 
   @override
-  String get findRestaurants => 'Find Restaurants';
+  String get findRestaurants => 'Find restaurants';
 
   @override
   String get chooseARestaurantBeforeAddingThisDishToYourTravelPlan =>

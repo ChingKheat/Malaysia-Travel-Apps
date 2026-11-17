@@ -17,7 +17,7 @@ export async function searchScanPlaces({env, fetcher, supabaseUrl, query, key}) 
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': key,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.primaryTypeDisplayName,places.attributions',
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.primaryTypeDisplayName,places.attributions,places.location',
     },
     body: JSON.stringify({textQuery: `${query}, Malaysia`, regionCode: 'MY', languageCode: 'en', pageSize: 5}),
     signal: AbortSignal.timeout(12000),
@@ -35,6 +35,7 @@ export async function searchScanPlaces({env, fetcher, supabaseUrl, query, key}) 
       id: place.id,
       displayName: place.displayName,
       formattedAddress: place.formattedAddress,
+      location: place.location,
       primaryTypeDisplayName: place.primaryTypeDisplayName,
       attributions: place.attributions,
     }];

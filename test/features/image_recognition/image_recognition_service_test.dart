@@ -139,6 +139,86 @@ void main() {
   });
 
   test(
+    'Conflicting image evidence prevents a certain landmark result',
+    () async {
+      const conflicting = ReferenceSubject(
+        id: 'batu-caves',
+        name: 'Batu Caves',
+        kind: 'landmark',
+      );
+      final api = service(
+        MockClient(
+          (_) async => http.Response(
+            '{"landmarks":[{"name":"Petronas Twin Towers","score":0.96}]}',
+            200,
+          ),
+        ),
+        referenceLookup: (_) async =>
+            const ReferenceImageMatch.identified(conflicting),
+      );
+      addTearDown(api.dispose);
+      final result = await api.recognize(Uint8List.fromList([1]));
+      expect(result.kind, 'unknown');
+      expect(
+        result.referenceCandidates.map((item) => item.name),
+        containsAll(['Petronas Twin Towers', 'Batu Caves']),
+      );
+    },
+  );
+
+  test(
+    'Moderate landmark scores and landmark labels require confirmation',
+    () async {
+      for (final detections in [
+        {
+          'landmarks': [
+            {'name': 'Petronas Twin Towers', 'score': 0.72},
+          ],
+        },
+        {
+          'labels': [
+            {'name': 'Petronas Twin Towers', 'score': 0.95},
+          ],
+        },
+      ]) {
+        final api = service(
+          MockClient((request) async {
+            final operation = (jsonDecode(request.body) as Map)['operation'];
+            return http.Response(
+              jsonEncode(operation == 'recognize' ? detections : {}),
+              200,
+            );
+          }),
+        );
+        addTearDown(api.dispose);
+        final result = await api.recognize(Uint8List.fromList([1]));
+        expect(result.kind, 'unknown');
+        expect(result.referenceCandidates.single.name, 'Petronas Twin Towers');
+      }
+    },
+  );
+
+  test(
+    'An uncorroborated local landmark is kept as a possible match',
+    () async {
+      const landmark = ReferenceSubject(
+        id: 'petronas',
+        name: 'Petronas Twin Towers',
+        kind: 'landmark',
+      );
+      final api = service(
+        MockClient((_) async => http.Response('{}', 200)),
+        referenceLookup: (_) async =>
+            const ReferenceImageMatch.identified(landmark),
+      );
+      addTearDown(api.dispose);
+      final result = await api.recognize(Uint8List.fromList([1]));
+      expect(result.kind, 'unknown');
+      expect(result.referenceCandidates.single.id, landmark.id);
+    },
+  );
+
+  test(
     'Multiple Vision names for the same known landmark resolve as one match',
     () async {
       var requests = 0;

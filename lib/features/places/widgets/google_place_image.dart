@@ -22,6 +22,7 @@ class GooglePlaceImage extends StatefulWidget {
     this.attributionTop,
     this.fallback,
     this.showGoogleMapsAttribution = false,
+    this.showPhotoAuthorAttribution = true,
   });
   final String placeId;
   final GooglePlacePhoto photo;
@@ -34,6 +35,7 @@ class GooglePlaceImage extends StatefulWidget {
   final double? attributionTop;
   final Widget? fallback;
   final bool showGoogleMapsAttribution;
+  final bool showPhotoAuthorAttribution;
   @override
   State<GooglePlaceImage> createState() => _GooglePlaceImageState();
 }
@@ -83,17 +85,20 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
     );
     var bytes = result.bytes;
     // A photo reference can expire. Ask Google for new details and retry once.
-    if (bytes == null && result.expired) {
+    if (bytes == null) {
       final details = await widget.service.fetchDetails(widget.placeId);
       final photos = details?.photos ?? [];
-      if (photos.length > widget.photoIndex) {
-        final fresh = photos[widget.photoIndex];
+      for (final fresh in photos.skip(widget.photoIndex).take(3)) {
+        if (!result.expired && fresh.name == _photo.name) continue;
         bytes = await widget.service.fetchPhoto(
           fresh,
           width: widget.requestWidth,
         );
         if (!mounted || generation != _generation) return;
-        _photo = fresh;
+        if (bytes != null) {
+          _photo = fresh;
+          break;
+        }
       }
     }
     if (!mounted || generation != _generation) return;
@@ -186,7 +191,9 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
                 ),
               ),
             ),
-          if (_bytes != null && authorName != null)
+          if (_bytes != null &&
+              authorName != null &&
+              widget.showPhotoAuthorAttribution)
             Positioned(
               left: compact ? 0 : 14,
               right: compact ? 0 : 14,
