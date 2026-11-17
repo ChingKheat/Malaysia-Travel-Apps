@@ -13,6 +13,9 @@ class SummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final routeUnavailable = stops.any(
+      (s) => s.latitude == 0 || s.longitude == 0,
+    );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: cardDecoration(AppColors.nightRaised),
@@ -21,18 +24,21 @@ class SummaryBar extends StatelessWidget {
           Expanded(
             child: SummaryItem(
               title: context.l10n.travelTime,
-              value: context.l10n.valueMin(
-                context.localNumber(
-                  stops.fold<int>(0, (sum, s) => sum + s.travelMinutes),
-                ),
-              ),
+              value: routeUnavailable
+                  ? context.l10n.unavailable
+                  : context.l10n.valueMin(
+                      context.localNumber(
+                        stops.fold<int>(0, (sum, s) => sum + s.travelMinutes),
+                      ),
+                    ),
             ),
           ),
           Expanded(
             child: SummaryItem(
               title: context.l10n.estDistance,
-              value:
-                  '~${SmartItineraryService.calculateRouteDistanceKm(stops)} km',
+              value: routeUnavailable
+                  ? context.l10n.unavailable
+                  : '~${SmartItineraryService.calculateRouteDistanceKm(stops)} km',
             ),
           ),
           Expanded(

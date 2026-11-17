@@ -23,12 +23,39 @@ void main() {
     SmartItineraryService.clearLiveCache();
   });
 
+  testWidgets('Explore combines dashboard and discovery in one scroll view', (
+    tester,
+  ) async {
+    await _withApp(tester, () async {
+      expect(find.text('Featured story'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-my-trips')), findsOneWidget);
+      expect(find.text('Travel dashboard'), findsNothing);
+      await tester.ensureVisible(find.text('Map View'));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Attractions'), findsOneWidget);
+      expect(find.text('Saved'), findsOneWidget);
+      await tester.tap(find.text('Map View'));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.tap(find.text('Attractions'));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(
+        find.byKey(const PageStorageKey('explore-attractions-list')),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.text('Featured story'));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets(
     'Five tabs open their destinations and Explore opens empty My Trips',
     (tester) async {
       await _withApp(tester, () async {
         for (final entry in {
-          'Community': 'Explore Malaysia',
+          'Community': 'Community',
           'Scan': 'Image Recognition',
           'Plan': 'Plan Your Trip',
           'AI': 'Trip Assistant',
@@ -74,6 +101,8 @@ void main() {
         await tester.tap(find.text('Johor, Malaysia'));
         await tester.pumpAndSettle();
         expect(find.text('Johor, Malaysia'), findsOneWidget);
+        await tester.ensureVisible(find.byKey(const ValueKey('plan-my-trips')));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('plan-my-trips')));
         await tester.pumpAndSettle();
         expect(find.byType(MyTripsScreen), findsOneWidget);
@@ -134,7 +163,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Day 2'));
       await tester.pumpAndSettle();
-      expect(tester.widget<DayPill>(find.byWidgetPredicate((w) => w is DayPill && w.label == 'Day 2')).active, isTrue);
+      expect(
+        tester
+            .widget<DayPill>(
+              find.byWidgetPredicate((w) => w is DayPill && w.label == 'Day 2'),
+            )
+            .active,
+        isTrue,
+      );
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-my-trips')), findsOneWidget);
@@ -142,7 +178,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('plan-my-trips')));
       await tester.pumpAndSettle();
-      expect(tester.widget<DayPill>(find.byWidgetPredicate((w) => w is DayPill && w.label == 'Day 2')).active, isTrue);
+      expect(
+        tester
+            .widget<DayPill>(
+              find.byWidgetPredicate((w) => w is DayPill && w.label == 'Day 2'),
+            )
+            .active,
+        isTrue,
+      );
       expect(tester.takeException(), isNull);
     });
   });

@@ -2871,13 +2871,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planLocalTime => '时间以目的地当地时间为准。';
 
   @override
-  String get planSetArrival => '设置抵达时间';
+  String get planSetArrival => '未设置';
 
   @override
-  String get planSetDeparture => '设置离开时间';
+  String get planSetDeparture => '未设置';
 
   @override
-  String get planChooseStartingPoint => '选择住宿或其他出发点';
+  String get planChooseStartingPoint => '未设置';
 
   @override
   String get planUndecided => '尚未决定';
@@ -3013,13 +3013,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planContinueWho => '继续：旅客与节奏';
 
   @override
+  String get planTapToProceed => '点击下方继续下一步';
+
+  @override
+  String get planUnlockDates => '请在上方选择旅行日期以继续';
+
+  @override
+  String get planUnlockBasics => '请先在上方确认行程基本信息';
+
+  @override
+  String get planUnlockHours => '请在上方设置有效的每日游览时间';
+
+  @override
+  String get planUnlockMode => '请在上方选择出行交通方式';
+
+  @override
+  String get planUnlockBudget => '请在上方选择每日预算以继续';
+
+  @override
+  String get planUnlockInterests => '请在上方选择至少一个偏好以继续';
+
+  @override
   String get planContinueHours => '继续：每日游览时间';
 
   @override
   String get planContinueBudget => '继续：预算与饮食';
 
   @override
-  String get planLogisticsHelp => '填写抵达或离开时间和每日出发点，行程会按这些信息安排。也可以留空。';
+  String get planLogisticsHelp => '添加时间和出发点，帮助规划每日行程。所有项目均可选填。';
 
   @override
   String get planContinueHighlights => '继续：必去景点与兴趣';
@@ -3175,4 +3196,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationUnavailable => '此行程或帖子已无法查看。';
+
+  @override
+  String get offlineEditTitle => '未检查路线，仍要保存吗？';
+
+  @override
+  String get offlineRemovalWarning =>
+      '地点位置不可用。剩余停留时间将保持不变，但无法核实交通时间、距离和营业时间。请联网后检查路线。';
+
+  @override
+  String get offlineSaveAnyway => '仍然保存';
+
+  @override
+  String get dietaryVerificationNotice =>
+      '系统不会自动核实饮食适宜性。已识别的餐厅不会排入日程；其他地点仍可能供应食物。请在前往前自行确认。';
+
+  @override
+  String get offlineRemovalRetainsTimes => '已移除停留点。地点位置可用之前，其余时间保持不变。';
+
+  @override
+  String get savedRouteNeedsVerification =>
+      '部分地点位置不可用。路线时间和距离可能已过时。请联网后刷新地点详情并检查路线。';
+
+  @override
+  String get offlineReorderNeedsReview => '路线不可用。请联网后检查新的顺序。';
+
+  @override
+  String get offlineReorderWarning =>
+      '现有时间段将按新顺序分配。无法核实交通时间、游览时长和营业时间。请联网后检查路线和行程。';
+
+  @override
+  String get googleRouteReviewReminder => '出发前请检查路线和营业时间，尤其是在离线编辑后。';
 }

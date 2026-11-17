@@ -1725,9 +1725,9 @@
   "planAccommodation": "每日出发点",
   "planOptionalDetails": "选填行程详情",
   "planLocalTime": "时间以目的地当地时间为准。",
-  "planSetArrival": "设置抵达时间",
-  "planSetDeparture": "设置离开时间",
-  "planChooseStartingPoint": "选择住宿或其他出发点",
+  "planSetArrival": "未设置",
+  "planSetDeparture": "未设置",
+  "planChooseStartingPoint": "未设置",
   "planUndecided": "尚未决定",
   "planTravelers": "旅客类型",
   "planPace": "游览节奏",
@@ -1772,9 +1772,16 @@
   "planRestaurantSource": "餐厅官网",
   "planVerifyHalal": "查看 JAKIM 认证目录",
   "planContinueWho": "继续：旅客与节奏",
+  "planTapToProceed": "点击下方继续下一步",
+  "planUnlockDates": "请在上方选择旅行日期以继续",
+  "planUnlockBasics": "请先在上方确认行程基本信息",
+  "planUnlockHours": "请在上方设置有效的每日游览时间",
+  "planUnlockMode": "请在上方选择出行交通方式",
+  "planUnlockBudget": "请在上方选择每日预算以继续",
+  "planUnlockInterests": "请在上方选择至少一个偏好以继续",
   "planContinueHours": "继续：每日游览时间",
   "planContinueBudget": "继续：预算与饮食",
-  "planLogisticsHelp": "填写抵达或离开时间和每日出发点，行程会按这些信息安排。也可以留空。",
+  "planLogisticsHelp": "添加时间和出发点，帮助规划每日行程。所有项目均可选填。",
   "planContinueHighlights": "继续：必去景点与兴趣",
   "profileTravelPreferences": "旅行偏好",
   "profilePace": "旅行节奏",
@@ -1820,10 +1827,29 @@
   "notificationTripReminder": "行程即将开始",
   "notificationCommunityComment": "新评论",
   "notificationTripMessage": "您的{destination}行程“{title}”将于{date}开始。",
-  "@notificationTripMessage": {"placeholders": {"title": {}, "destination": {}, "date": {}}},
+  "@notificationTripMessage": {
+    "placeholders": {
+      "title": {},
+      "destination": {},
+      "date": {}
+    }
+  },
   "notificationCommentMessage": "有人评论了： “{comment}”",
-  "@notificationCommentMessage": {"placeholders": {"comment": {}}},
+  "@notificationCommentMessage": {
+    "placeholders": {
+      "comment": {}
+    }
+  },
   "notificationViewTrip": "查看行程",
   "notificationViewPost": "查看帖子",
-  "notificationUnavailable": "此行程或帖子已无法查看。"
+  "notificationUnavailable": "此行程或帖子已无法查看。",
+  "offlineEditTitle": "未检查路线，仍要保存吗？",
+  "offlineRemovalWarning": "地点位置不可用。剩余停留时间将保持不变，但无法核实交通时间、距离和营业时间。请联网后检查路线。",
+  "offlineSaveAnyway": "仍然保存",
+  "dietaryVerificationNotice": "系统不会自动核实饮食适宜性。已识别的餐厅不会排入日程；其他地点仍可能供应食物。请在前往前自行确认。",
+  "offlineRemovalRetainsTimes": "已移除停留点。地点位置可用之前，其余时间保持不变。",
+  "savedRouteNeedsVerification": "部分地点位置不可用。路线时间和距离可能已过时。请联网后刷新地点详情并检查路线。",
+  "offlineReorderNeedsReview": "路线不可用。请联网后检查新的顺序。",
+  "offlineReorderWarning": "现有时间段将按新顺序分配。无法核实交通时间、游览时长和营业时间。请联网后检查路线和行程。",
+  "googleRouteReviewReminder": "出发前请检查路线和营业时间，尤其是在离线编辑后。"
 }

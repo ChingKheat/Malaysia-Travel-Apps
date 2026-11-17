@@ -32,7 +32,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   final _authService = AuthService();
-  bool _notificationsEnabled = true;
 
   final _settings = ProfilePreferencesService.instance;
   final _trips = SupabaseItineraryService();
@@ -348,35 +347,20 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               child: Column(
                 children: [
                   // Avatar
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 54,
-                        backgroundColor: AppColors.primary.withValues(
-                          alpha: 0.1,
-                        ),
-                        backgroundImage: NetworkImage(user.avatarUrl),
-                        onBackgroundImageError: (_, _) {},
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: AppColors.teal,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.verified,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ),
-                    ],
+                  CircleAvatar(
+                    radius: 42,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    child: const Icon(
+                      Icons.person_outline,
+                      size: 42,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Name
                   Text(
                     user.name,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
@@ -387,53 +371,26 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                   // Email
                   Text(
                     user.email,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.muted,
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Nationality & Travel Style Badges
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildBadge(
-                        user.nationality,
-                        Colors.blue.shade50,
-                        Colors.blue.shade700,
-                      ),
-
-                      _buildBadge(
-                        user.travelStyle,
-                        Colors.purple.shade50,
-                        Colors.purple.shade700,
-                      ),
-                      if (_preferencesLoaded)
-                        for (final (_, _, value) in _preferenceRows())
-                          _buildBadge(
-                            value,
-                            AppColors.nightAccentContainer,
-                            AppColors.primary,
-                          ),
-                      if (user.isAdmin)
-                        _buildBadge(
-                          context.l10n.admin,
-                          const Color(0xFFFEF3C7),
-                          const Color(0xFFB45309),
-                        ),
-                    ],
+                  OutlinedButton.icon(
+                    onPressed: _editProfile,
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(context.l10n.editProfile),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
 
-            _buildTravelPreferences(),
-            const SizedBox(height: 20),
             _buildStatistics(),
+            const SizedBox(height: 20),
+            _buildTravelPreferences(),
             const SizedBox(height: 20),
 
             // Profile Settings
@@ -454,13 +411,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                     ),
                   ),
                   _buildListTile(
-                    icon: Icons.edit_outlined,
-                    title: context.l10n.editProfile,
-                    subtitle: context.l10n.changeYourFullName,
-                    onTap: _editProfile,
-                  ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
-                  _buildListTile(
                     icon: Icons.language,
                     title: context.l10n.appLanguage,
                     subtitle:
@@ -475,29 +425,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                     title: context.l10n.profileCurrency,
                     subtitle: _currency.label,
                     onTap: _chooseCurrency,
-                  ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
-                  Material(
-                    color: Colors.transparent,
-                    child: SwitchListTile(
-                      value: _notificationsEnabled,
-                      onChanged: (val) {
-                        setState(() => _notificationsEnabled = val);
-                        demoHaptic();
-                      },
-                      secondary: const Icon(
-                        Icons.notifications_outlined,
-                        color: AppColors.primary,
-                      ),
-                      title: Text(
-                        context.l10n.pushNotifications,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      activeThumbColor: AppColors.primary,
-                    ),
                   ),
                 ],
               ),
@@ -536,45 +463,33 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                   ),
                   const Divider(height: 1, color: AppColors.line, indent: 56),
                   _buildListTile(
-                    icon: Icons.description_outlined,
-                    title: context.l10n.privacyPolicyTerms,
-                    subtitle: context.l10n.readOurTermsOfService,
-                    onTap: () => showDemoSheet(
-                      context,
-                      title: context.l10n.privacyTerms,
-                      body: context
-                          .l10n
-                          .byUsingThisAppYouAgreeToOurTermsOfServiceNoRealPersonalDataIsCollectedOrSentToAnyServer,
-                      icon: Icons.description,
-                    ),
-                  ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
-                  _buildListTile(
                     icon: Icons.emergency_outlined,
                     title: context.l10n.profileHotlines,
                     subtitle: context.l10n.profileHotlinesSubtitle,
                     onTap: () => showEmergencyHotlines(context),
                   ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
-                  _buildListTile(
-                    icon: Icons.admin_panel_settings_outlined,
-                    title: context.l10n.adminDatabaseHub,
-                    subtitle: user.isAdmin
-                        ? context.l10n.secretPortalToFetchSyncPlaces
-                        : context.l10n.adminHubAccess,
-                    onTap: () {
-                      if (_authService.currentUser?.isAdmin != true) {
-                        _showAdminLoginDialog(context);
-                        return;
-                      }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminPlacesScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  if (user.isAdmin) ...[
+                    const Divider(height: 1, color: AppColors.line, indent: 56),
+                    _buildListTile(
+                      icon: Icons.admin_panel_settings_outlined,
+                      title: context.l10n.adminDatabaseHub,
+                      subtitle: user.isAdmin
+                          ? context.l10n.secretPortalToFetchSyncPlaces
+                          : context.l10n.adminHubAccess,
+                      onTap: () {
+                        if (_authService.currentUser?.isAdmin != true) {
+                          _showAdminLoginDialog(context);
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminPlacesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -603,24 +518,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadge(String text, Color bgColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -688,7 +585,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     final footprint = _footprint;
     final cards = [
       _buildStatCard(
-        context.l10n.tripsPlanned,
+        context.l10n.myTrips,
         count == null ? null : context.localNumber(count),
         Icons.event_note,
         _openTrips,
@@ -714,15 +611,34 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
             ? 3
             : (width / scale >= 180 ? 2 : 1);
         const gap = 8.0;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
+
+        final rows = <List<Widget>>[];
+        for (var i = 0; i < cards.length; i += columns) {
+          final end = (i + columns < cards.length) ? i + columns : cards.length;
+          rows.add(cards.sublist(i, end));
+        }
+
+        return Column(
           children: [
-            for (final card in cards)
-              SizedBox(
-                width: (width - gap * (columns - 1)) / columns,
-                child: card,
+            for (var r = 0; r < rows.length; r++) ...[
+              if (r > 0) const SizedBox(height: gap),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var c = 0; c < rows[r].length; c++) ...[
+                      if (c > 0) const SizedBox(width: gap),
+                      Expanded(child: rows[r][c]),
+                    ],
+                    if (rows[r].length < columns)
+                      for (var e = 0; e < columns - rows[r].length; e++) ...[
+                        const SizedBox(width: gap),
+                        const Expanded(child: SizedBox()),
+                      ],
+                  ],
+                ),
               ),
+            ],
           ],
         );
       },
@@ -745,18 +661,31 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(icon, color: AppColors.primary, size: 20),
                 const SizedBox(height: 6),
-                Text(
-                  value ?? '—',
-                  style: Theme.of(context).textTheme.titleLarge,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value ?? '—',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(label, style: Theme.of(context).textTheme.bodySmall),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
               ],
             ),
           ),

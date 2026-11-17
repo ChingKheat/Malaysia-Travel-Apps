@@ -7,6 +7,8 @@ class LocationService extends ChangeNotifier {
   LocationService._internal();
 
   LatLng _currentLocation = const LatLng(3.1390, 101.6869); // Default KL City Centre
+  String? _currentState = 'Kuala Lumpur';
+  String? get currentState => _currentState;
   bool _isUsingRealGps = false;
   String _currentAreaName = 'Kuala Lumpur City Centre';
 
@@ -14,7 +16,8 @@ class LocationService extends ChangeNotifier {
   bool get isUsingRealGps => _isUsingRealGps;
   String get currentAreaName => _currentAreaName;
 
-  void updateLocation(LatLng location, String areaName, {bool isRealGps = false}) {
+  void updateLocation(LatLng location, String areaName, {bool isRealGps = false, String? state}) {
+    _currentState = state;
     _currentLocation = location;
     _currentAreaName = areaName;
     _isUsingRealGps = isRealGps;

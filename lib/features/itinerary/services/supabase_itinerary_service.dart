@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:uuid/uuid.dart';
 import 'itinerary_cloud.dart';
 import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
@@ -23,13 +24,21 @@ class ItinerarySaveResult {
 }
 
 /// Local-first repository. Cloud replacement is a single SQL transaction.
-class SupabaseItineraryService extends ChangeNotifier {
+class SupabaseItineraryService extends ChangeNotifier
+    with WidgetsBindingObserver {
   static final _instance = SupabaseItineraryService._internal();
   factory SupabaseItineraryService() => _instance;
   SupabaseItineraryService._internal() {
+    WidgetsBinding.instance.addObserver(this);
     _lastUserId = AuthService().currentUser?.uid;
     AuthService().addListener(_onAuthChanged);
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(syncPending());
+  }
+
   @visibleForTesting
   SupabaseItineraryService.withStore(this._store, {ItineraryCloud? cloud})
     : _cloud = cloud ?? SupabaseItineraryCloud();
@@ -168,31 +177,32 @@ class SupabaseItineraryService extends ChangeNotifier {
     ],
   };
 
-  Future<List<Itinerary>> getSavedItineraries({bool refresh = true}) =>
-      _serial(() async {
-        final uid = AuthService().currentUser?.uid;
-        if (uid == null) return [];
-        try {
-          final journal = await _store.read(uid);
-          final trips =
-              journal.values
-                  .cast<Map>()
-                  .where((r) => r['deleted'] != true)
-                  .map(
-                    (r) => Itinerary.fromSupabase(
-                      Map<String, dynamic>.from(r['trip'] as Map),
-                    ),
-                  )
-                  .where((t) => t.userId == uid)
-                  .toList()
-                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          if (refresh && _hasCloudSession(uid)) unawaited(syncPending());
-          return trips;
-        } catch (e) {
-          lastError = '$e';
-          return [];
-        }
-      });
+  Future<List<Itinerary>> getSavedItineraries({bool refresh = true}) => _serial(
+    () async {
+      final uid = AuthService().currentUser?.uid;
+      if (uid == null) return [];
+      try {
+        final journal = await _store.read(uid);
+        final trips =
+            journal.values
+                .cast<Map>()
+                .where((r) => r['deleted'] != true)
+                .map(
+                  (r) => Itinerary.fromSupabase(
+                    Map<String, dynamic>.from(r['trip'] as Map),
+                  ),
+                )
+                .where((t) => t.userId == uid)
+                .toList()
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        if (refresh && _hasCloudSession(uid)) unawaited(syncPending());
+        return trips;
+      } catch (e) {
+        lastError = '$e';
+        return [];
+      }
+    },
+  );
 
   Future<void> syncPending() => _serial(() async {
     final uid = AuthService().currentUser?.uid;

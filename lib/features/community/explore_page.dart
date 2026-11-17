@@ -2,7 +2,7 @@ import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../../shared/models/attraction.dart';
 import '../places/screens/api_demo_page.dart';
-import '../places/services/places_service.dart';
+import '../../shared/services/location_service.dart';
 import 'community_page.dart';
 import 'community_service.dart';
 import 'widgets/citylore_post_card.dart';
@@ -13,7 +13,9 @@ class CommunityFeedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(communityText(context, 'Traveler stories', '旅人分享', 'Kisah pengembara')),
+      title: Text(
+        communityText(context, 'Traveler stories', '旅人分享', 'Kisah pengembara'),
+      ),
     ),
     body: const ExplorePage(isVisible: true),
   );
@@ -32,7 +34,6 @@ class ExplorePage extends StatefulWidget {
 }
 
 class _ExplorePageState extends State<ExplorePage> {
-  final _placesService = PlacesService();
   final _community = CommunityService();
   final _pendingReactions = <CommunityPost>{};
   List<CommunityPost> _sharedPosts = [];
@@ -45,7 +46,6 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   void initState() {
     super.initState();
-    _loadNearbyPlaces();
     _refreshFeed();
   }
 
@@ -59,7 +59,9 @@ class _ExplorePageState extends State<ExplorePage> {
     final version = ++_loadVersion;
     final account = _community.accountId;
     final feed = await _community.loadFeed();
-    if (!mounted || version != _loadVersion || account != _community.accountId) {
+    if (!mounted ||
+        version != _loadVersion ||
+        account != _community.accountId) {
       return;
     }
     final posts = feed.rows.map(CommunityPost.fromFeed).toList();
@@ -89,18 +91,6 @@ class _ExplorePageState extends State<ExplorePage> {
     }
   }
 
-  Future<void> _loadNearbyPlaces() async {
-    final onPlacesLoaded = widget.onPlacesLoaded;
-    if (onPlacesLoaded == null) return;
-    try {
-      final page = await _placesService.fetchPage(
-        latitude: 3.1408,
-        longitude: 101.6932,
-      );
-      if (mounted) onPlacesLoaded(page.items);
-    } catch (_) {}
-  }
-
   Future<void> _openComposer() async {
     final published = await Navigator.of(
       context,
@@ -123,21 +113,9 @@ class _ExplorePageState extends State<ExplorePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_selectedCategory == 'Places & Map') {
-      return Column(
-        children: [
-          _buildFilterBar(),
-          Expanded(
-            child: ApiDemoPage(
-              isVisible: widget.isVisible,
-              onPlacesLoaded: widget.onPlacesLoaded,
-            ),
-          ),
-        ],
-      );
-    }
-
-    final posts = _feedAccount == _community.accountId ? _sharedPosts : <CommunityPost>[];
+    final posts = _feedAccount == _community.accountId
+        ? _sharedPosts
+        : <CommunityPost>[];
     final filteredPosts = posts.where((p) {
       if (_selectedCategory == 'All') return true;
       if (_selectedCategory == 'Saved') return p.saved;
@@ -152,6 +130,42 @@ class _ExplorePageState extends State<ExplorePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           key: const PageStorageKey('citylore-explorer-feed'),
           slivers: [
+            SliverToBoxAdapter(
+              child: ListenableBuilder(
+                listenable: LocationService(),
+                builder: (context, _) => Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.nightAccent,
+                    ),
+                    title: Text(
+                      '${LocationService().currentAreaName} Community',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.keyboard_arrow_down),
+                    onTap: () => showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const LocationSelectorSheet(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (_feedUnavailable && posts.isNotEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                  child: Text(
+                    'Offline · Showing cached posts',
+                    style: TextStyle(color: AppColors.nightMuted),
+                  ),
+                ),
+              ),
             // 1. Share Prompt Card
             SliverToBoxAdapter(
               child: Container(
@@ -172,7 +186,7 @@ class _ExplorePageState extends State<ExplorePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
                           Text(
-                            'Share from Kuala Lumpur',
+                            'Share a Tip or Ask a Question',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -257,8 +271,18 @@ class _ExplorePageState extends State<ExplorePage> {
                         ? const CircularProgressIndicator()
                         : Text(
                             _feedUnavailable
-                                ? communityText(context, 'Could not load posts. Pull down to retry.', '暂时无法载入帖子，下拉重试。', 'Siaran gagal dimuatkan. Tarik ke bawah untuk mencuba lagi.')
-                                : communityText(context, 'No posts yet.', '暂无帖子。', 'Tiada siaran lagi.'),
+                                ? communityText(
+                                    context,
+                                    'Could not load posts. Pull down to retry.',
+                                    '暂时无法载入帖子，下拉重试。',
+                                    'Siaran gagal dimuatkan. Tarik ke bawah untuk mencuba lagi.',
+                                  )
+                                : communityText(
+                                    context,
+                                    'No posts yet.',
+                                    '暂无帖子。',
+                                    'Tiada siaran lagi.',
+                                  ),
                             style: const TextStyle(color: AppColors.nightMuted),
                           ),
                   ),
@@ -292,7 +316,6 @@ class _ExplorePageState extends State<ExplorePage> {
       'Trip Log',
       'Question',
       'Photo',
-      'Places & Map',
       'Saved',
     ];
 
@@ -305,6 +328,13 @@ class _ExplorePageState extends State<ExplorePage> {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final cat = categories[index];
+          final label = switch (cat) {
+            'Local Tip' => 'Local Tips',
+            'Trip Log' => 'Trip Logs',
+            'Question' => 'Questions',
+            'Photo' => 'Photos',
+            _ => cat,
+          };
           final selected = _selectedCategory == cat;
 
           return InkWell(
@@ -324,7 +354,7 @@ class _ExplorePageState extends State<ExplorePage> {
               ),
               alignment: Alignment.center,
               child: Text(
-                cat,
+                label,
                 style: TextStyle(
                   color: selected
                       ? AppColors.onNightAccent

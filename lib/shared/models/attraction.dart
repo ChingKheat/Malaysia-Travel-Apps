@@ -15,6 +15,9 @@ class Attraction {
     this.isIndoor,
     this.photoUrl,
     this.googlePhotos = const [],
+    this.sourceUrl,
+    this.sourceLicense,
+    this.verifiedAt,
   });
 
   final String xid;
@@ -29,6 +32,9 @@ class Attraction {
   final bool? isIndoor;
   final String? photoUrl;
   final List<GooglePlacePhoto> googlePhotos;
+  final String? sourceUrl;
+  final String? sourceLicense;
+  final DateTime? verifiedAt;
 
   LatLng get point => LatLng(latitude, longitude);
   String? get googlePlaceId => xid.startsWith('google_')
@@ -58,6 +64,9 @@ class Attraction {
       isIndoor: isIndoor ?? this.isIndoor,
       photoUrl: photoUrl ?? this.photoUrl,
       googlePhotos: googlePhotos,
+      sourceUrl: sourceUrl,
+      sourceLicense: sourceLicense,
+      verifiedAt: verifiedAt,
     );
   }
 
@@ -145,6 +154,11 @@ class Attraction {
       userRatingsTotal: userRatingsTotal,
       isIndoor: isIndoor,
       photoUrl: photoUrl,
+      sourceUrl: json['catalog_source_url'] as String?,
+      sourceLicense: json['catalog_license'] as String?,
+      verifiedAt: DateTime.tryParse(
+        json['catalog_verified_at']?.toString() ?? '',
+      ),
       googlePhotos: GooglePlaceDetails(id, {
         'photos': json['photos'] ?? json['google_photos'],
       }).photos,

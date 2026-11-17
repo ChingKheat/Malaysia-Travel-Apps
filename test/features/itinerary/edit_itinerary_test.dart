@@ -6,6 +6,140 @@ import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary
 
 void main() {
   group('UC602: Edit Itinerary Unit Tests', () {
+    testWidgets('Offline reorder keeps slots and warns before saving', (
+      tester,
+    ) async {
+      const first = TravelStop(
+        title: 'First',
+        time: '09:00 AM - 10:00 AM',
+        note: '',
+        description: '',
+        duration: '60 min',
+        openingHours: 'Hours unverified',
+        tips: [],
+        icon: Icons.place,
+        color: Colors.blue,
+        placeId: 'ChIJfirst',
+        dataSource: 'google',
+      );
+      const second = TravelStop(
+        title: 'Second',
+        time: '11:00 AM - 12:00 PM',
+        note: '',
+        description: '',
+        duration: '60 min',
+        openingHours: 'Hours unverified',
+        tips: [],
+        icon: Icons.place,
+        color: Colors.blue,
+        placeId: 'ChIJsecond',
+        dataSource: 'google',
+      );
+      List<TravelStop>? result;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                result = await Navigator.push<List<TravelStop>>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EditItineraryScreen(
+                      tripTitle: 'Trip',
+                      destination: 'Kuala Lumpur',
+                      dayNumber: 1,
+                      initialStops: [first, second],
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<ReorderableListView>(find.byType(ReorderableListView))
+          .onReorder!(0, 2);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('cannot be verified'), findsOneWidget);
+      await tester.tap(find.text('Save anyway'));
+      await tester.pumpAndSettle();
+      expect(result!.map((s) => s.title).toList(), ['Second', 'First']);
+      expect(result!.map((s) => s.time).toList(), [
+        '09:00 AM - 10:00 AM',
+        '11:00 AM - 12:00 PM',
+      ]);
+    });
+    testWidgets(
+      'Offline removal asks for confirmation and retains remaining times',
+      (tester) async {
+        const google = TravelStop(
+          title: 'Saved place',
+          time: '09:00 AM - 10:00 AM',
+          note: '',
+          description: '',
+          duration: '60 min',
+          openingHours: 'Hours unverified',
+          tips: [],
+          icon: Icons.place,
+          color: Colors.blue,
+          placeId: 'ChIJtest',
+          dataSource: 'google',
+        );
+        const other = TravelStop(
+          title: 'Other place',
+          time: '11:00 AM - 12:00 PM',
+          note: '',
+          description: '',
+          duration: '60 min',
+          openingHours: 'Hours unverified',
+          tips: [],
+          icon: Icons.place,
+          color: Colors.blue,
+          placeId: 'other',
+        );
+        List<TravelStop>? result;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () async {
+                  result = await Navigator.push<List<TravelStop>>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EditItineraryScreen(
+                        tripTitle: 'Trip',
+                        destination: 'Kuala Lumpur',
+                        dayNumber: 1,
+                        initialStops: [google, other],
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.delete_outline).last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+        expect(find.text('Save without route check?'), findsOneWidget);
+        expect(find.textContaining('cannot be verified'), findsOneWidget);
+        await tester.tap(find.text('Save anyway'));
+        await tester.pumpAndSettle();
+        expect(result, hasLength(1));
+        expect(result!.single.time, '09:00 AM - 10:00 AM');
+      },
+    );
     const stop1 = TravelStop(
       title: 'Petronas Twin Towers',
       time: '09:00 AM - 10:30 AM',
@@ -51,46 +185,55 @@ void main() {
       placeId: 'poi_central_market',
     );
 
-    test('Reordering stops updates sequence and recalculates route distance accurately', () {
-      final originalList = [stop1, stop2, stop3];
-      final originalDistance = SmartItineraryService.calculateRouteDistanceKm(originalList);
-      expect(originalDistance, greaterThan(0.0));
+    test(
+      'Reordering stops updates sequence and recalculates route distance accurately',
+      () {
+        final originalList = [stop1, stop2, stop3];
+        final originalDistance = SmartItineraryService.calculateRouteDistanceKm(
+          originalList,
+        );
+        expect(originalDistance, greaterThan(0.0));
 
-      // Reverse order: stop3 -> stop1 -> stop2
-      final reorderedList = [stop3, stop1, stop2];
-      final reorderedDistance = SmartItineraryService.calculateRouteDistanceKm(reorderedList);
+        // Reverse order: stop3 -> stop1 -> stop2
+        final reorderedList = [stop3, stop1, stop2];
+        final reorderedDistance =
+            SmartItineraryService.calculateRouteDistanceKm(reorderedList);
 
-      // Distance changes due to route topology differences
-      expect(reorderedDistance, greaterThan(0.0));
-      expect(reorderedList.first.title, equals('Central Market'));
-      expect(reorderedList.last.title, equals('Batu Caves'));
-    });
+        // Distance changes due to route topology differences
+        expect(reorderedDistance, greaterThan(0.0));
+        expect(reorderedList.first.title, equals('Central Market'));
+        expect(reorderedList.last.title, equals('Batu Caves'));
+      },
+    );
 
-    test('Swap outdoor stop with weather-proof indoor alternative replaces stop and retains slot', () {
-      final currentStops = [stop1, stop2];
+    test(
+      'Swap outdoor stop with weather-proof indoor alternative replaces stop and retains slot',
+      () {
+        final currentStops = [stop1, stop2];
 
-      const indoorReplacement = TravelStop(
-        title: 'Aquaria KLCC',
-        time: '10:45 AM - 12:15 PM',
-        note: 'Indoor alternative • Weather protected',
-        description: 'State-of-the-art oceanarium',
-        duration: '1 h 30 min',
-        openingHours: '10:00 AM - 08:00 PM',
-        tips: ['Air-conditioned'],
-        icon: Icons.roofing_outlined,
-        color: Colors.blue,
-        latitude: 3.1534,
-        longitude: 101.7127,
-        placeId: 'curated_kl_11',
-      );
+        const indoorReplacement = TravelStop(
+          title: 'Aquaria KLCC',
+          time: '10:45 AM - 12:15 PM',
+          note: 'Indoor alternative • Weather protected',
+          description: 'State-of-the-art oceanarium',
+          duration: '1 h 30 min',
+          openingHours: '10:00 AM - 08:00 PM',
+          tips: ['Air-conditioned'],
+          icon: Icons.roofing_outlined,
+          color: Colors.blue,
+          latitude: 3.1534,
+          longitude: 101.7127,
+          placeId: 'curated_kl_11',
+        );
 
-      // Swap stop 2 (Batu Caves) with Aquaria KLCC
-      currentStops[1] = indoorReplacement;
+        // Swap stop 2 (Batu Caves) with Aquaria KLCC
+        currentStops[1] = indoorReplacement;
 
-      expect(currentStops[1].title, equals('Aquaria KLCC'));
-      expect(currentStops[1].placeId, equals('curated_kl_11'));
-      expect(currentStops[1].note.contains('Indoor alternative'), isTrue);
-    });
+        expect(currentStops[1].title, equals('Aquaria KLCC'));
+        expect(currentStops[1].placeId, equals('curated_kl_11'));
+        expect(currentStops[1].note.contains('Indoor alternative'), isTrue);
+      },
+    );
 
     test('Deleting a stop updates total count and recalculates distance', () {
       final stops = [stop1, stop2, stop3];
@@ -107,113 +250,128 @@ void main() {
       expect(newDistance, greaterThan(0.0));
     });
 
-    testWidgets('EditItineraryScreen displays non-overflowing badge when stop exists in other days', (tester) async {
-      const otherDayStop = TravelStop(
-        title: 'Petronas Twin Towers (KLCC)',
-        time: '09:00 AM - 10:30 AM',
-        note: 'Scheduled on Day 1',
-        description: 'Skyscrapers',
-        duration: '1 h 30 min',
-        openingHours: '10:00 AM - 10:00 PM',
-        tips: [],
-        icon: Icons.place,
-        color: Colors.blue,
-        latitude: 3.1578,
-        longitude: 101.7119,
-        placeId: 'curated_kl_01',
-      );
+    testWidgets(
+      'EditItineraryScreen displays non-overflowing badge when stop exists in other days',
+      (tester) async {
+        const otherDayStop = TravelStop(
+          title: 'Petronas Twin Towers (KLCC)',
+          time: '09:00 AM - 10:30 AM',
+          note: 'Scheduled on Day 1',
+          description: 'Skyscrapers',
+          duration: '1 h 30 min',
+          openingHours: '10:00 AM - 10:00 PM',
+          tips: [],
+          icon: Icons.place,
+          color: Colors.blue,
+          latitude: 3.1578,
+          longitude: 101.7119,
+          placeId: 'curated_kl_01',
+        );
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: EditItineraryScreen(
-            tripTitle: 'Kuala Lumpur Trip',
-            destination: 'Kuala Lumpur',
-            dayNumber: 2,
-            initialStops: [stop1, stop2],
-            otherDaysStops: [otherDayStop],
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: EditItineraryScreen(
+              tripTitle: 'Kuala Lumpur Trip',
+              destination: 'Kuala Lumpur',
+              dayNumber: 2,
+              initialStops: [stop1, stop2],
+              otherDaysStops: [otherDayStop],
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Stop card shows non-overflowing tag
-      expect(find.text('In other day'), findsOneWidget);
+        // Stop card shows non-overflowing tag
+        expect(find.text('In other day'), findsOneWidget);
 
-      // Verify no RenderFlex overflow exceptions occurred
-      expect(tester.takeException(), isNull);
-    });
+        // Verify no RenderFlex overflow exceptions occurred
+        expect(tester.takeException(), isNull);
+      },
+    );
 
-    testWidgets('EditItineraryScreen blocks saving if two duplicate stops exist on same day', (tester) async {
-      const duplicateStop1 = TravelStop(
-        title: 'Petronas Twin Towers (KLCC)',
-        time: '02:00 PM - 03:30 PM',
-        note: 'Afternoon visit',
-        description: 'Skyscrapers',
-        duration: '1 h 30 min',
-        openingHours: '10:00 AM - 10:00 PM',
-        tips: [],
-        icon: Icons.place,
-        color: Colors.blue,
-        latitude: 3.1578,
-        longitude: 101.7119,
-        placeId: 'curated_kl_01',
-      );
+    testWidgets(
+      'EditItineraryScreen blocks saving if two duplicate stops exist on same day',
+      (tester) async {
+        const duplicateStop1 = TravelStop(
+          title: 'Petronas Twin Towers (KLCC)',
+          time: '02:00 PM - 03:30 PM',
+          note: 'Afternoon visit',
+          description: 'Skyscrapers',
+          duration: '1 h 30 min',
+          openingHours: '10:00 AM - 10:00 PM',
+          tips: [],
+          icon: Icons.place,
+          color: Colors.blue,
+          latitude: 3.1578,
+          longitude: 101.7119,
+          placeId: 'curated_kl_01',
+        );
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: EditItineraryScreen(
-            tripTitle: 'Kuala Lumpur Trip',
-            destination: 'Kuala Lumpur',
-            dayNumber: 1,
-            initialStops: [stop1, duplicateStop1],
-            otherDaysStops: [],
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: EditItineraryScreen(
+              tripTitle: 'Kuala Lumpur Trip',
+              destination: 'Kuala Lumpur',
+              dayNumber: 1,
+              initialStops: [stop1, duplicateStop1],
+              otherDaysStops: [],
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Top banner detects same day duplicates
-      expect(find.textContaining('Duplicate attractions detected'), findsOneWidget);
+        // Top banner detects same day duplicates
+        expect(
+          find.textContaining('Duplicate attractions detected'),
+          findsOneWidget,
+        );
 
-      // Attempting to Save triggers blocking snackbar
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-      await tester.pumpAndSettle();
+        // Attempting to Save triggers blocking snackbar
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
 
-      expect(find.textContaining('appears multiple times today'), findsOneWidget);
-    });
+        expect(
+          find.textContaining('appears multiple times today'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('EditItineraryScreen renders stop cards without RenderFlex overflow on standard mobile widths', (tester) async {
-      tester.view.physicalSize = const Size(360, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'EditItineraryScreen renders stop cards without RenderFlex overflow on standard mobile widths',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: EditItineraryScreen(
-            tripTitle: 'Kuala Lumpur Trip',
-            destination: 'Kuala Lumpur',
-            dayNumber: 1,
-            initialStops: [stop1, stop2, stop3],
-            otherDaysStops: [],
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: EditItineraryScreen(
+              tripTitle: 'Kuala Lumpur Trip',
+              destination: 'Kuala Lumpur',
+              dayNumber: 1,
+              initialStops: [stop1, stop2, stop3],
+              otherDaysStops: [],
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('Petronas Twin Towers'), findsOneWidget);
-      expect(find.text('Batu Caves'), findsOneWidget);
-      expect(find.text('Central Market'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expect(find.text('Petronas Twin Towers'), findsOneWidget);
+        expect(find.text('Batu Caves'), findsOneWidget);
+        expect(find.text('Central Market'), findsOneWidget);
 
-      // Tap swap button to verify bottom sheet filter chips fit without overflow
-      await tester.tap(find.byIcon(Icons.swap_horiz_rounded).first);
-      await tester.pumpAndSettle();
+        // Tap swap button to verify bottom sheet filter chips fit without overflow
+        await tester.tap(find.byIcon(Icons.swap_horiz_rounded).first);
+        await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('Swap Attraction'), findsOneWidget);
-    });
+        expect(tester.takeException(), isNull);
+        expect(find.text('Swap Attraction'), findsOneWidget);
+      },
+    );
   });
 }

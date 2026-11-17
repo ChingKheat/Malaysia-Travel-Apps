@@ -2,14 +2,13 @@ import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
-import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/community/explore_page.dart';
 import 'package:smart_travel_planner/features/assistant/screens/assistant_page.dart';
 import 'package:smart_travel_planner/features/home/screens/home_page.dart';
+import 'package:smart_travel_planner/features/places/screens/api_demo_page.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/image_recognition_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
@@ -67,22 +66,10 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
 
   int _selectedIndex = 0;
   bool _myTripsOpen = false;
-  List<Attraction>? _homeAttractions;
-
-  void _onPlacesLoaded(List<Attraction> places) {
-    final pictured = places.where((place) {
-      return AttractionImageResolver.resolvePhotoUrl(place) != null ||
-          (place.googlePlaceId != null && place.googlePhotos.isNotEmpty);
-    }).toList();
-    if (pictured.isEmpty || !mounted) return;
-    setState(() {
-      _homeAttractions = pictured.take(10).toList();
-    });
-  }
 
   static const _tabTitles = [
     null,
-    'Explore Malaysia',
+    'Community',
     'Image Recognition',
     'Plan Your Trip',
     'Trip Assistant',
@@ -90,7 +77,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
 
   static const _tabSubtitles = [
     null,
-    'Kuala Lumpur · Community',
+    'Traveller stories and local tips',
     'Landmarks & local dishes',
     'Tell us your preferences',
     'AI help, translation & weather',
@@ -114,17 +101,18 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(
-        attractions: _homeAttractions,
-        onPlanTap: () => _goToTab(3),
-        onItineraryTap: _openMyTrips,
-        onRouteTap: () => _goToTab(1),
-        onAssistantTap: () => _goToTab(4),
+      ApiDemoPage(
+        isVisible: _selectedIndex == 0 && !_myTripsOpen,
+        discoveryHeader: HomePage(
+          discoveryHeaderOnly: true,
+          onPlanTap: () => _goToTab(3),
+          onItineraryTap: _openMyTrips,
+          onRouteTap: () => _goToTab(0),
+          onAssistantTap: () => _goToTab(4),
+          onCommunityTap: () => _goToTab(1),
+        ),
       ),
-      ExplorePage(
-        isVisible: _selectedIndex == 1 && !_myTripsOpen,
-        onPlacesLoaded: _onPlacesLoaded,
-      ),
+      ExplorePage(isVisible: _selectedIndex == 1 && !_myTripsOpen),
       ImageRecognitionPage(
         key: ValueKey(
           'recognition:${AuthService().currentUser?.uid ?? 'guest'}',

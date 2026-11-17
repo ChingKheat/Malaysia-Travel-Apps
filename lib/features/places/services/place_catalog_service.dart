@@ -185,5 +185,8 @@ class PlaceCatalogService {
     'is_indoor': row['is_indoor'],
     'photo_url': row['photo_url'],
     'photos': row['google_photos'] ?? const [],
+    'catalog_source_url': row['catalog_source_url'],
+    'catalog_license': row['catalog_license'],
+    'catalog_verified_at': row['catalog_verified_at'],
   };
 }

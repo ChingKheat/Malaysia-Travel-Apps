@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -11,6 +12,7 @@ import 'package:smart_travel_planner/features/itinerary/services/itinerary_servi
 import 'package:smart_travel_planner/shared/services/location_service.dart';
 import 'package:smart_travel_planner/shared/services/google_route_service.dart';
 import 'package:smart_travel_planner/features/places/services/places_service.dart';
+import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'attraction_detail_page.dart';
 import 'attraction_list_screen.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
@@ -68,18 +70,22 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   ];
 
   late final PageController _pageController;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedView);
     _locationService.addListener(_onLocationChanged);
+    AuthService().addListener(_onLocationChanged);
     _loadAttractions();
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _locationService.removeListener(_onLocationChanged);
+    AuthService().removeListener(_onLocationChanged);
     _searchController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -118,8 +124,12 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       _lastOffset = offset;
       final page = await _placesService.fetchPage(
         offset: offset,
+        state: _destinationState,
+        radiusMeters: null,
         latitude: loc.latitude,
         longitude: loc.longitude,
+        query: _searchQuery,
+        category: _selectedCategory,
         shouldContinue: () => mounted && generation == _loadGeneration,
       );
 
@@ -138,6 +148,10 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
       setState(() {
         _page = page;
+        if (page.items.isEmpty && page.failure != PlacesFailure.none &&
+            page.failure != PlacesFailure.emptyCatalog) {
+          _error = page.notice;
+        }
         _sources.add(page.source);
         _attributions.addAll(page.attributions);
         _attractions = attractions;
@@ -240,69 +254,48 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
   // Filtered attractions based on search and category
   List<Attraction> get _filteredAttractions {
-    return _attractions.where((attraction) {
-      final matchesSearch = attraction.name.toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
-      if (!matchesSearch) return false;
-
-      if (_selectedCategory == 'All') return true;
-
-      final kind = attraction.category.toLowerCase();
-      final cat = _selectedCategory.toLowerCase();
-
-      if (cat.contains('sight') || cat.contains('culture')) {
-        return kind.contains('religion') ||
-            kind.contains('cultural') ||
-            kind.contains('historic') ||
-            kind.contains('architecture') ||
-            kind.contains('landmark') ||
-            kind.contains('monument') ||
-            kind.contains('sights') ||
-            kind.contains('temple') ||
-            kind.contains('museum');
-      }
-      if (cat.contains('food') ||
-          cat.contains('dining') ||
-          cat.contains('restaurant')) {
-        return kind.contains('food') ||
-            kind.contains('cafe') ||
-            kind.contains('restaurant') ||
-            kind.contains('dish') ||
-            kind.contains('eat') ||
-            kind.contains('hawker') ||
-            kind.contains('dining') ||
-            kind.contains('bakery');
-      }
-      if (cat.contains('cafe') || cat.contains('coffee')) {
-        return kind.contains('cafe') || kind.contains('coffee');
-      }
-      if (cat.contains('shop') || cat.contains('market')) {
-        return kind.contains('shop') ||
-            kind.contains('mall') ||
-            kind.contains('market') ||
-            kind.contains('store') ||
-            kind.contains('shopping');
-      }
-      if (cat.contains('nature') || cat.contains('park')) {
-        return kind.contains('natural') ||
-            kind.contains('park') ||
-            kind.contains('nature') ||
-            kind.contains('garden') ||
-            kind.contains('forest') ||
-            kind.contains('beach') ||
-            kind.contains('outdoor');
-      }
-      return true;
-    }).toList();
+    return _attractions;
   }
 
-  void _showLocationSelectorSheet() {
-    showModalBottomSheet(
+  String get _destinationState =>
+      _locationService.currentState ??
+      PlacesService.nearestState(
+        _locationService.currentLocation.latitude,
+        _locationService.currentLocation.longitude,
+      );
+
+  Future<void> _showLocationSelectorSheet() async {
+    final selected = await showModalBottomSheet<MalaysiaStateData>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const LocationSelectorSheet(),
+      builder: (context) => SafeArea(
+        child: ListView.builder(
+          itemCount: malaysiaStatesData.length + 1,
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return ListTile(title: Text(context.l10n.selectState));
+            }
+            final state = malaysiaStatesData[index - 1];
+            final isSelected = state.name == _destinationState;
+            return ListTile(
+              title: Text(state.name),
+              selected: isSelected,
+              trailing: isSelected ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.pop(context, state),
+            );
+          },
+        ),
+      ),
+    );
+    if (!mounted || selected == null) return;
+    final reference = selected.areas.first;
+    _searchDebounce?.cancel();
+    _searchQuery = '';
+    _searchController.clear();
+    _selectedCategory = 'All';
+    _locationService.updateLocation(
+      LatLng(reference.latitude, reference.longitude),
+      selected.name,
+      state: selected.name,
     );
   }
 
@@ -420,7 +413,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                 Icon(
                   icon,
                   size: 18,
-                  color: isSelected ? Colors.white : AppColors.muted,
+                  color: isSelected ? AppColors.onNightAccent : AppColors.muted,
                 ),
                 const SizedBox(width: 6),
                 Flexible(
@@ -434,7 +427,9 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                       fontWeight: isSelected
                           ? FontWeight.w700
                           : FontWeight.w600,
-                      color: isSelected ? Colors.white : AppColors.muted,
+                      color: isSelected
+                          ? AppColors.onNightAccent
+                          : AppColors.muted,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -460,7 +455,9 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: isSelected ? Colors.white : AppColors.primary,
+                        color: isSelected
+                            ? AppColors.onNightAccent
+                            : AppColors.primary,
                       ),
                     ),
                   ),
@@ -525,18 +522,49 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   }
 
   Widget _buildAttractionsView(List<Attraction> filtered) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null) {
-      return _ErrorState(message: _error!, onRetry: _loadAttractions);
+    if (_loading || _error != null) {
+      return ListView(
+        key: const PageStorageKey('explore-attractions-list'),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+        children: [
+          if (widget.discoveryHeader != null) widget.discoveryHeader!,
+          _buildLocationSelector(),
+          const SizedBox(height: 10),
+          _buildSearchBar(),
+          const SizedBox(height: 10),
+          _buildCategoryChips(),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            _ErrorState(message: _error!, onRetry: _loadAttractions),
+        ],
+      );
     }
 
     return AttractionListScreen(
       header: Column(
         children: [
           if (widget.discoveryHeader != null) widget.discoveryHeader!,
+          if (_page?.source == 'Saved verified catalog')
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Saved catalog · ${_page?.savedAt?.toLocal().toString().split('.').first ?? 'update time unavailable'}',
+                style: const TextStyle(color: AppColors.nightMuted),
+              ),
+            ),
+          if (_page != null && _page!.failure != PlacesFailure.none &&
+              _page!.failure != PlacesFailure.emptyCatalog)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                _page!.notice,
+                style: const TextStyle(color: AppColors.nightMuted),
+              ),
+            ),
           _buildLocationSelector(),
           const SizedBox(height: 10),
           _buildSearchBar(),
@@ -552,7 +580,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       loadingMore: _loadingMore,
       onLoadMore: () => _loadAttractions(append: true),
       attributions: _attributions,
-      currentAreaName: _locationService.currentAreaName,
+      currentAreaName: _destinationState,
       selectedCategory: _selectedCategory,
       searchQuery: _searchQuery,
       onClearFilters: () {
@@ -561,6 +589,8 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
           _searchController.clear();
           _selectedCategory = 'All';
         });
+        _searchDebounce?.cancel();
+        _loadAttractions();
       },
       onAttractionTap: _openDetails,
       onToggleStop: _toggleStop,
@@ -626,43 +656,18 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              context.l10n.currentDestination,
-                              style: TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.08,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                context.l10n.text5KmRadius,
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          context.l10n.currentDestination,
+                          style: TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _locationService.currentAreaName,
+                          _destinationState,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -733,7 +738,14 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (val) => setState(() => _searchQuery = val),
+        onChanged: (val) {
+          setState(() => _searchQuery = val);
+          _searchDebounce?.cancel();
+          _searchDebounce = Timer(
+            const Duration(milliseconds: 300),
+            _loadAttractions,
+          );
+        },
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
@@ -757,6 +769,8 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
+                    _searchDebounce?.cancel();
+                    _loadAttractions();
                   },
                 )
               : null,
@@ -773,7 +787,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
   Widget _buildCategoryChips() {
     return SizedBox(
-      height: 38,
+      height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
@@ -788,6 +802,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
               onTap: () {
                 demoHaptic();
                 setState(() => _selectedCategory = cat);
+                _loadAttractions();
               },
               borderRadius: BorderRadius.circular(20),
               child: AnimatedContainer(
@@ -797,7 +812,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: active ? AppColors.primary : Colors.white,
+                  color: active ? AppColors.primary : AppColors.nightSurface,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: active ? AppColors.primary : AppColors.nightLine,
@@ -823,7 +838,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                   child: Text(
                     context.tr(cat),
                     style: TextStyle(
-                      color: active ? Colors.white : AppColors.ink,
+                      color: active ? AppColors.onNightAccent : AppColors.ink,
                       fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                       fontSize: 12.5,
                     ),
@@ -1066,6 +1081,7 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
                         _tempSelectedArea!.longitude,
                       ),
                       '${_tempSelectedArea!.name}, ${_tempSelectedState!.name}',
+                      state: _tempSelectedState!.name,
                     );
                     Navigator.pop(context);
                   }

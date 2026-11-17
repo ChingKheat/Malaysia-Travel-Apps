@@ -69,6 +69,113 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     SmartItineraryService.clearLiveCache();
   });
+  test('App resume retries a pending itinerary', () async {
+    await AuthService().login('tourist@example.com', 'SafeP@ss123!');
+    final cloud = _FakeCloud();
+    final service = SupabaseItineraryService.withStore(
+      LocalItineraryStore(),
+      cloud: cloud,
+    );
+    final result = await service.saveItinerary(
+      title: 'Resume retry',
+      destinationState: 'Kuala Lumpur',
+      totalCost: 0,
+      dailySchedules: [],
+    );
+    expect(result.synced, isFalse);
+    cloud.online = true;
+    service.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    // A subsequent serial read waits for the lifecycle-triggered sync.
+    await service.getSavedItineraries(refresh: false);
+    final journal = await LocalItineraryStore().read(
+      AuthService().currentUser!.uid,
+    );
+    expect(journal[result.itineraryId]['pending'], isFalse);
+    expect(cloud.rows.length, 1);
+  });
+  test('Offline Google stop removal survives restart and sync', () async {
+    await AuthService().login('tourist@example.com', 'SafeP@ss123!');
+    final cloud = _FakeCloud();
+    final repository = SupabaseItineraryService.withStore(
+      LocalItineraryStore(),
+      cloud: cloud,
+    );
+    final result = await repository.saveItinerary(
+      title: 'Offline edit',
+      destinationState: 'Kuala Lumpur',
+      totalCost: 0,
+      dailySchedules: [
+        DailySchedule(
+          scheduleId: '',
+          itineraryId: '',
+          dayNumber: 1,
+          scheduleDate: DateTime(2026, 10, 20),
+          stops: [
+            for (var i = 1; i <= 2; i++)
+              ItineraryStop(
+                id: '',
+                scheduleId: '',
+                placeId: 'ChIJ$i',
+                placeName: 'Place $i',
+                stopOrder: i,
+                arrivalTime: '09:00 AM',
+                departureTime: '10:00 AM',
+                snapshot: TravelStop(
+                  title: 'Place $i',
+                  time: '09:00 AM - 10:00 AM',
+                  note: '',
+                  description: '',
+                  duration: '60 min',
+                  openingHours: 'Hours unverified',
+                  tips: const [],
+                  icon: Icons.place,
+                  color: Colors.blue,
+                  placeId: 'ChIJ$i',
+                  dataSource: 'google',
+                  latitude: 3.1,
+                  longitude: 101.7,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+    final firstRestart = SupabaseItineraryService.withStore(
+      LocalItineraryStore(),
+      cloud: cloud,
+    );
+    final trip = (await firstRestart.getSavedItineraries(
+      refresh: false,
+    )).single;
+    final day = trip.dailySchedules.single;
+    expect(day.stops.first.toTravelStop().latitude, 0);
+    expect(
+      await firstRestart.updateDailyScheduleStops(
+        scheduleId: day.scheduleId,
+        totalDistanceKm: 0,
+        stops: [day.stops.first],
+      ),
+      isTrue,
+    );
+    final secondRestart = SupabaseItineraryService.withStore(
+      LocalItineraryStore(),
+      cloud: cloud,
+    );
+    expect(
+      (await secondRestart.getSavedItineraries(
+        refresh: false,
+      )).single.dailySchedules.single.stops,
+      hasLength(1),
+    );
+    cloud.online = true;
+    await secondRestart.syncPending();
+    expect(
+      cloud
+          .rows[result.itineraryId]!['daily_schedules']
+          .single['itinerary_stops'],
+      hasLength(1),
+    );
+  });
   test(
     'Offline retry after a lost cloud response keeps one trip; deletion survives restart',
     () async {

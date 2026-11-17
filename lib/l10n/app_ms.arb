@@ -1725,9 +1725,9 @@
   "planAccommodation": "Titik mula harian",
   "planOptionalDetails": "Butiran perjalanan pilihan",
   "planLocalTime": "Waktu mengikut zon waktu destinasi anda.",
-  "planSetArrival": "Tetapkan waktu ketibaan",
-  "planSetDeparture": "Tetapkan waktu berlepas",
-  "planChooseStartingPoint": "Pilih penginapan atau titik mula lain",
+  "planSetArrival": "Belum ditetapkan",
+  "planSetDeparture": "Belum ditetapkan",
+  "planChooseStartingPoint": "Belum ditetapkan",
   "planUndecided": "Belum diputuskan",
   "planTravelers": "Jenis pengembara",
   "planPace": "Rentak lawatan",
@@ -1772,9 +1772,16 @@
   "planRestaurantSource": "Laman restoran",
   "planVerifyHalal": "Semak direktori JAKIM",
   "planContinueWho": "Terus ke pengembara dan rentak",
+  "planTapToProceed": "Ketik di bawah untuk terus ke langkah seterusnya",
+  "planUnlockDates": "Pilih tarikh perjalanan di atas untuk meneruskan",
+  "planUnlockBasics": "Sahkan maklumat asas perjalanan di atas dahulu",
+  "planUnlockHours": "Tetapkan waktu bersiar-siar harian yang sah di atas",
+  "planUnlockMode": "Pilih cara pengangkutan anda di atas",
+  "planUnlockBudget": "Pilih bajet harian di atas untuk meneruskan",
+  "planUnlockInterests": "Pilih sekurang-kurangnya satu minat di atas untuk meneruskan",
   "planContinueHours": "Terus ke waktu harian",
   "planContinueBudget": "Terus ke bajet dan makanan",
-  "planLogisticsHelp": "Tambah waktu ketibaan atau pelepasan dan titik mula untuk merancang hari anda. Ruangan ini boleh dikosongkan.",
+  "planLogisticsHelp": "Tambah waktu dan titik mula untuk membantu merancang hari anda. Semua ruangan adalah pilihan.",
   "planContinueHighlights": "Terus ke tarikan dan minat",
   "profileTravelPreferences": "Keutamaan Perjalanan",
   "profilePace": "Rentak Perjalanan",
@@ -1820,10 +1827,29 @@
   "notificationTripReminder": "Perjalanan akan bermula tidak lama lagi",
   "notificationCommunityComment": "Komen baharu",
   "notificationTripMessage": "{title} di {destination} bermula pada {date}.",
-  "@notificationTripMessage": {"placeholders": {"title": {}, "destination": {}, "date": {}}},
+  "@notificationTripMessage": {
+    "placeholders": {
+      "title": {},
+      "destination": {},
+      "date": {}
+    }
+  },
   "notificationCommentMessage": "Seseorang mengulas: “{comment}”",
-  "@notificationCommentMessage": {"placeholders": {"comment": {}}},
+  "@notificationCommentMessage": {
+    "placeholders": {
+      "comment": {}
+    }
+  },
   "notificationViewTrip": "Lihat perjalanan",
   "notificationViewPost": "Lihat hantaran",
-  "notificationUnavailable": "Perjalanan atau hantaran ini tiada lagi."
+  "notificationUnavailable": "Perjalanan atau hantaran ini tiada lagi.",
+  "offlineEditTitle": "Simpan tanpa semakan laluan?",
+  "offlineRemovalWarning": "Lokasi tempat tidak tersedia. Masa hentian yang tinggal akan dikekalkan, tetapi masa perjalanan, jarak dan waktu operasi tidak dapat disahkan. Semak laluan apabila dalam talian.",
+  "offlineSaveAnyway": "Tetap simpan",
+  "dietaryVerificationNotice": "Kesesuaian diet tidak disahkan secara automatik. Restoran yang dikenal pasti dikecualikan daripada jadual; tempat lain mungkin masih menyajikan makanan. Sila semak sebelum berkunjung.",
+  "offlineRemovalRetainsTimes": "Hentian dibuang. Masa yang tinggal kekal sehingga lokasi tersedia.",
+  "savedRouteNeedsVerification": "Sesetengah lokasi tempat tidak tersedia. Masa dan jarak laluan mungkin tidak terkini. Muat semula butiran tempat dan semak laluan apabila dalam talian.",
+  "offlineReorderNeedsReview": "Laluan tidak tersedia. Susunan perlu disemak apabila dalam talian.",
+  "offlineReorderWarning": "Slot masa sedia ada akan diberikan kepada susunan baharu. Masa perjalanan, tempoh lawatan dan waktu operasi tidak dapat disahkan. Semak laluan dan jadual apabila dalam talian.",
+  "googleRouteReviewReminder": "Semak laluan dan waktu operasi sebelum perjalanan, terutamanya selepas suntingan luar talian."
 }

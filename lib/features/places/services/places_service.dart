@@ -1,9 +1,9 @@
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'place_catalog_service.dart';
 import 'google_places_service.dart';
+import 'verified_catalog_service.dart';
 import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
 
 class PlacesService {
@@ -11,13 +11,13 @@ class PlacesService {
     http.Client? client,
     PlaceCatalogService? catalog,
     GooglePlacesService? google,
-  }) : _catalog = catalog ?? PlaceCatalogService(),
-       _google = google ?? GooglePlacesService(client: client);
+  }) : _catalog = catalog ?? VerifiedCatalogService();
   final PlaceCatalogService _catalog;
-  final GooglePlacesService _google;
+
   bool hasMore = false;
   List<Map<String, dynamic>> attributions = [];
-  String? get lastError => _google.lastError;
+  String? get lastError =>
+      _catalog is VerifiedCatalogService ? _catalog.loadError : null;
 
   static String nearestState(double latitude, double longitude) {
     var best = double.infinity;
@@ -41,22 +41,16 @@ class PlacesService {
   Future<PlacesPage> fetchPage({
     required double latitude,
     required double longitude,
-    int radiusMeters = 5000,
+    int? radiusMeters = 5000,
     int offset = 0,
     int limit = 20,
     String? state,
+    String query = '',
+    String category = 'All',
     bool Function()? shouldContinue,
   }) async {
-    final references = await _catalog.load(
-      state: state ?? nearestState(latitude, longitude),
-    );
-    final pageSize = limit.clamp(1, 20);
-    final selected = references.skip(offset).take(pageSize).toList();
-    final next = offset + selected.length;
-    final rows = await _google.hydrateRows(
-      selected,
-      shouldContinue: shouldContinue,
-    );
+    final selectedState = state ?? nearestState(latitude, longitude);
+    final rows = await _catalog.load(state: selectedState);
     if (shouldContinue != null && !shouldContinue()) {
       return const PlacesPage(
         items: [],
@@ -65,66 +59,83 @@ class PlacesService {
         source: 'Cancelled',
       );
     }
-    final failures = rows
-        .where(
-          (r) => PlaceCatalogService.isGoogleReference(r) && r['_live'] != true,
-        )
-        .toList();
-    final message = failures
-        .map((r) => r['_loadError']?.toString())
-        .whereType<String>()
-        .firstOrNull;
-    final status = failures.isNotEmpty
-        ? PlacesPage.failureFor(message)
-        : references.isEmpty
-        ? (_catalog.lastLoadOffline
-              ? PlacesFailure.offline
-              : PlacesFailure.emptyCatalog)
-        : PlacesFailure.none;
-    final items =
-        rows
-            .where(
-              (r) =>
-                  !PlaceCatalogService.isGoogleReference(r) ||
-                  r['_live'] == true,
-            )
-            .map(
-              (r) => Attraction.fromGooglePlaceJson(
-                PlaceCatalogService.asGoogleShape(r),
-                centerLat: latitude,
-                centerLon: longitude,
-              ),
-            )
-            .where((a) => (a.distanceMeters ?? double.infinity) <= radiusMeters)
-            .toList()
-          ..sort(
-            (a, b) => (a.distanceMeters ?? 0).compareTo(b.distanceMeters ?? 0),
-          );
-    final fallback =
-        items.isEmpty && (failures.isNotEmpty || references.isEmpty);
-    final result = PlacesPage(
-      items: fallback
-          ? _fallback(latitude, longitude, pageSize, radiusMeters)
-          : items,
+    final byId = <String, Attraction>{};
+    for (final row in rows.where(VerifiedCatalogService.usable)) {
+      if (radiusMeters == null && row['state'] != selectedState) continue;
+      if (!matchesCategory(row['category'].toString(), category)) continue;
+      if (!row['name'].toString().toLowerCase().contains(
+        query.trim().toLowerCase(),
+      )) {
+        continue;
+      }
+      final item = Attraction.fromGooglePlaceJson(
+        PlaceCatalogService.asGoogleShape(row),
+        centerLat: latitude,
+        centerLon: longitude,
+      );
+      if (radiusMeters == null ||
+          (item.distanceMeters ?? double.infinity) <= radiusMeters) {
+        byId[item.xid] = item;
+      }
+    }
+    final items = byId.values.toList()
+      ..sort((a, b) {
+        final distance = (a.distanceMeters ?? 0).compareTo(
+          b.distanceMeters ?? 0,
+        );
+        return distance != 0 ? distance : a.xid.compareTo(b.xid);
+      });
+    final start = offset.clamp(0, items.length);
+    final pageItems = items.skip(start).take(limit.clamp(1, 20)).toList();
+    final next = start + pageItems.length;
+    hasMore = next < items.length;
+    return PlacesPage(
+      items: pageItems,
       nextOffset: next,
-      hasMore: next < references.length,
-      source: fallback
-          ? 'Local offline guide'
-          : _catalog.lastLoadOffline
-          ? 'Saved catalog · live Google details'
-          : 'Catalog · live place details',
-      failure: status,
-      message: message,
-      failedCount: failures.length,
-      attributions: [
-        for (final r in rows)
-          ...((r['attributions'] as List?) ?? []).whereType<Map>().map(
-            (a) => Map<String, dynamic>.from(a),
-          ),
-      ],
+      hasMore: hasMore,
+      source: _catalog.lastLoadOffline
+          ? 'Saved verified catalog'
+          : 'Verified database catalog',
+      failure:
+          items.isEmpty && rows.where(VerifiedCatalogService.usable).isEmpty
+          ? (_catalog is VerifiedCatalogService && _catalog.setupRequired
+                ? PlacesFailure.service
+                : _catalog.lastLoadOffline
+                ? PlacesFailure.offline
+                : PlacesFailure.emptyCatalog)
+          : PlacesFailure.none,
+      message: _catalog is VerifiedCatalogService ? _catalog.loadError : null,
+      savedAt: _catalog is VerifiedCatalogService ? _catalog.savedAt : null,
     );
-    hasMore = result.hasMore;
-    return result;
+  }
+
+  static bool matchesCategory(String value, String filter) {
+    final cat = filter.toLowerCase(), kind = value.toLowerCase();
+    if (cat == 'all') return true;
+    final terms = cat.contains('cafe')
+        ? ['cafe', 'coffee']
+        : cat.contains('food')
+        ? ['food', 'cafe', 'restaurant', 'dining', 'bakery', 'hawker']
+        : cat.contains('shop')
+        ? ['shop', 'market', 'mall', 'store']
+        : cat.contains('nature')
+        ? ['nature', 'natural', 'park', 'garden', 'forest', 'beach', 'outdoor']
+        : cat.contains('sight')
+        ? [
+            'sight',
+            'attraction',
+            'culture',
+            'cultural',
+            'historic',
+            'architecture',
+            'landmark',
+            'monument',
+            'temple',
+            'museum',
+            'religion',
+          ]
+        : [cat];
+    return terms.any(kind.contains);
   }
 
   // Compatibility for existing callers. New UI uses the complete page result.
@@ -135,6 +146,8 @@ class PlacesService {
     int limit = 20,
     int offset = 0,
     String? state,
+    String query = '',
+    String category = 'All',
     bool Function()? shouldContinue,
   }) async => (await fetchPage(
     latitude: latitude,
@@ -143,6 +156,8 @@ class PlacesService {
     limit: limit,
     offset: offset,
     state: state,
+    query: query,
+    category: category,
     shouldContinue: shouldContinue,
   )).items;
 
@@ -152,55 +167,12 @@ class PlacesService {
     double? longitude,
     int limit = 20,
   }) async {
-    final lat = latitude ?? 3.139, lng = longitude ?? 101.6869;
-    final references = await _catalog.load(state: nearestState(lat, lng));
-    final rows = await _google.hydrateRows(references.take(limit.clamp(1, 20)));
-    final terms = query.toLowerCase().trim();
-    return rows
-        .where(
-          (r) =>
-              !PlaceCatalogService.isGoogleReference(r) || r['_live'] == true,
-        )
-        .where(
-          (r) => '${r['name']} ${r['state']} ${r['category']}'
-              .toLowerCase()
-              .contains(terms),
-        )
-        .take(limit)
-        .map(
-          (r) => Attraction.fromGooglePlaceJson(
-            PlaceCatalogService.asGoogleShape(r),
-            centerLat: lat,
-            centerLon: lng,
-          ),
-        )
-        .toList();
-  }
-
-  List<Attraction> _fallback(
-    double latitude,
-    double longitude,
-    int limit,
-    int radiusMeters,
-  ) {
-    final rows = curatedMalaysianAttractions
-        .map(
-          (a) => a.copyWith(
-            distanceMeters: const Distance().as(
-              LengthUnit.Meter,
-              LatLng(latitude, longitude),
-              a.point,
-            ),
-          ),
-        )
-        .toList();
-    rows.sort(
-      (a, b) => (a.distanceMeters ?? 0).compareTo(b.distanceMeters ?? 0),
-    );
-    return rows
-        .where((a) => (a.distanceMeters ?? double.infinity) <= radiusMeters)
-        .take(limit)
-        .toList();
+    return (await fetchPage(
+      latitude: latitude ?? 3.139,
+      longitude: longitude ?? 101.6869,
+      query: query,
+      limit: limit,
+    )).items;
   }
 }
 
@@ -216,6 +188,7 @@ class PlacesPage {
     this.message,
     this.failedCount = 0,
     this.attributions = const [],
+    this.savedAt,
   });
   final List<Attraction> items;
   final int nextOffset;
@@ -225,6 +198,7 @@ class PlacesPage {
   final String? message;
   final int failedCount;
   final List<Map<String, dynamic>> attributions;
+  final DateTime? savedAt;
   static PlacesFailure failureFor(String? message) {
     final text = (message ?? '').toLowerCase();
     if (text.contains('sign in') ||
@@ -244,11 +218,11 @@ class PlacesPage {
   }
 
   String get notice => switch (failure) {
-    PlacesFailure.none => 'Results within 5 km from loaded records only.',
+    PlacesFailure.none => 'Results from the attraction catalog.',
     PlacesFailure.emptyCatalog =>
-      'No catalog for this area. An administrator can import places.',
+      'No verified attraction catalog is published for this area yet. An administrator must import reviewed source data.',
     PlacesFailure.signIn =>
-      'Sign in again to load Google places. Local guide shown when available.',
+      'Sign in again with a registered account to load live Google places.',
     PlacesFailure.allowance =>
       'Google allowance or request limit reached. Try again later.',
     PlacesFailure.offline =>

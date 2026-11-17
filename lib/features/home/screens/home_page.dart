@@ -4,6 +4,7 @@ import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/community/explore_page.dart';
 import 'package:smart_travel_planner/features/home/widgets/popular_attractions_section.dart';
 import 'package:smart_travel_planner/features/home/widgets/trip_cards.dart';
+import 'package:smart_travel_planner/features/profile/screens/profile_page.dart';
 import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
 import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
@@ -18,6 +19,8 @@ class HomePage extends StatefulWidget {
     required this.onRouteTap,
     required this.onAssistantTap,
     this.attractions,
+    this.discoveryHeaderOnly = false,
+    this.onCommunityTap,
   });
 
   final VoidCallback onPlanTap;
@@ -25,6 +28,8 @@ class HomePage extends StatefulWidget {
   final VoidCallback onRouteTap;
   final VoidCallback onAssistantTap;
   final List<Attraction>? attractions;
+  final bool discoveryHeaderOnly;
+  final VoidCallback? onCommunityTap;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -252,6 +257,45 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final upcomingTrip = _upcomingTrip;
+    if (widget.discoveryHeaderOnly) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HeroPanel(
+            onSearchTap: widget.onPlanTap,
+            onAssistantTap: widget.onAssistantTap,
+            onFeaturedTap: () => _showFeaturedStory(context),
+            showSearch: false,
+            trip: upcomingTrip,
+            onTripTap: widget.onItineraryTap,
+          ),
+          const SizedBox(height: 16),
+          _MyTripsCard(onTap: widget.onItineraryTap),
+          const SizedBox(height: 18),
+          if (upcomingTrip != null) ...[
+            TripCard(
+              trip: upcomingTrip,
+              onTap: widget.onItineraryTap,
+              isDark: true,
+            ),
+            const SizedBox(height: 18),
+          ],
+          _CommunitySection(
+            onOpenCommunity:
+                widget.onCommunityTap ??
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CommunityFeedScreen(),
+                    ),
+                  );
+                },
+          ),
+          const SizedBox(height: 20),
+        ],
+      );
+    }
     final filteredAttractions = _filteredAttractions;
 
     return ListView(
@@ -262,6 +306,8 @@ class _HomePageState extends State<HomePage> {
           onSearchTap: widget.onPlanTap,
           onAssistantTap: widget.onAssistantTap,
           onFeaturedTap: () => _showFeaturedStory(context),
+          trip: upcomingTrip,
+          onTripTap: widget.onItineraryTap,
         ),
         const SizedBox(height: 16),
 
@@ -292,9 +338,7 @@ class _HomePageState extends State<HomePage> {
           onOpenCommunity: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const CommunityFeedScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const CommunityFeedScreen()),
             );
           },
         ),
@@ -316,18 +360,24 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-/// HeroPanel matching the Curated City Guide box in the design screenshot.
+/// Profile and trip summary for the home screen.
 class HeroPanel extends StatelessWidget {
   const HeroPanel({
     super.key,
     required this.onSearchTap,
     this.onAssistantTap,
     this.onFeaturedTap,
+    this.showSearch = true,
+    this.trip,
+    this.onTripTap,
   });
 
   final VoidCallback onSearchTap;
   final VoidCallback? onAssistantTap;
   final VoidCallback? onFeaturedTap;
+  final bool showSearch;
+  final SavedTrip? trip;
+  final VoidCallback? onTripTap;
 
   @override
   Widget build(BuildContext context) {
@@ -335,250 +385,246 @@ class HeroPanel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          constraints: const BoxConstraints(minHeight: 285),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.nightLine, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(23),
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: [
-                // Background Image: Kuala Lumpur Skyline / Petronas Towers at Night
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/recognition/petronas.jpg',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      color: AppColors.nightRaised,
-                      child: const Center(
-                        child: Icon(
-                          Icons.location_city,
-                          color: Colors.white24,
-                          size: 64,
-                        ),
-                      ),
+        AnimatedBuilder(
+          animation: AuthService(),
+          builder: (context, _) {
+            final user = AuthService().currentUser;
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.asset(
+                      'assets/recognition/petronas.jpg',
+                      fit: BoxFit.cover,
+                      excludeFromSemantics: true,
+                      errorBuilder: (_, _, _) =>
+                          const ColoredBox(color: AppColors.nightRaised),
                     ),
                   ),
-                ),
-                // Multi-stop dark gradient overlay for optimal text readability
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.35),
-                          Colors.black.withValues(alpha: 0.60),
-                          Colors.black.withValues(alpha: 0.94),
-                        ],
-                        stops: const [0.0, 0.45, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                // Foreground Content
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 50),
-                      // Tag: Curated City Guide · 6 Landmarks
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          children: [
-                            Text(
-                              context.l10n.smartTravelPlanning2,
-                              style: const TextStyle(
-                                color: AppColors.nightAccent,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              '· 6 Landmarks',
-                              style: TextStyle(
-                                color: AppColors.nightAccent,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.black.withValues(alpha: .72),
+                            Colors.black.withValues(alpha: .52),
+                            Colors.black.withValues(alpha: .85),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      // Title: Kuala Lumpur
-                      const Text(
-                        'Kuala Lumpur',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'serif',
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Subtitle: Moorish brick domes, Art Deco craft halls...
-                      const Text(
-                        'Moorish brick domes, Art Deco craft halls, and twin steel spires along the Klang valley.',
-                        style: TextStyle(
-                          color: AppColors.nightBody,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      // Action buttons row: [Featured story ↗] [✦ Ask AI Assistant]
-                      Row(
-                        children: [
-                          // White pill button: "Featured story ↗"
-                          Expanded(
-                            child: SizedBox(
-                              height: 42,
-                              child: ElevatedButton(
-                                onPressed: onFeaturedTap ?? onSearchTap,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: AppColors.onNightAccent,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: user == null
+                                ? null
+                                : () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const ProfilePage(),
+                                    ),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(22),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 36,
+                                    backgroundColor: Colors.white,
+                                    child: CircleAvatar(
+                                      radius: 33,
+                                      backgroundColor: AppColors.nightRaised,
+                                      foregroundImage:
+                                          user != null &&
+                                              user.avatarUrl.isNotEmpty
+                                          ? NetworkImage(user.avatarUrl)
+                                          : null,
+                                      onForegroundImageError:
+                                          user != null &&
+                                              user.avatarUrl.isNotEmpty
+                                          ? (_, _) {}
+                                          : null,
+                                      child: const Icon(
+                                        Icons.person,
+                                        size: 34,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                child: const FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Featured story',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          user?.name ?? context.l10n.myProfile,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w900,
+                                          ),
                                         ),
-                                      ),
-                                      SizedBox(width: 4),
-                                      Icon(
-                                        Icons.arrow_outward_rounded,
-                                        size: 16,
-                                      ),
-                                    ],
+                                        const SizedBox(height: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.nightAccent,
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            user?.travelStyle.isNotEmpty == true
+                                                ? user!.travelStyle
+                                                : context.l10n.traveler,
+                                            style: const TextStyle(
+                                              color: AppColors.onNightAccent,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                  if (user != null)
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.white,
+                                    ),
+                                ],
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          // Amber/gold pill button: "✦ Ask AI Assistant"
-                          Expanded(
-                            child: SizedBox(
-                              height: 42,
-                              child: ElevatedButton(
-                                onPressed: onAssistantTap ?? onSearchTap,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.nightAccent,
-                                  foregroundColor: AppColors.onNightAccent,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
+                        ),
+                        const SizedBox(height: 24),
+                        Material(
+                          color: Colors.black.withValues(alpha: .72),
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: trip == null
+                                ? onSearchTap
+                                : (onTripTap ?? onSearchTap),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    trip == null
+                                        ? Icons.explore_outlined
+                                        : Icons.location_on_outlined,
+                                    color: AppColors.nightAccent,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(22),
-                                  ),
-                                ),
-                                child: const FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.auto_awesome,
-                                        size: 15,
-                                        color: AppColors.onNightAccent,
-                                      ),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        'Ask AI Assistant',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          trip == null
+                                              ? context.l10n.myTrips
+                                              : context.l10n.destination,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                        Text(
+                                          trip?.destination ??
+                                              context.l10n.planYourTrip,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        if (trip != null)
+                                          Text(
+                                            trip!.isGenerated
+                                                ? trip!.detail
+                                                : trip!.date,
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.white,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Search bar matching the dark screenshot styling
-        Material(
-          color: AppColors.nightSurface,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onSearchTap,
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 48),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.nightSurface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.nightLine, width: 1.2),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.search_rounded,
-                    color: AppColors.nightMuted,
-                    size: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      context.l10n.whereToNext,
-                      style: const TextStyle(
-                        color: AppColors.nightMuted,
-                        fontSize: 14,
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
+            );
+          },
+        ),
+        if (showSearch) ...[
+          const SizedBox(height: 16),
+          // Search bar matching the dark screenshot styling
+          Material(
+            color: AppColors.nightSurface,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onSearchTap,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.nightSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.nightLine, width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.nightMuted,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        context.l10n.whereToNext,
+                        style: const TextStyle(
+                          color: AppColors.nightMuted,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -706,7 +752,6 @@ class _CommunitySection extends StatelessWidget {
     );
   }
 }
-
 
 class _MyTripsCard extends StatelessWidget {
   const _MyTripsCard({required this.onTap});

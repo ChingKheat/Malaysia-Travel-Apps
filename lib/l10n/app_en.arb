@@ -858,9 +858,21 @@
   "scanAboutLandmark": "About this landmark",
   "scanNearbyPlaces": "Nearby attractions & food",
   "scanNearbyDistance": "Guide distances from {place} are straight-line estimates.",
-  "@scanNearbyDistance": {"placeholders": {"place": {"type": "String"}}},
+  "@scanNearbyDistance": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
   "scanNearbyArea": "Places around {place}",
-  "@scanNearbyArea": {"placeholders": {"place": {"type": "String"}}},
+  "@scanNearbyArea": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
   "scanNearbyNoLocation": "This scan has no confirmed location. Use Maps to explore around you.",
   "scanGuideDishVenues": "Places in the travel guide that mention this dish",
   "scanFoodAndCafes": "Food & Cafés",
@@ -872,7 +884,13 @@
   "scanPlacesInArea": "Places in the area",
   "scanChooseAreaPlace": "These places are in the detected area. Select one if you recognise it, or add another photo.",
   "scanSuggestedArea": "Area clue: {area}",
-  "@scanSuggestedArea": {"placeholders": {"area": {"type": "String"}}},
+  "@scanSuggestedArea": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
   "scanOpenMaps": "Open in Google Maps",
   "scanWebMatchFound": "Supported by matching web images",
   "scanSignClue": "Text on the photo offers a clue",
@@ -1728,9 +1746,9 @@
   "planAccommodation": "Daily starting point",
   "planOptionalDetails": "Optional trip details",
   "planLocalTime": "Times are local to your destination.",
-  "planSetArrival": "Set arrival time",
-  "planSetDeparture": "Set departure time",
-  "planChooseStartingPoint": "Choose accommodation or another starting point",
+  "planSetArrival": "Not set",
+  "planSetDeparture": "Not set",
+  "planChooseStartingPoint": "Not set",
   "planUndecided": "Undecided",
   "planTravelers": "Traveler type",
   "planPace": "Sightseeing pace",
@@ -1775,9 +1793,19 @@
   "planRestaurantSource": "Restaurant website",
   "planVerifyHalal": "Check JAKIM directory",
   "planContinueWho": "Continue to traveler & pace",
+  "planTapToProceed": "Tap below to proceed to the next step",
+  "@planTapToProceed": {
+    "description": "Helper hint above step advance buttons indicating to tap to proceed"
+  },
+  "planUnlockDates": "Select travel dates above to continue",
+  "planUnlockBasics": "Confirm your trip basics above first",
+  "planUnlockHours": "Set valid daily sightseeing hours above",
+  "planUnlockMode": "Select how you will get around above",
+  "planUnlockBudget": "Choose a daily budget above to continue",
+  "planUnlockInterests": "Pick at least one interest above to continue",
   "planContinueHours": "Continue to daily hours",
   "planContinueBudget": "Continue to budget & dining",
-  "planLogisticsHelp": "Add arrival or departure times and a starting point to help schedule your day. You can leave these blank.",
+  "planLogisticsHelp": "Add times and a starting point to help plan your days. All fields are optional.",
   "planContinueHighlights": "Continue to highlights & interests",
   "profileTravelPreferences": "Travel Preferences",
   "profilePace": "Travel Pace",
@@ -1823,10 +1851,29 @@
   "notificationTripReminder": "Trip starting soon",
   "notificationCommunityComment": "New comment",
   "notificationTripMessage": "{title} in {destination} starts on {date}.",
-  "@notificationTripMessage": {"placeholders": {"title": {}, "destination": {}, "date": {}}},
+  "@notificationTripMessage": {
+    "placeholders": {
+      "title": {},
+      "destination": {},
+      "date": {}
+    }
+  },
   "notificationCommentMessage": "Someone commented: “{comment}”",
-  "@notificationCommentMessage": {"placeholders": {"comment": {}}},
+  "@notificationCommentMessage": {
+    "placeholders": {
+      "comment": {}
+    }
+  },
   "notificationViewTrip": "View trip",
   "notificationViewPost": "View post",
-  "notificationUnavailable": "This trip or post is no longer available."
+  "notificationUnavailable": "This trip or post is no longer available.",
+  "offlineEditTitle": "Save without route check?",
+  "offlineRemovalWarning": "Place locations are unavailable. The remaining stop times will be kept, but travel time, distance and opening hours cannot be verified. Check the route when online.",
+  "offlineSaveAnyway": "Save anyway",
+  "dietaryVerificationNotice": "Dietary suitability is not verified automatically. Recognized restaurants are excluded from the schedule; other places may still serve food. Check directly before visiting.",
+  "offlineRemovalRetainsTimes": "Stop removed. Remaining times are unchanged until locations are available.",
+  "savedRouteNeedsVerification": "Some place locations are unavailable. Route times and distance may be out of date. Refresh the place details and review the route when online.",
+  "offlineReorderNeedsReview": "Route unavailable. The order will need checking when online.",
+  "offlineReorderWarning": "The existing time slots will be assigned to the new order. Travel times, visit lengths and opening hours cannot be verified. Review the route and schedule when online.",
+  "googleRouteReviewReminder": "Review the route and opening hours before traveling, especially after offline edits."
 }

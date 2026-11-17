@@ -935,6 +935,20 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.mapsAndItineraryCachedForUseWithoutMobileData;
     case "Route optimized — travel time reduced by 45 minutes.":
       return l.routeOptimizedTravelTimeReducedBy45Minutes;
+    case "Tap below to proceed to the next step":
+      return l.planTapToProceed;
+    case "Select travel dates above to continue":
+      return l.planUnlockDates;
+    case "Confirm your trip basics above first":
+      return l.planUnlockBasics;
+    case "Set valid daily sightseeing hours above":
+      return l.planUnlockHours;
+    case "Select how you will get around above":
+      return l.planUnlockMode;
+    case "Choose a daily budget above to continue":
+      return l.planUnlockBudget;
+    case "Pick at least one interest above to continue":
+      return l.planUnlockInterests;
     case "Notifications":
       return l.notifications;
     case "This app is a prototype designed for a Final Year Project to showcase automated route scheduling and map visualization in Malaysia.":

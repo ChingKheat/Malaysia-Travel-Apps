@@ -6,8 +6,26 @@ class AttractionImageResolver {
   const AttractionImageResolver._();
   static String? resolveAsset(Attraction attraction) =>
       switch (attraction.xid) {
-        'curated_kl_01' => 'assets/recognition/petronas.jpg',
+        'curated_kl_01' ||
+        'wikidata_Q83063' => 'assets/recognition/petronas.jpg',
         'curated_kl_02' => 'assets/recognition/batu_caves.jpg',
+        'curated_kl_10' ||
+        'wikidata_Q2660049' => 'assets/recognition/kl_bird_park.jpg',
+        'curated_kl_13' ||
+        'wikidata_Q3330187' => 'assets/recognition/islamic_arts_museum.jpg',
+        _ => null,
+      };
+
+  static ({String author, String source})? photoCredit(Attraction attraction) =>
+      switch (attraction.xid) {
+        'curated_kl_10' || 'wikidata_Q2660049' => (
+          author: 'David Berkowitz',
+          source: 'https://www.flickr.com/photos/davidberkowitz/9051999114/',
+        ),
+        'curated_kl_13' || 'wikidata_Q3330187' => (
+          author: 'travelourplanet.com',
+          source: 'https://www.flickr.com/photos/travelourplanet/14968692917/',
+        ),
         _ => null,
       };
 

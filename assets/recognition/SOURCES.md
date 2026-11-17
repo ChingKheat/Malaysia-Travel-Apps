@@ -13,3 +13,8 @@ The scan result and sample PNGs are photo crops from the supplied Citylore refer
 ## Scan candidate photo
 
 * `kl_forest_eco_park.jpg` is a resized copy of [KL Forest Eco-Park Canopy Walk 7](https://commons.wikimedia.org/wiki/File:KL_Forest_Eco-Park_Canopy_Walk_7.jpg) by RivieraBarnes, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
+## Offline discovery photos
+
+- `kl_bird_park.jpg`: “Kuala Lumpur Bird Park - KL Bird Park - Kuala Lumpur, Malaysia” by David Berkowitz, https://www.flickr.com/photos/davidberkowitz/9051999114/ . Licensed CC BY 2.0: https://creativecommons.org/licenses/by/2.0/ . Downloaded Flickr 1024px rendition; displayed with a cover crop.
+- `islamic_arts_museum.jpg`: “Islamic Arts Museum Malaysia, Kuala Lumpur” by travelourplanet.com, https://www.flickr.com/photos/travelourplanet/14968692917/ . Licensed CC BY 2.0: https://creativecommons.org/licenses/by/2.0/ . Downloaded Flickr 1024px rendition; displayed with a cover crop. Depicts an exhibit inside the museum.

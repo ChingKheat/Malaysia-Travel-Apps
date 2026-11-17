@@ -13,119 +13,9 @@ class AttractionMetadataResolver {
     if (googleAddress != null && googleAddress.trim().isNotEmpty) {
       return googleAddress.trim();
     }
-
-    // Keep test assertion strictly intact
-    if (a.name == 'Test place') {
-      return 'Address unavailable.';
-    }
-
-    final name = a.name.toLowerCase();
-
-    // Specific Malaysian curated addresses
-    if (name.contains('batu caves') || name.contains('murugan')) {
-      return 'Gombak, 68100 Batu Caves, Selangor, Malaysia';
-    }
-    if (name.contains('twin towers') ||
-        name.contains('klcc') ||
-        name.contains('petronas')) {
-      return 'Lower Ground (Concourse), Petronas Twin Towers, KLCC, 50088 Kuala Lumpur';
-    }
-    if (name.contains('central market') || name.contains('pasar seni')) {
-      return 'Jalan Hang Kasturi, City Centre, 50050 Kuala Lumpur';
-    }
-    if (name.contains('jalan alor') || name.contains('food street')) {
-      return 'Jalan Alor, Bukit Bintang, 50200 Kuala Lumpur';
-    }
-    if (name.contains('thean hou')) {
-      return '65, Persiaran Endah, Taman Persiaran Desa, 50460 Kuala Lumpur';
-    }
-    if (name.contains('kl tower') || name.contains('menara kuala lumpur')) {
-      return '2, Jalan Puncak, 50250 Kuala Lumpur';
-    }
-    if (name.contains('petaling street') || name.contains('chinatown')) {
-      return 'Jalan Petaling, City Centre, 50000 Kuala Lumpur';
-    }
-    if (name.contains('pavilion')) {
-      return '168, Jalan Bukit Bintang, 55100 Kuala Lumpur';
-    }
-    if (name.contains('perdana botanical') || name.contains('lake gardens')) {
-      return 'Jalan Kebun Bunga, Tasik Perdana, 50480 Kuala Lumpur';
-    }
-    if (name.contains('bird park')) {
-      return '920, Jalan Cenderawasih, Tasik Perdana, 50480 Kuala Lumpur';
-    }
-    if (name.contains('aquaria')) {
-      return 'Kuala Lumpur Convention Centre, Jalan Pinang, 50088 Kuala Lumpur';
-    }
-    if (name.contains('merdeka square') || name.contains('dataran merdeka')) {
-      return 'Jalan Raja, City Centre, 50050 Kuala Lumpur';
-    }
-    if (name.contains('islamic arts')) {
-      return 'Jalan Lembah, Tasik Perdana, 50480 Kuala Lumpur';
-    }
-    if (name.contains('saloma')) {
-      return 'Lorong Saloma, Kampung Baru, 50300 Kuala Lumpur';
-    }
-    if (name.contains('george town') || name.contains('street art')) {
-      return 'Armenian Street, George Town, 10200 Penang';
-    }
-    if (name.contains('kek lok si')) {
-      return 'Tingkat Lembah Ria 1, 11500 Air Itam, Penang';
-    }
-    if (name.contains('penang hill')) {
-      return 'Bukit Bendera, 11500 Air Itam, Penang';
-    }
-    if (name.contains('jonker')) {
-      return 'Jalan Hang Jebat, 75200 Melaka';
-    }
-    if (name.contains('stadthuys') || name.contains('dutch square')) {
-      return 'Bandar Hilir, 75000 Melaka';
-    }
-    if (name.contains('famosa')) {
-      return 'Jalan Parameswara, Bandar Hilir, 75000 Melaka';
-    }
-    if (name.contains('sky bridge') ||
-        name.contains('skycab') ||
-        name.contains('langkawi')) {
-      return 'Teluk Burau, 07000 Langkawi, Kedah';
-    }
-    if (name.contains('eagle square') || name.contains('dataran lang')) {
-      return 'Kuah Jetty, 07000 Langkawi, Kedah';
-    }
-    if (name.contains('kinabalu')) {
-      return 'Ranau, 89300 Sabah, Malaysia';
-    }
-    if (name.contains('kuching waterfront')) {
-      return 'Jalan Main Bazaar, 93000 Kuching, Sarawak';
-    }
-    if (name.contains('legoland')) {
-      return '7, Persiaran Medini Utara 3, 79250 Iskandar Puteri, Johor';
-    }
-    if (name.contains('concubine lane')) {
-      return 'Panglima Lane, 30000 Ipoh, Perak';
-    }
-    if (name.contains('perak cave') || name.contains('perak tong')) {
-      return 'Jalan Kuala Kangsar, Kawasan Perindustrian Tasek, 31400 Ipoh, Perak';
-    }
-    if (name.contains('sunway lagoon')) {
-      return '3, Jalan PJS 11/11, Bandar Sunway, 47500 Subang Jaya, Selangor';
-    }
-    if (name.contains('putra mosque')) {
-      return 'Presint 1, 62000 Putrajaya, Malaysia';
-    }
-    if (name.contains('blue mosque') || name.contains('sultan salahuddin')) {
-      return 'Persiaran Masjid, Seksyen 14, 40000 Shah Alam, Selangor';
-    }
-
-    if (a.latitude != 0 && a.longitude != 0) {
-      final state = resolveState(a);
-      return '$state, Malaysia';
-    }
-
     return 'Address unavailable.';
   }
 
-  /// Resolves the state or administrative region in Malaysia.
   static String resolveState(Attraction a) {
     final xid = a.xid.toLowerCase();
     if (xid.contains('_kl_')) return 'Kuala Lumpur';
@@ -230,31 +120,6 @@ class AttractionMetadataResolver {
     return 'General Access';
   }
 
-  static String _detectState(Attraction a) {
-    if (a.latitude > 5.1 &&
-        a.latitude < 5.6 &&
-        a.longitude > 100.1 &&
-        a.longitude < 100.6) {
-      return 'Penang';
-    }
-    if (a.latitude > 2.0 &&
-        a.latitude < 2.5 &&
-        a.longitude > 102.1 &&
-        a.longitude < 102.5) {
-      return 'Melaka';
-    }
-    if (a.latitude > 3.0 &&
-        a.latitude < 3.4 &&
-        a.longitude > 101.5 &&
-        a.longitude < 101.9) {
-      return 'Kuala Lumpur';
-    }
-    return 'Malaysia';
-  }
-
-  /// Resolves an informative, engaging description for the attraction.
-  /// Prioritizes live Google editorial summary, matches curated Malaysian landmarks,
-  /// or generates an intelligent overview based on category, setting, and ratings.
   static String resolveDescription(
     Attraction a, [
     String? googleDescription,
@@ -273,66 +138,9 @@ class AttractionMetadataResolver {
       return a.description!.trim();
     }
 
-    final name = a.name.toLowerCase();
-    final state = _detectState(a);
-    final cat = a.category.isNotEmpty ? a.category : 'Attraction';
-    final atmosphere = resolveAtmosphere(a);
-    final score = (rating ?? a.rating ?? 4.5).toStringAsFixed(1);
-    final reviews = reviewCount ?? a.userRatingsTotal;
-
-    // Curated iconic Malaysian landmarks
-    if (name.contains('twin towers') ||
-        name.contains('klcc') ||
-        name.contains('petronas')) {
-      return 'The Petronas Twin Towers are iconic 88-storey supertall skyscrapers in Kuala Lumpur, standing as one of Malaysia’s most recognized architectural landmarks. Featuring an iconic skybridge and scenic observation deck, it offers sweeping panoramic views of the capital city.';
-    }
-    if (name.contains('batu caves') || name.contains('murugan')) {
-      return 'Batu Caves is a revered limestone hill featuring a series of magnificent caves and Hindu cave temples in Gombak, Selangor. Welcoming visitors with a majestic 42.7m golden statue of Lord Murugan, climbing its iconic 272 rainbow steps leads into the soaring Cathedral Cave.';
-    }
-    if (name.contains('kek lok si')) {
-      return 'Kek Lok Si Temple (Temple of Supreme Bliss) is one of the largest and finest Buddhist temple complexes in Southeast Asia, standing grandly on the slopes of Air Itam, Penang. Renowned for its seven-storey Pagoda of Ten Thousand Buddhas and towering bronze Guanyin statue.';
-    }
-    if (name.contains('thean hou')) {
-      return 'Thean Hou Temple is a majestic six-tiered temple dedicated to the Chinese sea goddess Mazu. Perched atop Robson Heights in Kuala Lumpur, it combines modern architectural techniques with traditional Buddhist, Taoist, and Confucian design, boasting thousands of red lanterns and breathtaking city vistas.';
-    }
-    if (name.contains('central market') || name.contains('pasar seni')) {
-      return 'Central Market (Pasar Seni) is a vibrant heritage centre for Malaysian culture, arts, and crafts in downtown Kuala Lumpur. Housed in an art-deco landmark built in 1888, it offers authentic local souvenirs, traditional batik handicrafts, and street food.';
-    }
-    if (name.contains('jalan alor')) {
-      return 'Jalan Alor is one of Kuala Lumpur’s most vibrant culinary walking streets in Bukit Bintang. By evening, the road transforms into a bustling open-air food paradise lined with sizzling seafood stalls, char kway teow, grilled satay, and tropical fruit vendors.';
-    }
-
-    // Dynamic, natural intelligent fallback for restaurants, cultural spots, nature, etc.
-    final reviewText = reviews != null && reviews > 0
-        ? ' boasting a strong $score★ rating with over $reviews verified reviews on Google Maps'
-        : ' rated $score★ on Google Maps';
-
-    if (cat.toLowerCase().contains('food') ||
-        name.contains('restaurant') ||
-        name.contains('cafe')) {
-      return '${a.name} is a popular dining and culinary destination in $state,$reviewText. Featuring an inviting $atmosphere setting, it is a recommended spot for tourists and food lovers seeking authentic local flavors.';
-    }
-
-    if (cat.toLowerCase().contains('culture') ||
-        cat.toLowerCase().contains('history') ||
-        cat.toLowerCase().contains('temple')) {
-      return '${a.name} is a distinguished cultural and historical destination in $state,$reviewText. Known for its rich heritage and $atmosphere environment, it offers visitors a meaningful glimpse into Malaysia’s vibrant community and architectural traditions.';
-    }
-
-    if (cat.toLowerCase().contains('nature') ||
-        cat.toLowerCase().contains('park') ||
-        cat.toLowerCase().contains('beach')) {
-      return '${a.name} is a scenic outdoor retreat situated in $state,$reviewText. Surrounded by an inspiring $atmosphere ambiance, it provides an ideal getaway for sightseeing, relaxation, and memorable photography.';
-    }
-
-    if (cat.toLowerCase().contains('shop') || name.contains('mall')) {
-      return '${a.name} is a premier shopping and leisure destination in $state,$reviewText. Featuring a modern $atmosphere setting, it offers diverse retail outlets, lifestyle amenities, and entertainment for visitors.';
-    }
-
-    return '${a.name} is a notable $cat destination located in $state,$reviewText. With its pleasant $atmosphere atmosphere, it is a great addition to your travel schedule when exploring $state.';
+    return 'Description unavailable.';
   }
 
-  /// Traveler insider tips tailored to Malaysian tourists.
   static List<String> resolveTips(Attraction a) {
     final name = a.name.toLowerCase();
     final cat = a.category.toLowerCase();

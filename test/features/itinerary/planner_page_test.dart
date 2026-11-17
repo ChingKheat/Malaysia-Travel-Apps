@@ -28,14 +28,14 @@ void main() {
         'No restriction',
       ],
     ]) {
-      Finder chip(String label) => find.widgetWithText(ChoiceChip, label);
+      Finder chip(String label) => find.widgetWithText(SelectionCard, label);
       for (final label in labels) {
-        await _reveal(tester, chip(label));
-        await tester.tap(chip(label));
+        await _reveal(tester, chip(label).first);
+        await tester.tap(chip(label).first);
         await tester.pumpAndSettle();
         for (final option in labels) {
           expect(
-            tester.widget<ChoiceChip>(chip(option)).selected,
+            tester.widgetList<SelectionCard>(chip(option)).first.selected,
             option == label,
           );
         }
@@ -90,11 +90,47 @@ void main() {
       await tester.pumpAndSettle();
       await _choose(tester, 'Continue to highlights & interests');
       await tester.pumpAndSettle();
-      final interest = find.widgetWithText(FilterChip, 'Nature');
+      final interest = find.widgetWithText(SelectionCard, 'Nature');
       await _reveal(tester, interest);
       expect(interest.hitTestable(), findsOneWidget);
     });
   }
+
+  testWidgets('planning progress stays visible while scrolling', (
+    tester,
+  ) async {
+    await _openPlanner(tester);
+    final progress = find.byKey(const ValueKey('plan-progress'));
+    final initialPosition = tester.getTopLeft(progress);
+    expect(find.text('0 of 5 sections completed'), findsOneWidget);
+    await _reveal(tester, find.text('Generate My Itinerary'));
+    expect(progress.hitTestable(), findsOneWidget);
+    expect(tester.getTopLeft(progress), initialPosition);
+    _scrollToTop(tester);
+    await tester.pumpAndSettle();
+    await _unlockSchedule(tester);
+    expect(find.text('1 of 5 sections completed'), findsOneWidget);
+    expect(tester.getTopLeft(progress), initialPosition);
+  });
+
+  testWidgets('Smart Fill requires review and cancel preserves choices', (
+    tester,
+  ) async {
+    await _openPlanner(
+      tester,
+      enableTestingBypass: true,
+      initialTravelMode: 'Driving',
+    );
+    await _choose(tester, 'Smart Fill');
+    await tester.enterText(find.byType(TextField).first, 'family');
+    await _choose(tester, 'Suggest preferences');
+    expect(find.text('Review suggestions'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    final solo = find.widgetWithText(SelectionCard, 'Solo');
+    await _reveal(tester, solo);
+    expect(tester.widget<SelectionCard>(solo).selected, isTrue);
+  });
 
   for (final scale in [1.0, 2.0]) {
     testWidgets('classic preset applies a Kuala Lumpur origin and highlights', (
@@ -103,6 +139,10 @@ void main() {
       await _openPlanner(tester);
       await _choose(tester, 'Quick presets');
       await _choose(tester, 'First-time explorer · culture and KL landmarks');
+      expect(find.text('Apply preset'), findsOneWidget);
+      await tester.tap(find.text('Apply preset'));
+      await tester.pumpAndSettle();
+      await _choose(tester, 'Optional trip details');
       expect(find.byType(ItineraryPage), findsNothing);
       await _reveal(tester, find.text('Bukit Bintang'));
       expect(find.text('Bukit Bintang'), findsWidgets);
@@ -226,7 +266,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<FilterChip>(find.widgetWithText(FilterChip, 'Nature'))
+          .widget<SelectionCard>(find.widgetWithText(SelectionCard, 'Nature'))
           .selected,
       isTrue,
     );
@@ -300,6 +340,18 @@ void main() {
     (tester) async {
       await _openPlanner(tester);
 
+      // The entire basics section is highlighted while its inputs are active.
+      final basics = find.byKey(const ValueKey('trip-basics-section'));
+      double basicsBorderWidth() {
+        final container = tester.widget<AnimatedContainer>(
+          find
+              .descendant(of: basics, matching: find.byType(AnimatedContainer))
+              .first,
+        );
+        return (container.decoration! as BoxDecoration).border!.top.width;
+      }
+
+      expect(basicsBorderWidth(), 2);
       // Initial step: Destination is lit up
       expect(find.text('Select'), findsOneWidget);
       expect(find.text('Next'), findsNothing);
@@ -330,6 +382,7 @@ void main() {
       await _reveal(tester, hours);
       expect(hours.hitTestable(), findsNothing);
       await _choose(tester, 'Continue to traveler & pace');
+      expect(basicsBorderWidth(), 1);
       await _reveal(tester, hours);
       expect(hours.hitTestable(), findsNothing);
       await _choose(tester, 'Continue to daily hours');

@@ -5054,19 +5054,19 @@ abstract class AppLocalizations {
   /// No description provided for @planSetArrival.
   ///
   /// In en, this message translates to:
-  /// **'Set arrival time'**
+  /// **'Not set'**
   String get planSetArrival;
 
   /// No description provided for @planSetDeparture.
   ///
   /// In en, this message translates to:
-  /// **'Set departure time'**
+  /// **'Not set'**
   String get planSetDeparture;
 
   /// No description provided for @planChooseStartingPoint.
   ///
   /// In en, this message translates to:
-  /// **'Choose accommodation or another starting point'**
+  /// **'Not set'**
   String get planChooseStartingPoint;
 
   /// No description provided for @planUndecided.
@@ -5333,6 +5333,48 @@ abstract class AppLocalizations {
   /// **'Continue to traveler & pace'**
   String get planContinueWho;
 
+  /// Helper hint above step advance buttons indicating to tap to proceed
+  ///
+  /// In en, this message translates to:
+  /// **'Tap below to proceed to the next step'**
+  String get planTapToProceed;
+
+  /// No description provided for @planUnlockDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Select travel dates above to continue'**
+  String get planUnlockDates;
+
+  /// No description provided for @planUnlockBasics.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your trip basics above first'**
+  String get planUnlockBasics;
+
+  /// No description provided for @planUnlockHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Set valid daily sightseeing hours above'**
+  String get planUnlockHours;
+
+  /// No description provided for @planUnlockMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Select how you will get around above'**
+  String get planUnlockMode;
+
+  /// No description provided for @planUnlockBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a daily budget above to continue'**
+  String get planUnlockBudget;
+
+  /// No description provided for @planUnlockInterests.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least one interest above to continue'**
+  String get planUnlockInterests;
+
   /// No description provided for @planContinueHours.
   ///
   /// In en, this message translates to:
@@ -5348,7 +5390,7 @@ abstract class AppLocalizations {
   /// No description provided for @planLogisticsHelp.
   ///
   /// In en, this message translates to:
-  /// **'Add arrival or departure times and a starting point to help schedule your day. You can leave these blank.'**
+  /// **'Add times and a starting point to help plan your days. All fields are optional.'**
   String get planLogisticsHelp;
 
   /// No description provided for @planContinueHighlights.
@@ -5644,6 +5686,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This trip or post is no longer available.'**
   String get notificationUnavailable;
+
+  /// No description provided for @offlineEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save without route check?'**
+  String get offlineEditTitle;
+
+  /// No description provided for @offlineRemovalWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Place locations are unavailable. The remaining stop times will be kept, but travel time, distance and opening hours cannot be verified. Check the route when online.'**
+  String get offlineRemovalWarning;
+
+  /// No description provided for @offlineSaveAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get offlineSaveAnyway;
+
+  /// No description provided for @dietaryVerificationNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Dietary suitability is not verified automatically. Recognized restaurants are excluded from the schedule; other places may still serve food. Check directly before visiting.'**
+  String get dietaryVerificationNotice;
+
+  /// No description provided for @offlineRemovalRetainsTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop removed. Remaining times are unchanged until locations are available.'**
+  String get offlineRemovalRetainsTimes;
+
+  /// No description provided for @savedRouteNeedsVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Some place locations are unavailable. Route times and distance may be out of date. Refresh the place details and review the route when online.'**
+  String get savedRouteNeedsVerification;
+
+  /// No description provided for @offlineReorderNeedsReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Route unavailable. The order will need checking when online.'**
+  String get offlineReorderNeedsReview;
+
+  /// No description provided for @offlineReorderWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The existing time slots will be assigned to the new order. Travel times, visit lengths and opening hours cannot be verified. Review the route and schedule when online.'**
+  String get offlineReorderWarning;
+
+  /// No description provided for @googleRouteReviewReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the route and opening hours before traveling, especially after offline edits.'**
+  String get googleRouteReviewReminder;
 }
 
 class _AppLocalizationsDelegate

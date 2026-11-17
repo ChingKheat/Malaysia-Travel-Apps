@@ -335,6 +335,30 @@ class GooglePlacesService {
     String placeId, {
     bool basic = false,
   }) async {
+    final key = jsonEncode([_endpoint, _token, placeId, basic]);
+    final existing = _detailsInFlight[key];
+    if (existing != null) {
+      final result = await existing;
+      lastError = result == null ? 'Place details unavailable.' : null;
+      return result;
+    }
+    final pending = _fetchDetails(placeId, basic: basic);
+    _detailsInFlight[key] = pending;
+    try {
+      return await pending;
+    } finally {
+      if (identical(_detailsInFlight[key], pending)) {
+        _detailsInFlight.remove(key);
+      }
+    }
+  }
+
+  static final Map<String, Future<GooglePlaceDetails?>> _detailsInFlight = {};
+
+  Future<GooglePlaceDetails?> _fetchDetails(
+    String placeId, {
+    required bool basic,
+  }) async {
     if (!RegExp(r'^[A-Za-z0-9_-]{5,255}$').hasMatch(placeId)) return null;
     final response = await _request({
       'operation': 'details',

@@ -44,7 +44,8 @@ class ItineraryPage extends StatefulWidget {
   State<ItineraryPage> createState() => _ItineraryPageState();
 }
 
-class _ItineraryPageState extends State<ItineraryPage> {
+class _ItineraryPageState extends State<ItineraryPage>
+    with WidgetsBindingObserver {
   int _selectedTripIndex = 0;
   int _selectedDay = 0;
   final _dayRouteAnchor = GlobalKey();
@@ -67,6 +68,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadedUserId = AuthService().currentUser?.uid;
     SupabaseItineraryService().addListener(_onRepositoryChanged);
     _loadSavedTripsFromDatabase().then((_) {
@@ -74,6 +76,14 @@ class _ItineraryPageState extends State<ItineraryPage> {
         _loadWeatherForDay(_selectedDay);
       }
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    // A failed hydration must be eligible for retry after connectivity returns.
+    _liveDayKey = null;
+    if (_availableTrips.isNotEmpty) _loadGoogleDetailsForDay(_selectedDay);
   }
 
   void _onRepositoryChanged() {
@@ -99,6 +109,7 @@ class _ItineraryPageState extends State<ItineraryPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     SupabaseItineraryService().removeListener(_onRepositoryChanged);
     super.dispose();
   }
@@ -900,6 +911,11 @@ class _ItineraryPageState extends State<ItineraryPage> {
         l.planVegetarianBranchNote,
         [(l.planRestaurantSource, 'https://kundrai.com/')],
       ),
+      DietaryPreference.vegetarian => (
+        l.planVegetarian,
+        l.dietaryVerificationNotice,
+        <(String, String)>[],
+      ),
       _ => (null, '', <(String, String)>[]),
     };
     if (title == null) return null;
@@ -911,6 +927,8 @@ class _ItineraryPageState extends State<ItineraryPage> {
           children: [
             Text(title, style: Theme.of(context).textTheme.titleSmall),
             Text(note),
+            if (note != l.dietaryVerificationNotice)
+              Text(l.dietaryVerificationNotice),
             Wrap(
               spacing: 8,
               children: [
@@ -1075,21 +1093,27 @@ class _ItineraryPageState extends State<ItineraryPage> {
 
         _buildDayIntelligenceBanner(stops),
         if (stops.any(
-          (s) =>
-              s.isGooglePlace &&
-              (s.title == 'Saved Google place' || s.title == 'Attraction'),
+          (s) => s.isGooglePlace && (s.latitude == 0 || s.longitude == 0),
         ))
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () {
-                _liveDayKey = null;
-                _loadGoogleDetailsForDay(_selectedDay);
-              },
-              icon: const Icon(Icons.refresh),
-              label: Text(context.l10n.retry),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(context.l10n.savedRouteNeedsVerification),
+              TextButton.icon(
+                onPressed: () {
+                  _liveDayKey = null;
+                  _loadGoogleDetailsForDay(_selectedDay);
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(context.l10n.retry),
+              ),
+            ],
           ),
+        if (stops.any((s) => s.isGooglePlace) &&
+            stops.every(
+              (s) => !s.isGooglePlace || (s.latitude != 0 && s.longitude != 0),
+            ))
+          Text(context.l10n.googleRouteReviewReminder),
         const SizedBox(height: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1445,7 +1469,9 @@ class _ItineraryPageState extends State<ItineraryPage> {
           Text(
             '${context.localNumber(stops.length)} ${context.l10n.attractions}',
           ),
-          if (distance > 0) Text('${context.localNumber(distance)} km'),
+          if (distance > 0 &&
+              stops.every((s) => s.latitude != 0 && s.longitude != 0))
+            Text('${context.localNumber(distance)} km'),
           if (!_isLoadingWeather && forecast != null && forecast.isAvailable)
             Text('${forecast.temperatureC}°C · ${forecast.condition}'),
         ],

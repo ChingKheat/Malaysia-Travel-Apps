@@ -65,7 +65,24 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         dailyStartTime: const TimeOfDay(hour: 9, minute: 0),
         dailyEndTime: const TimeOfDay(hour: 22, minute: 0),
       );
+  bool get _hasMissingGoogleLocations => _stops.any(
+    (s) => s.isGooglePlace && (s.latitude == 0 || s.longitude == 0),
+  );
+
+  bool get _onlyOriginalStops {
+    final original = widget.initialStops.map(SchedulingEngine.identity).toSet();
+    final current = _stops.map(SchedulingEngine.identity).toSet();
+    return original.length == widget.initialStops.length &&
+        current.length == _stops.length &&
+        original.containsAll(current);
+  }
+
   List<TravelStop> _recalculateTimes(List<TravelStop> list) {
+    if (list.any(
+      (s) => s.isGooglePlace && (s.latitude == 0 || s.longitude == 0),
+    )) {
+      return list;
+    }
     final scheduled = SchedulingEngine.schedule(
       candidates: list,
       preferences: _preferences,
@@ -86,7 +103,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     });
     showDemoSnackBar(
       context,
-      context.l10n.stopReorderedScheduleTimesAutomaticallyAdjusted,
+      _hasMissingGoogleLocations
+          ? context.l10n.offlineReorderNeedsReview
+          : context.l10n.stopReorderedScheduleTimesAutomaticallyAdjusted,
       icon: Icons.swap_vert,
     );
   }
@@ -151,7 +170,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     });
     showDemoSnackBar(
       context,
-      context.l10n.removedValueTimesUpdated((deleted.title).toString()),
+      _hasMissingGoogleLocations
+          ? context.l10n.offlineRemovalRetainsTimes
+          : context.l10n.removedValueTimesUpdated((deleted.title).toString()),
       icon: Icons.delete_outline,
     );
   }
@@ -836,9 +857,8 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
   }
 
   Future<void> _saveAndReturn() async {
-    if (_stops.any(
-      (s) => s.isGooglePlace && (s.latitude == 0 || s.longitude == 0),
-    )) {
+    final missingLocations = _hasMissingGoogleLocations;
+    if (missingLocations && !_onlyOriginalStops) {
       showDemoSnackBar(
         context,
         context
@@ -882,21 +902,67 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       }
     }
 
+    if (missingLocations) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(context.l10n.offlineEditTitle),
+          content: Text(context.l10n.offlineReorderWarning),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.l10n.offlineSaveAnyway),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
     setState(() => _isSaving = true);
-    final legs = await TravelMatrixService().fetch(
-      _stops,
-      _preferences.travelMode ?? 'Driving',
-    );
+    final scheduleDate = widget.scheduleDate ?? DateTime.now();
+    final startMinutes =
+        TripPreferences.minutesOf(_preferences.dailyStartTime) ?? 510;
+    final legs = missingLocations
+        ? <String, TravelLeg>{}
+        : await TravelMatrixService().fetch(
+            _stops,
+            _preferences.travelMode ?? 'Driving',
+            departureTime: DateTime.utc(
+              scheduleDate.year,
+              scheduleDate.month,
+              scheduleDate.day,
+            ).add(Duration(minutes: startMinutes - 8 * 60)),
+          );
     if (!mounted) return;
-    final checked = SchedulingEngine.schedule(
-      candidates: _stops,
-      preferences: _preferences,
-      date: widget.scheduleDate ?? DateTime.now(),
-      visited: <String>{},
-      weather: widget.weatherForecast,
-      legs: legs,
-      preserveOrder: true,
-    );
+    final selectedIds = _stops.map(SchedulingEngine.identity).toSet();
+    final originalSlots = widget.initialStops
+        .where((s) => selectedIds.contains(SchedulingEngine.identity(s)))
+        .map((s) => s.time)
+        .toList();
+    final checked = missingLocations
+        ? [
+            for (var i = 0; i < _stops.length; i++)
+              TravelStop.fromJson({
+                ..._stops[i].toJson(),
+                'time': originalSlots[i],
+                'travel_minutes': 0,
+                'travel_cost': 0,
+                'travel_is_estimated': true,
+              }),
+          ]
+        : SchedulingEngine.schedule(
+            candidates: _stops,
+            preferences: _preferences,
+            date: scheduleDate,
+            visited: <String>{},
+            weather: widget.weatherForecast,
+            legs: legs,
+            preserveOrder: true,
+          );
     if (checked.length != _stops.length ||
         List.generate(
           checked.length,
@@ -918,7 +984,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
 
     // If an existing schedule is stored in Supabase, update it directly
     if (widget.scheduleId != null && widget.scheduleId!.isNotEmpty) {
-      final totalDist = SmartItineraryService.calculateRouteDistanceKm(_stops);
+      final totalDist = missingLocations
+          ? 0.0
+          : SmartItineraryService.calculateRouteDistanceKm(_stops);
       final itinStops = [
         for (int i = 0; i < _stops.length; i++)
           ItineraryStop(
@@ -1035,10 +1103,12 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            context.l10n.valueKmValueStops(
-                              (distanceKm).toString(),
-                              (_stops.length).toString(),
-                            ),
+                            _hasMissingGoogleLocations
+                                ? context.l10n.unavailable
+                                : context.l10n.valueKmValueStops(
+                                    (distanceKm).toString(),
+                                    (_stops.length).toString(),
+                                  ),
                             style: const TextStyle(
                               color: AppColors.ink,
                               fontSize: 13.5,

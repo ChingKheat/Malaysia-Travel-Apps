@@ -2979,13 +2979,13 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planLocalTime => 'Waktu mengikut zon waktu destinasi anda.';
 
   @override
-  String get planSetArrival => 'Tetapkan waktu ketibaan';
+  String get planSetArrival => 'Belum ditetapkan';
 
   @override
-  String get planSetDeparture => 'Tetapkan waktu berlepas';
+  String get planSetDeparture => 'Belum ditetapkan';
 
   @override
-  String get planChooseStartingPoint => 'Pilih penginapan atau titik mula lain';
+  String get planChooseStartingPoint => 'Belum ditetapkan';
 
   @override
   String get planUndecided => 'Belum diputuskan';
@@ -3128,6 +3128,32 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planContinueWho => 'Terus ke pengembara dan rentak';
 
   @override
+  String get planTapToProceed =>
+      'Ketik di bawah untuk terus ke langkah seterusnya';
+
+  @override
+  String get planUnlockDates =>
+      'Pilih tarikh perjalanan di atas untuk meneruskan';
+
+  @override
+  String get planUnlockBasics =>
+      'Sahkan maklumat asas perjalanan di atas dahulu';
+
+  @override
+  String get planUnlockHours =>
+      'Tetapkan waktu bersiar-siar harian yang sah di atas';
+
+  @override
+  String get planUnlockMode => 'Pilih cara pengangkutan anda di atas';
+
+  @override
+  String get planUnlockBudget => 'Pilih bajet harian di atas untuk meneruskan';
+
+  @override
+  String get planUnlockInterests =>
+      'Pilih sekurang-kurangnya satu minat di atas untuk meneruskan';
+
+  @override
   String get planContinueHours => 'Terus ke waktu harian';
 
   @override
@@ -3135,7 +3161,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get planLogisticsHelp =>
-      'Tambah waktu ketibaan atau pelepasan dan titik mula untuk merancang hari anda. Ruangan ini boleh dikosongkan.';
+      'Tambah waktu dan titik mula untuk membantu merancang hari anda. Semua ruangan adalah pilihan.';
 
   @override
   String get planContinueHighlights => 'Terus ke tarikan dan minat';
@@ -3304,4 +3330,38 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get notificationUnavailable =>
       'Perjalanan atau hantaran ini tiada lagi.';
+
+  @override
+  String get offlineEditTitle => 'Simpan tanpa semakan laluan?';
+
+  @override
+  String get offlineRemovalWarning =>
+      'Lokasi tempat tidak tersedia. Masa hentian yang tinggal akan dikekalkan, tetapi masa perjalanan, jarak dan waktu operasi tidak dapat disahkan. Semak laluan apabila dalam talian.';
+
+  @override
+  String get offlineSaveAnyway => 'Tetap simpan';
+
+  @override
+  String get dietaryVerificationNotice =>
+      'Kesesuaian diet tidak disahkan secara automatik. Restoran yang dikenal pasti dikecualikan daripada jadual; tempat lain mungkin masih menyajikan makanan. Sila semak sebelum berkunjung.';
+
+  @override
+  String get offlineRemovalRetainsTimes =>
+      'Hentian dibuang. Masa yang tinggal kekal sehingga lokasi tersedia.';
+
+  @override
+  String get savedRouteNeedsVerification =>
+      'Sesetengah lokasi tempat tidak tersedia. Masa dan jarak laluan mungkin tidak terkini. Muat semula butiran tempat dan semak laluan apabila dalam talian.';
+
+  @override
+  String get offlineReorderNeedsReview =>
+      'Laluan tidak tersedia. Susunan perlu disemak apabila dalam talian.';
+
+  @override
+  String get offlineReorderWarning =>
+      'Slot masa sedia ada akan diberikan kepada susunan baharu. Masa perjalanan, tempoh lawatan dan waktu operasi tidak dapat disahkan. Semak laluan dan jadual apabila dalam talian.';
+
+  @override
+  String get googleRouteReviewReminder =>
+      'Semak laluan dan waktu operasi sebelum perjalanan, terutamanya selepas suntingan luar talian.';
 }

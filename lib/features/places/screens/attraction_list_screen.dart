@@ -2,6 +2,7 @@ import '../services/google_places_service.dart';
 import '../widgets/google_place_image.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
@@ -11,15 +12,88 @@ import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
 final _coverGoogle = GooglePlacesService();
 
-Widget _googleCover(Attraction place) => GooglePlaceImage(
-  key: ValueKey(place.xid),
-  placeId: place.googlePlaceId!,
-  photo: place.googlePhotos.first,
-  service: _coverGoogle,
-  autoLoad: true,
-  fill: true,
-  attributionTop: 48,
-);
+/// Keep the offline image and error behavior identical across discovery cards.
+Widget _attractionCover(Attraction place) {
+  final asset = AttractionImageResolver.resolveAsset(place);
+  final url = AttractionImageResolver.resolvePhotoUrl(place);
+  final (color, icon, _) = ModernAttractionCard.getCategoryMeta(place.category);
+  Widget unavailable() => Builder(
+    builder: (context) => Stack(
+      fit: StackFit.expand,
+      children: [
+        ModernAttractionCard.buildFallbackThumbnail(color, icon),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 64),
+            child: Text(
+              context.l10n.photoUnavailable,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+  Widget local() => asset == null
+      ? unavailable()
+      : Image.asset(
+          asset,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => unavailable(),
+        );
+  // Bundled photos remain available with no network or expired services.
+  if (asset != null) {
+    final credit = AttractionImageResolver.photoCredit(place);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        local(),
+        if (credit != null)
+          Positioned(
+            top: 60,
+            left: 8,
+            right: 8,
+            child: Material(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                onTap: () => launchUrl(Uri.parse(credit.source)),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    '© ${credit.author} · CC BY 2.0',
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+  if (place.googlePlaceId != null && place.googlePhotos.isNotEmpty) {
+    return GooglePlaceImage(
+      key: ValueKey(place.xid),
+      placeId: place.googlePlaceId!,
+      photo: place.googlePhotos.first,
+      service: _coverGoogle,
+      autoLoad: true,
+      fill: true,
+      attributionTop: 48,
+      fallback: local(),
+    );
+  }
+  if (url != null) {
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => local(),
+      loadingBuilder: (_, child, progress) =>
+          progress == null ? child : local(),
+    );
+  }
+  return local();
+}
 
 /// Inspiring travel discovery screen displaying curated highlights and
 /// rich editorial destination cards.
@@ -68,6 +142,7 @@ class AttractionListScreen extends StatelessWidget {
         highlights!.isNotEmpty;
 
     return ListView(
+      key: const PageStorageKey('explore-attractions-list'),
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
       children: [
         ?header,
@@ -239,7 +314,9 @@ class AttractionListScreen extends StatelessWidget {
       );
     } else {
       title = 'Popular Attractions';
-      subtitle = 'Curated spots within 5 km';
+      subtitle = context.l10n.placesInValue(
+        currentAreaName ?? context.l10n.thisArea,
+      );
     }
 
     return Row(
@@ -418,11 +495,10 @@ class HighlightAttractionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photoUrl = AttractionImageResolver.resolvePhotoUrl(attraction);
     final (catColor, catIcon, catLabel) = ModernAttractionCard.getCategoryMeta(
       attraction.category,
     );
-    final rating = (attraction.rating ?? 4.8).toStringAsFixed(1);
+    final rating = attraction.rating?.toStringAsFixed(1);
 
     return Container(
       width: 205,
@@ -451,33 +527,7 @@ class HighlightAttractionCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Photo background
-              if (photoUrl == null &&
-                  attraction.googlePlaceId != null &&
-                  attraction.googlePhotos.isNotEmpty)
-                _googleCover(attraction)
-              else if (photoUrl != null && photoUrl.startsWith('http'))
-                Image.network(
-                  photoUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      attraction.googlePlaceId != null &&
-                          attraction.googlePhotos.isNotEmpty
-                      ? _googleCover(attraction)
-                      : ModernAttractionCard.buildFallbackThumbnail(
-                          catColor,
-                          catIcon,
-                        ),
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return ModernAttractionCard.buildFallbackThumbnail(
-                      catColor,
-                      catIcon,
-                    );
-                  },
-                )
-              else
-                ModernAttractionCard.buildFallbackThumbnail(catColor, catIcon),
+              _attractionCover(attraction),
 
               // Top dark scrim for badges
               Positioned(
@@ -592,7 +642,9 @@ class HighlightAttractionCard extends StatelessWidget {
                             ? Icons.bookmark_rounded
                             : Icons.bookmark_border_rounded,
                         size: 18,
-                        color: AppColors.nightSurface,
+                        color: selected
+                            ? AppColors.onNightAccent
+                            : Colors.white,
                       ),
                     ),
                   ),
@@ -611,36 +663,37 @@ class HighlightAttractionCard extends StatelessWidget {
                     // Rating + Distance row
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF59E0B),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                rating,
-                                style: const TextStyle(
+                        if (rating != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  size: 12,
                                   color: Colors.white,
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w900,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 2),
+                                Text(
+                                  rating,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
+                        if (rating != null) const SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             context.tr(
@@ -701,9 +754,8 @@ class ModernAttractionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (catColor, catIcon, catLabel) = getCategoryMeta(attraction.category);
-    final photoUrl = AttractionImageResolver.resolvePhotoUrl(attraction);
-    final hasValidPhoto = photoUrl != null && photoUrl.startsWith('http');
-    final ratingVal = attraction.rating ?? 4.7;
+
+    final ratingVal = attraction.rating;
 
     return Container(
       decoration: BoxDecoration(
@@ -740,26 +792,7 @@ class ModernAttractionCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (!hasValidPhoto &&
-                        attraction.googlePlaceId != null &&
-                        attraction.googlePhotos.isNotEmpty)
-                      _googleCover(attraction)
-                    else if (hasValidPhoto)
-                      Image.network(
-                        photoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            attraction.googlePlaceId != null &&
-                                attraction.googlePhotos.isNotEmpty
-                            ? _googleCover(attraction)
-                            : buildFallbackThumbnail(catColor, catIcon),
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return buildFallbackThumbnail(catColor, catIcon);
-                        },
-                      )
-                    else
-                      buildFallbackThumbnail(catColor, catIcon),
+                    _attractionCover(attraction),
 
                     // Top dark scrim for badges
                     Positioned(
@@ -908,55 +941,56 @@ class ModernAttractionCard extends StatelessWidget {
                     ),
 
                     // Bottom Right: Rating Star Pill
-                    Positioned(
-                      right: 12,
-                      bottom: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            width: 0.8,
+                    if (ratingVal != null)
+                      Positioned(
+                        right: 12,
+                        bottom: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3.5,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Color(0xFFFBBF24),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 0.8,
                             ),
-                            const SizedBox(width: 3),
-                            Text(
-                              ratingVal.toStringAsFixed(1),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 14,
+                                color: Color(0xFFFBBF24),
                               ),
-                            ),
-                            if (attraction.userRatingsTotal != null &&
-                                attraction.userRatingsTotal! > 0) ...[
-                              const SizedBox(width: 2),
+                              const SizedBox(width: 3),
                               Text(
-                                ' (${formatReviews(attraction.userRatingsTotal!)})',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w500,
+                                ratingVal.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
+                              if (attraction.userRatingsTotal != null &&
+                                  attraction.userRatingsTotal! > 0) ...[
+                                const SizedBox(width: 2),
+                                Text(
+                                  ' (${formatReviews(attraction.userRatingsTotal!)})',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -1039,7 +1073,7 @@ class ModernAttractionCard extends StatelessWidget {
                                 ? const Color(0xFFEFF6FF)
                                 : const Color(0xFFFEF3C7),
                           ),
-                        if (ratingVal >= 4.5)
+                        if (ratingVal != null && ratingVal >= 4.5)
                           _buildPill(
                             context,
                             label: context.l10n.topRated,

@@ -2971,14 +2971,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planLocalTime => 'Times are local to your destination.';
 
   @override
-  String get planSetArrival => 'Set arrival time';
+  String get planSetArrival => 'Not set';
 
   @override
-  String get planSetDeparture => 'Set departure time';
+  String get planSetDeparture => 'Not set';
 
   @override
-  String get planChooseStartingPoint =>
-      'Choose accommodation or another starting point';
+  String get planChooseStartingPoint => 'Not set';
 
   @override
   String get planUndecided => 'Undecided';
@@ -3119,6 +3118,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planContinueWho => 'Continue to traveler & pace';
 
   @override
+  String get planTapToProceed => 'Tap below to proceed to the next step';
+
+  @override
+  String get planUnlockDates => 'Select travel dates above to continue';
+
+  @override
+  String get planUnlockBasics => 'Confirm your trip basics above first';
+
+  @override
+  String get planUnlockHours => 'Set valid daily sightseeing hours above';
+
+  @override
+  String get planUnlockMode => 'Select how you will get around above';
+
+  @override
+  String get planUnlockBudget => 'Choose a daily budget above to continue';
+
+  @override
+  String get planUnlockInterests =>
+      'Pick at least one interest above to continue';
+
+  @override
   String get planContinueHours => 'Continue to daily hours';
 
   @override
@@ -3126,7 +3147,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planLogisticsHelp =>
-      'Add arrival or departure times and a starting point to help schedule your day. You can leave these blank.';
+      'Add times and a starting point to help plan your days. All fields are optional.';
 
   @override
   String get planContinueHighlights => 'Continue to highlights & interests';
@@ -3291,4 +3312,38 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notificationUnavailable =>
       'This trip or post is no longer available.';
+
+  @override
+  String get offlineEditTitle => 'Save without route check?';
+
+  @override
+  String get offlineRemovalWarning =>
+      'Place locations are unavailable. The remaining stop times will be kept, but travel time, distance and opening hours cannot be verified. Check the route when online.';
+
+  @override
+  String get offlineSaveAnyway => 'Save anyway';
+
+  @override
+  String get dietaryVerificationNotice =>
+      'Dietary suitability is not verified automatically. Recognized restaurants are excluded from the schedule; other places may still serve food. Check directly before visiting.';
+
+  @override
+  String get offlineRemovalRetainsTimes =>
+      'Stop removed. Remaining times are unchanged until locations are available.';
+
+  @override
+  String get savedRouteNeedsVerification =>
+      'Some place locations are unavailable. Route times and distance may be out of date. Refresh the place details and review the route when online.';
+
+  @override
+  String get offlineReorderNeedsReview =>
+      'Route unavailable. The order will need checking when online.';
+
+  @override
+  String get offlineReorderWarning =>
+      'The existing time slots will be assigned to the new order. Travel times, visit lengths and opening hours cannot be verified. Review the route and schedule when online.';
+
+  @override
+  String get googleRouteReviewReminder =>
+      'Review the route and opening hours before traveling, especially after offline edits.';
 }

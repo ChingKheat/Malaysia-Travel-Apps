@@ -48,7 +48,7 @@ class FakeGoogle extends GooglePlacesService {
 
 void main() {
   test(
-    'an empty catalog never calls admin search and labels local fallback',
+    'an empty catalog never calls Google or fabricates local places',
     () async {
       final google = FakeGoogle();
       final service = PlacesService(catalog: EmptyCatalog(), google: google);
@@ -58,7 +58,8 @@ void main() {
       );
       expect(google.searched, isFalse);
       expect(page.failure, PlacesFailure.emptyCatalog);
-      expect(page.source, 'Local offline guide');
+      expect(page.source, 'Verified database catalog');
+      expect(page.items, isEmpty);
       expect(page.hasMore, isFalse);
     },
   );

@@ -26,7 +26,7 @@ class UnavailableGoogle extends GooglePlacesService {
 
 void main() {
   test(
-    'empty nearby first page retains cursor to nearby second page',
+    'radius filtering occurs before pagination so nearby places are not skipped',
     () async {
       final rows = List.generate(
         21,
@@ -38,6 +38,10 @@ void main() {
           'data_source': 'local',
           'latitude': i == 20 ? 5.414 : 5.1,
           'longitude': 100.329,
+          'catalog_status': 'published',
+          'catalog_source_url': 'https://example.test/fixture',
+          'catalog_license': 'Test fixture',
+          'catalog_verified_at': '2026-11-18T00:00:00Z',
         },
       );
       final service = PlacesService(catalog: Catalog(rows));
@@ -45,22 +49,22 @@ void main() {
         latitude: 5.414,
         longitude: 100.329,
       );
-      expect(first.items, isEmpty);
-      expect(first.hasMore, isTrue);
-      expect(first.nextOffset, 20);
+      expect(first.items.single.name, 'Place 20');
+      expect(first.hasMore, isFalse);
+      expect(first.nextOffset, 1);
       final second = await service.fetchPage(
         latitude: 5.414,
         longitude: 100.329,
         offset: first.nextOffset,
       );
-      expect(second.items.single.name, 'Place 20');
+      expect(second.items, isEmpty);
       expect(second.hasMore, isFalse);
     },
   );
   test(
-    'auth, quota and offline failures remain visible with fallback',
+    'reference-only rows never trigger Google even when it is unavailable',
     () async {
-      for (final (error, expected) in [
+      for (final (error, _) in [
         ('Sign in again', PlacesFailure.signIn),
         ('Google allowance exhausted', PlacesFailure.allowance),
         ('Unable to reach service', PlacesFailure.offline),
@@ -79,9 +83,10 @@ void main() {
           latitude: 5.414,
           longitude: 100.329,
         );
-        expect(result.failure, expected);
-        expect(result.failedCount, 1);
-        expect(result.source, 'Local offline guide');
+        expect(result.failure, PlacesFailure.emptyCatalog);
+        expect(result.failedCount, 0);
+        expect(result.items, isEmpty);
+        expect(result.source, 'Verified database catalog');
       }
     },
   );

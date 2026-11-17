@@ -52,7 +52,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     _service = widget.placesService ?? GooglePlacesService();
     _saved = widget.isSaved;
     _details = widget.initialDetails;
-    if (widget.attraction.googlePlaceId != null) {
+    if (widget.attraction.googlePlaceId != null && _details == null) {
       _refresh();
     }
   }
@@ -209,10 +209,11 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
       a,
       details?.address,
     );
-    final duration = AttractionMetadataResolver.resolveDuration(a);
-    final atmosphere = AttractionMetadataResolver.resolveAtmosphere(a);
-    final admission = AttractionMetadataResolver.resolveAdmission(a);
-    final tips = AttractionMetadataResolver.resolveTips(a);
+    // Do not infer place-specific prices, visit times or facilities from names.
+    const duration = 'Not verified';
+    const atmosphere = 'Not verified';
+    const admission = 'Not verified';
+    const tips = <String>[];
 
     final localPhoto = AttractionImageResolver.resolveAsset(a);
     final galleryPhotos = AttractionMetadataResolver.resolveGallery(a);
@@ -572,41 +573,49 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                       ),
                       const SizedBox(height: 10),
 
+                      if (a.sourceUrl != null)
+                        TextButton(
+                          onPressed: () => launchUrl(Uri.parse(a.sourceUrl!)),
+                          child: Text(
+                            'Source · ${a.sourceLicense ?? 'catalog'} · ${a.verifiedAt?.toIso8601String().split('T').first ?? ''}',
+                          ),
+                        ),
                       // Rating & Verification Row
                       Wrap(
                         spacing: 8,
                         runSpacing: 6,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.nightAccentContainer,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.star_rounded,
-                                  size: 16,
-                                  color: AppColors.nightAccent,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  (rating ?? 4.8).toStringAsFixed(1),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 13,
-                                    color: AppColors.nightBody,
+                          if (rating != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.nightAccentContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 16,
+                                    color: AppColors.nightAccent,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    rating.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                      color: AppColors.nightBody,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                           if (reviewCount != null)
                             Text(
                               context.l10n.valueReviews(

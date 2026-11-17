@@ -300,11 +300,6 @@ class _PlannerPageState extends State<PlannerPage> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (nextStep == PlanStep.travelDates &&
-          _scrollController.hasClients &&
-          _scrollController.offset < 50) {
-        return;
-      }
       final key = _keyForStep(nextStep);
       final targetContext = key.currentContext;
       if (targetContext != null) {
@@ -617,6 +612,7 @@ class _PlannerPageState extends State<PlannerPage> {
 
   Future<void> _handleGenerateItinerary() async {
     if (_isGenerating) return;
+    if (_isGenerating) return;
     demoHaptic();
     setState(() {
       _errorMessage = null;
@@ -719,7 +715,12 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
       );
     } catch (_) {
-      if (mounted) setState(() => _errorMessage = context.l10n.tryAgain);
+      if (mounted) {
+        setState(
+          () => _errorMessage =
+              'Unable to create this itinerary. Check your connection and try again; your preferences are still here.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }
@@ -899,6 +900,98 @@ class _PlannerPageState extends State<PlannerPage> {
     });
   }
 
+  Future<void> _reviewSmartFill() async {
+    final suggestions = PlannerSmartFill.localSuggestions(
+      _description.text.trim(),
+    );
+    if (suggestions.isEmpty) {
+      setState(() => _fillMessage = context.l10n.planFillNoMatch);
+      return;
+    }
+    final labels = <String, String>{
+      'traveler': 'Travelers',
+      'pace': 'Pace',
+      'diet': 'Dining',
+      'interest': 'Interest',
+      'transport': 'Transport',
+      'accommodation': 'Starting area',
+    };
+    final applicable = suggestions.entries
+        .where(
+          (entry) =>
+              entry.key != 'accommodation' || destination == 'Kuala Lumpur',
+        )
+        .toList();
+    if (applicable.isEmpty) {
+      setState(() => _fillMessage = context.l10n.planFillNoMatch);
+      return;
+    }
+    final apply = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Review suggestions'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Applying these suggestions may replace the corresponding current choices. You can edit them afterward.',
+              ),
+              const SizedBox(height: 12),
+              for (final entry in applicable)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '${labels[entry.key] ?? entry.key}: ${entry.value}',
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Apply suggestions'),
+          ),
+        ],
+      ),
+    );
+    if (apply == true && mounted) _smartFill();
+  }
+
+  Future<void> _reviewPreset(int index, String title) async {
+    const details = [
+      'Adds culture and history, balanced pace, e-hailing and public transport. If empty, adds Kuala Lumpur, a starting area and landmarks.',
+      'Adds food and nightlife, a relaxed pace and street food dining when unrestricted.',
+      'Adds family and adventure interests, a relaxed pace and family travelers when currently solo.',
+    ];
+    final apply = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          '${details[index]} You can change these choices afterward.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Apply preset'),
+          ),
+        ],
+      ),
+    );
+    if (apply == true && mounted) _applyPreset(index);
+  }
+
   void _smartFill() {
     final text = _description.text.trim();
     if (text.isEmpty) return;
@@ -937,7 +1030,7 @@ class _PlannerPageState extends State<PlannerPage> {
 
   Widget _tripPickerTile({
     required String label,
-    required String detail,
+    String? detail,
     required VoidCallback onTap,
     VoidCallback? onClear,
   }) {
@@ -952,7 +1045,7 @@ class _PlannerPageState extends State<PlannerPage> {
       child: ListTile(
         minTileHeight: 56,
         title: Text(label),
-        subtitle: Text(detail),
+        subtitle: detail == null ? null : Text(detail),
         onTap: onTap,
         trailing: onClear == null
             ? const Icon(Icons.expand_more)
@@ -967,43 +1060,41 @@ class _PlannerPageState extends State<PlannerPage> {
 
   List<Widget> _extraFields(_PlannerGroup group) {
     final l = context.l10n;
-    Widget chips<T>(
+    Widget cards<T>(
       String title,
       List<T> values,
       List<String> labels,
       T? value,
-      ValueChanged<T> select,
-    ) => Column(
+      ValueChanged<T> select, {
+      List<IconData>? icons,
+      bool twoColumns = false,
+    }) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title),
-        Wrap(
-          spacing: 8,
+        const SizedBox(height: 8),
+        _SelectionCardLayout(
+          twoColumns: twoColumns,
           children: [
             for (var i = 0; i < values.length; i++)
-              ChoiceChip(
-                label: Text(labels[i]),
+              _SelectionCard(
+                label: labels[i],
+                icon: icons?[i],
                 selected: value == values[i],
-                onSelected: (_) => setState(() => select(values[i])),
+                onTap: () => setState(() => select(values[i])),
               ),
           ],
         ),
+        const SizedBox(height: 16),
       ],
     );
     return switch (group) {
       _PlannerGroup.basics => [
-        Text(
-          l.planOptionalDetails,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        Text(l.planLogisticsHelp),
         for (final arrival in [true, false]) ...[
           const SizedBox(height: 8),
           _tripPickerTile(
             label: arrival ? l.planArrival : l.planDeparture,
-            detail:
-                (arrival ? _arrival : _departure)?.format(context) ??
-                (arrival ? l.planSetArrival : l.planSetDeparture),
+            detail: (arrival ? _arrival : _departure)?.format(context),
             onClear: (arrival ? _arrival : _departure) == null
                 ? null
                 : () => setState(() {
@@ -1032,8 +1123,6 @@ class _PlannerPageState extends State<PlannerPage> {
             },
           ),
         ],
-        const SizedBox(height: 8),
-        Text(l.planLocalTime, style: Theme.of(context).textTheme.bodySmall),
         if (_departure != null)
           SwitchListTile(
             title: Text(l.planAirport),
@@ -1062,15 +1151,17 @@ class _PlannerPageState extends State<PlannerPage> {
         const SizedBox(height: 8),
         _tripPickerTile(
           label: l.planAccommodation,
-          detail: _accommodation?.title ?? l.planChooseStartingPoint,
+          detail: _accommodation?.title,
           onTap: _chooseAccommodation,
           onClear: _accommodation == null
               ? null
               : () => setState(() => _accommodation = null),
         ),
+        const SizedBox(height: 8),
+        Text(l.planLocalTime, style: Theme.of(context).textTheme.bodySmall),
       ],
       _PlannerGroup.who => [
-        chips(
+        cards(
           l.planTravelers,
           TravelerType.values,
           [
@@ -1082,8 +1173,16 @@ class _PlannerPageState extends State<PlannerPage> {
           ],
           _travelerType,
           (value) => _travelerType = value,
+          twoColumns: true,
+          icons: const [
+            Icons.person_outline,
+            Icons.people_outline,
+            Icons.family_restroom_outlined,
+            Icons.groups_outlined,
+            Icons.elderly_outlined,
+          ],
         ),
-        chips(
+        cards(
           l.planPace,
           PaceCategory.values,
           [l.planRelaxed, l.planBalanced, l.planPacked],
@@ -1113,7 +1212,7 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
       ],
       _PlannerGroup.dining => [
-        chips(
+        cards(
           l.planDiet,
           DietaryPreference.values,
           [
@@ -1176,568 +1275,728 @@ class _PlannerPageState extends State<PlannerPage> {
     final budgetError = _highlightedEmptyFields.contains('budgetCategory');
     final modeError = _highlightedEmptyFields.contains('travelMode');
     final interestError = _highlightedEmptyFields.contains('interests');
+    final completed = [
+      _destinationConfirmed && _datesConfirmed,
+      _logisticsConfirmed && _travelersConfirmed && _paceConfirmed,
+      _modeConfirmed,
+      _budgetConfirmed,
+      _interestsConfirmed,
+    ].where((value) => value).length;
 
-    return SingleChildScrollView(
-      controller: _scrollController,
-      padding: EdgeInsets.fromLTRB(20, 4, 20, 24 + bottomInset),
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (widget.onMyTripsTap != null) ...[
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                key: const ValueKey('plan-my-trips'),
-                onPressed: widget.onMyTripsTap,
-                icon: const Icon(Icons.folder_outlined, size: 20),
-                label: Text(context.l10n.myTrips),
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  foregroundColor: AppColors.primary,
+    return Column(
+      children: [
+        Container(
+          key: const ValueKey('plan-progress'),
+          color: AppColors.nightCanvas,
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: Semantics(
+            label: 'Planning progress: $completed of 5 sections completed',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '$completed of 5 sections completed',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-              ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(value: completed / 5, minHeight: 4),
+              ],
             ),
-            const SizedBox(height: 4),
-          ],
-          ExpansionTile(
-            title: Text(context.l10n.planSmartFill),
-            children: [
-              TextField(
-                controller: _description,
-                maxLength: 1000,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: context.l10n.planDescribeTrip,
-                ),
-              ),
-              FilledButton(
-                onPressed: _smartFill,
-                child: Text(context.l10n.planSuggest),
-              ),
-              if (_fillMessage != null) Text(_fillMessage!),
-            ],
           ),
-          ExpansionTile(
-            title: Text(context.l10n.planPresets),
-            children: [
-              for (final entry in [
-                context.l10n.planClassic,
-                context.l10n.planFood,
-                context.l10n.planFamily,
-              ].indexed)
-                ListTile(
-                  title: Text(entry.$2),
-                  onTap: () => _applyPreset(entry.$1),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _PlanSection(
-            icon: Icons.luggage_outlined,
-            title: context.l10n.planBasics,
-            description: context.l10n.whereAndWhenWouldYouLikeToGo,
-            children: [
-              _PlanPickerField(
-                key: _destinationKey,
-                label: context.l10n.destination,
-                value: destination == null
-                    ? context.l10n.selectDestination
-                    : '$destination, Malaysia',
-                isPlaceholder: destination == null,
-                icon: Icons.place_outlined,
-                isHighlighted: _activeStep == PlanStep.destination,
-                hasError: _highlightedEmptyFields.contains('destination'),
-                errorText: context.l10n.chooseADestination,
-                onTap: () {
-                  setState(() => _activeStep = PlanStep.destination);
-                  _pickDestination();
-                },
-              ),
-              const SizedBox(height: 16),
-              _PlanPickerField(
-                key: _datesKey,
-                label: context.l10n.travelDates,
-                value: travelDates == null
-                    ? context.l10n.selectTravelDates
-                    : _travelDateLabel,
-                isPlaceholder: travelDates == null,
-                icon: Icons.calendar_month_outlined,
-                isHighlighted: _activeStep == PlanStep.travelDates,
-                supportingText: days > 0
-                    ? '$days ${days == 1 ? 'day' : 'days'} to explore'
-                    : null,
-                hasError: _highlightedEmptyFields.contains('numberOfDays'),
-                errorText: context.l10n.chooseYourTravelDates,
-                onTap: canEditDates
-                    ? () {
-                        setState(() => _activeStep = PlanStep.travelDates);
-                        _pickTravelDates();
-                      }
-                    : null,
-              ),
-              if (canEditDates && days > 30)
-                _PlanFieldError(TripPreferencesService.m4InvalidDays),
-              KeyedSubtree(
-                key: _logisticsKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ..._extraFields(_PlannerGroup.basics),
-                    TextButton(
-                      onPressed: !canEditDates || !_datesConfirmed || days > 30
-                          ? null
-                          : () {
-                              setState(() => _logisticsConfirmed = true);
-                              _advanceToStep(PlanStep.travelerPreferences);
-                            },
-                      child: Text(context.l10n.planContinueWho),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 24 + bottomInset),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (widget.onMyTripsTap != null) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      key: const ValueKey('plan-my-trips'),
+                      onPressed: widget.onMyTripsTap,
+                      icon: const Icon(Icons.folder_outlined, size: 20),
+                      label: Text(context.l10n.myTrips),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                        foregroundColor: AppColors.primary,
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _PlanSection(
-            key: _travelersKey,
-            isHighlighted: _activeStep == PlanStep.travelerPreferences,
-            icon: Icons.groups_outlined,
-            title: context.l10n.planWhoPace,
-            description: '',
-            children: [
-              ..._extraFields(_PlannerGroup.who),
-              TextButton(
-                onPressed: !_testingForm && !_logisticsConfirmed
-                    ? null
-                    : () {
-                        setState(() => _travelersConfirmed = true);
-                        _advanceToStep(PlanStep.dailyPace);
-                      },
-                child: Text(context.l10n.planContinueHours),
-              ),
-              _PlanSection(
-                key: _paceKey,
-                nested: true,
-                enabled: canEditPace,
-                isHighlighted: _activeStep == PlanStep.dailyPace,
-                onTap: canEditPace
-                    ? () => setState(() => _activeStep = PlanStep.dailyPace)
-                    : null,
-                icon: Icons.schedule_outlined,
-                title: context.l10n.yourDailyPace,
-                description: context
-                    .l10n
-                    .setAsideTimeForAttractionsMealsAndGettingAround,
-                children: [
-                  const _PlanLabel('Choose a suggested schedule'),
-                  const SizedBox(height: 10),
-                  _PlanChoices(
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.nightAccentContainer,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildTimePresetChip(
-                        title: context.l10n.standard,
-                        startHour: 8,
-                        endHour: 22,
-                        hoursLabel: context.l10n.text8Am10Pm,
+                      Icon(
+                        Icons.info_outline,
+                        color: AppColors.primary,
+                        size: 20,
                       ),
-                      _buildTimePresetChip(
-                        title: context.l10n.popular,
-                        startHour: 9,
-                        endHour: 21,
-                        hoursLabel: context.l10n.text9Am9Pm,
-                      ),
-                      _buildTimePresetChip(
-                        title: context.l10n.relaxed,
-                        startHour: 9,
-                        endHour: 18,
-                        hoursLabel: context.l10n.text9Am6Pm,
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Required: destination, dates, daily hours, transport, budget and interests.',
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final fields = [
-                        _buildTimeField(
-                          label: context.l10n.dailyStartTime,
-                          field: 'dailyStartTime',
-                          value: dailyStartTime,
-                          isSuggested: _isSuggestedStartTime,
-                          onChanged: (time) => dailyStartTime = time,
-                        ),
-                        _buildTimeField(
-                          label: context.l10n.dailyEndTime,
-                          field: 'dailyEndTime',
-                          value: dailyEndTime,
-                          isSuggested: _isSuggestedEndTime,
-                          onChanged: (time) => dailyEndTime = time,
-                        ),
-                      ];
-                      final scale =
-                          MediaQuery.textScalerOf(context).scale(14) / 14;
-                      if (constraints.maxWidth < 280 * scale) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            fields[0],
-                            const SizedBox(height: 14),
-                            fields[1],
-                          ],
-                        );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: fields[0]),
-                          const SizedBox(width: 12),
-                          Expanded(child: fields[1]),
-                        ],
-                      );
-                    },
-                  ),
-                  if (duration != null) ...[
-                    const SizedBox(height: 14),
-                    _PlanInlineNote(
-                      icon: Icons.timelapse_outlined,
-                      text: duration,
-                    ),
-                  ] else if (_isInvalidTimeRange)
-                    _PlanFieldError(TripPreferencesService.m5InvalidTimeRange),
-                  if (!_paceConfirmed)
-                    TextButton(
-                      onPressed: !canEditPace || duration == null
-                          ? null
-                          : () {
-                              setState(() => _paceConfirmed = true);
-                              _advanceToStep(PlanStep.travelMode);
-                            },
-                      child: Text(
-                        MaterialLocalizations.of(context).continueButtonLabel,
+                ),
+                const SizedBox(height: 16),
+                _PlannerShortcutCard(
+                  icon: Icons.auto_awesome_outlined,
+                  title: context.l10n.planSmartFill,
+                  subtitle:
+                      'Describe your trip to preview suggested preferences.',
+                  children: [
+                    TextField(
+                      controller: _description,
+                      maxLength: 1000,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: context.l10n.planDescribeTrip,
                       ),
                     ),
-                ],
-              ),
-              _PlanSection(
-                key: _modeKey,
-                nested: true,
-                enabled: canEditMode,
-                isHighlighted: _activeStep == PlanStep.travelMode,
-                onTap: canEditMode
-                    ? () => setState(() => _activeStep = PlanStep.travelMode)
-                    : null,
-                icon: Icons.route_outlined,
-                title: context.l10n.gettingAround,
-                description: context.l10n.chooseHowYouWillTravelBetweenPlaces,
-                hasError: modeError,
-                children: [
-                  _PlanChoices(
-                    children: [
-                      for (final option in const [
-                        ('Driving', 'Driving', Icons.directions_car_outlined),
-                        (
-                          'E-hailing',
-                          'Grab / E-hailing',
-                          Icons.local_taxi_outlined,
+                    FilledButton(
+                      onPressed: _reviewSmartFill,
+                      child: Text(context.l10n.planSuggest),
+                    ),
+                    if (_fillMessage != null) ...[
+                      const SizedBox(height: 8),
+                      Text(_fillMessage!),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _PlannerShortcutCard(
+                  icon: Icons.tune_rounded,
+                  title: context.l10n.planPresets,
+                  subtitle:
+                      'Start with a suggested travel style and review its choices.',
+                  children: [
+                    for (final entry in [
+                      context.l10n.planClassic,
+                      context.l10n.planFood,
+                      context.l10n.planFamily,
+                    ].indexed)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(entry.$2),
+                        subtitle: Text(
+                          [
+                            'Culture and landmarks',
+                            'Food and nightlife',
+                            'Family-friendly adventures',
+                          ][entry.$1],
                         ),
-                        ('Walking', 'Walking', Icons.directions_walk_outlined),
-                        (
-                          'Public Transport',
-                          'Transit',
-                          Icons.directions_bus_outlined,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _reviewPreset(entry.$1, entry.$2),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _PlanSection(
+                  key: const ValueKey('trip-basics-section'),
+                  isHighlighted:
+                      _activeStep == PlanStep.destination ||
+                      _activeStep == PlanStep.travelDates ||
+                      _activeStep == PlanStep.tripLogistics,
+                  showHighlightBadge: false,
+                  onTap: () => setState(() {
+                    _activeStep = !_destinationConfirmed
+                        ? PlanStep.destination
+                        : !_datesConfirmed
+                        ? PlanStep.travelDates
+                        : PlanStep.tripLogistics;
+                  }),
+                  icon: Icons.luggage_outlined,
+                  title: context.l10n.planBasics,
+                  description: context.l10n.whereAndWhenWouldYouLikeToGo,
+                  children: [
+                    _PlanPickerField(
+                      key: _destinationKey,
+                      label: context.l10n.destination,
+                      value: destination == null
+                          ? context.l10n.selectDestination
+                          : '$destination, Malaysia',
+                      isPlaceholder: destination == null,
+                      icon: Icons.place_outlined,
+                      isHighlighted: _activeStep == PlanStep.destination,
+                      hasError: _highlightedEmptyFields.contains('destination'),
+                      errorText: context.l10n.chooseADestination,
+                      onTap: () {
+                        setState(() => _activeStep = PlanStep.destination);
+                        _pickDestination();
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _PlanPickerField(
+                      key: _datesKey,
+                      label: context.l10n.travelDates,
+                      value: travelDates == null
+                          ? context.l10n.selectTravelDates
+                          : _travelDateLabel,
+                      isPlaceholder: travelDates == null,
+                      icon: Icons.calendar_month_outlined,
+                      isHighlighted: _activeStep == PlanStep.travelDates,
+                      supportingText: days > 0
+                          ? '$days ${days == 1 ? 'day' : 'days'} to explore'
+                          : null,
+                      hasError: _highlightedEmptyFields.contains(
+                        'numberOfDays',
+                      ),
+                      errorText: context.l10n.chooseYourTravelDates,
+                      onTap: canEditDates
+                          ? () {
+                              setState(
+                                () => _activeStep = PlanStep.travelDates,
+                              );
+                              _pickTravelDates();
+                            }
+                          : null,
+                    ),
+                    if (canEditDates && days > 30)
+                      _PlanFieldError(TripPreferencesService.m4InvalidDays),
+                    KeyedSubtree(
+                      key: _logisticsKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            title: Text(context.l10n.planOptionalDetails),
+                            children: _extraFields(_PlannerGroup.basics),
+                          ),
+                          _PlanStepContinueButton(
+                            onPressed:
+                                !canEditDates || !_datesConfirmed || days > 30
+                                ? null
+                                : () {
+                                    setState(() => _logisticsConfirmed = true);
+                                    _advanceToStep(
+                                      PlanStep.travelerPreferences,
+                                    );
+                                  },
+                            label: context.l10n.planContinueWho,
+                            disabledHint: context.l10n.planUnlockDates,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _PlanSection(
+                  key: _travelersKey,
+                  isHighlighted: _activeStep == PlanStep.travelerPreferences,
+                  icon: Icons.groups_outlined,
+                  title: context.l10n.planWhoPace,
+                  description: '',
+                  children: [
+                    ..._extraFields(_PlannerGroup.who),
+                    _PlanStepContinueButton(
+                      onPressed: !_testingForm && !_logisticsConfirmed
+                          ? null
+                          : () {
+                              setState(() => _travelersConfirmed = true);
+                              _advanceToStep(PlanStep.dailyPace);
+                            },
+                      label: context.l10n.planContinueHours,
+                      disabledHint: context.l10n.planUnlockBasics,
+                    ),
+                    _PlanSection(
+                      key: _paceKey,
+                      nested: true,
+                      enabled: canEditPace,
+                      isHighlighted: _activeStep == PlanStep.dailyPace,
+                      onTap: canEditPace
+                          ? () =>
+                                setState(() => _activeStep = PlanStep.dailyPace)
+                          : null,
+                      icon: Icons.schedule_outlined,
+                      title: context.l10n.yourDailyPace,
+                      description: context
+                          .l10n
+                          .setAsideTimeForAttractionsMealsAndGettingAround,
+                      children: [
+                        const _PlanLabel('Choose a suggested schedule'),
+                        const SizedBox(height: 10),
+                        _PlanChoices(
+                          children: [
+                            _buildTimePresetChip(
+                              title: context.l10n.standard,
+                              startHour: 8,
+                              endHour: 22,
+                              hoursLabel: context.l10n.text8Am10Pm,
+                            ),
+                            _buildTimePresetChip(
+                              title: context.l10n.popular,
+                              startHour: 9,
+                              endHour: 21,
+                              hoursLabel: context.l10n.text9Am9Pm,
+                            ),
+                            _buildTimePresetChip(
+                              title: context.l10n.relaxed,
+                              startHour: 9,
+                              endHour: 18,
+                              hoursLabel: context.l10n.text9Am6Pm,
+                            ),
+                          ],
                         ),
-                      ])
-                        _PlanOption(
-                          title: option.$1 == 'E-hailing'
-                              ? context.l10n.planHailing
-                              : context.tr(option.$2),
-                          icon: option.$3,
-                          selected: travelMode == option.$1,
-                          onTap: () {
-                            setState(() {
-                              travelMode = option.$1;
-                              _modeConfirmed = false;
-                              _errorMessage = null;
-                              _highlightedEmptyFields.remove('travelMode');
-                            });
+                        const SizedBox(height: 18),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final fields = [
+                              _buildTimeField(
+                                label: context.l10n.dailyStartTime,
+                                field: 'dailyStartTime',
+                                value: dailyStartTime,
+                                isSuggested: _isSuggestedStartTime,
+                                onChanged: (time) => dailyStartTime = time,
+                              ),
+                              _buildTimeField(
+                                label: context.l10n.dailyEndTime,
+                                field: 'dailyEndTime',
+                                value: dailyEndTime,
+                                isSuggested: _isSuggestedEndTime,
+                                onChanged: (time) => dailyEndTime = time,
+                              ),
+                            ];
+                            final scale =
+                                MediaQuery.textScalerOf(context).scale(14) / 14;
+                            if (constraints.maxWidth < 280 * scale) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  fields[0],
+                                  const SizedBox(height: 14),
+                                  fields[1],
+                                ],
+                              );
+                            }
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: fields[0]),
+                                const SizedBox(width: 12),
+                                Expanded(child: fields[1]),
+                              ],
+                            );
                           },
                         ),
-                    ],
-                  ),
-                  if (modeError) const _PlanFieldError('Choose a travel mode.'),
-                  Material(
-                    type: MaterialType.transparency,
-                    child: ListTile(
-                      leading: const Icon(Icons.trip_origin),
-                      title: const Text('Daily starting point'),
-                      subtitle: Text(
-                        _departurePoint?.title ?? 'Choose a place',
-                      ),
-                      onTap: () async {
-                        final point = await showSearch<TravelStop?>(
-                          context: context,
-                          delegate: _DepartureSearch([
-                            if (destination == 'Kuala Lumpur')
-                              ..._klOrigins.map(_location),
-                            ...curatedMalaysianAttractions.map(_highlight),
-                          ], destination),
-                        );
-                        if (!mounted || point == null) return;
-                        setState(() => _departurePoint = point);
-                      },
+                        if (duration != null) ...[
+                          const SizedBox(height: 14),
+                          _PlanInlineNote(
+                            icon: Icons.timelapse_outlined,
+                            text: duration,
+                          ),
+                        ] else if (_isInvalidTimeRange)
+                          _PlanFieldError(
+                            TripPreferencesService.m5InvalidTimeRange,
+                          ),
+                        if (!_paceConfirmed)
+                          _PlanStepContinueButton(
+                            onPressed: !canEditPace || duration == null
+                                ? null
+                                : () {
+                                    setState(() => _paceConfirmed = true);
+                                    _advanceToStep(PlanStep.travelMode);
+                                  },
+                            label: MaterialLocalizations.of(
+                              context,
+                            ).continueButtonLabel,
+                            disabledHint: context.l10n.planUnlockHours,
+                          ),
+                      ],
                     ),
-                  ),
-                  if (travelMode.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    _PlanInlineNote(
-                      icon: travelMode == 'Public Transport'
-                          ? Icons.info_outline
-                          : Icons.check_circle_outline,
-                      text: switch (travelMode) {
-                        'Driving' ||
-                        'E-hailing' => 'Explore further by car or e-hailing.',
-                        'Walking' => 'Enjoy nearby places at a walking pace.',
-                        _ =>
-                          'Enter a planning estimate per leg, including walking, waiting and transfers.',
-                      },
+                    _PlanSection(
+                      key: _modeKey,
+                      nested: true,
+                      enabled: canEditMode,
+                      isHighlighted: _activeStep == PlanStep.travelMode,
+                      onTap: canEditMode
+                          ? () => setState(
+                              () => _activeStep = PlanStep.travelMode,
+                            )
+                          : null,
+                      icon: Icons.route_outlined,
+                      title: context.l10n.gettingAround,
+                      description:
+                          context.l10n.chooseHowYouWillTravelBetweenPlaces,
+                      hasError: modeError,
+                      children: [
+                        _PlanChoices(
+                          children: [
+                            for (final option in const [
+                              (
+                                'Driving',
+                                'Driving',
+                                Icons.directions_car_outlined,
+                              ),
+                              (
+                                'E-hailing',
+                                'Grab / E-hailing',
+                                Icons.local_taxi_outlined,
+                              ),
+                              (
+                                'Walking',
+                                'Walking',
+                                Icons.directions_walk_outlined,
+                              ),
+                              (
+                                'Public Transport',
+                                'Transit',
+                                Icons.directions_bus_outlined,
+                              ),
+                            ])
+                              _PlanOption(
+                                title: option.$1 == 'E-hailing'
+                                    ? context.l10n.planHailing
+                                    : context.tr(option.$2),
+                                icon: option.$3,
+                                selected: travelMode == option.$1,
+                                onTap: () {
+                                  setState(() {
+                                    travelMode = option.$1;
+                                    _modeConfirmed = false;
+                                    _errorMessage = null;
+                                    _highlightedEmptyFields.remove(
+                                      'travelMode',
+                                    );
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
+                        if (modeError)
+                          const _PlanFieldError('Choose a travel mode.'),
+                        Material(
+                          type: MaterialType.transparency,
+                          child: ListTile(
+                            leading: const Icon(Icons.trip_origin),
+                            title: const Text('Daily starting point'),
+                            subtitle: Text(
+                              _departurePoint?.title ?? 'Choose a place',
+                            ),
+                            onTap: () async {
+                              final point = await showSearch<TravelStop?>(
+                                context: context,
+                                delegate: _DepartureSearch([
+                                  if (destination == 'Kuala Lumpur')
+                                    ..._klOrigins.map(_location),
+                                  ...curatedMalaysianAttractions.map(
+                                    _highlight,
+                                  ),
+                                ], destination),
+                              );
+                              if (!mounted || point == null) return;
+                              setState(() => _departurePoint = point);
+                            },
+                          ),
+                        ),
+                        if (travelMode.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          _PlanInlineNote(
+                            icon: travelMode == 'Public Transport'
+                                ? Icons.info_outline
+                                : Icons.check_circle_outline,
+                            text: switch (travelMode) {
+                              'Driving' || 'E-hailing' =>
+                                'Explore further by car or e-hailing.',
+                              'Walking' =>
+                                'Enjoy nearby places at a walking pace.',
+                              _ =>
+                                'Enter a planning estimate per leg, including walking, waiting and transfers.',
+                            },
+                          ),
+                        ],
+                        if (travelMode == 'Public Transport')
+                          TextFormField(
+                            initialValue: _transitPlanningMinutes?.toString(),
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Estimated minutes per leg (1–240)',
+                            ),
+                            onChanged: (text) {
+                              final minutes = int.tryParse(text);
+                              setState(
+                                () => _transitPlanningMinutes =
+                                    minutes != null &&
+                                        minutes >= 1 &&
+                                        minutes <= 240
+                                    ? minutes
+                                    : null,
+                              );
+                            },
+                          ),
+                        if (travelMode.isNotEmpty) ...[
+                          ..._extraFields(_PlannerGroup.backupTransport),
+                          _PlanStepContinueButton(
+                            onPressed:
+                                travelMode == 'Public Transport' &&
+                                    _transitPlanningMinutes == null
+                                ? null
+                                : () {
+                                    setState(() => _modeConfirmed = true);
+                                    _advanceToStep(PlanStep.budget);
+                                  },
+                            label: context.l10n.planContinueBudget,
+                            disabledHint: context.l10n.planUnlockMode,
+                          ),
+                        ],
+                      ],
                     ),
                   ],
-                  if (travelMode == 'Public Transport')
-                    TextFormField(
-                      initialValue: _transitPlanningMinutes?.toString(),
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Estimated minutes per leg (1–240)',
-                      ),
-                      onChanged: (text) {
-                        final minutes = int.tryParse(text);
-                        setState(
-                          () => _transitPlanningMinutes =
-                              minutes != null && minutes >= 1 && minutes <= 240
-                              ? minutes
-                              : null,
-                        );
-                      },
+                ),
+                const SizedBox(height: 16),
+                _PlanSection(
+                  key: _budgetKey,
+                  enabled: canEditBudget,
+                  isHighlighted: _activeStep == PlanStep.budget,
+                  onTap: canEditBudget
+                      ? () => setState(() => _activeStep = PlanStep.budget)
+                      : null,
+                  icon: Icons.account_balance_wallet_outlined,
+                  title: context.l10n.planBudgetDining,
+                  description: context
+                      .l10n
+                      .perPersonIncludingMealsAttractionTicketsAndLocalTransport,
+                  hasError: budgetError,
+                  children: [
+                    _PlanChoices(
+                      children: [
+                        for (final option in const [
+                          ('Low', 'Under RM150'),
+                          ('Medium', 'RM150–300'),
+                          ('High', 'Over RM300'),
+                        ])
+                          _PlanOption(
+                            title: context.tr(option.$1),
+                            subtitle: context.tr(option.$2),
+                            selected: budgetCategory == option.$1,
+                            onTap: () {
+                              setState(() {
+                                _profileBudgetOverridden = true;
+                                budgetCategory = option.$1;
+                                _budgetConfirmed = false;
+                                _errorMessage = null;
+                                _highlightedEmptyFields.remove(
+                                  'budgetCategory',
+                                );
+                              });
+                            },
+                          ),
+                      ],
                     ),
-                  if (travelMode.isNotEmpty) ...[
-                    ..._extraFields(_PlannerGroup.backupTransport),
-                    TextButton(
-                      onPressed:
-                          travelMode == 'Public Transport' &&
-                              _transitPlanningMinutes == null
+                    if (budgetError)
+                      const _PlanFieldError('Choose a daily budget.'),
+                    const SizedBox(height: 14),
+                    _PlanNotice(
+                      icon: Icons.payments_outlined,
+                      title: _estimatedBudgetLabel,
+                      message: days <= 1
+                          ? context.l10n.estimatedFor1DayPerPerson
+                          : context.l10n.estimatedForValueDaysPerPerson(
+                              context.localNumber(days),
+                            ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Estimates in Malaysian ringgit (RM) include meals, attraction fees and local transport. Accommodation and travel to the first stop are excluded; prices are not confirmed.',
+                    ),
+                    ..._extraFields(_PlannerGroup.dining),
+                    _PlanStepContinueButton(
+                      onPressed: budgetCategory.isEmpty
                           ? null
                           : () {
-                              setState(() => _modeConfirmed = true);
-                              _advanceToStep(PlanStep.budget);
+                              setState(() => _budgetConfirmed = true);
+                              _advanceToStep(PlanStep.interests);
                             },
-                      child: Text(context.l10n.planContinueBudget),
+                      label: context.l10n.planContinueHighlights,
+                      disabledHint: context.l10n.planUnlockBudget,
                     ),
                   ],
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _PlanSection(
-            key: _budgetKey,
-            enabled: canEditBudget,
-            isHighlighted: _activeStep == PlanStep.budget,
-            onTap: canEditBudget
-                ? () => setState(() => _activeStep = PlanStep.budget)
-                : null,
-            icon: Icons.account_balance_wallet_outlined,
-            title: context.l10n.planBudgetDining,
-            description: context
-                .l10n
-                .perPersonIncludingMealsAttractionTicketsAndLocalTransport,
-            hasError: budgetError,
-            children: [
-              _PlanChoices(
-                children: [
-                  for (final option in const [
-                    ('Low', 'Under RM150'),
-                    ('Medium', 'RM150–300'),
-                    ('High', 'Over RM300'),
-                  ])
-                    _PlanOption(
-                      title: context.tr(option.$1),
-                      subtitle: context.tr(option.$2),
-                      selected: budgetCategory == option.$1,
-                      onTap: () {
-                        setState(() {
-                          _profileBudgetOverridden = true;
-                          budgetCategory = option.$1;
-                          _budgetConfirmed = false;
-                          _errorMessage = null;
-                          _highlightedEmptyFields.remove('budgetCategory');
-                        });
-                      },
+                ),
+                const SizedBox(height: 16),
+                _PlanSection(
+                  key: _interestsKey,
+                  enabled: canEditInterests,
+                  isHighlighted: _activeStep == PlanStep.interests,
+                  onTap: canEditInterests
+                      ? () => setState(() => _activeStep = PlanStep.interests)
+                      : null,
+                  icon: Icons.favorite_border,
+                  title: context.l10n.planHighlightsInterests,
+                  description: context
+                      .l10n
+                      .pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou,
+                  hasError: interestError,
+                  children: [
+                    ..._extraFields(_PlannerGroup.highlights),
+                    _SelectionCardLayout(
+                      twoColumns: true,
+                      children: [
+                        for (final option in const [
+                          ('Culture', Icons.museum_outlined),
+                          ('Food', Icons.restaurant_outlined),
+                          ('Nature', Icons.park_outlined),
+                          ('Shopping', Icons.shopping_bag_outlined),
+                          ('History', Icons.account_balance_outlined),
+                          ('Adventure', Icons.hiking_outlined),
+                          ('Family', Icons.family_restroom_outlined),
+                          ('Nightlife', Icons.nightlife_outlined),
+                        ])
+                          _SelectionCard(
+                            label: context.tr(option.$1),
+                            icon: option.$2,
+                            selected: interests.contains(option.$1),
+                            multiple: true,
+                            onTap: () {
+                              setState(() {
+                                if (!interests.add(option.$1)) {
+                                  interests.remove(option.$1);
+                                }
+                                if (interests.isEmpty) {
+                                  _interestsConfirmed = false;
+                                }
+                                _errorMessage = null;
+                                _highlightedEmptyFields.remove('interests');
+                              });
+                            },
+                          ),
+                      ],
                     ),
-                ],
-              ),
-              if (budgetError) const _PlanFieldError('Choose a daily budget.'),
-              const SizedBox(height: 14),
-              _PlanNotice(
-                icon: Icons.payments_outlined,
-                title: _estimatedBudgetLabel,
-                message: days <= 1
-                    ? context.l10n.estimatedFor1DayPerPerson
-                    : context.l10n.estimatedForValueDaysPerPerson(
-                        context.localNumber(days),
+                    if (interestError)
+                      const _PlanFieldError('Choose at least one interest.'),
+                    if (!_interestsConfirmed)
+                      _PlanStepContinueButton(
+                        onPressed: !canEditInterests || interests.isEmpty
+                            ? null
+                            : () {
+                                setState(() => _interestsConfirmed = true);
+                                _advanceToStep(PlanStep.generate);
+                              },
+                        label: MaterialLocalizations.of(
+                          context,
+                        ).continueButtonLabel,
+                        disabledHint: context.l10n.planUnlockInterests,
                       ),
-              ),
-              ..._extraFields(_PlannerGroup.dining),
-              TextButton(
-                onPressed: budgetCategory.isEmpty
-                    ? null
-                    : () {
-                        setState(() => _budgetConfirmed = true);
-                        _advanceToStep(PlanStep.interests);
-                      },
-                child: Text(context.l10n.planContinueHighlights),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _PlanSection(
-            key: _interestsKey,
-            enabled: canEditInterests,
-            isHighlighted: _activeStep == PlanStep.interests,
-            onTap: canEditInterests
-                ? () => setState(() => _activeStep = PlanStep.interests)
-                : null,
-            icon: Icons.favorite_border,
-            title: context.l10n.planHighlightsInterests,
-            description: context
-                .l10n
-                .pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou,
-            hasError: interestError,
-            children: [
-              ..._extraFields(_PlannerGroup.highlights),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final option in const [
-                    ('Culture', Icons.museum_outlined),
-                    ('Food', Icons.restaurant_outlined),
-                    ('Nature', Icons.park_outlined),
-                    ('Shopping', Icons.shopping_bag_outlined),
-                    ('History', Icons.account_balance_outlined),
-                    ('Adventure', Icons.hiking_outlined),
-                    ('Family', Icons.family_restroom_outlined),
-                    ('Nightlife', Icons.nightlife_outlined),
-                  ])
-                    FilterChip(
-                      label: Text(context.tr(option.$1)),
-                      avatar: interests.contains(option.$1)
-                          ? null
-                          : Icon(option.$2, size: 18, color: AppColors.muted),
-                      selected: interests.contains(option.$1),
-                      showCheckmark: true,
-                      checkmarkColor: AppColors.primary,
-                      selectedColor: AppColors.nightAccentContainer,
-                      backgroundColor: AppColors.nightSurface,
-                      side: BorderSide(
-                        color: interests.contains(option.$1)
-                            ? AppColors.primary.withValues(alpha: 0.6)
-                            : AppColors.line,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 10,
-                      ),
-                      materialTapTargetSize: MaterialTapTargetSize.padded,
-                      visualDensity: VisualDensity.standard,
-                      labelStyle: TextStyle(
-                        fontSize: 14,
-                        fontWeight: interests.contains(option.$1)
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: interests.contains(option.$1)
-                            ? AppColors.primary
-                            : AppColors.ink,
-                      ),
-                      onSelected: (selected) {
-                        setState(() {
-                          selected
-                              ? interests.add(option.$1)
-                              : interests.remove(option.$1);
-                          if (interests.isEmpty) _interestsConfirmed = false;
-                          _errorMessage = null;
-                          _highlightedEmptyFields.remove('interests');
-                        });
-                      },
+                  ],
+                ),
+                const SizedBox(height: 24),
+                if (_errorMessage != null) ...[
+                  Semantics(
+                    liveRegion: true,
+                    child: _PlanNotice(
+                      icon: Icons.error_outline,
+                      title: context.l10n.checkYourTripPreferences,
+                      message: _errorMessage!,
+                      isError: true,
                     ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
-              ),
-              if (interestError)
-                const _PlanFieldError('Choose at least one interest.'),
-              if (!_interestsConfirmed)
-                TextButton(
-                  onPressed: !canEditInterests || interests.isEmpty
-                      ? null
-                      : () {
-                          setState(() => _interestsConfirmed = true);
-                          _advanceToStep(PlanStep.generate);
-                        },
-                  child: Text(
-                    MaterialLocalizations.of(context).continueButtonLabel,
+                AnimatedContainer(
+                  key: _generateKey,
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeOutCubic,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: _activeStep == PlanStep.generate && canGenerate
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.45),
+                              blurRadius: 18,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: FilledButton.icon(
+                    onPressed: canGenerate && !_isGenerating
+                        ? _handleGenerateItinerary
+                        : null,
+                    icon: const Icon(Icons.auto_awesome),
+                    label: Text(
+                      _isGenerating
+                          ? context.l10n.generating
+                          : context.l10n.generateMyItinerary,
+                      textAlign: TextAlign.center,
+                    ),
+                    style: primaryFilledButtonStyle().copyWith(
+                      minimumSize: const WidgetStatePropertyAll(
+                        Size.fromHeight(56),
+                      ),
+                      padding: const WidgetStatePropertyAll(
+                        EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      ),
+                    ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          if (_errorMessage != null) ...[
-            Semantics(
-              liveRegion: true,
-              child: _PlanNotice(
-                icon: Icons.error_outline,
-                title: context.l10n.checkYourTripPreferences,
-                message: _errorMessage!,
-                isError: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          AnimatedContainer(
-            key: _generateKey,
-            duration: const Duration(milliseconds: 350),
-            curve: Curves.easeOutCubic,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: _activeStep == PlanStep.generate && canGenerate
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.45),
-                        blurRadius: 18,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: FilledButton.icon(
-              onPressed: canGenerate && !_isGenerating
-                  ? _handleGenerateItinerary
-                  : null,
-              icon: const Icon(Icons.auto_awesome),
-              label: Text(
-                _isGenerating
-                    ? context.l10n.generating
-                    : context.l10n.generateMyItinerary,
-                textAlign: TextAlign.center,
-              ),
-              style: primaryFilledButtonStyle().copyWith(
-                minimumSize: const WidgetStatePropertyAll(Size.fromHeight(56)),
-                padding: const WidgetStatePropertyAll(
-                  EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PlannerShortcutCard extends StatelessWidget {
+  const _PlannerShortcutCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: AppColors.line),
+    );
+    return Material(
+      color: AppColors.nightSurface,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        shape: const Border(),
+        collapsedShape: const Border(),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.nightAccentContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 21),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(subtitle),
+        ),
+        children: children,
       ),
     );
   }
@@ -1754,6 +2013,7 @@ class _PlanSection extends StatelessWidget {
     this.nested = false,
     this.enabled = true,
     this.isHighlighted = false,
+    this.showHighlightBadge = true,
     this.onTap,
   });
 
@@ -1765,6 +2025,7 @@ class _PlanSection extends StatelessWidget {
   final bool nested;
   final bool enabled;
   final bool isHighlighted;
+  final bool showHighlightBadge;
   final VoidCallback? onTap;
 
   @override
@@ -1829,7 +2090,7 @@ class _PlanSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isHighlighted)
+                if (isHighlighted && showHighlightBadge)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
@@ -2086,6 +2347,276 @@ class _PlanPickerField extends StatelessWidget {
   }
 }
 
+class _SelectionCardLayout extends StatelessWidget {
+  const _SelectionCardLayout({required this.children, this.twoColumns = false});
+
+  final List<Widget> children;
+  final bool twoColumns;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final useTwo =
+          twoColumns &&
+          constraints.maxWidth >= 300 &&
+          MediaQuery.textScalerOf(context).scale(14) <= 18;
+      final width = useTwo
+          ? (constraints.maxWidth - 8) / 2
+          : constraints.maxWidth;
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ],
+      );
+    },
+  );
+}
+
+class SelectionCard extends StatelessWidget {
+  const SelectionCard({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+    this.multiple = false,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final bool multiple;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    button: true,
+    selected: selected,
+    label: label,
+    onTap: onTap,
+    child: ExcludeSemantics(
+      child: Material(
+        color: selected
+            ? AppColors.primary.withValues(alpha: 0.12)
+            : AppColors.nightCanvas,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: selected ? AppColors.primary : AppColors.line,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 21,
+                      color: selected ? AppColors.primary : AppColors.muted,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: selected ? AppColors.primary : AppColors.ink,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    multiple
+                        ? (selected
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank)
+                        : (selected
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked),
+                    size: 20,
+                    color: selected ? AppColors.primary : AppColors.muted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+typedef _SelectionCard = SelectionCard;
+typedef _PlanStepContinueButton = PlanStepContinueButton;
+
+class PlanStepContinueButton extends StatelessWidget {
+  const PlanStepContinueButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon = Icons.arrow_forward_rounded,
+    this.hint,
+    this.disabledHint,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String? hint;
+  final String? disabledHint;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = onPressed != null;
+    final hintText = isEnabled
+        ? (hint ?? context.l10n.planTapToProceed)
+        : (disabledHint ?? context.l10n.planUnlockDates);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 18.0, bottom: 4.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isEnabled)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    hintText,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isEnabled
+                          ? AppColors.primary
+                          : AppColors.primary.withValues(alpha: 0.95),
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: isEnabled
+                  ? AppColors.primary
+                  : Color.alphaBlend(
+                      AppColors.primary.withValues(alpha: 0.08),
+                      AppColors.nightRaised,
+                    ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isEnabled
+                    ? AppColors.primary
+                    : AppColors.primary.withValues(alpha: 0.7),
+                width: 1.5,
+              ),
+              boxShadow: isEnabled
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.45),
+                        blurRadius: 16,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: TextButton(
+              onPressed: onPressed,
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: isEnabled
+                    ? AppColors.onNightAccent
+                    : AppColors.nightBody,
+                disabledBackgroundColor: Colors.transparent,
+                disabledForegroundColor: AppColors.nightBody,
+                minimumSize: const Size.fromHeight(52),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
+                        color: isEnabled
+                            ? AppColors.onNightAccent
+                            : AppColors.nightBody,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: isEnabled
+                        ? AppColors.onNightAccent
+                        : AppColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PlanChoices extends StatelessWidget {
   const _PlanChoices({required this.children});
 
@@ -2135,7 +2666,7 @@ class _PlanOption extends StatelessWidget {
       button: true,
       child: Material(
         color: selected
-            ? AppColors.nightAccentContainer
+            ? AppColors.primary.withValues(alpha: 0.12)
             : AppColors.nightCanvas,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
