@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:smart_travel_planner/features/image_recognition/data/scan_place_facts.dart';
@@ -8,12 +8,21 @@ import 'package:smart_travel_planner/features/image_recognition/models/recogniti
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_clues.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
 import 'package:smart_travel_planner/features/image_recognition/widgets/scan_photo_guidance.dart';
+import 'package:smart_travel_planner/features/image_recognition/widgets/scan_distance_label.dart';
 import 'package:smart_travel_planner/features/image_recognition/widgets/visual_scan_style.dart';
 import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
+import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
 import 'package:smart_travel_planner/features/places/widgets/google_maps_attribution.dart';
+import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
+import 'package:smart_travel_planner/shared/services/location_service.dart';
+import 'package:smart_travel_planner/shared/models/travel_stop.dart';
+import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
+import 'package:smart_travel_planner/features/itinerary/screens/edit_itinerary_screen.dart';
+import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
+import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 
 class RecognitionResultSheet extends StatefulWidget {
@@ -23,6 +32,7 @@ class RecognitionResultSheet extends StatefulWidget {
     required this.service,
     required this.onNewScan,
     this.onBack,
+    this.onOpenWishlist,
     this.photo,
     this.onReferenceSelected,
     this.onTakeAnotherPhoto,
@@ -34,6 +44,7 @@ class RecognitionResultSheet extends StatefulWidget {
   final ImageRecognitionService service;
   final VoidCallback onNewScan;
   final VoidCallback? onBack;
+  final VoidCallback? onOpenWishlist;
   final ImageProvider<Object>? photo;
   final ValueChanged<String>? onReferenceSelected;
   final VoidCallback? onTakeAnotherPhoto;
@@ -48,6 +59,7 @@ enum _SpotFilter { all, food, attractions }
 
 class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   late final _origin = scanLandmark(widget.result);
+  LatLng? _resolvedOrigin;
   late final _spots = scanSpots(widget.result, _origin);
   final _translations = <String, Future<RecognitionResult>>{};
   final _lookupJobs = <String, Future<GooglePlaceDetails?>>{};
@@ -55,21 +67,35 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   late final _googlePlaces = GooglePlacesService();
   Set<String> _saved = {};
   bool _saving = false;
+  bool _adding = false;
+  bool _openingDetails = false;
   _SpotFilter _filter = _SpotFilter.all;
 
-  String get _savedKey => 'visual_scan_saved_spots:${widget.userId}';
+  PlaceWishlistStore get _wishlist => PlaceWishlistStore(widget.userId);
 
   @override
   void initState() {
     super.initState();
     _loadSaved();
+    if (_origin == null && widget.result.kind == 'landmark') {
+      _loadOrigin();
+    }
+  }
+
+  Future<void> _loadOrigin() async {
+    final details = await _listing(widget.result.name, widget.result.placeId);
+    final latitude = details?.latitude;
+    final longitude = details?.longitude;
+    if (mounted && latitude != null && longitude != null) {
+      setState(() => _resolvedOrigin = LatLng(latitude, longitude));
+    }
   }
 
   Future<void> _loadSaved() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final places = await _wishlist.load();
       if (mounted && !_saving) {
-        setState(() => _saved = (prefs.getStringList(_savedKey) ?? []).toSet());
+        setState(() => _saved = places.map((place) => place.xid).toSet());
       }
     } catch (_) {
       // The scan remains usable if local storage is unavailable.
@@ -80,13 +106,28 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final updated = (prefs.getStringList(_savedKey) ?? []).toSet();
-      if (!updated.add(spot.xid)) updated.remove(spot.xid);
-      if (!await prefs.setStringList(_savedKey, updated.toList())) {
-        throw StateError('Unable to save spot');
+      final places = await _wishlist.toggle(spot);
+      if (mounted) {
+        setState(() => _saved = places.map((place) => place.xid).toSet());
+        final added = _saved.contains(spot.xid);
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                added
+                    ? context.l10n.savedToFavoritePlaces
+                    : context.l10n.removedFromSavedPlaces,
+              ),
+              action: added && widget.onOpenWishlist != null
+                  ? SnackBarAction(
+                      label: context.l10n.scanViewWishlist,
+                      onPressed: widget.onOpenWishlist!,
+                    )
+                  : null,
+            ),
+          );
       }
-      if (mounted) setState(() => _saved = updated);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,6 +148,12 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
       MaterialPageRoute<void>(
         builder: (_) => AttractionDetailPage(
           attraction: place,
+          placesService: _googlePlaces,
+          isSaved: _saved.contains(place.xid),
+          onToggleSaved: (item) {
+            _save(item);
+            return true;
+          },
           heroPhoto: photo,
           initialDetails: listing,
         ),
@@ -146,6 +193,141 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
         }
       });
 
+  Future<void> _openSpotDetails(
+    ScanSpot spot, [
+    GooglePlaceDetails? summary,
+  ]) async {
+    if (_openingDetails) return;
+    _openingDetails = true;
+    final place = spot.place;
+    try {
+      final listing =
+          await _listing(place.name, place.googlePlaceId) ?? summary;
+      if (!mounted) return;
+      _story(
+        place,
+        listing: listing,
+        photo: spot.image == null ? null : AssetImage(spot.image!),
+      );
+    } finally {
+      _openingDetails = false;
+    }
+  }
+
+  Future<void> _addToItinerary(Attraction place) async {
+    if (_adding) return;
+    setState(() => _adding = true);
+    try {
+      final trips = await SupabaseItineraryService().getSavedItineraries();
+      if (!mounted) return;
+      if (trips.every((trip) => trip.dailySchedules.isEmpty)) {
+        _itineraryNotice(context.l10n.scanNoItinerary);
+        return;
+      }
+      final selected = await showDialog<(Itinerary, DailySchedule)>(
+        context: context,
+        builder: (context) => SimpleDialog(
+          title: Text(context.l10n.scanAddToItinerary),
+          children: [
+            for (final trip in trips)
+              for (final day in trip.dailySchedules)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, (trip, day)),
+                  child: Text(
+                    '${trip.title} · ${context.l10n.dayValue(day.dayNumber.toString())}',
+                  ),
+                ),
+          ],
+        ),
+      );
+      if (!mounted || selected == null) return;
+      final (trip, day) = selected;
+      final stops = day.stops.map((stop) => stop.toTravelStop()).toList();
+      final otherStops = [
+        for (final otherDay in trip.dailySchedules)
+          if (otherDay.scheduleId != day.scheduleId)
+            ...otherDay.stops.map((item) => item.toTravelStop()),
+      ];
+      final id = place.googlePlaceId ?? place.xid;
+      bool matches(TravelStop stop) =>
+          stop.placeId == id ||
+          scanNameKey(stop.title) == scanNameKey(place.name);
+      if (stops.any(matches)) {
+        _itineraryNotice(context.l10n.scanStopAlreadyAdded);
+        return;
+      }
+      if (otherStops.any(matches)) {
+        _itineraryNotice(
+          context.l10n
+              .cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary(
+                place.name,
+              ),
+        );
+        return;
+      }
+      final listing = place.latitude == 0 && place.longitude == 0
+          ? await _listing(place.name, place.googlePlaceId)
+          : null;
+      if (!mounted) return;
+      final latitude = listing?.latitude ?? place.latitude;
+      final longitude = listing?.longitude ?? place.longitude;
+      if (latitude == 0 && longitude == 0) {
+        _itineraryNotice(context.l10n.scanStopLocationUnavailable);
+        return;
+      }
+      final stop = TravelStop(
+        title: place.name,
+        time: '09:00 AM - 10:30 AM',
+        note: place.category,
+        description: place.description ?? listing?.description ?? '',
+        duration: '90 min',
+        openingHours: context.l10n.openingHoursUnavailableCheckBeforeVisiting,
+        tips: const [],
+        icon: Icons.place_outlined,
+        color: VisualScanStyle.amber,
+        category: place.category,
+        placeId: id,
+        latitude: latitude,
+        longitude: longitude,
+        dataSource: place.googlePlaceId == null ? 'local' : 'google',
+      );
+      await Navigator.of(context).push<List<TravelStop>>(
+        MaterialPageRoute(
+          builder: (_) => EditItineraryScreen(
+            tripTitle: trip.title,
+            destination: trip.destinationState,
+            dayNumber: day.dayNumber,
+            initialStops: [...stops, stop],
+            otherDaysStops: otherStops,
+            scheduleId: day.scheduleId,
+            scheduleDate: day.scheduleDate,
+            preferences: trip.preferences,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        _itineraryNotice(context.l10n.unableToSaveItineraryChangesOnThisDevice);
+      }
+    } finally {
+      if (mounted) setState(() => _adding = false);
+    }
+  }
+
+  void _itineraryNotice(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _itineraryButton(Attraction place) => _ScanButton(
+    label: context.l10n.scanAddToItinerary,
+    icon: Icons.add_outlined,
+    compact: true,
+    stacked: true,
+    onPressed: _adding ? null : () => _addToItinerary(place),
+  );
+
   Future<RecognitionResult> _translate(String target) async {
     try {
       return await widget.service.translate(widget.result, target);
@@ -182,17 +364,18 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     final needsRetry = source.kind == 'unknown' && !source.isSample;
     final placeId = source.placeId;
     final landmarkStory = source.kind == 'landmark'
-        ? _origin?.copyWith(description: facts.description) ??
-              Attraction(
-                xid: placeId == null
+        ? Attraction(
+            xid:
+                _origin?.xid ??
+                (placeId == null
                     ? 'scan_${scanNameKey(source.name)}'
-                    : 'google_$placeId',
-                name: source.name,
-                latitude: 0,
-                longitude: 0,
-                category: l10n.landmark,
-                description: facts.description,
-              )
+                    : 'google_$placeId'),
+            name: source.name,
+            latitude: _origin?.latitude ?? 0,
+            longitude: _origin?.longitude ?? 0,
+            category: _origin?.category ?? l10n.landmark,
+            description: facts.description,
+          )
         : null;
     final status = switch (source.source) {
       _ when source.isSample => 'Sample landmark',
@@ -232,72 +415,52 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                 onPressed: widget.onBack,
               ),
             Expanded(
-              child: Text(
-                source.isSample
-                    ? 'Offline sample'
-                    : switch (source.source) {
-                        RecognitionSource.vision =>
-                          'Photo scan · Google Vision',
-                        RecognitionSource.reference ||
-                        RecognitionSource.userConfirmedReference =>
-                          l10n.referenceScanSource,
-                        RecognitionSource.web => l10n.scanWebSource,
-                        RecognitionSource.sign => l10n.scanSignSource,
-                        RecognitionSource.visualEvidence =>
-                          l10n.scanVisualClueSource,
-                        RecognitionSource.placeLookup =>
-                          l10n.scanPlaceListingSource,
-                        RecognitionSource.foodSuggestion =>
-                          'Photo scan · Gemini',
-                        RecognitionSource.areaLookup =>
-                          l10n.scanPlaceListingSource,
-                        RecognitionSource.userConfirmedClue =>
-                          l10n.scanSelectedSource,
-                      },
-                style: _supportText,
-              ),
+              child: Text(l10n.scanResult, style: VisualScanStyle.heading(20)),
             ),
-            OutlinedButton.icon(
-              style: VisualScanStyle.headerButton,
-              onPressed: widget.onNewScan,
-              icon: const Icon(Icons.restart_alt, size: 17),
-              label: const Text('New Scan'),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            if (widget.onOpenWishlist != null) ...[
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: VisualScanStyle.headerButton,
+                  onPressed: widget.onOpenWishlist,
+                  icon: const Icon(Icons.bookmark_border, size: 17),
+                  label: Text(l10n.scanWishlist),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: OutlinedButton.icon(
+                style: VisualScanStyle.headerButton,
+                onPressed: widget.onNewScan,
+                icon: const Icon(Icons.restart_alt, size: 17),
+                label: const Text('New Scan'),
+              ),
             ),
           ],
         ),
         if (widget.photo case final photo?) ...[
           const SizedBox(height: 20),
           _ResultPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.82,
-                  child: ColoredBox(
-                    color: VisualScanStyle.navigation,
-                    child: Image(
-                      image: photo,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => Center(
-                        child: Text(
-                          l10n.photoPreviewUnavailable,
-                          style: _supportText,
-                        ),
-                      ),
+            child: AspectRatio(
+              aspectRatio: 1.82,
+              child: ColoredBox(
+                color: VisualScanStyle.navigation,
+                child: Image(
+                  image: photo,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => Center(
+                    child: Text(
+                      l10n.photoPreviewUnavailable,
+                      style: _supportText,
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
-                  child: Text(
-                    source.isSample ? 'Sample photo' : 'Original photo',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: VisualScanStyle.text,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -439,18 +602,18 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                 ],
                 if (landmarkStory case final place?) ...[
                   const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  _ActionRow(
                     children: [
+                      _itineraryButton(place),
+                      _saveButton(place),
                       _ScanButton(
-                        label: 'Open Landmark Story',
+                        label: l10n.scanCheckPlaceDetails,
                         icon: Icons.arrow_forward_rounded,
                         iconAfter: true,
                         prominent: true,
+                        stacked: true,
                         onPressed: () => _story(place, photo: widget.photo),
                       ),
-                      _saveButton(place),
                     ],
                   ),
                 ],
@@ -543,9 +706,9 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
         ),
         const SizedBox(height: 12),
       ],
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
+      Text(l10n.scanMapSearchHelp, style: VisualScanStyle.heading(20)),
+      const SizedBox(height: 8),
+      Row(
         children: [
           for (final (filter, label, term, icon) in [
             (
@@ -564,13 +727,23 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             if (anchor == null ||
                 _filter == _SpotFilter.all ||
                 _filter == filter)
-              _ScanButton(
-                label: label,
-                icon: icon,
-                onPressed: () => _openMapSearch(
-                  anchor == null
-                      ? '${filter == _SpotFilter.food && result.kind == 'food' ? result.name : term} near me'
-                      : '$term near $anchor, Malaysia',
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: filter == _SpotFilter.attractions ? 5 : 0,
+                    left: filter == _SpotFilter.food ? 5 : 0,
+                  ),
+                  child: _ScanButton(
+                    label: label,
+                    icon: icon,
+                    compact: true,
+                    fullWidth: true,
+                    onPressed: () => _openMapSearch(
+                      anchor == null
+                          ? '${filter == _SpotFilter.food && result.kind == 'food' ? result.name : term} near me'
+                          : '$term near $anchor, Malaysia',
+                    ),
+                  ),
                 ),
               ),
         ],
@@ -585,9 +758,20 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
         _NearbySpotCard(
           key: ValueKey(spot.place.xid),
           spot: spot,
-          lookup: () => _listing(spot.place.name, spot.place.googlePlaceId),
-          save: _saveButton(spot.place, compact: true),
-          onStory: () => _story(spot.place),
+          photoLookup: () =>
+              _listing(spot.place.name, spot.place.googlePlaceId),
+          placesService: _googlePlaces,
+          add: _itineraryButton(spot.place),
+          wishlist: _saveButton(spot.place),
+          distanceOrigin: _origin,
+          distanceCenter: _origin == null
+              ? _resolvedOrigin ??
+                    (result.kind == 'food'
+                        ? LocationService().currentLocation
+                        : null)
+              : null,
+          fromLandmark: result.kind == 'landmark',
+          onDetails: () => _openSpotDetails(spot),
         ),
       ],
       if (anchor != null)
@@ -654,23 +838,41 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
           (food ? context.l10n.scanFoodAndCafes : context.l10n.attractions),
       description: listing.description,
     );
+    final spot = (
+      place: place,
+      food: food,
+      image: null,
+      price: null,
+      distance: '',
+    );
     return _NearbySpotCard(
       key: ValueKey(place.xid),
-      spot: (place: place, food: food, image: null, price: null, distance: ''),
+      spot: spot,
       initialDetails: listing,
-      lookup: () => _listing(place.name, listing.id),
-      save: _saveButton(place, compact: true),
-      onStory: () => _story(place, listing: listing),
+      photoLookup: () => _listing(place.name, listing.id),
+      placesService: _googlePlaces,
+      add: _itineraryButton(place),
+      wishlist: _saveButton(place),
+      distanceOrigin: _origin,
+      distanceCenter: _origin == null
+          ? _resolvedOrigin ??
+                (widget.result.kind == 'food'
+                    ? LocationService().currentLocation
+                    : null)
+          : null,
+      fromLandmark: widget.result.kind == 'landmark',
+      onDetails: () => _openSpotDetails(spot, listing),
     );
   }
 
-  Widget _saveButton(Attraction spot, {bool compact = false}) {
+  Widget _saveButton(Attraction spot) {
     final saved = _saved.contains(spot.xid);
     return _ScanButton(
-      label: saved ? context.l10n.saved : 'Save spot',
+      label: saved ? context.l10n.saved : context.l10n.scanAddToWishlist,
       icon: saved ? Icons.bookmark : Icons.bookmark_border,
       highlighted: saved,
-      compact: compact,
+      compact: true,
+      stacked: true,
       onPressed: _saving ? null : () => _save(spot),
     );
   }
@@ -711,163 +913,256 @@ class _NearbySpotCard extends StatelessWidget {
   const _NearbySpotCard({
     super.key,
     required this.spot,
-    required this.save,
-    required this.lookup,
+    required this.add,
+    required this.wishlist,
+    this.distanceOrigin,
+    this.distanceCenter,
+    this.fromLandmark = false,
+    required this.photoLookup,
+    required this.placesService,
     this.initialDetails,
-    required this.onStory,
+    required this.onDetails,
   });
 
   final ScanSpot spot;
-  final Widget save;
-  final Future<GooglePlaceDetails?> Function() lookup;
+  final Widget add;
+  final Widget wishlist;
+  final Attraction? distanceOrigin;
+  final LatLng? distanceCenter;
+  final bool fromLandmark;
+  final Future<GooglePlaceDetails?> Function() photoLookup;
+  final GooglePlacesService placesService;
   final GooglePlaceDetails? initialDetails;
-  final VoidCallback onStory;
+  final VoidCallback onDetails;
+
+  Widget _thumbnail() {
+    final fallback = ColoredBox(
+      color: const Color(0xFF292720),
+      child: Icon(
+        spot.food ? Icons.restaurant : Icons.place_outlined,
+        color: VisualScanStyle.amber,
+      ),
+    );
+    if ((spot.image ?? AttractionImageResolver.resolveAsset(spot.place))
+        case final asset?) {
+      return Image.asset(
+        asset,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+    if (AttractionImageResolver.resolvePhotoUrl(spot.place) case final url?) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+    Widget googlePhoto(String id, GooglePlacePhoto photo) => GooglePlaceImage(
+      placeId: id,
+      photo: photo,
+      service: placesService,
+      requestWidth: 200,
+      fill: true,
+      autoLoad: true,
+      compactAttribution: true,
+      showGoogleMapsAttribution: false,
+      showPhotoAuthorAttribution: false,
+      fallback: fallback,
+    );
+    if (initialDetails?.photos.firstOrNull case final photo?) {
+      return googlePhoto(initialDetails!.id, photo);
+    }
+    return FutureBuilder<GooglePlaceDetails?>(
+      future: photoLookup(),
+      builder: (_, snapshot) {
+        final details = snapshot.data;
+        final photo = details?.photos.firstOrNull;
+        return details == null || photo == null
+            ? fallback
+            : googlePhoto(details.id, photo);
+      },
+    );
+  }
 
   @override
-  Widget build(BuildContext context) => _ResultPanel(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: 88,
-                child: spot.image == null
-                    ? ColoredBox(
-                        color: const Color(0xFF292720),
-                        child: Icon(
-                          spot.food ? Icons.restaurant : Icons.place_outlined,
-                          color: VisualScanStyle.amber,
-                        ),
-                      )
-                    : Image.asset(
-                        spot.image!,
-                        fit: BoxFit.cover,
-                        excludeFromSemantics: true,
-                      ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            spot.food
-                                ? Icons.restaurant
-                                : Icons.explore_outlined,
-                            color: VisualScanStyle.amber,
-                            size: 12,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              spot.place.category.split(',').first,
-                              style: _amberText.copyWith(fontSize: 11),
-                            ),
-                          ),
-                          if (spot.price case final price?) ...[
-                            const SizedBox(width: 5),
-                            Text(
-                              price,
-                              style: const TextStyle(
-                                color: VisualScanStyle.text,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(spot.place.name, style: VisualScanStyle.heading(16)),
-                      const SizedBox(height: 4),
-                      _NearbyScanFacts(
-                        facts: nearbyScanFacts(spot.place),
-                        lookup: lookup,
-                        initialDetails: initialDetails,
-                      ),
-                    ],
+  Widget build(BuildContext context) {
+    final place = spot.place;
+    final origin = distanceOrigin;
+    final center = origin?.point ?? distanceCenter;
+    final meters =
+        center == null || (place.latitude == 0 && place.longitude == 0)
+        ? null
+        : const Distance(roundResult: false)(center, place.point);
+    return _ResultPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 11, top: 11),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 76,
+                  height: 64,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _thumbnail(),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1, color: VisualScanStyle.border),
-        Container(
-          color: VisualScanStyle.navigation,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          child: Wrap(
-            alignment: spot.distance.isEmpty
-                ? WrapAlignment.end
-                : WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              if (spot.distance.isNotEmpty)
-                Text(spot.distance, style: _supportText.copyWith(fontSize: 11)),
-              Wrap(
-                spacing: 7,
-                children: [
-                  save,
-                  _ScanButton(
-                    label: 'Story',
-                    icon: Icons.arrow_forward,
-                    iconAfter: true,
-                    prominent: true,
-                    compact: true,
-                    onPressed: onStory,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 11),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              spot.food
+                                  ? Icons.restaurant
+                                  : Icons.explore_outlined,
+                              color: VisualScanStyle.amber,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                spot.place.category.split(',').first,
+                                style: _amberText.copyWith(fontSize: 11),
+                              ),
+                            ),
+                            if (spot.price case final price?) ...[
+                              const SizedBox(width: 5),
+                              Text(
+                                price,
+                                style: const TextStyle(
+                                  color: VisualScanStyle.text,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          spot.place.name,
+                          style: VisualScanStyle.heading(16),
+                        ),
+                        const SizedBox(height: 4),
+                        if (nearbyScanFacts(spot.place).description
+                            case final description?)
+                          Text(
+                            description,
+                            style: _supportText,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        FutureBuilder<GooglePlaceDetails?>(
+                          future: meters == null ? photoLookup() : null,
+                          initialData: initialDetails,
+                          builder: (context, snapshot) {
+                            final details = snapshot.data ?? initialDetails;
+                            final latitude = details?.latitude;
+                            final longitude = details?.longitude;
+                            final resolvedMeters =
+                                meters ??
+                                (center == null ||
+                                        latitude == null ||
+                                        longitude == null
+                                    ? null
+                                    : const Distance(roundResult: false)(
+                                        center,
+                                        LatLng(latitude, longitude),
+                                      ));
+                            final label = resolvedMeters != null
+                                ? scanDistanceLabel(
+                                    context,
+                                    resolvedMeters,
+                                    fromLandmark:
+                                        origin != null || fromLandmark,
+                                    showWalkTime: false,
+                                  )
+                                : spot.distance.isNotEmpty
+                                ? spot.distance
+                                : null;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (details?.address case final address?)
+                                  Text(address, style: _supportText),
+                                if (label != null) ...[
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    label,
+                                    key: const ValueKey('scan-nearby-distance'),
+                                    style: _supportText.copyWith(
+                                      color: VisualScanStyle.amber,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _NearbyScanFacts extends StatefulWidget {
-  const _NearbyScanFacts({
-    required this.facts,
-    required this.lookup,
-    this.initialDetails,
-  });
-  final ScanPlaceFacts facts;
-  final Future<GooglePlaceDetails?> Function() lookup;
-  final GooglePlaceDetails? initialDetails;
-
-  @override
-  State<_NearbyScanFacts> createState() => _NearbyScanFactsState();
-}
-
-class _NearbyScanFactsState extends State<_NearbyScanFacts> {
-  Future<GooglePlaceDetails?>? _details;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _ScanFactsBlock(
-        facts: widget.facts,
-        listing: _details,
-        initialDetails: widget.initialDetails,
+          FutureBuilder<GooglePlaceDetails?>(
+            future: initialDetails == null ? photoLookup() : null,
+            initialData: initialDetails,
+            builder: (context, snapshot) {
+              final photo = snapshot.data?.photos.firstOrNull;
+              if (photo == null) return const SizedBox.shrink();
+              final author = photo.authors.firstOrNull;
+              final name = author?['displayName']?.toString();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(11, 0, 11, 7),
+                child: Text(
+                  name == null || name.isEmpty
+                      ? 'Photo: Google Maps'
+                      : 'Photo: $name · Google Maps',
+                  style: _supportText.copyWith(fontSize: 10),
+                ),
+              );
+            },
+          ),
+          const Divider(height: 1, color: VisualScanStyle.border),
+          Container(
+            color: VisualScanStyle.navigation,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ActionRow(
+                  children: [
+                    add,
+                    wishlist,
+                    _ScanButton(
+                      label: context.l10n.scanCheckPlaceDetails,
+                      icon: Icons.arrow_forward,
+                      iconAfter: true,
+                      prominent: true,
+                      compact: true,
+                      stacked: true,
+                      onPressed: onDetails,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      if (widget.facts.hours == null && _details == null)
-        TextButton(
-          style: TextButton.styleFrom(foregroundColor: VisualScanStyle.amber),
-          onPressed: () => setState(() => _details = widget.lookup()),
-          child: Text(context.l10n.scanCheckPlaceDetails),
-        ),
-    ],
-  );
+    );
+  }
 }
 
 class _ScanCandidateCard extends StatelessWidget {
@@ -937,24 +1232,22 @@ class _ScanFactsBlock extends StatelessWidget {
     required this.facts,
     this.isDish = false,
     this.listing,
-    this.initialDetails,
     this.showDescriptionHeading = false,
   });
 
   final ScanPlaceFacts facts;
   final bool isDish;
   final Future<GooglePlaceDetails?>? listing;
-  final GooglePlaceDetails? initialDetails;
   final bool showDescriptionHeading;
 
   @override
   Widget build(BuildContext context) => listing == null
-      ? _body(context, initialDetails, loading: false)
+      ? _body(context, null, loading: false)
       : FutureBuilder<GooglePlaceDetails?>(
           future: listing,
           builder: (context, snapshot) => _body(
             context,
-            snapshot.data ?? initialDetails,
+            snapshot.data,
             loading: snapshot.connectionState != ConnectionState.done,
           ),
         );
@@ -1043,6 +1336,28 @@ class _ScanFactsBlock extends StatelessWidget {
   }
 }
 
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (var index = 0; index < children.length; index++) ...[
+        if (index > 0) const SizedBox(width: 6),
+        Expanded(
+          child: SizedBox(
+            height: MediaQuery.textScalerOf(context).scale(14) > 19 ? 86 : 68,
+            child: children[index],
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
 class _ScanButton extends StatelessWidget {
   const _ScanButton({
     required this.label,
@@ -1052,6 +1367,8 @@ class _ScanButton extends StatelessWidget {
     this.prominent = false,
     this.highlighted = false,
     this.compact = false,
+    this.stacked = false,
+    this.fullWidth = false,
   });
 
   final String label;
@@ -1061,13 +1378,12 @@ class _ScanButton extends StatelessWidget {
   final bool prominent;
   final bool highlighted;
   final bool compact;
+  final bool stacked;
+  final bool fullWidth;
 
   @override
-  Widget build(BuildContext context) => FilledButton.icon(
+  Widget build(BuildContext context) => FilledButton(
     onPressed: onPressed,
-    icon: Icon(icon, size: compact ? 13 : 16),
-    iconAlignment: iconAfter ? IconAlignment.end : IconAlignment.start,
-    label: Text(label),
     style: FilledButton.styleFrom(
       backgroundColor: prominent
           ? VisualScanStyle.amber
@@ -1080,7 +1396,14 @@ class _ScanButton extends StatelessWidget {
           ? VisualScanStyle.amber
           : VisualScanStyle.text,
       minimumSize: Size(0, compact ? 34 : 42),
-      padding: EdgeInsets.symmetric(horizontal: compact ? 9 : 13, vertical: 7),
+      padding: EdgeInsets.symmetric(
+        horizontal: stacked
+            ? 4
+            : compact
+            ? 9
+            : 13,
+        vertical: stacked ? 4 : 7,
+      ),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(compact ? 9 : 12),
@@ -1090,6 +1413,41 @@ class _ScanButton extends StatelessWidget {
         fontSize: compact ? 11 : 13,
         fontWeight: FontWeight.w600,
       ),
+    ),
+    child: SizedBox(
+      width: fullWidth ? double.infinity : null,
+      child: stacked
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            )
+          : Row(
+              mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!iconAfter) Icon(icon, size: compact ? 13 : 16),
+                if (!iconAfter) const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (iconAfter) const SizedBox(width: 6),
+                if (iconAfter) Icon(icon, size: compact ? 13 : 16),
+              ],
+            ),
     ),
   );
 }

@@ -100,6 +100,138 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @scanAddToItinerary.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to itinerary'**
+  String get scanAddToItinerary;
+
+  /// No description provided for @scanAddToWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to wishlist'**
+  String get scanAddToWishlist;
+
+  /// No description provided for @scanWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Wishlist'**
+  String get scanWishlist;
+
+  /// No description provided for @scanClearWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear wishlist'**
+  String get scanClearWishlist;
+
+  /// No description provided for @scanRemoveSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove selected'**
+  String get scanRemoveSelected;
+
+  /// No description provided for @scanClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get scanClearAll;
+
+  /// No description provided for @scanSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get scanSelectAll;
+
+  /// No description provided for @scanViewWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'View wishlist'**
+  String get scanViewWishlist;
+
+  /// No description provided for @scanWishlistEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Places you add to your wishlist will appear here.'**
+  String get scanWishlistEmpty;
+
+  /// No description provided for @scanOriginalPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Original Photo'**
+  String get scanOriginalPhoto;
+
+  /// No description provided for @scanResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan result'**
+  String get scanResult;
+
+  /// No description provided for @scanQuickLandmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore landmarks near you'**
+  String get scanQuickLandmarks;
+
+  /// No description provided for @scanQuickLandmarksMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Landmarks near {area}'**
+  String scanQuickLandmarksMap(String area);
+
+  /// No description provided for @scanQuickLandmarksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a place to see its story and details.'**
+  String get scanQuickLandmarksHint;
+
+  /// No description provided for @scanScannedLandmark.
+  ///
+  /// In en, this message translates to:
+  /// **'the scanned landmark'**
+  String get scanScannedLandmark;
+
+  /// No description provided for @scanMapLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'the map location'**
+  String get scanMapLocation;
+
+  /// No description provided for @scanDistanceWalk.
+  ///
+  /// In en, this message translates to:
+  /// **'About {minutes} min walk · {distance} from {origin}'**
+  String scanDistanceWalk(int minutes, String distance, String origin);
+
+  /// No description provided for @scanDistanceAway.
+  ///
+  /// In en, this message translates to:
+  /// **'{distance} from {origin}'**
+  String scanDistanceAway(String distance, String origin);
+
+  /// No description provided for @scanMapSearchHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Search more places on Google Maps'**
+  String get scanMapSearchHelp;
+
+  /// No description provided for @scanNoItinerary.
+  ///
+  /// In en, this message translates to:
+  /// **'Save an itinerary first, then choose a day to add this place.'**
+  String get scanNoItinerary;
+
+  /// No description provided for @scanStopAlreadyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'This place is already on that day.'**
+  String get scanStopAlreadyAdded;
+
+  /// No description provided for @scanStopLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The place location is unavailable. Try again when place details load.'**
+  String get scanStopLocationUnavailable;
+
   /// No description provided for @appLanguage.
   ///
   /// In en, this message translates to:
@@ -3129,7 +3261,7 @@ abstract class AppLocalizations {
   /// No description provided for @findRestaurants.
   ///
   /// In en, this message translates to:
-  /// **'Find Restaurants'**
+  /// **'Find restaurants'**
   String get findRestaurants;
 
   /// No description provided for @chooseARestaurantBeforeAddingThisDishToYourTravelPlan.

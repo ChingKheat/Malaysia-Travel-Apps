@@ -96,6 +96,7 @@ class _NearbyService extends _Service {
       const GooglePlaceDetails('museum-id', {
         'editorialSummary': {'text': 'A converted mining museum.'},
         'formattedAddress': 'Kampar, Perak, Malaysia',
+        'location': {'latitude': 4.30, 'longitude': 101.15},
       });
 
   @override
@@ -105,6 +106,8 @@ class _NearbyService extends _Service {
         ? const [
             GooglePlaceDetails('cafe-id', {
               'displayName': {'text': 'Museum Café'},
+              'formattedAddress': 'Kampar, Perak',
+              'location': {'latitude': 4.30, 'longitude': 101.15},
             }),
           ]
         : const [
@@ -113,6 +116,8 @@ class _NearbyService extends _Service {
             }),
             GooglePlaceDetails('park-id', {
               'displayName': {'text': 'Kampar Heritage Park'},
+              'formattedAddress': 'Kampar, Perak',
+              'location': {'latitude': 4.31, 'longitude': 101.16},
             }),
           ];
   }
@@ -173,7 +178,7 @@ void main() {
     await tapPhotoSource(tester, 'Upload Image');
     await tester.pumpAndSettle();
     expect(find.text('Possible matches'), findsOneWidget);
-    expect(find.text('Photo scan · Reference photos'), findsOneWidget);
+    expect(find.text('Scan result'), findsOneWidget);
     expect(
       find.text(
         'Grilled meat skewers commonly served with peanut sauce, cucumber and rice cakes.',
@@ -186,7 +191,7 @@ void main() {
     await tester.tap(option);
     await tester.pumpAndSettle();
     expect(find.text('Selected by you'), findsOneWidget);
-    expect(find.text('Original photo'), findsOneWidget);
+    expect(find.text('Scan result'), findsOneWidget);
     expect(api.scans, 1);
     final history = await RecognitionHistoryStore(
       userId: 'reference-choice',
@@ -243,7 +248,7 @@ void main() {
       await tester.tap(candidate);
       await tester.pumpAndSettle();
       expect(find.text('Selected by you'), findsOneWidget);
-      expect(find.text('Original photo'), findsOneWidget);
+      expect(find.text('Scan result'), findsOneWidget);
       expect(api.scans, 1);
       final history = await RecognitionHistoryStore(userId: 'guest').load();
       expect(history.single.result.name, 'Eagle Square (Dataran Lang)');
@@ -280,7 +285,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Tips for a clearer photo'), 130);
     await tester.scrollUntilVisible(find.text('Find attractions'), 130);
     expect(find.text('Nearby attractions & food'), findsOneWidget);
-    expect(find.text('Find Restaurants'), findsOneWidget);
+    expect(find.text('Find restaurants'), findsOneWidget);
     await tester.scrollUntilVisible(retake, -130);
     await tester.ensureVisible(retake);
     await tester.tap(retake);
@@ -326,10 +331,12 @@ void main() {
       expect(find.text('A converted mining museum.'), findsOneWidget);
       expect(find.text('Nearby attractions & food'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Museum Café'), 130);
+      expect(find.byKey(const ValueKey('scan-nearby-distance')), findsWidgets);
+      expect(find.textContaining('from the scanned landmark'), findsWidgets);
       expect(find.text('Kampar Heritage Park'), findsOneWidget);
       expect(find.text('Kinta Tin Mining Museum'), findsOneWidget);
-      expect(find.text('Save spot'), findsWidgets);
-      expect(find.text('Story'), findsWidgets);
+      expect(find.text('Add to itinerary'), findsWidgets);
+      expect(find.text('Check place details'), findsWidgets);
       expect(api.queries, [
         'tourist attractions near Kinta Tin Mining Museum, Kampar',
         'restaurants near Kinta Tin Mining Museum, Kampar',
@@ -388,7 +395,11 @@ void main() {
         );
         expect(sheet.photo, isA<MemoryImage>());
         expect(find.text('Confident visual match'), findsOneWidget);
-        expect(find.text('Original photo'), findsOneWidget);
+        expect(find.text('Scan result'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('Nearby attractions & food'),
+          160,
+        );
         expect(find.text('Nearby attractions & food'), findsOneWidget);
         expect(api.scans, 1);
         final history = await RecognitionHistoryStore(userId: 'live').load();
@@ -396,14 +407,15 @@ void main() {
         expect(history.single.result.isSample, isFalse);
         expect(history.single.photoId, isNotNull);
 
+        await tester.scrollUntilVisible(find.text('New Scan'), -180);
         await tester.tap(find.text('New Scan'));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('scan-history')));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Petronas Twin Towers'));
         await tester.pumpAndSettle();
-        expect(find.text('Original photo'), findsOneWidget);
-        final story = find.text('Open Landmark Story');
+        expect(find.text('Scan result'), findsOneWidget);
+        final story = find.text('Check place details');
         await tester.scrollUntilVisible(story, 140);
         await tester.tap(story);
         await tester.pumpAndSettle();
@@ -515,7 +527,7 @@ void main() {
       expect(find.text('Service is offline. Try a sample.'), findsOneWidget);
       expect(await RecognitionHistoryStore(userId: 'offline').load(), isEmpty);
       final history = find.byKey(const ValueKey('scan-history'));
-      await tester.ensureVisible(history);
+      await tester.scrollUntilVisible(history, -160);
       await tester.pump();
       expect(history.hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);

@@ -9,6 +9,78 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get scanAddToItinerary => '添加到行程';
+
+  @override
+  String get scanAddToWishlist => '加入愿望清单';
+
+  @override
+  String get scanWishlist => '愿望清单';
+
+  @override
+  String get scanClearWishlist => '清空愿望清单';
+
+  @override
+  String get scanRemoveSelected => '移除所选项';
+
+  @override
+  String get scanClearAll => '清空全部';
+
+  @override
+  String get scanSelectAll => '全选';
+
+  @override
+  String get scanViewWishlist => '查看愿望清单';
+
+  @override
+  String get scanWishlistEmpty => '加入愿望清单的地点会显示在这里。';
+
+  @override
+  String get scanOriginalPhoto => '原始照片';
+
+  @override
+  String get scanResult => '扫描结果';
+
+  @override
+  String get scanQuickLandmarks => '探索附近地标';
+
+  @override
+  String scanQuickLandmarksMap(String area) {
+    return '$area附近的地标';
+  }
+
+  @override
+  String get scanQuickLandmarksHint => '点击地点查看故事和详细信息。';
+
+  @override
+  String get scanScannedLandmark => '扫描的地标';
+
+  @override
+  String get scanMapLocation => '地图位置';
+
+  @override
+  String scanDistanceWalk(int minutes, String distance, String origin) {
+    return '步行约 $minutes 分钟 · 距离$origin $distance';
+  }
+
+  @override
+  String scanDistanceAway(String distance, String origin) {
+    return '距离$origin $distance';
+  }
+
+  @override
+  String get scanMapSearchHelp => '在 Google 地图搜索更多地点';
+
+  @override
+  String get scanNoItinerary => '请先保存行程，然后选择要添加此地点的日期。';
+
+  @override
+  String get scanStopAlreadyAdded => '此地点已在当天的行程中。';
+
+  @override
+  String get scanStopLocationUnavailable => '暂时无法获取地点位置。请在地点详情加载后重试。';
+
+  @override
   String get appLanguage => '应用语言';
 
   @override

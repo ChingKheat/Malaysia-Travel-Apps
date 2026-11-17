@@ -50,8 +50,6 @@ final _knownNames = <String, ReferenceSubject>{
   'bukit nanas forest reserve': _forestPark,
   'resorts world genting': _genting,
   'genting highlands resort': _genting,
-  'first world hotel': _genting,
-  'genting skyworlds': _genting,
 };
 
 ReferenceSubject? knownScanLandmark(String name) {

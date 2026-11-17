@@ -60,6 +60,29 @@ class ImageRecognitionService {
     }
     final vision = _parse(detections);
     if (vision.kind != 'unknown') {
+      if (vision.kind == 'landmark') {
+        final reference = await _referenceMatch(bytes);
+        final expected = knownScanLandmark(vision.name);
+        final conflicting = [?reference?.identified, ...?reference?.candidates]
+            .where(
+              (subject) => expected != null && !_agreesWith(expected, subject),
+            )
+            .toList();
+        if (conflicting.isNotEmpty) {
+          return _possibleMatches(
+            vision,
+            [
+              ReferenceSubject(
+                id: expected?.id ?? 'vision:${vision.name}',
+                name: vision.name,
+                kind: 'landmark',
+                visionConfidence: vision.confidence,
+              ),
+              ...conflicting,
+            ].take(3).toList(),
+          );
+        }
+      }
       return vision;
     }
 
@@ -140,6 +163,9 @@ class ImageRecognitionService {
     final online = [...suggestions, ...verified.nonNulls, ?catalogue];
     if (reference?.identified case final subject?
         when _agreesWithVision(subject, vision) &&
+            (subject.kind != 'landmark' ||
+                vision.referenceCandidates.isNotEmpty ||
+                online.isNotEmpty) &&
             online.every((other) => _agreesWith(subject, other))) {
       return _referenceResult(subject, vision, RecognitionSource.reference);
     }
@@ -250,8 +276,7 @@ class ImageRecognitionService {
   }
 
   bool _agreesWithVision(ReferenceSubject subject, RecognitionResult vision) =>
-      vision.referenceCandidates.isEmpty ||
-      vision.referenceCandidates.any((other) => _agreesWith(subject, other));
+      vision.referenceCandidates.every((other) => _agreesWith(subject, other));
 
   ReferenceSubject? _catalogueSuggestion(String name, String? area) {
     final areaKey = scanNameKey(area ?? '');
@@ -644,7 +669,7 @@ class ImageRecognitionService {
       final known = knownScanLandmark(first.name);
       if (namedLandmarks.length == 1 &&
           known != null &&
-          first.visionConfidence! >= 0.65) {
+          first.visionConfidence! >= 0.80) {
         return _referenceResult(first, noMatch, RecognitionSource.vision);
       }
       return _possibleMatches(noMatch, namedLandmarks.values.toList());
@@ -652,12 +677,20 @@ class ImageRecognitionService {
 
     // Generic labels such as "rice" or "tower" do not identify an exact dish
     // or landmark.
+    final landmarkHints = <String, ReferenceSubject>{};
     for (final detection in [...entities, ...labels]) {
-      final name = (detection['name'] as String? ?? '').toLowerCase();
+      final rawName = detection['name'];
+      if (rawName is! String) continue;
+      final name = scanNameKey(rawName);
       if (score(detection) < 0.65) continue;
+      final landmark = knownScanLandmark(name);
+      if (landmark != null && name.contains(' ')) {
+        landmarkHints[landmark.id] = landmark;
+      }
       for (final preset in recognitionPresets) {
+        if (preset.kind == 'landmark') continue;
         if (!preset.aliases.any(
-          (alias) => name == alias || name.contains(alias),
+          (alias) => ' $name '.contains(' ${scanNameKey(alias)} '),
         )) {
           continue;
         }
@@ -672,7 +705,9 @@ class ImageRecognitionService {
         );
       }
     }
-    return noMatch;
+    return landmarkHints.isEmpty
+        ? noMatch
+        : _possibleMatches(noMatch, landmarkHints.values.toList());
   }
 
   void dispose() => _client.close();

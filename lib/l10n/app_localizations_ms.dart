@@ -9,6 +9,82 @@ class AppLocalizationsMs extends AppLocalizations {
   AppLocalizationsMs([String locale = 'ms']) : super(locale);
 
   @override
+  String get scanAddToItinerary => 'Tambah pada itinerari';
+
+  @override
+  String get scanAddToWishlist => 'Tambah ke senarai hajat';
+
+  @override
+  String get scanWishlist => 'Senarai hajat';
+
+  @override
+  String get scanClearWishlist => 'Kosongkan senarai hajat';
+
+  @override
+  String get scanRemoveSelected => 'Buang yang dipilih';
+
+  @override
+  String get scanClearAll => 'Kosongkan semua';
+
+  @override
+  String get scanSelectAll => 'Pilih semua';
+
+  @override
+  String get scanViewWishlist => 'Lihat senarai hajat';
+
+  @override
+  String get scanWishlistEmpty =>
+      'Tempat yang anda tambah ke senarai hajat akan dipaparkan di sini.';
+
+  @override
+  String get scanOriginalPhoto => 'Foto Asal';
+
+  @override
+  String get scanResult => 'Hasil imbasan';
+
+  @override
+  String get scanQuickLandmarks => 'Terokai mercu tanda berdekatan';
+
+  @override
+  String scanQuickLandmarksMap(String area) {
+    return 'Mercu tanda berhampiran $area';
+  }
+
+  @override
+  String get scanQuickLandmarksHint =>
+      'Ketik tempat untuk melihat kisah dan butirannya.';
+
+  @override
+  String get scanScannedLandmark => 'mercu tanda yang diimbas';
+
+  @override
+  String get scanMapLocation => 'lokasi peta';
+
+  @override
+  String scanDistanceWalk(int minutes, String distance, String origin) {
+    return 'Kira-kira $minutes min berjalan kaki · $distance dari $origin';
+  }
+
+  @override
+  String scanDistanceAway(String distance, String origin) {
+    return '$distance dari $origin';
+  }
+
+  @override
+  String get scanMapSearchHelp => 'Cari lebih banyak tempat di Google Maps';
+
+  @override
+  String get scanNoItinerary =>
+      'Simpan itinerari dahulu, kemudian pilih hari untuk menambah tempat ini.';
+
+  @override
+  String get scanStopAlreadyAdded => 'Tempat ini sudah ada pada hari tersebut.';
+
+  @override
+  String get scanStopLocationUnavailable =>
+      'Lokasi tempat tidak tersedia. Cuba lagi selepas butiran tempat dimuatkan.';
+
+  @override
   String get appLanguage => 'Bahasa Aplikasi';
 
   @override
@@ -1746,7 +1822,7 @@ class AppLocalizationsMs extends AppLocalizations {
       'Terjemahan tidak tersedia. Hasil asal masih tersedia.';
 
   @override
-  String get findRestaurants => 'Cari Restoran';
+  String get findRestaurants => 'Cari restoran';
 
   @override
   String get chooseARestaurantBeforeAddingThisDishToYourTravelPlan =>
