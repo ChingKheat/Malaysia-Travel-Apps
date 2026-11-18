@@ -476,7 +476,8 @@ void main() {
     expect(find.text('Places selected for your plan'), findsOneWidget);
     expect(find.text('1 place'), findsOneWidget);
     final button = find.text('Add to Plan');
-    await tester.ensureVisible(button);
+    await tester.drag(find.byType(ListView), const Offset(0, -120));
+    await tester.pumpAndSettle();
     await tester.tap(button);
     expect(openedPlan, true);
   });

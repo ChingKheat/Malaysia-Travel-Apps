@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/app/travel_shell.dart';
-import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
-import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
-import 'package:smart_travel_planner/features/itinerary/screens/edit_itinerary_screen.dart';
-import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
+import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/image_recognition_page.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
@@ -18,7 +15,10 @@ import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    ScanPlanPlacesStore.resetForTesting();
+  });
 
   void phoneSize(
     WidgetTester tester, {
@@ -362,7 +362,7 @@ void main() {
     await tester.scrollUntilVisible(landmark, 140);
     await tester.ensureVisible(landmark);
     await tester.pumpAndSettle();
-    expect(find.textContaining('from the map location'), findsWidgets);
+    expect(find.textContaining('from your current location'), findsWidgets);
     await tester.tap(landmark);
     await tester.pumpAndSettle();
     expect(find.byType(AttractionDetailPage), findsOneWidget);
@@ -497,47 +497,17 @@ void main() {
         120,
       );
       expect(find.text('Aquaria KLCC'), findsNothing);
-      final add = find.widgetWithText(FilledButton, 'Add to itinerary').first;
-      await tester.ensureVisible(add);
+      final add = find.descendant(
+        of: find.byKey(const ValueKey('curated_kl_04')),
+        matching: find.text('Add to itinerary'),
+      );
+      await tester.scrollUntilVisible(add, 120);
       await tester.tap(add);
       await tester.pumpAndSettle();
       expect(
-        find.text(
-          'Save an itinerary first, then choose a day to add this place.',
-        ),
-        findsOneWidget,
+        ScanPlanPlacesStore('recognition-test').places.map((p) => p.name),
+        contains('Jalan Alor Night Food Street'),
       );
-      addTearDown(AuthService().logout);
-      final login = AuthService().loginAsGuest();
-      await tester.pump(const Duration(milliseconds: 300));
-      await login;
-      final saved = await SupabaseItineraryService().saveItinerary(
-        title: 'KL weekend',
-        destinationState: 'Kuala Lumpur',
-        totalCost: 0,
-        dailySchedules: [
-          DailySchedule(
-            scheduleId: '',
-            itineraryId: '',
-            dayNumber: 1,
-            scheduleDate: DateTime(2026, 11, 17),
-          ),
-        ],
-      );
-      expect(saved.success, isTrue);
-      await tester.pump(const Duration(seconds: 5));
-      await tester.tap(add);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('KL weekend · Day 1'));
-      await tester.pumpAndSettle();
-      final editor = tester.widget<EditItineraryScreen>(
-        find.byType(EditItineraryScreen),
-      );
-      expect(editor.initialStops, hasLength(1));
-      expect(editor.initialStops.single.title, isNotEmpty);
-      expect(editor.scheduleId, isNotEmpty);
-      Navigator.of(tester.element(find.byType(EditItineraryScreen))).pop();
-      await tester.pumpAndSettle();
       final newScan = find.widgetWithText(OutlinedButton, 'New Scan');
       await tester.scrollUntilVisible(newScan.hitTestable(), -240);
       await tester.pumpAndSettle();

@@ -10,6 +10,10 @@ class ScanPlanPlacesStore extends ChangeNotifier {
 
   static final Map<String, ScanPlanPlacesStore> _instances = {};
 
+  static void resetForTesting() {
+    _instances.clear();
+  }
+
   factory ScanPlanPlacesStore(String userId) =>
       _instances.putIfAbsent(userId, () => ScanPlanPlacesStore._(userId));
 
@@ -65,6 +69,12 @@ class ScanPlanPlacesStore extends ChangeNotifier {
   Future<void> remove(String id) async {
     await load();
     _places.removeWhere((place) => place.xid == id);
+    notifyListeners();
+    await _write();
+  }
+
+  Future<void> clear() async {
+    _places.clear();
     notifyListeners();
     await _write();
   }

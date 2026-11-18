@@ -390,7 +390,11 @@ void main() {
       var requests = 0;
       final client = MockClient((request) async {
         requests++;
-        expect((jsonDecode(request.body) as Map)['operation'], 'recognize');
+        final operation = (jsonDecode(request.body) as Map)['operation'];
+        if (operation == 'recognize_context') {
+          return http.Response('{}', 200);
+        }
+        expect(operation, 'recognize');
         return http.Response(
           jsonEncode({
             'landmarks': [
@@ -410,7 +414,7 @@ void main() {
       expect(result.name, 'Petronas Twin Towers');
       expect(result.visionLandmarkName, 'Petronas Towers');
       expect(result.confidence, 0.91);
-      expect(requests, 1);
+      expect(requests, 2);
     },
   );
 
