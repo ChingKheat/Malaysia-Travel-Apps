@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/app/smart_travel_app.dart';
 import 'package:smart_travel_planner/app/travel_shell.dart';
@@ -14,6 +15,8 @@ import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
+import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
+import 'package:smart_travel_planner/shared/services/location_service.dart';
 import 'package:smart_travel_planner/shared/widgets/app_header.dart';
 
 void main() {
@@ -22,6 +25,49 @@ void main() {
     TripPreferencesService.clearPreferences();
     SmartItineraryService.clearLiveCache();
   });
+
+  testWidgets(
+    'Explore header and distance origin follow a destination change',
+    (tester) async {
+      final location = LocationService();
+      final initialPoint = location.currentLocation;
+      final initialArea = location.currentAreaName;
+      final initialState = location.currentState;
+      final initialGps = location.isUsingRealGps;
+      addTearDown(
+        () => location.updateLocation(
+          initialPoint,
+          initialArea,
+          state: initialState,
+          isRealGps: initialGps,
+        ),
+      );
+
+      await _withApp(tester, () async {
+        final change = find.text('Change');
+        await tester.ensureVisible(change);
+        await tester.tap(change);
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ListTile, 'Johor'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.descendant(
+            of: find.byType(AppHeader),
+            matching: find.text('Johor'),
+          ),
+          findsOneWidget,
+        );
+        final johorBahru = malaysiaStatesData.first.areas.singleWhere(
+          (area) => area.name == 'Johor Bahru',
+        );
+        expect(
+          location.currentLocation,
+          LatLng(johorBahru.latitude, johorBahru.longitude),
+        );
+      });
+    },
+  );
 
   testWidgets('Explore combines dashboard and discovery in one scroll view', (
     tester,

@@ -102,12 +102,14 @@ void main() {
     expect(find.text('1 schedule conflict'), findsOneWidget);
     await tester.tap(find.text('Journey segments'));
     await tester.pumpAndSettle();
-    expect(find.text('From 1. First stop'), findsOneWidget);
-    expect(
-      find.text('Arrives 6 min after the next visit starts'),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('To 2. Second stop'));
+    final segment = find.text('First stop → Second stop');
+    expect(segment, findsOneWidget);
+    expect(find.text('10:30 AM → 10:51 AM'), findsOneWidget);
+    expect(find.text('21 min · 4.5 km'), findsOneWidget);
+    expect(find.byIcon(Icons.directions_car_outlined), findsOneWidget);
+    expect(find.text('6 min late'), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+    await tester.tap(segment);
     await tester.pumpAndSettle();
     expect(find.text('Open in Google Maps'), findsOneWidget);
     expect(find.text('Open in Waze'), findsOneWidget);
@@ -121,5 +123,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('First stop'), findsOneWidget);
     expect(find.text('Travel to Second stop'), findsOneWidget);
+  });
+
+  testWidgets('wraps a walking segment with buffer time in dark mode', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const destinationName = 'Third stop with a long attraction name';
+    final destination = TravelStop.fromJson({
+      ...third.toJson(),
+      'title': destinationName,
+      'inbound_mode': 'Walking',
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: DayRouteMap(
+              stops: [second, destination],
+              mode: 'Driving',
+              service: DayRouteService(routes: TestRoutes()),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Journey segments'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Second stop → $destinationName'), findsOneWidget);
+    expect(find.byIcon(Icons.directions_walk), findsOneWidget);
+    expect(find.text('+39 min buffer'), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

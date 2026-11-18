@@ -324,7 +324,7 @@ class _AssistantPageState extends State<AssistantPage> {
                 ),
                 tooltip: context.l10n.resetConversation,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
             ],
           ),

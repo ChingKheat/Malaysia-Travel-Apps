@@ -26,50 +26,7 @@ class StopCard extends StatelessWidget {
         decoration: cardDecoration(),
         child: Row(
           children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: stop.color.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: stop.isGooglePlace && stop.placeId != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: _GoogleStopThumbnail(
-                        key: ValueKey(stop.placeId),
-                        placeId: stop.placeId!,
-                        photo: stop.googleDetails?.photos.firstOrNull,
-                        fallback: Icon(stop.icon, color: stop.color, size: 28),
-                      ),
-                    )
-                  : stop.primaryPhotoUrl != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Image.network(
-                        stop.primaryPhotoUrl!,
-                        width: 58,
-                        height: 58,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Icon(stop.icon, color: stop.color, size: 28),
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: stop.color,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                  : Icon(stop.icon, color: stop.color, size: 28),
-            ),
+            StopThumbnail(stop: stop),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -90,7 +47,7 @@ class StopCard extends StatelessWidget {
                     ].join(' · '),
                     style: const TextStyle(
                       color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -172,7 +129,8 @@ class _StopTitleState extends State<_StopTitle> {
   @override
   Widget build(BuildContext context) {
     final stop = widget.stop;
-    final knownTitle = stop.title.trim().isNotEmpty &&
+    final knownTitle =
+        stop.title.trim().isNotEmpty &&
         stop.title != 'Saved Google place' &&
         !(stop.title == 'Attraction' && stop.isGooglePlace);
     final title = knownTitle ? stop.title : null;
@@ -193,11 +151,64 @@ class _StopTitleState extends State<_StopTitle> {
 
   Widget _text(String value) => Text(
     value,
-    style: const TextStyle(
-      fontWeight: FontWeight.w900,
-      color: AppColors.ink,
-    ),
+    style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.ink),
   );
+}
+
+class StopThumbnail extends StatelessWidget {
+  const StopThumbnail({super.key, required this.stop, this.size = 58});
+
+  final TravelStop stop;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: stop.color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: stop.isGooglePlace && stop.placeId != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: _GoogleStopThumbnail(
+                key: ValueKey(stop.placeId),
+                placeId: stop.placeId!,
+                photo: stop.googleDetails?.photos.firstOrNull,
+                requestWidth: size > 58 ? 320 : 160,
+                fallback: Icon(stop.icon, color: stop.color, size: 28),
+              ),
+            )
+          : stop.primaryPhotoUrl != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                stop.primaryPhotoUrl!,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    Icon(stop.icon, color: stop.color, size: 28),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: stop.color,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          : Icon(stop.icon, color: stop.color, size: 28),
+    );
+  }
 }
 
 class _GoogleStopThumbnail extends StatefulWidget {
@@ -205,11 +216,13 @@ class _GoogleStopThumbnail extends StatefulWidget {
     super.key,
     required this.placeId,
     required this.photo,
+    required this.requestWidth,
     required this.fallback,
   });
 
   final String placeId;
   final GooglePlacePhoto? photo;
+  final int requestWidth;
   final Widget fallback;
 
   @override
@@ -233,7 +246,7 @@ class _GoogleStopThumbnailState extends State<_GoogleStopThumbnail> {
           placeId: widget.placeId,
           photo: photo,
           service: _service,
-          requestWidth: 160,
+          requestWidth: widget.requestWidth,
           compactAttribution: true,
           autoLoad: true,
           fill: true,

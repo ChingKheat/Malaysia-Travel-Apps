@@ -150,8 +150,7 @@ class CitylorePostCard extends StatelessWidget {
                     horizontal: 6,
                     vertical: 2,
                   ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  minimumSize: const Size(48, 48),
                 ),
                 child: const Text(
                   'Read story',

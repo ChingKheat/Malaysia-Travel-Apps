@@ -8,6 +8,7 @@ import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
+import 'package:smart_travel_planner/features/itinerary/widgets/stop_card.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/services/scheduling_engine.dart';
@@ -1046,235 +1047,228 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
       (s) => _stops.where((other) => _isSameStop(s, other)).length > 1,
     );
 
-    return Scaffold(
-      backgroundColor: AppColors.nightCanvas,
-      appBar: AppBar(
-        title: Text(
-          context.l10n.editDayValueSchedule((widget.dayNumber).toString()),
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-        elevation: 0,
-        backgroundColor: AppColors.nightSurface,
-        foregroundColor: AppColors.ink,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: FilledButton.icon(
-              onPressed: _isSaving ? null : _saveAndReturn,
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.nightSurface,
-                      ),
-                    )
-                  : const Icon(Icons.check, size: 18),
-              label: Text(context.l10n.save),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+    return PopScope<List<TravelStop>>(
+      canPop: !_isSaving,
+      child: Scaffold(
+        backgroundColor: AppColors.nightCanvas,
+        appBar: AppBar(
+          leading: const BackButton(),
+          title: Text(
+            context.l10n.editDayValueSchedule(widget.dayNumber.toString()),
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+            ),
+          ),
+          backgroundColor: AppColors.nightCanvas,
+          foregroundColor: AppColors.ink,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: FilledButton.icon(
+                onPressed: _isSaving ? null : _saveAndReturn,
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.nightSurface,
+                        ),
+                      )
+                    : const Icon(Icons.check, size: 18),
+                label: Text(context.l10n.save),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  minimumSize: const Size(0, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Intelligence & Metrics Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.nightSurface,
-            child: Column(
-              children: [
-                Row(
+          ],
+        ),
+        body: ReorderableListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          header: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.nightRaised,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.route_outlined,
-                            color: AppColors.primary,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
+                    Text(
+                      widget.tripTitle.trim().isEmpty
+                          ? widget.destination
+                          : widget.tripTitle,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.route_outlined,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
                             _hasMissingGoogleLocations
                                 ? context.l10n.unavailable
                                 : context.l10n.valueKmValueStops(
-                                    (distanceKm).toString(),
-                                    (_stops.length).toString(),
+                                    distanceKm.toString(),
+                                    _stops.length.toString(),
                                   ),
-                            style: const TextStyle(
-                              color: AppColors.ink,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
+                            style: const TextStyle(color: AppColors.ink),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (forecast != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        context.tr(forecast.suitabilityBadge),
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  context
+                      .l10n
+                      .dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces,
+                  style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                ),
+              ),
+              if (hasSameDayDuplicate)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  color: const Color(0xFFFFFBEB),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 20,
+                        color: Color(0xFFD97706),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          context
+                              .l10n
+                              .duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          itemCount: _stops.length,
+          // ignore: deprecated_member_use
+          onReorder: _onReorder,
+          itemBuilder: (context, index) {
+            final stop = _stops[index];
+            final isIndoor =
+                PlaceClassifier.classify(
+                  category: stop.category,
+                  name: stop.title,
+                ) ==
+                true;
+
+            final hasLocalDuplicate = _stops.asMap().entries.any(
+              (e) => e.key != index && _isSameStop(stop, e.value),
+            );
+            final hasCrossDayDuplicate = widget.otherDaysStops.any(
+              (other) => _isSameStop(stop, other),
+            );
+
+            return Container(
+              key: ValueKey('${stop.title}_$index'),
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.nightSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasLocalDuplicate
+                      ? const Color(0xFFF59E0B)
+                      : AppColors.nightLine,
+                  width: hasLocalDuplicate ? 1.5 : 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Reorder Drag Handle
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.nightRaised,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.drag_indicator,
+                                color: AppColors.nightMuted,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Sequence Number
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundColor: hasLocalDuplicate
+                                ? const Color(0xFFFEF3C7)
+                                : AppColors.primary.withValues(alpha: 0.12),
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                color: hasLocalDuplicate
+                                    ? const Color(0xFFD97706)
+                                    : AppColors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    if (forecast != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: forecast.badgeColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          context.tr(forecast.suitabilityBadge),
-                          style: TextStyle(
-                            color: forecast.badgeColor,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 14, color: AppColors.muted),
-                    SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        context
-                            .l10n
-                            .dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces,
-                        style: TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.nightLine),
-
-          if (hasSameDayDuplicate)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              color: const Color(0xFFFFFBEB),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 20,
-                    color: Color(0xFFD97706),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      context
-                          .l10n
-                          .duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF92400E),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Reorderable Stops List
-          Expanded(
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-              itemCount: _stops.length,
-              // ignore: deprecated_member_use
-              onReorder: _onReorder,
-              itemBuilder: (context, index) {
-                final stop = _stops[index];
-                final isIndoor =
-                    PlaceClassifier.classify(
-                      category: stop.category,
-                      name: stop.title,
-                    ) ==
-                    true;
-
-                final hasLocalDuplicate = _stops.asMap().entries.any(
-                  (e) => e.key != index && _isSameStop(stop, e.value),
-                );
-                final hasCrossDayDuplicate = widget.otherDaysStops.any(
-                  (other) => _isSameStop(stop, other),
-                );
-
-                return Container(
-                  key: ValueKey('${stop.title}_$index'),
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.nightSurface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: hasLocalDuplicate
-                          ? const Color(0xFFF59E0B)
-                          : AppColors.nightLine,
-                      width: hasLocalDuplicate ? 1.5 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // Reorder Drag Handle
-                      ReorderableDragStartListener(
-                        index: index,
-                        child: Container(
-                          padding: const EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: AppColors.nightRaised,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.drag_indicator,
-                            color: AppColors.nightMuted,
-                            size: 18,
-                          ),
-                        ),
-                      ),
                       const SizedBox(width: 8),
-
-                      // Sequence Number
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: hasLocalDuplicate
-                            ? const Color(0xFFFEF3C7)
-                            : AppColors.primary.withValues(alpha: 0.12),
-                        child: Text(
-                          '${index + 1}',
-                          style: TextStyle(
-                            color: hasLocalDuplicate
-                                ? const Color(0xFFD97706)
-                                : AppColors.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
+                      StopThumbnail(stop: stop, size: 96),
+                      const SizedBox(width: 12),
 
                       // Stop Details
                       Expanded(
@@ -1288,7 +1282,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                 fontSize: 14,
                                 color: AppColors.ink,
                               ),
-                              maxLines: 1,
+                              maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
@@ -1411,17 +1405,19 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 4),
-
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
                       // Action 1: Swap Attraction
                       IconButton(
                         tooltip: context.l10n.swapAttraction2,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
+                          minWidth: 48,
+                          minHeight: 48,
                         ),
-                        visualDensity: VisualDensity.compact,
                         icon: Icon(
                           (widget.weatherForecast != null &&
                                   !widget
@@ -1444,13 +1440,12 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       ),
 
                       IconButton(
-                        tooltip: 'Edit visit duration',
+                        tooltip: context.l10n.editVisitDuration,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
+                          minWidth: 48,
+                          minHeight: 48,
                         ),
-                        visualDensity: VisualDensity.compact,
                         icon: const Icon(Icons.timer_outlined, size: 20),
                         onPressed: () => _editVisitDuration(index),
                       ),
@@ -1458,10 +1453,9 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                         tooltip: context.l10n.removeStop,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
+                          minWidth: 48,
+                          minHeight: 48,
                         ),
-                        visualDensity: VisualDensity.compact,
                         icon: const Icon(
                           Icons.delete_outline,
                           color: Colors.redAccent,
@@ -1471,56 +1465,57 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                       ),
                     ],
                   ),
-                );
-              },
+                ],
+              ),
+            );
+          },
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          decoration: BoxDecoration(
+            color: AppColors.nightSurface,
+            border: const Border(top: BorderSide(color: AppColors.nightLine)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showAddStopSheet,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(context.l10n.addStop),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _isSaving ? null : _saveAndReturn,
+                    icon: _isSaving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check_circle_outline, size: 18),
+                    label: Text(context.l10n.saveChanges),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-        decoration: BoxDecoration(
-          color: AppColors.nightSurface,
-          border: const Border(top: BorderSide(color: AppColors.nightLine)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _showAddStopSheet,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(context.l10n.addStop),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: _isSaving ? null : _saveAndReturn,
-                icon: const Icon(Icons.check_circle_outline, size: 18),
-                label: Text(context.l10n.saveChanges),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

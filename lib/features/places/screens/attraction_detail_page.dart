@@ -4,6 +4,7 @@ import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:smart_travel_planner/features/places/widgets/attraction_asset_image.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/places/data/attraction_metadata_resolver.dart';
@@ -360,10 +361,11 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                       },
                     )
                   else if (localPhoto != null)
-                    Image.asset(
-                      localPhoto,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _buildFallbackHero(a.category),
+                    AttractionAssetImage(
+                      asset: localPhoto,
+                      attraction: a,
+                      fallback: _buildFallbackHero(a.category),
+                      creditPadding: const EdgeInsets.fromLTRB(12, 0, 12, 84),
                     )
                   else
                     _buildFallbackHero(a.category),

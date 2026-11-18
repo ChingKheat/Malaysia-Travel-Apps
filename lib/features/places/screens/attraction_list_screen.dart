@@ -2,10 +2,10 @@ import '../services/google_places_service.dart';
 import '../widgets/google_place_image.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
+import 'package:smart_travel_planner/features/places/widgets/attraction_asset_image.dart';
 import 'package:smart_travel_planner/features/places/widgets/google_maps_attribution.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
@@ -34,41 +34,13 @@ Widget _attractionCover(Attraction place) {
       ],
     ),
   );
-  Widget local() => asset == null
-      ? unavailable()
-      : Image.asset(
-          asset,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => unavailable(),
-        );
-  // Bundled photos remain available with no network or expired services.
   if (asset != null) {
-    final credit = AttractionImageResolver.photoCredit(place);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        local(),
-        if (credit != null)
-          Positioned(
-            top: 60,
-            left: 8,
-            right: 8,
-            child: Material(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                onTap: () => launchUrl(Uri.parse(credit.source)),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    '© ${credit.author} · CC BY 2.0',
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
+    return AttractionAssetImage(
+      asset: asset,
+      attraction: place,
+      fallback: unavailable(),
+      creditAlignment: Alignment.topLeft,
+      creditPadding: const EdgeInsets.fromLTRB(8, 56, 8, 0),
     );
   }
   if (place.googlePlaceId != null && place.googlePhotos.isNotEmpty) {
@@ -80,19 +52,19 @@ Widget _attractionCover(Attraction place) {
       autoLoad: true,
       fill: true,
       attributionTop: 48,
-      fallback: local(),
+      fallback: unavailable(),
     );
   }
   if (url != null) {
     return Image.network(
       url,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => local(),
+      errorBuilder: (_, _, _) => unavailable(),
       loadingBuilder: (_, child, progress) =>
-          progress == null ? child : local(),
+          progress == null ? child : unavailable(),
     );
   }
-  return local();
+  return unavailable();
 }
 
 /// Inspiring travel discovery screen displaying curated highlights and
@@ -1188,6 +1160,9 @@ class ModernAttractionCard extends StatelessWidget {
         kind.contains('market') ||
         kind.contains('store')) {
       return (const Color(0xFFDB2777), Icons.shopping_bag_rounded, 'Shopping');
+    }
+    if (kind.contains('theme park') || kind.contains('amusement park')) {
+      return (AppColors.primary, Icons.attractions_rounded, 'Attraction');
     }
     if (kind.contains('natural') ||
         kind.contains('park') ||

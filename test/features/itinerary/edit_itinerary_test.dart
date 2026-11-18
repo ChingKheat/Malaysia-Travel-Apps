@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/edit_itinerary_screen.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
+import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
 void main() {
   group('UC602: Edit Itinerary Unit Tests', () {
@@ -338,6 +339,49 @@ void main() {
       },
     );
 
+    testWidgets('stop actions remain accessible on a narrow screen', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(320, 800),
+              textScaler: TextScaler.linear(1.5),
+            ),
+            child: EditItineraryScreen(
+              tripTitle: 'Trip',
+              destination: 'Kuala Lumpur',
+              dayNumber: 1,
+              initialStops: [stop1],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final icon in [
+        Icons.swap_horiz_rounded,
+        Icons.timer_outlined,
+        Icons.delete_outline,
+      ]) {
+        final button = find
+            .ancestor(
+              of: find.byIcon(icon).first,
+              matching: find.byType(IconButton),
+            )
+            .first;
+        final size = tester.getSize(button);
+        expect(size.width, greaterThanOrEqualTo(48));
+        expect(size.height, greaterThanOrEqualTo(48));
+      }
+    });
+
     testWidgets(
       'EditItineraryScreen renders stop cards without RenderFlex overflow on standard mobile widths',
       (tester) async {
@@ -374,5 +418,71 @@ void main() {
         expect(find.text('Swap Attraction'), findsOneWidget);
       },
     );
+
+    testWidgets('toolbar and system Back return to the itinerary', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(375, 812);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      var exits = 0;
+      List<TravelStop>? result;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            filledButtonTheme: FilledButtonThemeData(
+              style: primaryFilledButtonStyle(),
+            ),
+          ),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                result = await Navigator.push<List<TravelStop>>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EditItineraryScreen(
+                      tripTitle: 'Test Trip',
+                      destination: 'Kuala Lumpur',
+                      dayNumber: 1,
+                      initialStops: [],
+                    ),
+                  ),
+                );
+                exits++;
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      final editor = find.byType(EditItineraryScreen);
+      expect(tester.takeException(), isNull);
+      expect(
+        ModalRoute.of(tester.element(editor))!.popDisposition,
+        RoutePopDisposition.pop,
+      );
+
+      final back = find.byType(BackButton);
+      final backSize = tester.getSize(back);
+      expect(backSize.width, greaterThanOrEqualTo(48));
+      expect(backSize.height, greaterThanOrEqualTo(48));
+      await tester.tapAt(tester.getCenter(back) - const Offset(18, 0));
+      await tester.pumpAndSettle();
+      expect(exits, 1);
+      expect(result, isNull);
+      expect(find.text('Open'), findsOneWidget);
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(exits, 2);
+      expect(result, isNull);
+      expect(editor, findsNothing);
+    });
   });
 }

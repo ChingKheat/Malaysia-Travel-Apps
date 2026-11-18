@@ -909,7 +909,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activePlannedTrip => 'Active Planned Trip';
 
   @override
-  String get activeItinerary => 'ACTIVE ITINERARY';
+  String get activeItinerary => 'Active itinerary';
 
   @override
   String get activeTripPlanCleared => 'Active trip plan cleared';
@@ -2568,7 +2568,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outdoor2 => '☀️ Outdoor';
 
   @override
-  String get topRated => '✨ Top Rated';
+  String get topRated => 'Top rated';
 
   @override
   String get sights => '🏛️ Sights';
@@ -3422,4 +3422,158 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get googleRouteReviewReminder =>
       'Review the route and opening hours before traveling, especially after offline edits.';
+
+  @override
+  String get todayPlan => 'Today’s plan';
+
+  @override
+  String get todayPlanEndPrompt => 'End today’s trip?';
+
+  @override
+  String get todayPlanEnd => 'End day';
+
+  @override
+  String get todayPlanTripActions => 'Trip actions';
+
+  @override
+  String get todayPlanPause => 'Pause trip';
+
+  @override
+  String get todayPlanSkip => 'Skip stop';
+
+  @override
+  String get todayPlanDelay => 'Delay 15 min';
+
+  @override
+  String get todayPlanUpdating => 'Updating trip plan';
+
+  @override
+  String get todayPlanTimeline => 'Route timeline';
+
+  @override
+  String get todayPlanMarkVisited => 'Mark visited';
+
+  @override
+  String get todayPlanResume => 'Resume trip';
+
+  @override
+  String get todayPlanStart => 'Start trip';
+
+  @override
+  String get todayPlanEnded => 'Day ended';
+
+  @override
+  String get todayPlanComplete => 'Day complete';
+
+  @override
+  String get todayPlanPaused => 'Trip paused';
+
+  @override
+  String get todayPlanCurrentStop => 'Current stop';
+
+  @override
+  String get todayPlanFirstStop => 'First stop';
+
+  @override
+  String todayPlanMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String todayPlanNext(String place, String time) {
+    return 'Next · $place · $time';
+  }
+
+  @override
+  String todayPlanProgress(int visited, int skipped, int remaining) {
+    return '$visited visited · $skipped skipped · $remaining remaining';
+  }
+
+  @override
+  String get todayPlanDirections => 'Directions';
+
+  @override
+  String get todayPlanPlanningEstimate => 'Planning estimate';
+
+  @override
+  String get todayPlanRouteEstimate => 'Route estimate';
+
+  @override
+  String todayPlanTravel(int minutes) {
+    return 'Travel · $minutes min';
+  }
+
+  @override
+  String todayPlanDirectionsTo(String place) {
+    return 'Directions to $place';
+  }
+
+  @override
+  String get todayPlanVisited => 'Visited';
+
+  @override
+  String get todayPlanSkipped => 'Skipped';
+
+  @override
+  String get viewRoute => 'View route';
+
+  @override
+  String get editVisitDuration => 'Edit visit duration';
+
+  @override
+  String get openFullscreenMap => 'Open fullscreen map';
+
+  @override
+  String get resumePageScrolling => 'Resume page scrolling';
+
+  @override
+  String get enableMapPanning => 'Enable map panning';
+
+  @override
+  String get recenterRoute => 'Recenter route';
+
+  @override
+  String get zoomInMap => 'Zoom in';
+
+  @override
+  String get zoomOutMap => 'Zoom out';
+
+  @override
+  String get journeySegments => 'Journey segments';
+
+  @override
+  String journeySegmentMetrics(String duration, String distance) {
+    return '$duration · $distance km';
+  }
+
+  @override
+  String journeySegmentLate(int minutes) {
+    return '$minutes min late';
+  }
+
+  @override
+  String journeySegmentBuffer(int minutes) {
+    return '+$minutes min buffer';
+  }
+
+  @override
+  String get journeySegmentLoading => 'Loading route…';
+
+  @override
+  String get journeySegmentUnavailable => 'Route unavailable';
+
+  @override
+  String get journeySegmentMissingCoordinates =>
+      'Route unavailable · Missing coordinates';
+
+  @override
+  String journeySegmentDayOffset(String time, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return '$time (+$_temp0)';
+  }
 }

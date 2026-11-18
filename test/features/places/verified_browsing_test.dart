@@ -34,6 +34,81 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
   test(
+    'Explore fallback follows the selected destination and filters',
+    () async {
+      final service = PlacesService(
+        catalog: Catalog([])..lastLoadOffline = true,
+        includeCuratedFallback: true,
+      );
+      Future<PlacesPage> browse(String state, {String category = 'All'}) =>
+          service.fetchPage(
+            latitude: 3.14,
+            longitude: 101.69,
+            state: state,
+            radiusMeters: null,
+            category: category,
+          );
+
+      final kualaLumpur = await browse('Kuala Lumpur');
+      expect(kualaLumpur.failure, PlacesFailure.none);
+      expect(kualaLumpur.items, hasLength(14));
+      expect(
+        kualaLumpur.items.map((place) => place.xid),
+        contains('curated_kl_01'),
+      );
+      expect(
+        kualaLumpur.items.map((place) => place.xid),
+        isNot(contains('curated_kl_02')),
+      );
+
+      final penangFood = await browse('Penang', category: 'Food');
+      expect(penangFood.items.map((place) => place.xid), ['curated_penang_04']);
+
+      final johor = await browse('Johor');
+      expect(
+        johor.items.map((place) => place.xid),
+        unorderedEquals([
+          'curated_johor_01',
+          'curated_johor_02',
+          'curated_johor_03',
+          'curated_johor_04',
+          'curated_johor_05',
+        ]),
+      );
+
+      final selangor = await browse('Selangor');
+      expect(
+        selangor.items.map((place) => place.xid),
+        contains('curated_kl_02'),
+      );
+    },
+  );
+
+  test('Explore uses verified data before applying search filters', () async {
+    final service = PlacesService(
+      catalog: Catalog([record('museum')]),
+      includeCuratedFallback: true,
+    );
+    final page = await service.fetchPage(
+      latitude: 3.14,
+      longitude: 101.69,
+      state: 'Kuala Lumpur',
+      radiusMeters: null,
+    );
+    expect(page.items.map((place) => place.xid), ['museum']);
+
+    final search = await service.fetchPage(
+      latitude: 3.14,
+      longitude: 101.69,
+      state: 'Kuala Lumpur',
+      radiusMeters: null,
+      query: 'Petronas',
+    );
+    expect(search.items, isEmpty);
+    expect(search.failure, PlacesFailure.none);
+  });
+
+  test(
     'missing cloud migration is a setup error, not an offline error',
     () async {
       final db = SupabaseClient(

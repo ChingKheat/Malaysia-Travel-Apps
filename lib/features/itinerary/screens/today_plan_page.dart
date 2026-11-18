@@ -8,7 +8,10 @@ import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.
 import 'package:smart_travel_planner/features/itinerary/services/scheduling_engine.dart';
 import 'package:smart_travel_planner/features/itinerary/services/travel_matrix_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_navigation.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
+
+enum _TripAction { pause, skip, delay, end }
 
 class TodayPlanPage extends StatefulWidget {
   const TodayPlanPage({
@@ -126,9 +129,12 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
   Future<void> _navigate(TravelStop? origin, TravelStop destination) async {
     final option = await showModalBottomSheet<TripNavigationMode>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        top: false,
+        child: ListView(
+          shrinkWrap: true,
           children: [
             ListTile(
               title: Text(destination.title),
@@ -275,149 +281,478 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
     }
   }
 
+  Future<void> _endDay() async {
+    final l10n = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.todayPlanEndPrompt),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.todayPlanEnd),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _ended = true;
+    await _save();
+  }
+
+  bool _showsTravel(TravelStop stop) =>
+      stop.travelMinutes > 0 && !_skipped.contains(_id(stop));
+
   @override
   Widget build(BuildContext context) {
-    final current = _remaining.firstOrNull;
-    final next = _remaining.skip(1).firstOrNull;
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final remaining = _remaining.toList();
+    final current = remaining.firstOrNull;
+    final canAct = _started && !_paused && !_ended;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.todayPlan),
+        actions: [
+          if (_started && !_ended)
+            PopupMenuButton<_TripAction>(
+              tooltip: l10n.todayPlanTripActions,
+              enabled: !_busy,
+              onSelected: (action) async {
+                switch (action) {
+                  case _TripAction.pause:
+                    _paused = true;
+                    await _save();
+                  case _TripAction.skip:
+                    if (current != null) await _replan(current, skip: true);
+                  case _TripAction.delay:
+                    if (current != null) await _replan(current, skip: false);
+                  case _TripAction.end:
+                    await _endDay();
+                }
+              },
+              itemBuilder: (context) => [
+                if (canAct && current != null) ...[
+                  PopupMenuItem(
+                    value: _TripAction.pause,
+                    child: Text(l10n.todayPlanPause),
+                  ),
+                  PopupMenuItem(
+                    value: _TripAction.skip,
+                    child: Text(l10n.todayPlanSkip),
+                  ),
+                  PopupMenuItem(
+                    value: _TripAction.delay,
+                    child: Text(l10n.todayPlanDelay),
+                  ),
+                  const PopupMenuDivider(),
+                ],
+                PopupMenuItem(
+                  value: _TripAction.end,
+                  child: Text(l10n.todayPlanEnd),
+                ),
+              ],
+            ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(4),
+          child: _busy
+              ? LinearProgressIndicator(
+                  minHeight: 4,
+                  semanticsLabel: l10n.todayPlanUpdating,
+                )
+              : const SizedBox(height: 4),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                _summary(remaining),
+                if (_stops.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      l10n.todayPlanTimeline,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final (index, stop) in _stops.indexed) ...[
+                    if (_showsTravel(stop)) _travelRow(index, stop),
+                    _visitRow(
+                      stop,
+                      first: index == 0 && !_showsTravel(stop),
+                      last: index == _stops.length - 1,
+                      active: !_ended && stop == current,
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: current != null && !_ended
+          ? Material(
+              color: colors.surface,
+              child: SafeArea(
+                top: false,
+                child: Center(
+                  heightFactor: 1,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 640),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            textStyle: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          onPressed: _busy
+                              ? null
+                              : () {
+                                  if (canAct) {
+                                    _completed.add(_id(current));
+                                  } else {
+                                    _started = true;
+                                    _paused = false;
+                                  }
+                                  _save();
+                                },
+                          icon: Icon(
+                            canAct ? Icons.check : Icons.play_arrow_outlined,
+                          ),
+                          label: Text(
+                            canAct
+                                ? l10n.todayPlanMarkVisited
+                                : _paused
+                                ? l10n.todayPlanResume
+                                : l10n.todayPlanStart,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
+  String _visitDetails(TravelStop stop, {String? status}) => [
+    stop.time.replaceFirst(' - ', ' – '),
+    context.l10n.todayPlanMinutes(stop.visitMinutes),
+    ?status,
+  ].join(' · ');
+
+  Widget _summary(List<TravelStop> remaining) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final caption = theme.textTheme.bodySmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
+    final current = remaining.firstOrNull;
+    final next = remaining.skip(1).firstOrNull;
+    final status = _ended
+        ? l10n.todayPlanEnded
+        : current == null
+        ? l10n.todayPlanComplete
+        : _paused
+        ? l10n.todayPlanPaused
+        : _started
+        ? l10n.todayPlanCurrentStop
+        : l10n.todayPlanFirstStop;
     final origin =
         _stops.where((stop) => _completed.contains(_id(stop))).lastOrNull ??
         widget.preferences.departurePoint;
-    final canAct = !_busy && _started && !_paused && !_ended;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Today’s Plan')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _ended
-                ? 'Day ended'
-                : _paused
-                ? 'Paused'
-                : current == null
-                ? 'Day complete'
-                : current.title,
-            style: Theme.of(context).textTheme.headlineSmall,
+            MaterialLocalizations.of(context).formatFullDate(widget.date),
+            style: caption,
           ),
-          Text(
-            '${_completed.length} visited · ${_skipped.length} skipped · ${_remaining.length} remaining',
-          ),
-          if (next != null)
-            Text('Next · ${next.title} · ${next.time.split(' - ').first}'),
-          if (_busy) const LinearProgressIndicator(),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (current != null && !_ended)
-                FilledButton(
-                  onPressed: _busy
-                      ? null
-                      : () {
-                          _paused = _started && !_paused;
-                          _started = true;
-                          _save();
-                        },
-                  child: Text(
-                    !_started
-                        ? 'Start Trip'
-                        : _paused
-                        ? 'Resume'
-                        : 'Pause',
-                  ),
-                ),
-              if (current != null && TripNavigation.hasCoordinates(current))
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : () => _navigate(origin, current),
-                  icon: const Icon(Icons.directions_outlined),
-                  label: const Text('Directions'),
-                ),
-              if (current != null && canAct) ...[
-                OutlinedButton(
-                  onPressed: () {
-                    _completed.add(_id(current));
-                    _save();
-                  },
-                  child: const Text('Mark visited'),
-                ),
-                TextButton(
-                  onPressed: () => _replan(current, skip: true),
-                  child: const Text('Skip'),
-                ),
-                TextButton(
-                  onPressed: () => _replan(current, skip: false),
-                  child: const Text('Delay 15 min'),
-                ),
-              ],
-              if (_started && !_ended)
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () async {
-                          final end = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('End today’s trip?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Cancel'),
-                                ),
-                                FilledButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('End'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (end == true && mounted) {
-                            _ended = true;
-                            _save();
-                          }
-                        },
-                  child: const Text('End day'),
-                ),
-            ],
+          if (current != null && !_ended) ...[
+            Text(
+              status,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colors.primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+          Semantics(
+            header: true,
+            liveRegion: true,
+            child: Text(
+              current != null && !_ended ? current.title : status,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          const Divider(),
-          for (var i = 0; i < _stops.length; i++) ...[
-            if (_stops[i].travelMinutes > 0 &&
-                !_skipped.contains(_id(_stops[i])))
-              ListTile(
-                leading: const Icon(Icons.route_outlined),
-                title: Text('Travel to ${_stops[i].title}'),
-                subtitle: Text(
-                  '${TravelStop.formatMinutes(math.max(0, _start(_stops[i]) - _stops[i].travelMinutes))}'
-                  ' – ${TravelStop.formatMinutes(_start(_stops[i]))}'
-                  ' · ${_stops[i].travelMinutes} min'
-                  ' · ${_stops[i].travelIsEstimated ? 'Planning estimate' : 'Route estimate'}',
+          if (current != null && !_ended) ...[
+            const SizedBox(height: 4),
+            Text(
+              _visitDetails(current),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (next != null && !_ended) ...[
+            const SizedBox(height: 8),
+            Text(
+              l10n.todayPlanNext(next.title, next.time.split(' - ').first),
+              style: caption,
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (_stops.isNotEmpty) ...[
+            ExcludeSemantics(
+              child: LinearProgressIndicator(
+                value: (_stops.length - remaining.length) / _stops.length,
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(4),
+                stopIndicatorRadius: 0,
+                backgroundColor: colors.outline,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          Text(
+            l10n.todayPlanProgress(
+              _completed.length,
+              _skipped.length,
+              remaining.length,
+            ),
+            style: caption,
+          ),
+          if (current != null && TripNavigation.hasCoordinates(current)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                textStyle: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                onTap: () => _navigate(
-                  i > 0
-                      ? _stops
-                            .take(i)
-                            .where((stop) => !_skipped.contains(_id(stop)))
-                            .lastOrNull
-                      : widget.preferences.departurePoint,
-                  _stops[i],
-                ),
               ),
-            ListTile(
-              leading: Icon(
-                _completed.contains(_id(_stops[i]))
-                    ? Icons.check_circle_outline
-                    : _skipped.contains(_id(_stops[i]))
-                    ? Icons.skip_next
-                    : Icons.place_outlined,
-              ),
-              title: Text(_stops[i].title),
-              subtitle: Text(
-                '${_stops[i].time} · ${_stops[i].visitMinutes} min',
-              ),
+              onPressed: _busy ? null : () => _navigate(origin, current),
+              icon: const Icon(Icons.directions_outlined),
+              label: Text(l10n.todayPlanDirections),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _travelRow(int index, TravelStop stop) {
+    final l10n = context.l10n;
+    final start = TravelStop.formatMinutes(
+      math.max(0, _start(stop) - stop.travelMinutes),
+    );
+    final end = TravelStop.formatMinutes(_start(stop));
+    final estimate = stop.travelIsEstimated
+        ? l10n.todayPlanPlanningEstimate
+        : l10n.todayPlanRouteEstimate;
+    return _TimelineRow(
+      first: index == 0,
+      icon: Icons.route_outlined,
+      title: l10n.todayPlanTravel(stop.travelMinutes),
+      detail: '$start – $end · $estimate',
+      travel: true,
+      actionLabel: l10n.todayPlanDirectionsTo(stop.title),
+      onTap: _busy
+          ? null
+          : () => _navigate(
+              index == 0
+                  ? widget.preferences.departurePoint
+                  : _stops
+                        .take(index)
+                        .where((s) => !_skipped.contains(_id(s)))
+                        .lastOrNull,
+              stop,
+            ),
+    );
+  }
+
+  Widget _visitRow(
+    TravelStop stop, {
+    required bool first,
+    required bool last,
+    required bool active,
+  }) {
+    final l10n = context.l10n;
+    final visited = _completed.contains(_id(stop));
+    final skipped = _skipped.contains(_id(stop));
+    final state = visited
+        ? l10n.todayPlanVisited
+        : skipped
+        ? l10n.todayPlanSkipped
+        : null;
+    return _TimelineRow(
+      first: first,
+      last: last,
+      icon: visited
+          ? Icons.check_circle_outline
+          : skipped
+          ? Icons.skip_next_outlined
+          : Icons.place_outlined,
+      title: stop.title,
+      detail: _visitDetails(stop, status: state),
+      active: active,
+    );
+  }
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({
+    required this.first,
+    required this.icon,
+    required this.title,
+    required this.detail,
+    this.last = false,
+    this.active = false,
+    this.travel = false,
+    this.actionLabel,
+    this.onTap,
+  });
+
+  final bool first;
+  final bool last;
+  final IconData icon;
+  final String title;
+  final String detail;
+  final bool active;
+  final bool travel;
+  final String? actionLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final radius = BorderRadius.circular(12);
+
+    return Stack(
+      children: [
+        if (!first || !last)
+          PositionedDirectional(
+            start: 15,
+            top: first ? 28 : 0,
+            bottom: last ? null : 0,
+            height: last ? 28 : null,
+            width: 2,
+            child: ColoredBox(color: colors.outline),
+          ),
+        Padding(
+          padding: const EdgeInsetsDirectional.only(start: 44),
+          child: MergeSemantics(
+            child: Semantics(
+              button: onTap != null ? true : null,
+              label: onTap != null ? actionLabel : null,
+              child: Material(
+                color: active ? colors.surface : Colors.transparent,
+                borderRadius: radius,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: radius,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: travel
+                                    ? theme.textTheme.labelLarge?.copyWith(
+                                        color: colors.onSurfaceVariant,
+                                      )
+                                    : theme.textTheme.titleSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                detail,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (onTap != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.navigate_next,
+                            size: 20,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        PositionedDirectional(
+          start: travel ? 4 : 0,
+          top: travel ? 16 : 12,
+          child: ExcludeSemantics(
+            child: Container(
+              width: travel ? 24 : 32,
+              height: travel ? 24 : 32,
+              decoration: BoxDecoration(
+                color: active ? colors.primary : theme.scaffoldBackgroundColor,
+                shape: BoxShape.circle,
+                border: active || travel
+                    ? null
+                    : Border.all(color: colors.outline),
+              ),
+              child: Icon(
+                icon,
+                size: 16,
+                color: active ? colors.onPrimary : colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1775,7 +1775,7 @@ abstract class AppLocalizations {
   /// No description provided for @activeItinerary.
   ///
   /// In en, this message translates to:
-  /// **'ACTIVE ITINERARY'**
+  /// **'Active itinerary'**
   String get activeItinerary;
 
   /// No description provided for @activeTripPlanCleared.
@@ -4422,7 +4422,7 @@ abstract class AppLocalizations {
   /// No description provided for @topRated.
   ///
   /// In en, this message translates to:
-  /// **'✨ Top Rated'**
+  /// **'Top rated'**
   String get topRated;
 
   /// No description provided for @sights.
@@ -5872,6 +5872,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Review the route and opening hours before traveling, especially after offline edits.'**
   String get googleRouteReviewReminder;
+
+  /// No description provided for @todayPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Today’s plan'**
+  String get todayPlan;
+
+  /// No description provided for @todayPlanEndPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'End today’s trip?'**
+  String get todayPlanEndPrompt;
+
+  /// No description provided for @todayPlanEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End day'**
+  String get todayPlanEnd;
+
+  /// No description provided for @todayPlanTripActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip actions'**
+  String get todayPlanTripActions;
+
+  /// No description provided for @todayPlanPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause trip'**
+  String get todayPlanPause;
+
+  /// No description provided for @todayPlanSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip stop'**
+  String get todayPlanSkip;
+
+  /// No description provided for @todayPlanDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Delay 15 min'**
+  String get todayPlanDelay;
+
+  /// No description provided for @todayPlanUpdating.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating trip plan'**
+  String get todayPlanUpdating;
+
+  /// No description provided for @todayPlanTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Route timeline'**
+  String get todayPlanTimeline;
+
+  /// No description provided for @todayPlanMarkVisited.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark visited'**
+  String get todayPlanMarkVisited;
+
+  /// No description provided for @todayPlanResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume trip'**
+  String get todayPlanResume;
+
+  /// No description provided for @todayPlanStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start trip'**
+  String get todayPlanStart;
+
+  /// No description provided for @todayPlanEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'Day ended'**
+  String get todayPlanEnded;
+
+  /// No description provided for @todayPlanComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Day complete'**
+  String get todayPlanComplete;
+
+  /// No description provided for @todayPlanPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip paused'**
+  String get todayPlanPaused;
+
+  /// No description provided for @todayPlanCurrentStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Current stop'**
+  String get todayPlanCurrentStop;
+
+  /// No description provided for @todayPlanFirstStop.
+  ///
+  /// In en, this message translates to:
+  /// **'First stop'**
+  String get todayPlanFirstStop;
+
+  /// No description provided for @todayPlanMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String todayPlanMinutes(int minutes);
+
+  /// No description provided for @todayPlanNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next · {place} · {time}'**
+  String todayPlanNext(String place, String time);
+
+  /// No description provided for @todayPlanProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{visited} visited · {skipped} skipped · {remaining} remaining'**
+  String todayPlanProgress(int visited, int skipped, int remaining);
+
+  /// No description provided for @todayPlanDirections.
+  ///
+  /// In en, this message translates to:
+  /// **'Directions'**
+  String get todayPlanDirections;
+
+  /// No description provided for @todayPlanPlanningEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Planning estimate'**
+  String get todayPlanPlanningEstimate;
+
+  /// No description provided for @todayPlanRouteEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Route estimate'**
+  String get todayPlanRouteEstimate;
+
+  /// No description provided for @todayPlanTravel.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel · {minutes} min'**
+  String todayPlanTravel(int minutes);
+
+  /// No description provided for @todayPlanDirectionsTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Directions to {place}'**
+  String todayPlanDirectionsTo(String place);
+
+  /// No description provided for @todayPlanVisited.
+  ///
+  /// In en, this message translates to:
+  /// **'Visited'**
+  String get todayPlanVisited;
+
+  /// No description provided for @todayPlanSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get todayPlanSkipped;
+
+  /// No description provided for @viewRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'View route'**
+  String get viewRoute;
+
+  /// No description provided for @editVisitDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit visit duration'**
+  String get editVisitDuration;
+
+  /// No description provided for @openFullscreenMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Open fullscreen map'**
+  String get openFullscreenMap;
+
+  /// No description provided for @resumePageScrolling.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume page scrolling'**
+  String get resumePageScrolling;
+
+  /// No description provided for @enableMapPanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable map panning'**
+  String get enableMapPanning;
+
+  /// No description provided for @recenterRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Recenter route'**
+  String get recenterRoute;
+
+  /// No description provided for @zoomInMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom in'**
+  String get zoomInMap;
+
+  /// No description provided for @zoomOutMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom out'**
+  String get zoomOutMap;
+
+  /// No description provided for @journeySegments.
+  ///
+  /// In en, this message translates to:
+  /// **'Journey segments'**
+  String get journeySegments;
+
+  /// No description provided for @journeySegmentMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'{duration} · {distance} km'**
+  String journeySegmentMetrics(String duration, String distance);
+
+  /// No description provided for @journeySegmentLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min late'**
+  String journeySegmentLate(int minutes);
+
+  /// No description provided for @journeySegmentBuffer.
+  ///
+  /// In en, this message translates to:
+  /// **'+{minutes} min buffer'**
+  String journeySegmentBuffer(int minutes);
+
+  /// No description provided for @journeySegmentLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading route…'**
+  String get journeySegmentLoading;
+
+  /// No description provided for @journeySegmentUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Route unavailable'**
+  String get journeySegmentUnavailable;
+
+  /// No description provided for @journeySegmentMissingCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'Route unavailable · Missing coordinates'**
+  String get journeySegmentMissingCoordinates;
+
+  /// No description provided for @journeySegmentDayOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} (+{days, plural, one{1 day} other{{days} days}})'**
+  String journeySegmentDayOffset(String time, int days);
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
+import '../data/curated_attractions.dart';
 import 'place_catalog_service.dart';
 import 'google_places_service.dart';
 import 'verified_catalog_service.dart';
@@ -11,32 +12,18 @@ class PlacesService {
     http.Client? client,
     PlaceCatalogService? catalog,
     GooglePlacesService? google,
+    this.includeCuratedFallback = false,
   }) : _catalog = catalog ?? VerifiedCatalogService();
   final PlaceCatalogService _catalog;
+  final bool includeCuratedFallback;
 
   bool hasMore = false;
   List<Map<String, dynamic>> attributions = [];
   String? get lastError =>
       _catalog is VerifiedCatalogService ? _catalog.loadError : null;
 
-  static String nearestState(double latitude, double longitude) {
-    var best = double.infinity;
-    var state = 'Kuala Lumpur';
-    for (final candidate in malaysiaStatesData) {
-      for (final area in candidate.areas) {
-        final distance = const Distance().as(
-          LengthUnit.Meter,
-          LatLng(latitude, longitude),
-          LatLng(area.latitude, area.longitude),
-        );
-        if (distance < best) {
-          best = distance;
-          state = candidate.name;
-        }
-      }
-    }
-    return state;
-  }
+  static String nearestState(double latitude, double longitude) =>
+      nearestMalaysiaState(LatLng(latitude, longitude));
 
   Future<PlacesPage> fetchPage({
     required double latitude,
@@ -59,25 +46,40 @@ class PlacesService {
         source: 'Cancelled',
       );
     }
-    final byId = <String, Attraction>{};
-    for (final row in rows.where(VerifiedCatalogService.usable)) {
-      if (radiusMeters == null && row['state'] != selectedState) continue;
-      if (!matchesCategory(row['category'].toString(), category)) continue;
-      if (!row['name'].toString().toLowerCase().contains(
-        query.trim().toLowerCase(),
-      )) {
-        continue;
-      }
-      final item = Attraction.fromGooglePlaceJson(
-        PlaceCatalogService.asGoogleShape(row),
-        centerLat: latitude,
-        centerLon: longitude,
-      );
-      if (radiusMeters == null ||
-          (item.distanceMeters ?? double.infinity) <= radiusMeters) {
-        byId[item.xid] = item;
-      }
-    }
+    final catalogRows = rows
+        .where(VerifiedCatalogService.usable)
+        .where((row) => radiusMeters != null || row['state'] == selectedState)
+        .toList();
+    final curated = includeCuratedFallback && catalogRows.isEmpty
+        ? curatedAttractionsForState(selectedState).toList()
+        : const <Attraction>[];
+    final center = LatLng(latitude, longitude);
+    final candidates = curated.isNotEmpty
+        ? curated.map(
+            (place) => place.copyWith(
+              distanceMeters: const Distance().as(
+                LengthUnit.Meter,
+                center,
+                place.point,
+              ),
+            ),
+          )
+        : catalogRows.map(
+            (row) => Attraction.fromGooglePlaceJson(
+              PlaceCatalogService.asGoogleShape(row),
+              centerLat: latitude,
+              centerLon: longitude,
+            ),
+          );
+    final search = query.trim().toLowerCase();
+    final byId = <String, Attraction>{
+      for (final place in candidates)
+        if (matchesCategory(place.category, category) &&
+            place.name.toLowerCase().contains(search) &&
+            (radiusMeters == null ||
+                (place.distanceMeters ?? double.infinity) <= radiusMeters))
+          place.xid: place,
+    };
     final items = byId.values.toList()
       ..sort((a, b) {
         final distance = (a.distanceMeters ?? 0).compareTo(
@@ -93,11 +95,12 @@ class PlacesService {
       items: pageItems,
       nextOffset: next,
       hasMore: hasMore,
-      source: _catalog.lastLoadOffline
+      source: curated.isNotEmpty
+          ? 'Curated app catalog'
+          : _catalog.lastLoadOffline
           ? 'Saved verified catalog'
           : 'Verified database catalog',
-      failure:
-          items.isEmpty && rows.where(VerifiedCatalogService.usable).isEmpty
+      failure: catalogRows.isEmpty && curated.isEmpty
           ? (_catalog is VerifiedCatalogService && _catalog.setupRequired
                 ? PlacesFailure.service
                 : _catalog.lastLoadOffline
@@ -112,6 +115,10 @@ class PlacesService {
   static bool matchesCategory(String value, String filter) {
     final cat = filter.toLowerCase(), kind = value.toLowerCase();
     if (cat == 'all') return true;
+    if (kind.contains('theme park') || kind.contains('amusement park')) {
+      if (cat.contains('nature')) return false;
+      if (cat.contains('sight')) return true;
+    }
     final terms = cat.contains('cafe')
         ? ['cafe', 'coffee']
         : cat.contains('food')

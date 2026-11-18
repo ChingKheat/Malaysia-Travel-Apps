@@ -912,7 +912,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get activePlannedTrip => 'Perjalanan Aktif Dirancang';
 
   @override
-  String get activeItinerary => 'JADUAL AKTIF';
+  String get activeItinerary => 'Jadual aktif';
 
   @override
   String get activeTripPlanCleared => 'Rancangan perjalanan aktif dikosongkan';
@@ -2576,7 +2576,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get outdoor2 => '☀️ Luar bangunan';
 
   @override
-  String get topRated => '✨ Penilaian Tertinggi';
+  String get topRated => 'Penilaian tertinggi';
 
   @override
   String get sights => '🏛️ Tarikan';
@@ -3440,4 +3440,152 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get googleRouteReviewReminder =>
       'Semak laluan dan waktu operasi sebelum perjalanan, terutamanya selepas suntingan luar talian.';
+
+  @override
+  String get todayPlan => 'Rancangan hari ini';
+
+  @override
+  String get todayPlanEndPrompt => 'Tamatkan perjalanan hari ini?';
+
+  @override
+  String get todayPlanEnd => 'Tamatkan hari ini';
+
+  @override
+  String get todayPlanTripActions => 'Tindakan perjalanan';
+
+  @override
+  String get todayPlanPause => 'Jeda perjalanan';
+
+  @override
+  String get todayPlanSkip => 'Langkau hentian';
+
+  @override
+  String get todayPlanDelay => 'Lewatkan 15 min';
+
+  @override
+  String get todayPlanUpdating => 'Mengemas kini rancangan perjalanan';
+
+  @override
+  String get todayPlanTimeline => 'Jadual perjalanan';
+
+  @override
+  String get todayPlanMarkVisited => 'Tandakan sudah dilawati';
+
+  @override
+  String get todayPlanResume => 'Sambung perjalanan';
+
+  @override
+  String get todayPlanStart => 'Mulakan perjalanan';
+
+  @override
+  String get todayPlanEnded => 'Perjalanan hari ini telah ditamatkan';
+
+  @override
+  String get todayPlanComplete => 'Perjalanan hari ini selesai';
+
+  @override
+  String get todayPlanPaused => 'Perjalanan dijeda';
+
+  @override
+  String get todayPlanCurrentStop => 'Hentian semasa';
+
+  @override
+  String get todayPlanFirstStop => 'Hentian pertama';
+
+  @override
+  String todayPlanMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String todayPlanNext(String place, String time) {
+    return 'Seterusnya · $place · $time';
+  }
+
+  @override
+  String todayPlanProgress(int visited, int skipped, int remaining) {
+    return '$visited dilawati · $skipped dilangkau · $remaining berbaki';
+  }
+
+  @override
+  String get todayPlanDirections => 'Arah perjalanan';
+
+  @override
+  String get todayPlanPlanningEstimate => 'Anggaran perancangan';
+
+  @override
+  String get todayPlanRouteEstimate => 'Anggaran laluan';
+
+  @override
+  String todayPlanTravel(int minutes) {
+    return 'Perjalanan · $minutes min';
+  }
+
+  @override
+  String todayPlanDirectionsTo(String place) {
+    return 'Arah ke $place';
+  }
+
+  @override
+  String get todayPlanVisited => 'Sudah dilawati';
+
+  @override
+  String get todayPlanSkipped => 'Dilangkau';
+
+  @override
+  String get viewRoute => 'Lihat laluan';
+
+  @override
+  String get editVisitDuration => 'Edit tempoh lawatan';
+
+  @override
+  String get openFullscreenMap => 'Buka peta skrin penuh';
+
+  @override
+  String get resumePageScrolling => 'Sambung tatal halaman';
+
+  @override
+  String get enableMapPanning => 'Aktifkan pergerakan peta';
+
+  @override
+  String get recenterRoute => 'Pusatkan semula laluan';
+
+  @override
+  String get zoomInMap => 'Zum masuk';
+
+  @override
+  String get zoomOutMap => 'Zum keluar';
+
+  @override
+  String get journeySegments => 'Segmen perjalanan';
+
+  @override
+  String journeySegmentMetrics(String duration, String distance) {
+    return '$duration · $distance km';
+  }
+
+  @override
+  String journeySegmentLate(int minutes) {
+    return 'Lewat $minutes min';
+  }
+
+  @override
+  String journeySegmentBuffer(int minutes) {
+    return '+$minutes min masa lapang';
+  }
+
+  @override
+  String get journeySegmentLoading => 'Memuatkan laluan…';
+
+  @override
+  String get journeySegmentUnavailable => 'Laluan tidak tersedia';
+
+  @override
+  String get journeySegmentMissingCoordinates =>
+      'Laluan tidak tersedia · Koordinat tiada';
+
+  @override
+  String journeySegmentDayOffset(String time, int days) {
+    return '$time (+$days hari)';
+  }
 }

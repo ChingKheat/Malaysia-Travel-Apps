@@ -260,14 +260,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppColors.nightAccent
-                                                    .withValues(alpha: 0.4),
-                                                blurRadius: 16,
-                                                offset: const Offset(0, 6),
-                                              ),
-                                            ],
                                           ),
                                           child: ElevatedButton(
                                             onPressed: _handleGetStarted,

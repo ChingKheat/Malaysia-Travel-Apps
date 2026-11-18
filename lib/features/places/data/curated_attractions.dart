@@ -1,5 +1,27 @@
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 
+/// Returns bundled places within the selected state or federal territory.
+Iterable<Attraction> curatedAttractionsForState(String state) {
+  const stateByIdPrefix = {
+    'kl': 'Kuala Lumpur',
+    'penang': 'Penang',
+    'melaka': 'Melaka',
+    'putrajaya': 'Putrajaya',
+    'selangor': 'Selangor',
+    'langkawi': 'Kedah',
+    'ipoh': 'Perak',
+    'sabah': 'Sabah',
+    'sarawak': 'Sarawak',
+    'johor': 'Johor',
+  };
+  const stateById = {'curated_kl_02': 'Selangor'}; // Batu Caves
+
+  return curatedMalaysianAttractions.where((place) {
+    final prefix = place.xid.split('_')[1];
+    return (stateById[place.xid] ?? stateByIdPrefix[prefix]) == state;
+  });
+}
+
 /// Curated Malaysian tourist attractions across various states.
 /// Serves as the primary offline-resilient catalog for Browse Attractions (UC400)
 /// whenever Google Places API is unreachable or returns empty results.
@@ -360,5 +382,32 @@ const List<Attraction> curatedMalaysianAttractions = [
     category: 'Foods, Culture, Historic',
     description:
         'Charming heritage enclave in Johor Bahru celebrating traditional Chinese bakeries (Hiap Joo banana cake), hipster cafes, and cultural street fairs.',
+  ),
+  Attraction(
+    xid: 'curated_johor_03',
+    name: 'Sultan Abu Bakar State Mosque',
+    latitude: 1.4569555555556,
+    longitude: 103.75105277778,
+    category: 'Religion, Culture, Landmark',
+    sourceUrl: 'https://www.wikidata.org/wiki/Q2478866',
+    sourceLicense: 'CC0 1.0 (Wikidata structured data)',
+  ),
+  Attraction(
+    xid: 'curated_johor_04',
+    name: 'Arulmigu Sri Rajakaliamman Glass Temple',
+    latitude: 1.46861111,
+    longitude: 103.75972222,
+    category: 'Religion, Culture, Temple',
+    sourceUrl: 'https://www.wikidata.org/wiki/Q4802043',
+    sourceLicense: 'CC0 1.0 (Wikidata structured data)',
+  ),
+  Attraction(
+    xid: 'curated_johor_05',
+    name: 'Johor Zoo',
+    latitude: 1.4575,
+    longitude: 103.75225,
+    category: 'Nature, Wildlife, Zoo',
+    sourceUrl: 'https://www.wikidata.org/wiki/Q28219616',
+    sourceLicense: 'CC0 1.0 (Wikidata structured data)',
   ),
 ];

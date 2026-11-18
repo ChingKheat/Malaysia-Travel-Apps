@@ -2481,7 +2481,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outdoor2 => '☀️ 室外';
 
   @override
-  String get topRated => '✨ 高评分';
+  String get topRated => '高评分';
 
   @override
   String get sights => '🏛️ 景点';
@@ -3299,4 +3299,151 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get googleRouteReviewReminder => '出发前请检查路线和营业时间，尤其是在离线编辑后。';
+
+  @override
+  String get todayPlan => '今日计划';
+
+  @override
+  String get todayPlanEndPrompt => '结束今天的行程？';
+
+  @override
+  String get todayPlanEnd => '结束今日行程';
+
+  @override
+  String get todayPlanTripActions => '行程操作';
+
+  @override
+  String get todayPlanPause => '暂停行程';
+
+  @override
+  String get todayPlanSkip => '跳过此站';
+
+  @override
+  String get todayPlanDelay => '延后 15 分钟';
+
+  @override
+  String get todayPlanUpdating => '正在更新行程计划';
+
+  @override
+  String get todayPlanTimeline => '行程时间表';
+
+  @override
+  String get todayPlanMarkVisited => '标记为已到访';
+
+  @override
+  String get todayPlanResume => '继续行程';
+
+  @override
+  String get todayPlanStart => '开始行程';
+
+  @override
+  String get todayPlanEnded => '今日行程已结束';
+
+  @override
+  String get todayPlanComplete => '今日行程已完成';
+
+  @override
+  String get todayPlanPaused => '行程已暂停';
+
+  @override
+  String get todayPlanCurrentStop => '当前站点';
+
+  @override
+  String get todayPlanFirstStop => '第一站';
+
+  @override
+  String todayPlanMinutes(int minutes) {
+    return '$minutes 分钟';
+  }
+
+  @override
+  String todayPlanNext(String place, String time) {
+    return '下一站 · $place · $time';
+  }
+
+  @override
+  String todayPlanProgress(int visited, int skipped, int remaining) {
+    return '已到访 $visited 站 · 已跳过 $skipped 站 · 剩余 $remaining 站';
+  }
+
+  @override
+  String get todayPlanDirections => '导航';
+
+  @override
+  String get todayPlanPlanningEstimate => '规划预估';
+
+  @override
+  String get todayPlanRouteEstimate => '路线预估';
+
+  @override
+  String todayPlanTravel(int minutes) {
+    return '途中 · $minutes 分钟';
+  }
+
+  @override
+  String todayPlanDirectionsTo(String place) {
+    return '导航至$place';
+  }
+
+  @override
+  String get todayPlanVisited => '已到访';
+
+  @override
+  String get todayPlanSkipped => '已跳过';
+
+  @override
+  String get viewRoute => '查看路线';
+
+  @override
+  String get editVisitDuration => '编辑参观时长';
+
+  @override
+  String get openFullscreenMap => '打开全屏地图';
+
+  @override
+  String get resumePageScrolling => '恢复页面滚动';
+
+  @override
+  String get enableMapPanning => '启用地图平移';
+
+  @override
+  String get recenterRoute => '重新居中路线';
+
+  @override
+  String get zoomInMap => '放大';
+
+  @override
+  String get zoomOutMap => '缩小';
+
+  @override
+  String get journeySegments => '行程路段';
+
+  @override
+  String journeySegmentMetrics(String duration, String distance) {
+    return '$duration · $distance 公里';
+  }
+
+  @override
+  String journeySegmentLate(int minutes) {
+    return '迟到 $minutes 分钟';
+  }
+
+  @override
+  String journeySegmentBuffer(int minutes) {
+    return '+$minutes 分钟空档';
+  }
+
+  @override
+  String get journeySegmentLoading => '正在加载路线…';
+
+  @override
+  String get journeySegmentUnavailable => '路线暂不可用';
+
+  @override
+  String get journeySegmentMissingCoordinates => '路线不可用 · 缺少坐标';
+
+  @override
+  String journeySegmentDayOffset(String time, int days) {
+    return '$time（+$days 天）';
+  }
 }

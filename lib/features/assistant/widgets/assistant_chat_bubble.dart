@@ -91,23 +91,12 @@ class AssistantChatBubble extends StatelessWidget {
             height: 32,
             margin: const EdgeInsets.only(top: 2),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: AppColors.nightAccentContainer,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
             child: const Icon(
-              Icons.smart_toy_rounded,
-              color: Colors.white,
+              Icons.explore_outlined,
+              color: AppColors.primary,
               size: 17,
             ),
           ),

@@ -1,5 +1,7 @@
 // Malaysian states and city coordinates catalog.
 
+import 'package:latlong2/latlong.dart';
+
 class CityArea {
   final String name;
   final double latitude;
@@ -15,13 +17,43 @@ class CityArea {
 class MalaysiaStateData {
   final String name;
   final List<CityArea> areas;
+  final String? browseCenterName;
 
-  const MalaysiaStateData({required this.name, required this.areas});
+  const MalaysiaStateData({
+    required this.name,
+    required this.areas,
+    this.browseCenterName,
+  });
+
+  CityArea get browseCenter => areas.firstWhere(
+    (area) => area.name == (browseCenterName ?? name),
+    orElse: () => areas.first,
+  );
+}
+
+String nearestMalaysiaState(LatLng location) {
+  var nearest = 'Kuala Lumpur';
+  var closest = double.infinity;
+  for (final state in malaysiaStatesData) {
+    for (final area in state.areas) {
+      final distance = const Distance().as(
+        LengthUnit.Meter,
+        location,
+        LatLng(area.latitude, area.longitude),
+      );
+      if (distance < closest) {
+        closest = distance;
+        nearest = state.name;
+      }
+    }
+  }
+  return nearest;
 }
 
 const malaysiaStatesData = [
   MalaysiaStateData(
     name: 'Johor',
+    browseCenterName: 'Johor Bahru',
     areas: [
       CityArea(name: 'Ayer Hitam', latitude: 1.9181728, longitude: 103.1795162),
       CityArea(name: 'Batu Pahat', latitude: 1.8472584, longitude: 102.9346697),

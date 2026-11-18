@@ -1191,7 +1191,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       label: Text(st),
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
-                        color: isSel ? Colors.white : AppColors.ink,
+                        color: isSel ? AppColors.onNightAccent : AppColors.ink,
                         fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
                         fontSize: 12,
                       ),

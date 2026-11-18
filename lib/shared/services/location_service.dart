@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import '../data/malaysia_states.dart';
 
 class LocationService extends ChangeNotifier {
   static final LocationService _instance = LocationService._internal();
   factory LocationService() => _instance;
   LocationService._internal();
 
-  LatLng _currentLocation = const LatLng(3.1390, 101.6869); // Default KL City Centre
+  LatLng _currentLocation = const LatLng(
+    3.1390,
+    101.6869,
+  ); // Default KL City Centre
   String? _currentState = 'Kuala Lumpur';
   String? get currentState => _currentState;
+  String get destinationState =>
+      _currentState ?? nearestMalaysiaState(_currentLocation);
   bool _isUsingRealGps = false;
   String _currentAreaName = 'Kuala Lumpur City Centre';
 
@@ -16,7 +22,12 @@ class LocationService extends ChangeNotifier {
   bool get isUsingRealGps => _isUsingRealGps;
   String get currentAreaName => _currentAreaName;
 
-  void updateLocation(LatLng location, String areaName, {bool isRealGps = false, String? state}) {
+  void updateLocation(
+    LatLng location,
+    String areaName, {
+    bool isRealGps = false,
+    String? state,
+  }) {
     _currentState = state;
     _currentLocation = location;
     _currentAreaName = areaName;

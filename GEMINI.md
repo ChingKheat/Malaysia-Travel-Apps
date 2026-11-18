@@ -30,3 +30,14 @@
 
 ## 4. Flutter Development Protocol
 * When editing Dart or Flutter files, check for a running application connection via Dart Tooling Daemon (DTD) and trigger a hot reload if available. If no app is running, proceed smoothly without blocking.
+
+---
+
+## 5. UI Design & Craft Standard (Always-On "Unslop" Protocol)
+Whenever designing, writing, or refactoring Flutter UI (screens, widgets, cards, dialogs):
+1. **Quiet Chrome:** Keep backgrounds, navigation bars, borders, and card containers calm and neutral. Use one intentional brand accent color. Eliminate arbitrary glows, multi-color gradient borders, purple AI haze, and gratuitous blur/glassmorphism.
+2. **No AI Clichés:** Strip out decorative emoji badges (e.g., "✨ New", "⚡ Super"), pulsing dots, glossy blobs, and noisy uppercase tracked labels.
+3. **Strict Rhythm & Spacing:** Enforce an 8-point spatial grid (`4`, `8`, `12`, `16`, `24`, `32`). Keep padding and margins consistent across cards, lists, and headers.
+4. **Intentional Typography:** Maintain high-contrast text hierarchy (Headline, Title, Body, Caption). Headlines must sit on calm, readable negative space.
+5. **One Focal Element:** Ensure each screen or card has exactly one clear visual anchor (e.g. curated attraction photo, interactive route map, or primary statistic) rather than competing visual elements.
+

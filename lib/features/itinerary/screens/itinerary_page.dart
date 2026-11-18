@@ -416,8 +416,8 @@ class _ItineraryPageState extends State<ItineraryPage>
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.08)
-                                : Colors.grey.shade50,
+                                ? AppColors.primary.withValues(alpha: 0.12)
+                                : AppColors.nightRaised,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
@@ -432,7 +432,7 @@ class _ItineraryPageState extends State<ItineraryPage>
                                 radius: 20,
                                 backgroundColor: isSelected
                                     ? AppColors.primary
-                                    : Colors.grey.shade200,
+                                    : AppColors.nightAccentContainer,
                                 child: Icon(
                                   Icons.place,
                                   color: isSelected
@@ -491,7 +491,7 @@ class _ItineraryPageState extends State<ItineraryPage>
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: isSelected
-                                        ? Colors.white
+                                        ? AppColors.onNightAccent
                                         : AppColors.ink,
                                   ),
                                 ),
@@ -522,8 +522,8 @@ class _ItineraryPageState extends State<ItineraryPage>
                                   tooltip: context.l10n.deleteOrClearItinerary,
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
-                                    minWidth: 32,
-                                    minHeight: 32,
+                                    minWidth: 48,
+                                    minHeight: 48,
                                   ),
                                   onPressed: () async {
                                     final userPrefs = TripPreferencesService
@@ -1038,9 +1038,8 @@ class _ItineraryPageState extends State<ItineraryPage>
                           context.l10n.activeItinerary,
                           style: TextStyle(
                             color: AppColors.muted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.6,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -1049,7 +1048,7 @@ class _ItineraryPageState extends State<ItineraryPage>
                           style: const TextStyle(
                             color: AppColors.ink,
                             fontSize: 15,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
@@ -1137,7 +1136,7 @@ class _ItineraryPageState extends State<ItineraryPage>
                       ),
                     ),
                     icon: const Icon(Icons.play_arrow),
-                    label: const Text('Today’s Plan'),
+                    label: Text(context.l10n.todayPlan),
                   ),
                 TextButton.icon(
                   onPressed: () {
@@ -1153,7 +1152,7 @@ class _ItineraryPageState extends State<ItineraryPage>
                     }
                   },
                   icon: const Icon(Icons.route_outlined),
-                  label: const Text('View Route'),
+                  label: Text(context.l10n.viewRoute),
                 ),
               ],
             ),
@@ -1514,17 +1513,6 @@ class DayPill extends StatelessWidget {
                   : AppColors.nightLine,
               width: 1.4,
             ),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ]
-                : null,
           ),
           child: Center(
             child: Text(
@@ -1532,8 +1520,8 @@ class DayPill extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: active ? AppColors.onNightAccent : AppColors.nightBody,
-                fontWeight: FontWeight.w800,
-                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
           ),

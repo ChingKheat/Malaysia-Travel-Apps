@@ -1251,13 +1251,14 @@ class _PlannerPageState extends State<PlannerPage> {
   @override
   Widget build(BuildContext context) {
     final canEditDates = _testingForm || _destinationConfirmed;
-    final canEditPace =
+    final canEditTravelers =
         _testingForm ||
         (canEditDates &&
             _datesConfirmed &&
             _calculatedDays <= 30 &&
-            _logisticsConfirmed &&
-            _travelersConfirmed);
+            _logisticsConfirmed);
+    final canEditPace =
+        _testingForm || (canEditTravelers && _travelersConfirmed);
     final canEditMode = _testingForm || (canEditPace && _paceConfirmed);
     final canEditBudget =
         _testingForm ||
@@ -1500,7 +1501,13 @@ class _PlannerPageState extends State<PlannerPage> {
                 const SizedBox(height: 16),
                 _PlanSection(
                   key: _travelersKey,
+                  enabled: canEditTravelers,
                   isHighlighted: _activeStep == PlanStep.travelerPreferences,
+                  onTap: canEditTravelers
+                      ? () => setState(
+                          () => _activeStep = PlanStep.travelerPreferences,
+                        )
+                      : null,
                   icon: Icons.groups_outlined,
                   title: context.l10n.planWhoPace,
                   description: '',

@@ -1,3 +1,6 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
@@ -7,6 +10,37 @@ import 'package:smart_travel_planner/features/places/models/google_place_details
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'Explore photos decode from the bundled assets for their exact places',
+    () async {
+      for (final (id, filename) in [
+        ('curated_kl_03', 'central_market.jpg'),
+        ('curated_kl_09', 'perdana_botanical_gardens.jpg'),
+        ('curated_johor_01', 'legoland_malaysia.jpg'),
+        ('curated_johor_02', 'tan_hiok_nee.jpg'),
+        ('curated_johor_03', 'sultan_abu_bakar_mosque.jpg'),
+        ('curated_johor_04', 'rajakaliamman_glass_temple.jpg'),
+        ('curated_johor_05', 'johor_zoo.jpg'),
+      ]) {
+        final attraction = curatedMalaysianAttractions.singleWhere(
+          (place) => place.xid == id,
+        );
+        final asset = 'assets/recognition/$filename';
+        expect(AttractionImageResolver.resolveAsset(attraction), asset);
+        final bytes = await rootBundle.load(asset);
+        final codec = await ui.instantiateImageCodec(
+          bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+        );
+        final frame = await codec.getNextFrame();
+        expect(frame.image.width, 960);
+        frame.image.dispose();
+        codec.dispose();
+      }
+    },
+  );
+
   test(
     'Catalog photo references survive conversion and distance copies for cards',
     () {

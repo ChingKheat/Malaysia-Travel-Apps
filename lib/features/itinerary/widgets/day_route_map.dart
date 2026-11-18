@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/theme/app_decorations.dart';
@@ -238,7 +239,7 @@ class _RouteViewState extends State<_RouteView> {
                 ),
                 IconButton(
                   onPressed: _places().isEmpty ? null : _openFullscreen,
-                  tooltip: 'Open fullscreen map',
+                  tooltip: context.l10n.openFullscreenMap,
                   icon: const Icon(Icons.fullscreen),
                 ),
               ],
@@ -254,7 +255,7 @@ class _RouteViewState extends State<_RouteView> {
                 tilePadding: EdgeInsets.zero,
                 expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
                 leading: const Icon(Icons.route_outlined),
-                title: const Text('Journey segments'),
+                title: Text(context.l10n.journeySegments),
                 children: _orderedStops(
                   routes,
                   includeStops: false,
@@ -373,8 +374,8 @@ class _RouteViewState extends State<_RouteView> {
                         if (!widget.fullscreen)
                           IconButton(
                             tooltip: _panEnabled
-                                ? 'Resume page scrolling'
-                                : 'Enable map panning',
+                                ? context.l10n.resumePageScrolling
+                                : context.l10n.enableMapPanning,
                             isSelected: _panEnabled,
                             selectedIcon: const Icon(Icons.pan_tool),
                             icon: const Icon(Icons.pan_tool_outlined),
@@ -382,17 +383,17 @@ class _RouteViewState extends State<_RouteView> {
                                 setState(() => _panEnabled = !_panEnabled),
                           ),
                         IconButton(
-                          tooltip: 'Recenter route',
+                          tooltip: context.l10n.recenterRoute,
                           icon: const Icon(Icons.center_focus_strong),
                           onPressed: () => _fit(routes),
                         ),
                         IconButton(
-                          tooltip: 'Zoom in',
+                          tooltip: context.l10n.zoomInMap,
                           icon: const Icon(Icons.add),
                           onPressed: () => _move(gm.CameraUpdate.zoomIn()),
                         ),
                         IconButton(
-                          tooltip: 'Zoom out',
+                          tooltip: context.l10n.zoomOutMap,
                           icon: const Icon(Icons.remove),
                           onPressed: () => _move(gm.CameraUpdate.zoomOut()),
                         ),
@@ -545,75 +546,154 @@ class _RouteViewState extends State<_RouteView> {
   String _clock(int minutes) =>
       '${TravelStop.formatMinutes(minutes)}${minutes >= 1440 ? ' (+${minutes ~/ 1440} day)' : ''}';
 
-  Widget _segmentTile(int index, List<RouteInfo?>? routes, bool loading) {
+  Widget _segmentCard(int index, List<RouteInfo?>? routes, bool loading) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = context.l10n;
+    final origin = _stops[index];
+    final destination = _stops[index + 1];
     final route = routes?.elementAtOrNull(index);
     final timing = route == null
         ? null
-        : DayRouteTiming.between(_stops[index], _stops[index + 1], route);
+        : DayRouteTiming.between(origin, destination, route);
     final late = timing?.late ?? 0;
     final waiting = timing?.waiting ?? 0;
+    final selected = _leg == index;
+    final (modeIcon, modeLabel) = switch (destination.inboundMode ??
+        widget.mode) {
+      'Driving' => (Icons.directions_car_outlined, l10n.driving),
+      'Walking' => (Icons.directions_walk, l10n.walking),
+      'Public Transport' => (Icons.train_outlined, l10n.publicTransport),
+      'E-hailing' => (Icons.directions_car_outlined, l10n.planHailing),
+      _ => (Icons.route_outlined, null),
+    };
+    final metrics = route != null
+        ? l10n.journeySegmentMetrics(
+            l10n.valueMin(route.durationMinutes.ceil().toString()),
+            route.distanceKm.toStringAsFixed(1),
+          )
+        : !TripNavigation.hasCoordinates(origin) ||
+              !TripNavigation.hasCoordinates(destination)
+        ? l10n.journeySegmentMissingCoordinates
+        : loading
+        ? l10n.journeySegmentLoading
+        : l10n.journeySegmentUnavailable;
+    final status = late > 0
+        ? l10n.journeySegmentLate(late)
+        : waiting > 0
+        ? l10n.journeySegmentBuffer(waiting)
+        : null;
+    final statusColor = late > 0
+        ? colors.onErrorContainer
+        : colors.onSurfaceVariant;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      selected: _leg == index,
-      selectedTileColor: colors.secondaryContainer,
-      selectedColor: colors.onSecondaryContainer,
-      onTap: () => _selectLeg(index, routes),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('From ${index + 1}. ${_stops[index].title}'),
-          const SizedBox(height: 4),
-          Text('To ${index + 2}. ${_stops[index + 1].title}'),
-        ],
-      ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (timing != null)
-              Wrap(
-                spacing: 12,
-                runSpacing: 4,
-                children: [
-                  Text('Depart ${_clock(timing.departure)}'),
-                  Text('Arrive ${_clock(timing.arrival)}'),
-                ],
-              ),
-            Text(
-              route == null
-                  ? _journey(index, routes, loading: loading)
-                  : '${route.distanceKm.toStringAsFixed(1)} km · ${route.durationMinutes.ceil()} min',
-            ),
-            if (waiting > 0) Text('$waiting min free before the next visit'),
-            if (late > 0) ...[
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 18,
-                    color: colors.error,
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? colors.surfaceContainerHigh : colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: selected ? colors.primary : colors.outlineVariant,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _selectLeg(index, routes),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (timing != null) ...[
+                  Text(
+                    '${_segmentClock(timing.departure)} → '
+                    '${_segmentClock(timing.arrival)}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Arrives $late min after the next visit starts',
-                      style: TextStyle(color: colors.error),
+                  const SizedBox(height: 4),
+                ],
+                Text(
+                  '${origin.title} → ${destination.title}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      modeIcon,
+                      semanticLabel: modeLabel,
+                      size: 16,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        metrics,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (status != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: ShapeDecoration(
+                      color: late > 0
+                          ? colors.errorContainer
+                          : colors.surfaceContainerHighest,
+                      shape: const StadiumBorder(),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (late > 0) ...[
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            size: 16,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Flexible(
+                          child: Text(
+                            status,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
-            ],
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
+  }
+
+  String _segmentClock(int minutes) {
+    final time = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay(hour: (minutes ~/ 60) % 24, minute: minutes % 60),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    );
+    final days = minutes ~/ 1440;
+    return days == 0 ? time : context.l10n.journeySegmentDayOffset(time, days);
   }
 
   Iterable<Widget> _orderedStops(
@@ -642,8 +722,8 @@ class _RouteViewState extends State<_RouteView> {
             onTap: () => _selectLeg(index, routes),
           );
         } else {
-          if (i > 0) yield const Divider(height: 1);
-          yield _segmentTile(i, routes, loading);
+          if (i > 0) yield const SizedBox(height: 8);
+          yield _segmentCard(i, routes, loading);
         }
       }
     }

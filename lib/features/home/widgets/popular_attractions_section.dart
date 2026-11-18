@@ -1,5 +1,6 @@
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
+import 'package:smart_travel_planner/features/places/widgets/attraction_asset_image.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
@@ -280,11 +281,10 @@ class PopularAttractionCard extends StatelessWidget {
                       errorBuilder: (_, _, _) => fallback,
                     )
                   : localPhoto != null
-                  ? Image.asset(
-                      localPhoto,
-                      fit: BoxFit.cover,
-                      excludeFromSemantics: true,
-                      errorBuilder: (_, _, _) => fallback,
+                  ? AttractionAssetImage(
+                      attraction: attraction,
+                      asset: localPhoto,
+                      fallback: fallback,
                     )
                   : _LiveAttractionPhoto(
                       key: ValueKey(attraction.xid),

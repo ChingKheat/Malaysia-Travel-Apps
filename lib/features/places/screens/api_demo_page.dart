@@ -35,7 +35,7 @@ class ApiDemoPage extends StatefulWidget {
 }
 
 class _ApiDemoPageState extends State<ApiDemoPage> {
-  final _placesService = PlacesService();
+  final _placesService = PlacesService(includeCuratedFallback: true);
   final _routeService = GoogleRouteService();
   final _itineraryService = ItineraryService();
   final _locationService = LocationService();
@@ -257,12 +257,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     return _attractions;
   }
 
-  String get _destinationState =>
-      _locationService.currentState ??
-      PlacesService.nearestState(
-        _locationService.currentLocation.latitude,
-        _locationService.currentLocation.longitude,
-      );
+  String get _destinationState => _locationService.destinationState;
 
   Future<void> _showLocationSelectorSheet() async {
     final selected = await showModalBottomSheet<MalaysiaStateData>(
@@ -287,7 +282,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       ),
     );
     if (!mounted || selected == null) return;
-    final reference = selected.areas.first;
+    final reference = selected.browseCenter;
     _searchDebounce?.cancel();
     _searchQuery = '';
     _searchController.clear();

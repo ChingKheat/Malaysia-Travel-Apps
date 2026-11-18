@@ -16,6 +16,7 @@ import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/auth/screens/auth_screen.dart';
 import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setup_screen.dart';
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
+import 'package:smart_travel_planner/shared/services/location_service.dart';
 import 'package:smart_travel_planner/shared/widgets/app_header.dart';
 
 class TravelShell extends StatefulWidget {
@@ -149,11 +150,16 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
                   offstage: _myTripsOpen,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    child: AppHeader(
-                      onMyTripsTap: _openMyTrips,
-                      title: _tabTitles[_selectedIndex],
-                      subtitle: _tabSubtitles[_selectedIndex],
-                      isDark: true,
+                    child: ListenableBuilder(
+                      listenable: LocationService(),
+                      builder: (context, _) => AppHeader(
+                        onMyTripsTap: _openMyTrips,
+                        title: _tabTitles[_selectedIndex],
+                        subtitle: _selectedIndex == 0
+                            ? LocationService().destinationState
+                            : _tabSubtitles[_selectedIndex],
+                        isDark: true,
+                      ),
                     ),
                   ),
                 ),
