@@ -15,6 +15,8 @@ import 'package:smart_travel_planner/features/image_recognition/widgets/recognit
 import 'package:smart_travel_planner/features/image_recognition/screens/recognition_scan_screen.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
+import 'package:smart_travel_planner/shared/services/location_service.dart';
+import 'package:latlong2/latlong.dart';
 
 class _Picker extends ImagePicker {
   _Picker({this.pick});
@@ -90,6 +92,7 @@ class _Service extends ImageRecognitionService {
 
 class _NearbyService extends _Service {
   final queries = <String>[];
+  final centers = <LatLng?>[];
 
   @override
   Future<GooglePlaceDetails?> lookupPlace(String name, {String? area}) async =>
@@ -100,8 +103,12 @@ class _NearbyService extends _Service {
       });
 
   @override
-  Future<List<GooglePlaceDetails>> searchPlaces(String query) async {
+  Future<List<GooglePlaceDetails>> searchPlaces(
+    String query, {
+    LatLng? near,
+  }) async {
     queries.add(query);
+    centers.add(near);
     return query.startsWith('restaurants')
         ? const [
             GooglePlaceDetails('cafe-id', {
@@ -121,6 +128,34 @@ class _NearbyService extends _Service {
             }),
           ];
   }
+}
+
+class _FoodNearbyService extends _NearbyService {
+  @override
+  Future<List<GooglePlaceDetails>> searchPlaces(
+    String query, {
+    LatLng? near,
+  }) async {
+    queries.add(query);
+    centers.add(near);
+    if (query.startsWith('Nasi Dagang restaurants')) {
+      return const [
+        GooglePlaceDetails('food-place-id', {
+          'displayName': {'text': 'East Coast Kitchen'},
+          'primaryTypeDisplayName': {'text': 'Malaysian restaurant'},
+          'formattedAddress': 'Kuala Lumpur, Malaysia',
+          'location': {'latitude': 3.14, 'longitude': 101.69},
+        }),
+      ];
+    }
+    return const [];
+  }
+}
+
+class _NoOriginService extends _NearbyService {
+  @override
+  Future<GooglePlaceDetails?> lookupPlace(String name, {String? area}) async =>
+      null;
 }
 
 void main() {
@@ -343,6 +378,149 @@ void main() {
       ]);
     },
   );
+
+  testWidgets('A nearby card explains when distance cannot be calculated', (
+    tester,
+  ) async {
+    phone(tester);
+    final api = _NoOriginService();
+    addTearDown(api.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RecognitionResultSheet(
+            result: RecognitionResult(
+              name: 'Unknown Museum',
+              kind: 'landmark',
+              description: '',
+              location: 'Kampar',
+              recognizedAt: DateTime(2026),
+            ),
+            service: api,
+            onNewScan: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Kampar Heritage Park'), 130);
+    expect(
+      find.text('Distance unavailable until location is known'),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('A dish result searches for nearby restaurants serving it', (
+    tester,
+  ) async {
+    phone(tester);
+    final api = _FoodNearbyService();
+    addTearDown(api.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RecognitionResultSheet(
+            result: RecognitionResult(
+              name: 'Nasi Dagang',
+              kind: 'food',
+              description: 'East coast rice dish.',
+              location: '',
+              recognizedAt: DateTime(2026),
+            ),
+            service: api,
+            onNewScan: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('East Coast Kitchen'), 120);
+    expect(find.text('East Coast Kitchen'), findsOneWidget);
+    expect(
+      api.queries,
+      contains('Nasi Dagang restaurants near Kuala Lumpur City Centre'),
+    );
+    expect(find.textContaining('Check the menu'), findsOneWidget);
+    expect(find.textContaining('Enable location'), findsOneWidget);
+  });
+
+  testWidgets('adding a scanned place shows the plan count and opens Plan', (
+    tester,
+  ) async {
+    phone(tester);
+    var openedPlan = false;
+    final api = _NearbyService();
+    addTearDown(api.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RecognitionResultSheet(
+            userId: 'scan-plan-flow-test',
+            result: RecognitionResult(
+              name: 'Sultan Abdul Samad Building',
+              kind: 'landmark',
+              description: '',
+              location: 'Kuala Lumpur',
+              recognizedAt: DateTime(2026),
+            ),
+            service: api,
+            onNewScan: () {},
+            onOpenPlan: () => openedPlan = true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add to itinerary').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Places selected for your plan'), findsOneWidget);
+    expect(find.text('1 place'), findsOneWidget);
+    final button = find.text('Add to Plan');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    expect(openedPlan, true);
+  });
+
+  testWidgets('Dish restaurants use real GPS area before photo area', (
+    tester,
+  ) async {
+    phone(tester);
+    final location = LocationService();
+    location.updateLocation(
+      const LatLng(5.41, 100.33),
+      'George Town',
+      isRealGps: true,
+    );
+    addTearDown(
+      () => location.updateLocation(
+        const LatLng(3.1390, 101.6869),
+        'Kuala Lumpur City Centre',
+      ),
+    );
+    final api = _FoodNearbyService();
+    addTearDown(api.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RecognitionResultSheet(
+            result: RecognitionResult(
+              name: 'Roti Canai',
+              kind: 'food',
+              description: '',
+              location: '',
+              recognizedAt: DateTime(2026),
+              areaHint: 'Kuala Lumpur',
+            ),
+            service: api,
+            onNewScan: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(api.queries, contains('Roti Canai restaurants'));
+    expect(api.centers, contains(const LatLng(5.41, 100.33)));
+  });
 
   for (final entry in {
     ImageSource.camera: 'Take Photo',

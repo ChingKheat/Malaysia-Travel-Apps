@@ -13,6 +13,9 @@ typedef ScanSpot = ({
 
 const twinSpiresPhoto = 'assets/recognition/scan_twin_spires.png';
 
+String foodVenueSearchQuery(String dish, String area) =>
+    '${dish.trim()} restaurants near ${area.trim()}';
+
 Attraction? scanLandmark(RecognitionResult result) =>
     result.kind == 'landmark' ? scanLandmarkByName(result.name) : null;
 
@@ -54,10 +57,11 @@ List<ScanSpot> scanSpots(RecognitionResult result, Attraction? origin) {
     final meters = origin == null ? null : distance(origin.point, place.point);
     if (meters != null && meters > 15000) continue;
     if (isFood &&
-        !RegExp(
-          '(^|[^a-z])${RegExp.escape(name)}'
-          r'([^a-z]|$)',
-        ).hasMatch((place.description ?? '').toLowerCase())) {
+        (!_isDining(place.category) ||
+            !RegExp(
+              '(^|[^a-z])${RegExp.escape(name)}'
+              r'([^a-z]|$)',
+            ).hasMatch((place.description ?? '').toLowerCase()))) {
       continue;
     }
     spots.add((place, meters));

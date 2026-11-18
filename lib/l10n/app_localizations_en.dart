@@ -12,6 +12,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanAddToItinerary => 'Add to itinerary';
 
   @override
+  String get scanAddedToPlan => 'Added to plan';
+
+  @override
+  String get scanPlanPlaces => 'Places selected for your plan';
+
+  @override
+  String get scanPlanOnePlace => '1 place';
+
+  @override
   String get scanAddToWishlist => 'Add to wishlist';
 
   @override
@@ -58,7 +67,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanScannedLandmark => 'the scanned landmark';
 
   @override
-  String get scanMapLocation => 'the map location';
+  String get scanMapLocation => 'your current location';
 
   @override
   String scanDistanceWalk(int minutes, String distance, String origin) {
@@ -69,6 +78,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String scanDistanceAway(String distance, String origin) {
     return '$distance from $origin';
   }
+
+  @override
+  String get scanDistanceUnavailable =>
+      'Distance unavailable until location is known';
 
   @override
   String get scanMapSearchHelp => 'Search more places on Google Maps';
@@ -1642,11 +1655,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'We couldn’t identify a specific landmark from this photo. Retake it or choose a clearer image from your gallery.';
 
   @override
-  String get scanIdentifyLandmark => 'Identify a landmark';
+  String get scanIdentifyLandmark => 'Scan a place or dish';
 
   @override
   String get scanPhotoIntro =>
-      'Take a photo of a landmark or choose one from your gallery.';
+      'Take a photo of a Malaysian landmark, restaurant sign, or local dish—or choose one from your gallery.';
+
+  @override
+  String scanListedPlaceDescription(
+    String name,
+    String category,
+    String address,
+  ) {
+    return '$name is listed as $category at $address. Check the place listing for more details.';
+  }
+
+  @override
+  String scanPlaceDescriptionPending(String name) {
+    return 'More details for $name are not verified yet. Check the place listing before visiting.';
+  }
 
   @override
   String get scanPhotoTips => 'Tips for a clearer photo';
@@ -1707,6 +1734,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get scanGuideDishVenues =>
       'Places in the travel guide that mention this dish';
+
+  @override
+  String get scanDishVenuesHelp =>
+      'Restaurants matched to this dish search. Check the menu before visiting.';
+
+  @override
+  String scanDishAreaFallback(String area) {
+    return 'Showing restaurants around $area. Enable location for results near you.';
+  }
 
   @override
   String get scanFoodAndCafes => 'Food & Cafés';

@@ -106,6 +106,24 @@ abstract class AppLocalizations {
   /// **'Add to itinerary'**
   String get scanAddToItinerary;
 
+  /// No description provided for @scanAddedToPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to plan'**
+  String get scanAddedToPlan;
+
+  /// No description provided for @scanPlanPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Places selected for your plan'**
+  String get scanPlanPlaces;
+
+  /// No description provided for @scanPlanOnePlace.
+  ///
+  /// In en, this message translates to:
+  /// **'1 place'**
+  String get scanPlanOnePlace;
+
   /// No description provided for @scanAddToWishlist.
   ///
   /// In en, this message translates to:
@@ -193,7 +211,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanMapLocation.
   ///
   /// In en, this message translates to:
-  /// **'the map location'**
+  /// **'your current location'**
   String get scanMapLocation;
 
   /// No description provided for @scanDistanceWalk.
@@ -207,6 +225,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{distance} from {origin}'**
   String scanDistanceAway(String distance, String origin);
+
+  /// No description provided for @scanDistanceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance unavailable until location is known'**
+  String get scanDistanceUnavailable;
 
   /// No description provided for @scanMapSearchHelp.
   ///
@@ -2954,14 +2978,30 @@ abstract class AppLocalizations {
   /// No description provided for @scanIdentifyLandmark.
   ///
   /// In en, this message translates to:
-  /// **'Identify a landmark'**
+  /// **'Scan a place or dish'**
   String get scanIdentifyLandmark;
 
   /// No description provided for @scanPhotoIntro.
   ///
   /// In en, this message translates to:
-  /// **'Take a photo of a landmark or choose one from your gallery.'**
+  /// **'Take a photo of a Malaysian landmark, restaurant sign, or local dish—or choose one from your gallery.'**
   String get scanPhotoIntro;
+
+  /// No description provided for @scanListedPlaceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is listed as {category} at {address}. Check the place listing for more details.'**
+  String scanListedPlaceDescription(
+    String name,
+    String category,
+    String address,
+  );
+
+  /// No description provided for @scanPlaceDescriptionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'More details for {name} are not verified yet. Check the place listing before visiting.'**
+  String scanPlaceDescriptionPending(String name);
 
   /// No description provided for @scanPhotoTips.
   ///
@@ -3064,6 +3104,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Places in the travel guide that mention this dish'**
   String get scanGuideDishVenues;
+
+  /// No description provided for @scanDishVenuesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Restaurants matched to this dish search. Check the menu before visiting.'**
+  String get scanDishVenuesHelp;
+
+  /// No description provided for @scanDishAreaFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing restaurants around {area}. Enable location for results near you.'**
+  String scanDishAreaFallback(String area);
 
   /// No description provided for @scanFoodAndCafes.
   ///

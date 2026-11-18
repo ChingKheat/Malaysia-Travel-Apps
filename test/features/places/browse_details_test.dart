@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
+import 'package:smart_travel_planner/features/places/data/attraction_metadata_resolver.dart';
 import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
@@ -47,6 +48,32 @@ class FakeGoogle extends GooglePlacesService {
 }
 
 void main() {
+  test(
+    'place description uses verified facts or an honest listing summary',
+    () {
+      const place = Attraction(
+        xid: 'google_testplace',
+        name: 'Test Garden',
+        latitude: 3.1,
+        longitude: 101.7,
+        category: 'Park',
+      );
+      expect(
+        AttractionMetadataResolver.resolveDescription(
+          place,
+          address: 'Putrajaya, Malaysia',
+        ),
+        contains('listed as Park at Putrajaya, Malaysia'),
+      );
+      expect(
+        AttractionMetadataResolver.resolveDescription(
+          place,
+          googleDescription: 'A botanical garden.',
+        ),
+        'A botanical garden.',
+      );
+    },
+  );
   test(
     'an empty catalog never calls Google or fabricates local places',
     () async {

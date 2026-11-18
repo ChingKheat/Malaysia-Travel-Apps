@@ -12,6 +12,15 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanAddToItinerary => 'Tambah pada itinerari';
 
   @override
+  String get scanAddedToPlan => 'Ditambah ke pelan';
+
+  @override
+  String get scanPlanPlaces => 'Tempat dipilih untuk pelan anda';
+
+  @override
+  String get scanPlanOnePlace => '1 tempat';
+
+  @override
   String get scanAddToWishlist => 'Tambah ke senarai hajat';
 
   @override
@@ -58,7 +67,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanScannedLandmark => 'mercu tanda yang diimbas';
 
   @override
-  String get scanMapLocation => 'lokasi peta';
+  String get scanMapLocation => 'lokasi semasa anda';
 
   @override
   String scanDistanceWalk(int minutes, String distance, String origin) {
@@ -69,6 +78,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String scanDistanceAway(String distance, String origin) {
     return '$distance dari $origin';
   }
+
+  @override
+  String get scanDistanceUnavailable =>
+      'Jarak tidak tersedia sehingga lokasi diketahui';
 
   @override
   String get scanMapSearchHelp => 'Cari lebih banyak tempat di Google Maps';
@@ -1648,11 +1661,25 @@ class AppLocalizationsMs extends AppLocalizations {
       'Kami tidak dapat mengenal pasti mercu tanda tertentu daripada foto ini. Ambil semula foto atau pilih imej yang lebih jelas daripada galeri.';
 
   @override
-  String get scanIdentifyLandmark => 'Kenal pasti mercu tanda';
+  String get scanIdentifyLandmark => 'Imbas tempat atau hidangan';
 
   @override
   String get scanPhotoIntro =>
-      'Ambil gambar mercu tanda atau pilih foto daripada galeri.';
+      'Ambil gambar mercu tanda Malaysia, papan tanda restoran atau hidangan tempatan, atau pilih foto daripada galeri.';
+
+  @override
+  String scanListedPlaceDescription(
+    String name,
+    String category,
+    String address,
+  ) {
+    return '$name disenaraikan sebagai $category di $address. Semak penyenaraian tempat untuk maklumat lanjut.';
+  }
+
+  @override
+  String scanPlaceDescriptionPending(String name) {
+    return 'Maklumat lanjut tentang $name belum disahkan. Semak penyenaraian tempat sebelum melawat.';
+  }
 
   @override
   String get scanPhotoTips => 'Petua untuk foto yang lebih jelas';
@@ -1713,6 +1740,15 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get scanGuideDishVenues =>
       'Tempat dalam panduan perjalanan yang menyebut hidangan ini';
+
+  @override
+  String get scanDishVenuesHelp =>
+      'Restoran yang sepadan dengan carian hidangan ini. Semak menu sebelum berkunjung.';
+
+  @override
+  String scanDishAreaFallback(String area) {
+    return 'Memaparkan restoran di sekitar $area. Aktifkan lokasi untuk hasil berdekatan anda.';
+  }
 
   @override
   String get scanFoodAndCafes => 'Makanan dan Kafe';

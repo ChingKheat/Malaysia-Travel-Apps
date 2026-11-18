@@ -6,6 +6,10 @@ Sign in with an online registered account, open **Scan**, and take a photo or
 choose one from the gallery. Scanning starts after you select the photo. JPEG,
 PNG and WebP photos are accepted, with a 4 MB limit after the picker's
 resizing/compression.
+The app automatically checks the photo for landmarks, local dishes and
+restaurant signs. Curated destinations use their guide description;
+dynamic listings use Google editorial text when available, then a category
+and address summary instead of inventing place details.
 
 The Scan Page shows how to steady the camera, frame the whole landmark, and
 include a readable sign. An uncertain result offers both **Retake photo** and
@@ -42,7 +46,7 @@ the `GOOGLE_BACKEND_API_KEY` Edge Function secret. Its value is the
 Places API (New), Routes API, Cloud Vision API and Cloud Translation API.
 
 The context function can also use the existing server-side `GEMINI_API_KEY`
-to suggest a landmark or Malaysian dish from the photo on an uncertain scan. `GEMINI_SCAN_MODEL`
+to suggest a landmark, Malaysian dish, or readable restaurant sign from the photo on an uncertain scan. `GEMINI_SCAN_MODEL`
 can override the scan model independently of the planner. Context scans still
 use Vision for OCR and web clues when Gemini is unavailable.
 
@@ -70,8 +74,12 @@ uncertain scan compares Vision candidates with OCR, web clues and the local
 image index. An optional Gemini suggestion must resolve to a matching Malaysian
 Google Places listing before the app presents it for user confirmation. An
 optional dish suggestion can include a dish outside the bundled index. The app
-confirms an agreeing local photo match or presents the dish as a candidate,
-without querying Google Places for it. An
+confirms a dish when independent image clues agree, or presents it as a candidate
+without querying Google Places for it. Restaurant names require a matching
+Malaysian restaurant listing before they appear as candidates. A food photo
+alone cannot identify its restaurant. Confirmed dishes trigger a Places search
+for restaurants associated with the dish near the scan area or current area;
+listings do not prove that a specific dish is currently on the menu. An
 OCR area narrows the place lookup. If the photo yields only an area, the app
 looks up places in that area and labels them as suggestions. If it cannot narrow
 the search, it suggests taking a photo of a sign, entrance, or wider view. A

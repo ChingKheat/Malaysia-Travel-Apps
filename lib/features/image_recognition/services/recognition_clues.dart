@@ -57,6 +57,11 @@ ReferenceSubject? knownScanLandmark(String name) {
   return subject?.kind == 'landmark' ? subject : null;
 }
 
+ReferenceSubject? knownScanFood(String name) {
+  final subject = _knownNames[scanNameKey(name)];
+  return subject?.kind == 'food' ? subject : null;
+}
+
 final _landmarkWord = RegExp(
   r'\b(bridge|caves?|castle|falls|waterfall|fort|garden|geopark|hill|'
   r'island|masjid|mosque|mount|museum|palace|park|building|'
@@ -123,6 +128,7 @@ typedef ClueMatch = ({
   String? area,
   String? visualSuggestion,
   String? foodSuggestion,
+  String? restaurantSuggestion,
 });
 
 ClueMatch matchPhotoClues(Map<String, dynamic> data) {
@@ -155,9 +161,16 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
   final webNames = (data['names'] as List? ?? const []).whereType<String>();
   final suggestion = data['visualSuggestion'];
   final food = data['foodSuggestion'];
+  final restaurant = data['restaurantSuggestion'];
   final foodSuggestion =
       food is String && food.length <= 90 && scanNameKey(food).length >= 3
       ? food.trim()
+      : null;
+  final restaurantSuggestion =
+      restaurant is String &&
+          restaurant.length <= 90 &&
+          scanNameKey(restaurant).length >= 5
+      ? restaurant.trim()
       : null;
   final visualSuggestion =
       suggestion is String &&
@@ -276,6 +289,7 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
       area: area,
       visualSuggestion: visualSuggestion,
       foodSuggestion: foodSuggestion,
+      restaurantSuggestion: restaurantSuggestion,
     );
   }
   final first = ranked.first;
@@ -307,5 +321,6 @@ ClueMatch matchPhotoClues(Map<String, dynamic> data) {
     area: area,
     visualSuggestion: visualSuggestion,
     foodSuggestion: foodSuggestion,
+    restaurantSuggestion: restaurantSuggestion,
   );
 }

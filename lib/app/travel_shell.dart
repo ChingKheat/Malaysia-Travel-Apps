@@ -118,8 +118,11 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
           'recognition:${AuthService().currentUser?.uid ?? 'guest'}',
         ),
         userId: AuthService().currentUser?.uid ?? 'guest',
+        onOpenPlan: () => _goToTab(3),
       ),
       PlannerPage(
+        key: ValueKey('planner:${AuthService().currentUser?.uid ?? 'guest'}'),
+        userId: AuthService().currentUser?.uid ?? 'guest',
         onItineraryReady: _openMyTrips,
         onMyTripsTap: _openMyTrips,
         useModernPicker: true,

@@ -188,6 +188,49 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Opening a scanned Wishlist place reuses its uploaded photo', (
+    tester,
+  ) async {
+    phoneSize(tester);
+    const name = 'Batu Caves';
+    await PlaceWishlistStore('recognition-test').toggle(
+      const Attraction(
+        xid: 'scan_batu_caves',
+        name: name,
+        latitude: 3.23,
+        longitude: 101.68,
+        category: 'Landmark',
+      ),
+    );
+    const photoId = '00000000-0000-4000-8000-000000000002';
+    final photo = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==',
+    );
+    final history = _PhotoHistoryStore([
+      (
+        result: RecognitionResult(
+          name: name,
+          kind: 'landmark',
+          description: name,
+          location: 'Malaysia',
+          recognizedAt: DateTime(2026),
+        ),
+        photoId: photoId,
+      ),
+    ], photo);
+    await tester.pumpWidget(page(historyStore: history));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(name));
+    await tester.pumpAndSettle();
+    final detail = tester.widget<AttractionDetailPage>(
+      find.byType(AttractionDetailPage),
+    );
+    expect(detail.heroPhoto, isA<MemoryImage>());
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('History stays visible with a full list of previous scans', (
     tester,
   ) async {
@@ -289,6 +332,7 @@ void main() {
     await tester.tap(add);
     await tester.pumpAndSettle();
     expect(find.widgetWithText(FilledButton, 'Saved'), findsWidgets);
+    expect(find.text('Saved to favorite places'), findsNothing);
     expect(
       (await PlaceWishlistStore('recognition-test').load()).single.name,
       'Petronas Twin Towers',

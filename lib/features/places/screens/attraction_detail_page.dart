@@ -22,6 +22,7 @@ class AttractionDetailPage extends StatefulWidget {
     this.isSaved = false,
     this.heroPhoto,
     this.initialDetails,
+    this.showSaveFeedback = true,
   });
 
   final Attraction attraction;
@@ -30,6 +31,7 @@ class AttractionDetailPage extends StatefulWidget {
   final bool isSaved;
   final ImageProvider<Object>? heroPhoto;
   final GooglePlaceDetails? initialDetails;
+  final bool showSaveFeedback;
 
   @override
   State<AttractionDetailPage> createState() => _AttractionDetailPageState();
@@ -129,18 +131,20 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
       setState(() => _saved = !_saved);
     }
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _saved
-              ? context.l10n.savedToFavoritePlaces
-              : context.l10n.removedFromSavedPlaces,
+    if (widget.showSaveFeedback) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _saved
+                ? context.l10n.savedToFavoritePlaces
+                : context.l10n.removedFromSavedPlaces,
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    }
   }
 
   Future<void> _sharePlace() async {
@@ -200,9 +204,10 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
 
     final description = AttractionMetadataResolver.resolveDescription(
       a,
-      details?.description,
-      rating,
-      reviewCount,
+      googleDescription: details?.description,
+      rating: rating,
+      reviewCount: reviewCount,
+      address: details?.address,
     );
 
     final resolvedAddress = AttractionMetadataResolver.resolveAddress(

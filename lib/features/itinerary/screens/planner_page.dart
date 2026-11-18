@@ -15,6 +15,7 @@ import 'package:smart_travel_planner/features/itinerary/widgets/modern_date_rang
 import 'itinerary_page.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
+import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
 
 class _DepartureSearch extends SearchDelegate<TravelStop?> {
   _DepartureSearch(this.options, this.destination, {this.excluded = const {}});
@@ -138,6 +139,7 @@ class PlannerPage extends StatefulWidget {
     super.key,
     required this.onItineraryReady,
     this.onMyTripsTap,
+    this.userId = 'guest',
     this.useModernPicker = false,
     @visibleForTesting this.enableTestingBypass = false,
     @visibleForTesting this.initialDestination,
@@ -151,6 +153,7 @@ class PlannerPage extends StatefulWidget {
 
   final VoidCallback onItineraryReady;
   final VoidCallback? onMyTripsTap;
+  final String userId;
   final bool useModernPicker;
   final bool enableTestingBypass;
   final String? initialDestination;
@@ -188,6 +191,9 @@ class _PlannerPageState extends State<PlannerPage> {
   PaceCategory get _selectedPace => _pace ?? PaceCategory.balanced;
   DietaryPreference _diet = DietaryPreference.unrestricted;
   final _mustVisit = <TravelStop>[];
+  late final ScanPlanPlacesStore _scanPlanPlaces = ScanPlanPlacesStore(
+    widget.userId,
+  );
   final _secondaryModes = <String>{};
 
   static const _klOrigins = [
@@ -222,6 +228,30 @@ class _PlannerPageState extends State<PlannerPage> {
     'category': place.category,
     'is_indoor': place.isIndoor,
   });
+
+  List<TravelStop> get _allMustVisitPlaces {
+    final seenNames = <String>{};
+    return [
+      ..._mustVisit,
+      for (final place in _scanPlanPlaces.places)
+        TravelStop(
+          title: place.name,
+          time: '',
+          note: place.category,
+          description: place.description ?? '',
+          duration: '90 min',
+          openingHours: 'Hours unverified',
+          tips: const [],
+          icon: Icons.place_outlined,
+          color: AppColors.primary,
+          category: place.category,
+          placeId: place.googlePlaceId ?? place.xid,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          dataSource: place.googlePlaceId == null ? 'local' : 'google',
+        ),
+    ].where((stop) => seenNames.add(stop.title.trim().toLowerCase())).toList();
+  }
 
   Future<void> _chooseHighlight() async {
     if (_mustVisit.length >= 3) return;
@@ -317,6 +347,7 @@ class _PlannerPageState extends State<PlannerPage> {
 
   @override
   void dispose() {
+    _scanPlanPlaces.removeListener(_onScanPlanPlacesChanged);
     ProfilePreferencesService.instance.removeListener(_loadProfileDefaults);
     _description.dispose();
     _scrollController.dispose();
@@ -334,6 +365,8 @@ class _PlannerPageState extends State<PlannerPage> {
   @override
   void initState() {
     super.initState();
+    _scanPlanPlaces.addListener(_onScanPlanPlacesChanged);
+    _scanPlanPlaces.load();
     _testingForm = widget.enableTestingBypass;
     if (!_testingForm) {
       ProfilePreferencesService.instance.addListener(_loadProfileDefaults);
@@ -388,6 +421,10 @@ class _PlannerPageState extends State<PlannerPage> {
     } else {
       _activeStep = PlanStep.generate;
     }
+  }
+
+  void _onScanPlanPlacesChanged() {
+    if (mounted) setState(() {});
   }
 
   String _formatDate(DateTime date) {
@@ -641,7 +678,7 @@ class _PlannerPageState extends State<PlannerPage> {
       travelerType: _travelerType,
       paceCategory: _selectedPace,
       dietaryPreference: _diet,
-      mustVisitPlaces: List.unmodifiable(_mustVisit),
+      mustVisitPlaces: List.unmodifiable(_allMustVisitPlaces),
       secondaryTransportModes: List.unmodifiable(
         _secondaryModes.where((mode) => mode != travelMode),
       ),
@@ -1878,6 +1915,33 @@ class _PlannerPageState extends State<PlannerPage> {
                           ),
                       ],
                     ),
+                    if (_scanPlanPlaces.places.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        context.l10n.scanPlanPlaces,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        _scanPlanPlaces.places.length == 1
+                            ? context.l10n.scanPlanOnePlace
+                            : context.l10n.valuePlaces(
+                                _scanPlanPlaces.places.length.toString(),
+                              ),
+                      ),
+                      for (final place in _scanPlanPlaces.places)
+                        ListTile(
+                          key: ValueKey('plan-scan-place-${place.xid}'),
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.place_outlined),
+                          title: Text(place.name),
+                          subtitle: Text(place.category),
+                          trailing: IconButton(
+                            tooltip: context.l10n.removeStop,
+                            onPressed: () => _scanPlanPlaces.remove(place.xid),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ),
+                    ],
                     if (interestError)
                       const _PlanFieldError('Choose at least one interest.'),
                     if (!_interestsConfirmed)

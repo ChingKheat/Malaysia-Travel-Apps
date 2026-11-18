@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:smart_travel_planner/features/image_recognition/data/recognition_presets.dart';
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
@@ -19,6 +20,21 @@ void main() {
     endpoint: 'https://backend.test/image-recognition',
     referenceLookup: referenceLookup ?? (_) async => null,
   );
+
+  test('Nearby place requests include the current GPS coordinates', () async {
+    final client = MockClient((request) async {
+      final body = jsonDecode(request.body) as Map;
+      expect(body['operation'], 'scan_places');
+      expect(body['query'], 'nasi lemak restaurants');
+      expect(body['latitude'], 3.14);
+      expect(body['longitude'], 101.69);
+      return http.Response('{"places":[]}', 200);
+    });
+    addTearDown(client.close);
+    await service(
+      client,
+    ).searchPlaces('nasi lemak restaurants', near: const LatLng(3.14, 101.69));
+  });
 
   test(
     'Gemini can suggest a dish outside the bundled index without Places',
@@ -79,6 +95,156 @@ void main() {
       expect(result.name, 'Satay');
       expect(result.kind, 'food');
       expect(result.source, RecognitionSource.reference);
+    },
+  );
+
+  test('An exact dish label alone remains a possible match', () async {
+    final client = MockClient(
+      (_) async => http.Response(
+        '{"labels":[{"name":"Char Kway Teow","score":0.94}]}',
+        200,
+      ),
+    );
+    addTearDown(client.close);
+    final result = await service(client).recognize(Uint8List.fromList([1]));
+    expect(result.kind, 'unknown');
+    expect(result.referenceCandidates.single.name, 'Char Kway Teow');
+    expect(result.referenceCandidates.single.kind, 'food');
+  });
+
+  test('A dish visual clue prevents a landmark false positive', () async {
+    final client = MockClient((request) async {
+      final operation = (jsonDecode(request.body) as Map)['operation'];
+      return http.Response(
+        operation == 'recognize_context'
+            ? '{"foodSuggestion":"Roti Canai"}'
+            : '{"landmarks":[{"name":"Petronas Twin Towers","score":0.94}]}',
+        200,
+      );
+    });
+    addTearDown(client.close);
+    final result = await service(client).recognize(Uint8List.fromList([1]));
+    expect(result.kind, 'unknown');
+    expect(result.referenceCandidates.map((item) => item.kind), [
+      'landmark',
+      'food',
+    ]);
+  });
+
+  test('A matching visual clue keeps a strong landmark result', () async {
+    final client = MockClient((request) async {
+      final operation = (jsonDecode(request.body) as Map)['operation'];
+      return http.Response(
+        operation == 'recognize_context'
+            ? '{"visualSuggestion":"Petronas Twin Towers"}'
+            : '{"landmarks":[{"name":"Petronas Twin Towers","score":0.94}]}',
+        200,
+      );
+    });
+    addTearDown(client.close);
+    final result = await service(client).recognize(Uint8List.fromList([1]));
+    expect(result.kind, 'landmark');
+    expect(result.name, 'Petronas Twin Towers');
+  });
+
+  test(
+    'A restaurant sign visual clue prevents a landmark false positive',
+    () async {
+      final client = MockClient((request) async {
+        final operation = (jsonDecode(request.body) as Map)['operation'];
+        return http.Response(
+          operation == 'recognize_context'
+              ? '{"restaurantSuggestion":"Village Park Restaurant"}'
+              : '{"landmarks":[{"name":"Petronas Twin Towers","score":0.91}]}',
+          200,
+        );
+      });
+      addTearDown(client.close);
+      final result = await service(client).recognize(Uint8List.fromList([1]));
+      expect(result.kind, 'unknown');
+      expect(result.referenceCandidates.map((item) => item.kind), [
+        'landmark',
+        'restaurant',
+      ]);
+    },
+  );
+
+  test('Vision and Gemini agreeing on a dish confirm it', () async {
+    final client = MockClient((request) async {
+      final operation = (jsonDecode(request.body) as Map)['operation'];
+      return http.Response(
+        operation == 'recognize_context'
+            ? '{"foodSuggestion":"Char Koay Teow"}'
+            : '{"labels":[{"name":"Char Kway Teow","score":0.94}]}',
+        200,
+      );
+    });
+    addTearDown(client.close);
+    final result = await service(client).recognize(Uint8List.fromList([1]));
+    expect(result.name, 'Char Kway Teow');
+    expect(result.kind, 'food');
+    expect(result.description, isNotEmpty);
+  });
+
+  test('Conflicting dish evidence asks the user to choose', () async {
+    final client = MockClient((request) async {
+      final operation = (jsonDecode(request.body) as Map)['operation'];
+      return http.Response(
+        operation == 'recognize_context'
+            ? '{"foodSuggestion":"Nasi Lemak"}'
+            : '{"labels":[{"name":"Char Kway Teow","score":0.94}]}',
+        200,
+      );
+    });
+    addTearDown(client.close);
+    final result = await service(client).recognize(Uint8List.fromList([1]));
+    expect(result.kind, 'unknown');
+    expect(
+      result.referenceCandidates.map((item) => item.name),
+      containsAll(['Nasi Lemak', 'Char Kway Teow']),
+    );
+  });
+
+  test('A restaurant sign needs a matching restaurant listing', () async {
+    final client = MockClient((request) async {
+      final operation = (jsonDecode(request.body) as Map)['operation'];
+      return http.Response(switch (operation) {
+        'recognize_context' =>
+          '{"restaurantSuggestion":"Village Park Restaurant"}',
+        'scan_places' =>
+          '{"places":[{"id":"restaurant123","displayName":{"text":"Village Park Restaurant"},"primaryTypeDisplayName":{"text":"Restaurant"},"formattedAddress":"Petaling Jaya, Malaysia"}]}',
+        _ => '{}',
+      }, 200);
+    });
+    addTearDown(client.close);
+    final api = service(client);
+    final result = await api.recognize(Uint8List.fromList([1]));
+    expect(result.kind, 'unknown');
+    expect(result.referenceCandidates.single.kind, 'restaurant');
+    final confirmed = api.confirmReference(
+      result,
+      result.referenceCandidates.single.id,
+    );
+    expect(confirmed.kind, 'restaurant');
+    expect(confirmed.placeId, 'restaurant123');
+  });
+
+  test(
+    'A restaurant suggestion without a matching listing stays uncertain',
+    () async {
+      final client = MockClient((request) async {
+        final operation = (jsonDecode(request.body) as Map)['operation'];
+        return http.Response(
+          operation == 'recognize_context'
+              ? '{"restaurantSuggestion":"Made Up Restaurant"}'
+              : '{}',
+          200,
+        );
+      });
+      addTearDown(client.close);
+      final result = await service(client).recognize(Uint8List.fromList([1]));
+      expect(result.kind, 'unknown');
+      expect(result.referenceCandidates, isEmpty);
     },
   );
 
@@ -313,7 +479,7 @@ void main() {
   );
 
   test(
-    'Specific high-confidence dish detection resolves a curated description',
+    'Specific dish label needs corroboration before a confident result',
     () async {
       final client = MockClient(
         (_) async => http.Response(
@@ -334,10 +500,10 @@ void main() {
         },
       );
       final result = await api.recognize(Uint8List.fromList([1]));
-      expect(result.name, 'Nasi Lemak');
-      expect(result.kind, 'food');
+      expect(result.referenceCandidates.single.name, 'Nasi Lemak');
+      expect(result.kind, 'unknown');
       expect(result.source, RecognitionSource.vision);
-      expect(lookupCalls, 0);
+      expect(lookupCalls, 1);
       client.close();
     },
   );
