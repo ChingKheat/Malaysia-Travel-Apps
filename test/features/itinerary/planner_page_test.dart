@@ -4,8 +4,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/itinerary_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
+import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
+import 'package:smart_travel_planner/shared/models/attraction.dart';
 
 void main() {
+  testWidgets('places selected from Scan appear under highlights', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = ScanPlanPlacesStore('planner-scan-test');
+    await store.add(
+      const Attraction(
+        xid: 'google_klccpark',
+        name: 'KLCC Park',
+        latitude: 3.15,
+        longitude: 101.71,
+        category: 'Park',
+      ),
+    );
+    await _openPlanner(
+      tester,
+      userId: 'planner-scan-test',
+      enableTestingBypass: true,
+    );
+    final place = find.byKey(const ValueKey('plan-scan-place-google_klccpark'));
+    await _reveal(tester, place);
+    expect(find.text('KLCC Park'), findsOneWidget);
+    expect(find.text('Places selected for your plan'), findsOneWidget);
+  });
+
   testWidgets('all traveler, pace and dining choices can be selected', (
     tester,
   ) async {
@@ -521,6 +548,7 @@ Future<void> _reveal(WidgetTester tester, Finder target) async {
 
 Future<void> _openPlanner(
   WidgetTester tester, {
+  String userId = 'guest',
   double width = 400,
   double scale = 1,
   bool enableTestingBypass = false,
@@ -546,6 +574,7 @@ Future<void> _openPlanner(
       ),
       home: Scaffold(
         body: PlannerPage(
+          userId: userId,
           onItineraryReady: () {},
           onMyTripsTap: () {},
           enableTestingBypass: enableTestingBypass,

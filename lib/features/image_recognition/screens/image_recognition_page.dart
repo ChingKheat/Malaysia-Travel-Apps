@@ -18,6 +18,9 @@ import 'package:smart_travel_planner/features/places/screens/attraction_detail_p
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
 import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
+import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
+import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
+import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
 
@@ -31,12 +34,14 @@ class ImageRecognitionPage extends StatefulWidget {
     this.service,
     this.imagePicker,
     this.historyStore,
+    this.onOpenPlan,
   });
 
   final String userId;
   final ImageRecognitionService? service;
   final ImagePicker? imagePicker;
   final RecognitionHistoryStore? historyStore;
+  final VoidCallback? onOpenPlan;
 
   @override
   State<ImageRecognitionPage> createState() => _ImageRecognitionPageState();
@@ -51,6 +56,8 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   late final Future<void> _historyLoaded;
   List<RecognitionHistoryEntry> _history = [];
   final Map<String, Future<Uint8List?>> _historyPhotos = {};
+  final Map<String, Future<GooglePlaceDetails?>> _wishlistDetails = {};
+  late final GooglePlacesService _placesService = GooglePlacesService();
   bool _showHistory = false;
   bool _showWishlist = false;
   bool _selectingHistory = false;
@@ -126,20 +133,74 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   );
 
   Widget _wishlistThumbnail(Attraction place) {
-    final photoId = _history
-        .where(
-          (entry) =>
-              entry.result.name.toLowerCase() == place.name.toLowerCase(),
-        )
-        .map((entry) => entry.photoId)
-        .nonNulls
-        .firstOrNull;
+    final photoId = _wishlistPhotoId(place);
     if (photoId != null) return _historyThumbnail(photoId);
     final asset = AttractionImageResolver.resolveAsset(place);
-    if (asset == null) return _missingHistoryThumbnail();
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(9),
-      child: Image.asset(asset, width: 56, height: 56, fit: BoxFit.cover),
+    if (asset != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(9),
+        child: Image.asset(asset, width: 56, height: 56, fit: BoxFit.cover),
+      );
+    }
+    final placeId = place.googlePlaceId;
+    if (placeId == null) return _missingHistoryThumbnail();
+    return FutureBuilder<GooglePlaceDetails?>(
+      future: _wishlistDetails.putIfAbsent(
+        placeId,
+        () => _placesService.fetchDetails(placeId, basic: true),
+      ),
+      builder: (context, snapshot) {
+        final photo = snapshot.data?.photos.firstOrNull;
+        if (photo == null) return _missingHistoryThumbnail();
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: GooglePlaceImage(
+              placeId: placeId,
+              photo: photo,
+              service: _placesService,
+              requestWidth: 112,
+              autoLoad: true,
+              fill: true,
+              showGoogleMapsAttribution: false,
+              showPhotoAuthorAttribution: false,
+              fallback: _missingHistoryThumbnail(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String? _wishlistPhotoId(Attraction place) => _history
+      .where(
+        (entry) => entry.result.name.toLowerCase() == place.name.toLowerCase(),
+      )
+      .map((entry) => entry.photoId)
+      .nonNulls
+      .firstOrNull;
+
+  Future<void> _openWishlistPlace(Attraction place) async {
+    await _pendingWrite;
+    final photoId = _wishlistPhotoId(place);
+    final bytes = await _store.loadPhoto(photoId);
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AttractionDetailPage(
+          attraction: place,
+          placesService: _placesService,
+          showSaveFeedback: false,
+          heroPhoto: bytes == null ? null : MemoryImage(bytes),
+          isSaved: true,
+          onToggleSaved: (item) {
+            _toggleWishlist(item);
+            return true;
+          },
+        ),
+      ),
     );
   }
 
@@ -226,6 +287,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       MaterialPageRoute<void>(
         builder: (_) => AttractionDetailPage(
           attraction: place,
+          showSaveFeedback: false,
           heroPhoto: photo == null ? null : AssetImage(photo),
           isSaved: saved.any((item) => item.xid == place.xid),
           onToggleSaved: (item) {
@@ -433,6 +495,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   : () => _pickPhoto(ImageSource.gallery),
               onBack: _showHistory ? () => _closeResult(newScan: false) : null,
               onOpenWishlist: _openWishlist,
+              onOpenPlan: widget.onOpenPlan,
               onNewScan: () => _closeResult(newScan: true),
             ),
             null =>
@@ -1019,18 +1082,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                           _selectedWishlist.remove(item.key);
                         }
                       })
-                    : Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => AttractionDetailPage(
-                            attraction: item.value,
-                            isSaved: true,
-                            onToggleSaved: (item) {
-                              _toggleWishlist(item);
-                              return true;
-                            },
-                          ),
-                        ),
-                      ),
+                    : _openWishlistPlace(item.value),
               ),
             ],
           ),

@@ -1,5 +1,5 @@
 // Use the same quota reservation and field tier as the existing Places proxy.
-export async function searchScanPlaces({env, fetcher, supabaseUrl, query, key}) {
+export async function searchScanPlaces({env, fetcher, supabaseUrl, query, key, latitude, longitude}) {
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
   if (!serviceKey) return {status: 503, error: 'Place lookup unavailable'};
   const reservation = await fetcher(`${supabaseUrl}/rest/v1/rpc/reserve_google_api_usage`, {
@@ -19,7 +19,14 @@ export async function searchScanPlaces({env, fetcher, supabaseUrl, query, key}) 
       'X-Goog-Api-Key': key,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.primaryTypeDisplayName,places.attributions,places.location',
     },
-    body: JSON.stringify({textQuery: `${query}, Malaysia`, regionCode: 'MY', languageCode: 'en', pageSize: 5}),
+    body: JSON.stringify({
+      textQuery: Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? query : `${query}, Malaysia`,
+      regionCode: 'MY', languageCode: 'en', pageSize: 5,
+      ...(Number.isFinite(latitude) && Number.isFinite(longitude) && {
+        locationBias: {circle: {center: {latitude, longitude}, radius: 20000}},
+      }),
+    }),
     signal: AbortSignal.timeout(12000),
     redirect: 'error',
   });

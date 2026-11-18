@@ -23,3 +23,21 @@ test('nearby search returns coordinates needed for distance', async () => {
   assert.equal(result.status, 200);
   assert.deepEqual(result.places[0].location, {latitude: 4.3, longitude: 101.15});
 });
+
+test('food search biases nearby places to the device coordinates', async () => {
+  let body;
+  const fetcher = async (_url, options) => {
+    if (_url.includes('/rpc/')) return Response.json(true);
+    body = JSON.parse(options.body);
+    return Response.json({places: []});
+  };
+  await searchScanPlaces({
+    env: () => 'service-key', fetcher, supabaseUrl: 'https://example.test',
+    query: 'nasi lemak restaurants', key: 'google-key',
+    latitude: 3.14, longitude: 101.69,
+  });
+  assert.equal(body.textQuery, 'nasi lemak restaurants');
+  assert.deepEqual(body.locationBias.circle.center, {
+    latitude: 3.14, longitude: 101.69,
+  });
+});

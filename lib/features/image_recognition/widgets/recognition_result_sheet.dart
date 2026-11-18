@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -18,10 +19,7 @@ import 'package:smart_travel_planner/features/places/widgets/google_maps_attribu
 import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
-import 'package:smart_travel_planner/shared/models/travel_stop.dart';
-import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
-import 'package:smart_travel_planner/features/itinerary/screens/edit_itinerary_screen.dart';
-import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
+import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
 import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 
@@ -33,6 +31,7 @@ class RecognitionResultSheet extends StatefulWidget {
     required this.onNewScan,
     this.onBack,
     this.onOpenWishlist,
+    this.onOpenPlan,
     this.photo,
     this.onReferenceSelected,
     this.onTakeAnotherPhoto,
@@ -45,6 +44,7 @@ class RecognitionResultSheet extends StatefulWidget {
   final VoidCallback onNewScan;
   final VoidCallback? onBack;
   final VoidCallback? onOpenWishlist;
+  final VoidCallback? onOpenPlan;
   final ImageProvider<Object>? photo;
   final ValueChanged<String>? onReferenceSelected;
   final VoidCallback? onTakeAnotherPhoto;
@@ -60,11 +60,15 @@ enum _SpotFilter { all, food, attractions }
 class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   late final _origin = scanLandmark(widget.result);
   LatLng? _resolvedOrigin;
+  LatLng? _currentGps = LocationService().isUsingRealGps
+      ? LocationService().currentLocation
+      : null;
   late final _spots = scanSpots(widget.result, _origin);
   final _translations = <String, Future<RecognitionResult>>{};
   final _lookupJobs = <String, Future<GooglePlaceDetails?>>{};
   final _nearbyJobs = <_SpotFilter, Future<List<GooglePlaceDetails>>>{};
   late final _googlePlaces = GooglePlacesService();
+  late final _planPlaces = ScanPlanPlacesStore(widget.userId);
   Set<String> _saved = {};
   bool _saving = false;
   bool _adding = false;
@@ -77,8 +81,52 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   void initState() {
     super.initState();
     _loadSaved();
-    if (_origin == null && widget.result.kind == 'landmark') {
+    _planPlaces.addListener(_onPlanPlacesChanged);
+    _planPlaces.load();
+    _loadCurrentGps();
+    if (_origin == null &&
+        (widget.result.kind == 'landmark' ||
+            widget.result.kind == 'restaurant')) {
       _loadOrigin();
+    }
+  }
+
+  void _onPlanPlacesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _planPlaces.removeListener(_onPlanPlacesChanged);
+    super.dispose();
+  }
+
+  Future<void> _loadCurrentGps() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always &&
+          permission != LocationPermission.whileInUse) {
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+      if (!mounted) return;
+      final point = LatLng(position.latitude, position.longitude);
+      LocationService().updateLocation(
+        point,
+        LocationService().currentAreaName,
+        isRealGps: true,
+      );
+      setState(() {
+        _currentGps = point;
+        _nearbyJobs.clear();
+      });
+    } catch (_) {
+      // Keep the scan usable when device location is unavailable.
     }
   }
 
@@ -109,24 +157,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
       final places = await _wishlist.toggle(spot);
       if (mounted) {
         setState(() => _saved = places.map((place) => place.xid).toSet());
-        final added = _saved.contains(spot.xid);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(
-                added
-                    ? context.l10n.savedToFavoritePlaces
-                    : context.l10n.removedFromSavedPlaces,
-              ),
-              action: added && widget.onOpenWishlist != null
-                  ? SnackBarAction(
-                      label: context.l10n.scanViewWishlist,
-                      onPressed: widget.onOpenWishlist!,
-                    )
-                  : null,
-            ),
-          );
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
       }
     } catch (_) {
       if (mounted) {
@@ -148,6 +179,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
       MaterialPageRoute<void>(
         builder: (_) => AttractionDetailPage(
           attraction: place,
+          showSaveFeedback: false,
           placesService: _googlePlaces,
           isSaved: _saved.contains(place.xid),
           onToggleSaved: (item) {
@@ -218,53 +250,6 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     if (_adding) return;
     setState(() => _adding = true);
     try {
-      final trips = await SupabaseItineraryService().getSavedItineraries();
-      if (!mounted) return;
-      if (trips.every((trip) => trip.dailySchedules.isEmpty)) {
-        _itineraryNotice(context.l10n.scanNoItinerary);
-        return;
-      }
-      final selected = await showDialog<(Itinerary, DailySchedule)>(
-        context: context,
-        builder: (context) => SimpleDialog(
-          title: Text(context.l10n.scanAddToItinerary),
-          children: [
-            for (final trip in trips)
-              for (final day in trip.dailySchedules)
-                SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context, (trip, day)),
-                  child: Text(
-                    '${trip.title} · ${context.l10n.dayValue(day.dayNumber.toString())}',
-                  ),
-                ),
-          ],
-        ),
-      );
-      if (!mounted || selected == null) return;
-      final (trip, day) = selected;
-      final stops = day.stops.map((stop) => stop.toTravelStop()).toList();
-      final otherStops = [
-        for (final otherDay in trip.dailySchedules)
-          if (otherDay.scheduleId != day.scheduleId)
-            ...otherDay.stops.map((item) => item.toTravelStop()),
-      ];
-      final id = place.googlePlaceId ?? place.xid;
-      bool matches(TravelStop stop) =>
-          stop.placeId == id ||
-          scanNameKey(stop.title) == scanNameKey(place.name);
-      if (stops.any(matches)) {
-        _itineraryNotice(context.l10n.scanStopAlreadyAdded);
-        return;
-      }
-      if (otherStops.any(matches)) {
-        _itineraryNotice(
-          context.l10n
-              .cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary(
-                place.name,
-              ),
-        );
-        return;
-      }
       final listing = place.latitude == 0 && place.longitude == 0
           ? await _listing(place.name, place.googlePlaceId)
           : null;
@@ -275,36 +260,19 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
         _itineraryNotice(context.l10n.scanStopLocationUnavailable);
         return;
       }
-      final stop = TravelStop(
-        title: place.name,
-        time: '09:00 AM - 10:30 AM',
-        note: place.category,
-        description: place.description ?? listing?.description ?? '',
-        duration: '90 min',
-        openingHours: context.l10n.openingHoursUnavailableCheckBeforeVisiting,
-        tips: const [],
-        icon: Icons.place_outlined,
-        color: VisualScanStyle.amber,
-        category: place.category,
-        placeId: id,
-        latitude: latitude,
-        longitude: longitude,
-        dataSource: place.googlePlaceId == null ? 'local' : 'google',
-      );
-      await Navigator.of(context).push<List<TravelStop>>(
-        MaterialPageRoute(
-          builder: (_) => EditItineraryScreen(
-            tripTitle: trip.title,
-            destination: trip.destinationState,
-            dayNumber: day.dayNumber,
-            initialStops: [...stops, stop],
-            otherDaysStops: otherStops,
-            scheduleId: day.scheduleId,
-            scheduleDate: day.scheduleDate,
-            preferences: trip.preferences,
-          ),
+      final added = await _planPlaces.add(
+        Attraction(
+          xid: place.xid,
+          name: place.name,
+          category: place.category,
+          latitude: latitude,
+          longitude: longitude,
+          description: place.description ?? listing?.description,
         ),
       );
+      if (mounted && !added) {
+        _itineraryNotice(context.l10n.scanStopAlreadyAdded);
+      }
     } catch (_) {
       if (mounted) {
         _itineraryNotice(context.l10n.unableToSaveItineraryChangesOnThisDevice);
@@ -321,12 +289,67 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   }
 
   Widget _itineraryButton(Attraction place) => _ScanButton(
-    label: context.l10n.scanAddToItinerary,
-    icon: Icons.add_outlined,
+    label: _planPlaces.places.any((item) => item.xid == place.xid)
+        ? context.l10n.scanAddedToPlan
+        : context.l10n.scanAddToItinerary,
+    icon: _planPlaces.places.any((item) => item.xid == place.xid)
+        ? Icons.check_rounded
+        : Icons.add_outlined,
     compact: true,
     stacked: true,
-    onPressed: _adding ? null : () => _addToItinerary(place),
+    onPressed:
+        _adding || _planPlaces.places.any((item) => item.xid == place.xid)
+        ? null
+        : () => _addToItinerary(place),
   );
+
+  Widget _planSelectionPanel() {
+    final places = _planPlaces.places;
+    return _ResultPanel(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              context.l10n.scanPlanPlaces,
+              style: VisualScanStyle.heading(18),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              places.length == 1
+                  ? context.l10n.scanPlanOnePlace
+                  : context.l10n.valuePlaces(places.length.toString()),
+              style: _supportText,
+            ),
+            for (final place in places)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(
+                  Icons.place_outlined,
+                  color: VisualScanStyle.amber,
+                ),
+                title: Text(place.name),
+                trailing: IconButton(
+                  tooltip: context.l10n.removeStop,
+                  onPressed: () => _planPlaces.remove(place.xid),
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+            if (widget.onOpenPlan != null)
+              _ScanButton(
+                onPressed: widget.onOpenPlan,
+                icon: Icons.arrow_forward_rounded,
+                label: context.l10n.addToPlan,
+                prominent: true,
+                fullWidth: true,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<RecognitionResult> _translate(String target) async {
     try {
@@ -363,7 +386,8 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     final facts = scanFacts(source.name, description: result.description);
     final needsRetry = source.kind == 'unknown' && !source.isSample;
     final placeId = source.placeId;
-    final landmarkStory = source.kind == 'landmark'
+    final landmarkStory =
+        (source.kind == 'landmark' || source.kind == 'restaurant')
         ? Attraction(
             xid:
                 _origin?.xid ??
@@ -373,7 +397,11 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             name: source.name,
             latitude: _origin?.latitude ?? 0,
             longitude: _origin?.longitude ?? 0,
-            category: _origin?.category ?? l10n.landmark,
+            category:
+                _origin?.category ??
+                (source.kind == 'restaurant'
+                    ? l10n.scanFoodAndCafes
+                    : l10n.landmark),
             description: facts.description,
           )
         : null;
@@ -525,7 +553,8 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                       candidate: candidate,
                       listing:
                           !areaSuggestions &&
-                              candidate.kind == 'landmark' &&
+                              (candidate.kind == 'landmark' ||
+                                  candidate.kind == 'restaurant') &&
                               candidateScanFacts(candidate).hours == null
                           ? _listing(candidate.name, candidate.placeId)
                           : null,
@@ -539,10 +568,12 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                   const SizedBox(height: 8),
                   _ScanFactsBlock(
                     facts: facts,
+                    placeName: source.name,
                     isDish: source.kind == 'food',
                     listing:
                         !source.isSample &&
-                            source.kind == 'landmark' &&
+                            (source.kind == 'landmark' ||
+                                source.kind == 'restaurant') &&
                             (facts.hours == null || facts.description == null)
                         ? _listing(source.name, source.placeId)
                         : null,
@@ -631,6 +662,10 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
           ),
         ],
         const SizedBox(height: 24),
+        if (_planPlaces.places.isNotEmpty) ...[
+          _planSelectionPanel(),
+          const SizedBox(height: 24),
+        ],
         ..._nearbySection(result),
       ],
     );
@@ -639,16 +674,28 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   List<Widget> _nearbySection(RecognitionResult display) {
     final l10n = context.l10n;
     final result = widget.result;
-    final anchor = result.kind == 'landmark'
+    final location = LocationService();
+    final anchor = result.kind == 'landmark' || result.kind == 'restaurant'
         ? [
             result.name,
             if (result.location.trim().isNotEmpty) result.location,
           ].join(', ')
+        : result.kind == 'food'
+        ? (_currentGps != null
+              ? l10n.scanMapLocation
+              : result.areaHint ?? location.currentAreaName)
         : result.areaHint;
     final visible = _spots.where(
       (spot) =>
-          _filter == _SpotFilter.all ||
-          spot.food == (_filter == _SpotFilter.food),
+          (_filter == _SpotFilter.all ||
+              spot.food == (_filter == _SpotFilter.food)) &&
+          (result.kind != 'food' ||
+              (_currentGps != null &&
+                  const Distance(roundResult: false)(
+                        _currentGps!,
+                        spot.place.point,
+                      ) <=
+                      20000)),
     );
     return [
       Text(l10n.scanNearbyPlaces, style: VisualScanStyle.heading(20)),
@@ -656,6 +703,8 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
       Text(
         _origin != null && _spots.isNotEmpty && !result.isSample
             ? l10n.scanNearbyDistance(display.name)
+            : result.kind == 'food' && anchor != null && _currentGps == null
+            ? l10n.scanDishAreaFallback(anchor)
             : anchor != null
             ? l10n.scanNearbyArea(
                 display.kind == 'landmark' ? display.name : anchor,
@@ -741,6 +790,15 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                     onPressed: () => _openMapSearch(
                       anchor == null
                           ? '${filter == _SpotFilter.food && result.kind == 'food' ? result.name : term} near me'
+                          : filter == _SpotFilter.food && result.kind == 'food'
+                          ? foodVenueSearchQuery(
+                              result.name,
+                              _currentGps == null
+                                  ? anchor
+                                  : '${_currentGps!.latitude},${_currentGps!.longitude}',
+                            )
+                          : _currentGps != null && result.kind == 'food'
+                          ? '$term near ${_currentGps!.latitude},${_currentGps!.longitude}'
                           : '$term near $anchor, Malaysia',
                     ),
                   ),
@@ -748,7 +806,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
               ),
         ],
       ),
-      if (anchor == null && result.kind == 'food' && visible.isNotEmpty)
+      if (result.kind == 'food' && visible.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 12),
           child: Text(l10n.scanGuideDishVenues, style: _supportText),
@@ -765,12 +823,9 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
           wishlist: _saveButton(spot.place),
           distanceOrigin: _origin,
           distanceCenter: _origin == null
-              ? _resolvedOrigin ??
-                    (result.kind == 'food'
-                        ? LocationService().currentLocation
-                        : null)
+              ? _resolvedOrigin ?? _currentGps
               : null,
-          fromLandmark: result.kind == 'landmark',
+          fromLandmark: result.kind == 'landmark' && _resolvedOrigin != null,
           onDetails: () => _openSpotDetails(spot),
         ),
       ],
@@ -785,21 +840,45 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
           (_SpotFilter.food, true, 'restaurants', l10n.scanFoodAndCafes),
         ])
           if ((_filter == _SpotFilter.all || _filter == filter) &&
-              !visible.any((spot) => spot.food == food)) ...[
+              (result.kind == 'food' ||
+                  !visible.any((spot) => spot.food == food))) ...[
             const SizedBox(height: 12),
             Text(label, style: VisualScanStyle.heading(16)),
             FutureBuilder<List<GooglePlaceDetails>>(
               future: _nearbyJobs.putIfAbsent(filter, () async {
                 final places = await widget.service.searchPlaces(
-                  '$term near $anchor',
+                  _currentGps != null
+                      ? food && result.kind == 'food'
+                            ? '${result.name} restaurants'
+                            : term
+                      : food && result.kind == 'food'
+                      ? foodVenueSearchQuery(result.name, anchor)
+                      : '$term near $anchor',
+                  near: _currentGps,
                 );
+                final center = _origin?.point ?? _resolvedOrigin ?? _currentGps;
                 return places
                     .where(
                       (place) =>
                           place.id != result.placeId &&
                           (place.name?.trim().isNotEmpty ?? false) &&
+                          (!food ||
+                              result.kind != 'food' ||
+                              place.category == null ||
+                              RegExp(
+                                r'restaurant|caf[eé]|coffee|food|dining|hawker|bistro|bakery',
+                                caseSensitive: false,
+                              ).hasMatch(place.category ?? '')) &&
                           scanNameKey(place.name ?? '') !=
-                              scanNameKey(result.name),
+                              scanNameKey(result.name) &&
+                          (center == null ||
+                              place.latitude == null ||
+                              place.longitude == null ||
+                              const Distance(roundResult: false)(
+                                    center,
+                                    LatLng(place.latitude!, place.longitude!),
+                                  ) <=
+                                  20000),
                     )
                     .take(4)
                     .toList();
@@ -815,6 +894,14 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (food && result.kind == 'food')
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          l10n.scanDishVenuesHelp,
+                          style: _supportText,
+                        ),
+                      ),
                     for (final listing in places) ...[
                       _listedSpotCard(listing, food: food),
                       const SizedBox(height: 10),
@@ -854,13 +941,8 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
       add: _itineraryButton(place),
       wishlist: _saveButton(place),
       distanceOrigin: _origin,
-      distanceCenter: _origin == null
-          ? _resolvedOrigin ??
-                (widget.result.kind == 'food'
-                    ? LocationService().currentLocation
-                    : null)
-          : null,
-      fromLandmark: widget.result.kind == 'landmark',
+      distanceCenter: _origin == null ? _resolvedOrigin ?? _currentGps : null,
+      fromLandmark: widget.result.kind == 'landmark' && _resolvedOrigin != null,
       onDetails: () => _openSpotDetails(spot, listing),
     );
   }
@@ -1087,23 +1169,21 @@ class _NearbySpotCard extends StatelessWidget {
                                   )
                                 : spot.distance.isNotEmpty
                                 ? spot.distance
-                                : null;
+                                : context.l10n.scanDistanceUnavailable;
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (details?.address case final address?)
                                   Text(address, style: _supportText),
-                                if (label != null) ...[
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    label,
-                                    key: const ValueKey('scan-nearby-distance'),
-                                    style: _supportText.copyWith(
-                                      color: VisualScanStyle.amber,
-                                      fontSize: 12,
-                                    ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  label,
+                                  key: const ValueKey('scan-nearby-distance'),
+                                  style: _supportText.copyWith(
+                                    color: VisualScanStyle.amber,
+                                    fontSize: 12,
                                   ),
-                                ],
+                                ),
                               ],
                             );
                           },
@@ -1216,6 +1296,7 @@ class _ScanCandidateCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: _ScanFactsBlock(
                 facts: facts,
+                placeName: candidate.name,
                 isDish: candidate.kind == 'food',
                 listing: listing,
               ),
@@ -1230,12 +1311,14 @@ class _ScanCandidateCard extends StatelessWidget {
 class _ScanFactsBlock extends StatelessWidget {
   const _ScanFactsBlock({
     required this.facts,
+    required this.placeName,
     this.isDish = false,
     this.listing,
     this.showDescriptionHeading = false,
   });
 
   final ScanPlaceFacts facts;
+  final String placeName;
   final bool isDish;
   final Future<GooglePlaceDetails?>? listing;
   final bool showDescriptionHeading;
@@ -1274,7 +1357,16 @@ class _ScanFactsBlock extends StatelessWidget {
     final summary = place?.description?.trim();
     final description =
         facts.description ??
-        (summary != null && summary.isNotEmpty ? summary : null);
+        (summary != null && summary.isNotEmpty ? summary : null) ??
+        (place == null
+            ? null
+            : l10n.scanListedPlaceDescription(
+                placeName,
+                place.category ?? l10n.landmark,
+                place.address?.trim().isNotEmpty == true
+                    ? place.address!.trim()
+                    : 'Malaysia',
+              ));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1284,10 +1376,9 @@ class _ScanFactsBlock extends StatelessWidget {
         ],
         Text(
           description ??
-              place?.category ??
               (loading
                   ? l10n.scanCheckingPlaceDetails
-                  : l10n.descriptionUnavailable),
+                  : l10n.scanPlaceDescriptionPending(placeName)),
           style: _supportText,
         ),
         if (place?.address case final address?) ...[

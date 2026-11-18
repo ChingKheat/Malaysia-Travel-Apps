@@ -117,19 +117,18 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
         return;
       }
 
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled().timeout(
-        const Duration(milliseconds: 500),
-        onTimeout: () => true,
-      );
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled()
+          .timeout(const Duration(milliseconds: 500), onTimeout: () => true);
       if (!serviceEnabled) {
         setState(() => _locationGranted = false);
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission().timeout(
-        const Duration(milliseconds: 500),
-        onTimeout: () => LocationPermission.whileInUse,
-      );
+      LocationPermission permission = await Geolocator.checkPermission()
+          .timeout(
+            const Duration(milliseconds: 500),
+            onTimeout: () => LocationPermission.whileInUse,
+          );
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission().timeout(
           const Duration(milliseconds: 500),
@@ -150,21 +149,7 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
             locationSettings: const LocationSettings(
               timeLimit: Duration(seconds: 2),
             ),
-          ).timeout(
-            const Duration(seconds: 2),
-            onTimeout: () => Position(
-              longitude: 101.6869,
-              latitude: 3.1390,
-              timestamp: DateTime.now(),
-              accuracy: 10,
-              altitude: 0,
-              altitudeAccuracy: 0,
-              heading: 0,
-              headingAccuracy: 0,
-              speed: 0,
-              speedAccuracy: 0,
-            ),
-          );
+          ).timeout(const Duration(seconds: 2));
           LocationService().updateLocation(
             LatLng(pos.latitude, pos.longitude),
             'Live Device Location',
@@ -173,8 +158,8 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
         } catch (_) {
           LocationService().updateLocation(
             const LatLng(3.1390, 101.6869),
-            'Live Device Location',
-            isRealGps: true,
+            'Kuala Lumpur City Centre',
+            isRealGps: false,
           );
         }
       }
@@ -184,8 +169,8 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
       await OnboardingService.instance.setLocationGranted(true);
       LocationService().updateLocation(
         const LatLng(3.1390, 101.6869),
-        'Live Device Location',
-        isRealGps: true,
+        'Kuala Lumpur City Centre',
+        isRealGps: false,
       );
     } finally {
       if (mounted) {
@@ -229,10 +214,8 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
       // Transition directly to Login screen (AuthScreen with initialTabIndex = 0)
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => const AuthScreen(
-            initialTabIndex: 0,
-            showLanguageSelector: false,
-          ),
+          builder: (context) =>
+              const AuthScreen(initialTabIndex: 0, showLanguageSelector: false),
         ),
       );
     }
@@ -324,7 +307,10 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
                   ),
                 ),
                 Text(
-                  strings.stepOfThree.replaceAll('{step}', '${_currentPage + 1}'),
+                  strings.stepOfThree.replaceAll(
+                    '{step}',
+                    '${_currentPage + 1}',
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -363,21 +349,9 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   Widget _buildStep1Language(BuildContext context, _OnboardingStrings strings) {
     // English, Bahasa Melayu, and Chinese only (Tamil removed per user request)
     final languages = [
-      (
-        code: 'en',
-        name: 'English',
-        region: strings.langEnRegion,
-      ),
-      (
-        code: 'ms',
-        name: 'Bahasa Melayu',
-        region: strings.langMsRegion,
-      ),
-      (
-        code: 'zh',
-        name: '中文 (简体)',
-        region: strings.langZhRegion,
-      ),
+      (code: 'en', name: 'English', region: strings.langEnRegion),
+      (code: 'ms', name: 'Bahasa Melayu', region: strings.langMsRegion),
+      (code: 'zh', name: '中文 (简体)', region: strings.langZhRegion),
     ];
 
     return SingleChildScrollView(
@@ -507,11 +481,7 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
                 ),
               ),
               child: isSelected
-                  ? const Icon(
-                      Icons.check,
-                      size: 16,
-                      color: Color(0xFF141416),
-                    )
+                  ? const Icon(Icons.check, size: 16, color: Color(0xFF141416))
                   : null,
             ),
           ],
@@ -786,15 +756,15 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
                 color: _showTermsWarning && !_agreedToTerms
                     ? const Color(0xFF2B1414)
                     : (_agreedToTerms
-                        ? const Color(0xFF221C14)
-                        : const Color(0xFF191A1E)),
+                          ? const Color(0xFF221C14)
+                          : const Color(0xFF191A1E)),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: _showTermsWarning && !_agreedToTerms
                       ? const Color(0xFFEF4444)
                       : (_agreedToTerms
-                          ? const Color(0xFFE5A645)
-                          : const Color(0xFF3B3E48)),
+                            ? const Color(0xFFE5A645)
+                            : const Color(0xFF3B3E48)),
                   width: (_agreedToTerms || _showTermsWarning) ? 1.5 : 1.2,
                 ),
               ),
@@ -812,8 +782,8 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
                         color: _showTermsWarning && !_agreedToTerms
                             ? const Color(0xFFEF4444)
                             : (_agreedToTerms
-                                ? const Color(0xFFE5A645)
-                                : const Color(0xFF8E929A)),
+                                  ? const Color(0xFFE5A645)
+                                  : const Color(0xFF8E929A)),
                         width: 1.5,
                       ),
                     ),
@@ -866,12 +836,19 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, color: Color(0xFFEF4444), size: 16),
+                  const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFFEF4444),
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       strings.step3Warning,
-                      style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                      style: const TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -986,7 +963,9 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   // --- BOTTOM CTA BUTTON ---
   Widget _buildBottomCTA(BuildContext context, _OnboardingStrings strings) {
     final isLastStep = _currentPage == 2;
-    final buttonLabel = isLastStep ? strings.ctaAcceptAndContinue : strings.ctaContinue;
+    final buttonLabel = isLastStep
+        ? strings.ctaAcceptAndContinue
+        : strings.ctaContinue;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -1127,28 +1106,32 @@ class _OnboardingStrings {
           stepOfThree: 'Persediaan selamat datang · Langkah {step} drpd 3',
           step1Badge: 'Langkah 1 · Pilihan Bahasa',
           step1Heading: 'Pilih bahasa\npanduan anda',
-          step1Description: 'Pilih bagaimana cerita mercu tanda, maklumat imbasan, dan laluan berjalan dipaparkan dalam Citylore.',
+          step1Description:
+              'Pilih bagaimana cerita mercu tanda, maklumat imbasan, dan laluan berjalan dipaparkan dalam Citylore.',
           langEnRegion: 'Antarabangsa · Disyorkan',
           langMsRegion: 'Malaysia',
           langZhRegion: 'Bahasa Cina',
           step2Badge: 'Langkah 2 · Akses Lokasi',
           step2Heading: 'Temui mercu tanda\n& kafe berhampiran anda',
           step2WhyTitle: 'Mengapa Citylore menggunakan lokasi anda',
-          step2WhyDesc: 'Meningkatkan ketepatan imbasan fasad, mencadangkan tarikan dan restoran dalam jarak berjalan kaki, dan menganggarkan masa transit.',
+          step2WhyDesc:
+              'Meningkatkan ketepatan imbasan fasad, mencadangkan tarikan dan restoran dalam jarak berjalan kaki, dan menganggarkan masa transit.',
           step2AllowBtn: 'Benarkan Akses Lokasi',
           step2GrantedBtn: 'Akses Lokasi Diberikan ✓',
           step2ManualBtn: 'Bukan sekarang · Layari Kuala Lumpur secara manual',
           step3Badge: 'Langkah 3 · Terma & Privasi',
           step3Heading: 'Privasi & terma\nperjalanan anda',
           step3SummaryTitle: 'Ringkasan Terma Citylore',
-          step3SummaryDesc: 'Foto yang anda imbas dianalisis hanya untuk mengenal pasti mercu tanda dan mencadangkan tarikan berdekatan. Jadual perjalanan yang disimpan dan pilihan komuniti kekal di bawah kawalan anda.',
+          step3SummaryDesc:
+              'Foto yang anda imbas dianalisis hanya untuk mengenal pasti mercu tanda dan mencadangkan tarikan berdekatan. Jadual perjalanan yang disimpan dan pilihan komuniti kekal di bawah kawalan anda.',
           step3ReadDetails: 'Baca butiran Terma & Privasi',
           step3AgreePrefix: 'Saya bersetuju dengan ',
           step3Terms: 'Terma & Syarat',
           step3And: ' serta ',
           step3Privacy: 'Dasar Privasi',
           step3Warning: 'Sila setujui Terma & Syarat untuk meneruskan',
-          step3SnackBarNotice: 'Sila tandakan kotak di atas untuk bersetuju dengan terma',
+          step3SnackBarNotice:
+              'Sila tandakan kotak di atas untuk bersetuju dengan terma',
           ctaContinue: 'Teruskan',
           ctaAcceptAndContinue: 'Terima & Teruskan',
           ctaAgreeCheckboxAction: 'Setuju & Teruskan',
@@ -1159,28 +1142,32 @@ class _OnboardingStrings {
           stepOfThree: 'Welcome setup · Step {step} of 3',
           step1Badge: 'Step 1 · Language Preference',
           step1Heading: 'Choose your\nguide language',
-          step1Description: 'Select how landmark stories, scan insights, and walking routes appear throughout Citylore.',
+          step1Description:
+              'Select how landmark stories, scan insights, and walking routes appear throughout Citylore.',
           langEnRegion: 'International · Recommended',
           langMsRegion: 'Malaysia',
           langZhRegion: 'Chinese',
           step2Badge: 'Step 2 · Location Access',
           step2Heading: 'Discover landmarks\n& cafés around you',
           step2WhyTitle: 'Why Citylore uses your location',
-          step2WhyDesc: 'Improves facade scan accuracy, recommends nearby attractions and restaurants within walking distance, and estimates transit times.',
+          step2WhyDesc:
+              'Improves facade scan accuracy, recommends nearby attractions and restaurants within walking distance, and estimates transit times.',
           step2AllowBtn: 'Allow Location Access',
           step2GrantedBtn: 'Location Access Granted ✓',
           step2ManualBtn: 'Not now · Browse Kuala Lumpur manually',
           step3Badge: 'Step 3 · Terms & Privacy',
           step3Heading: 'Your privacy\n& travel terms',
           step3SummaryTitle: 'Summary of Citylore Terms',
-          step3SummaryDesc: 'Photos you scan are analyzed only to identify landmarks and suggest nearby attractions. Saved itineraries and community preferences stay under your control.',
+          step3SummaryDesc:
+              'Photos you scan are analyzed only to identify landmarks and suggest nearby attractions. Saved itineraries and community preferences stay under your control.',
           step3ReadDetails: 'Read Terms & Privacy details',
           step3AgreePrefix: "I agree to Citylore's ",
           step3Terms: 'Terms & Conditions',
           step3And: ' and ',
           step3Privacy: 'Privacy Policy',
           step3Warning: 'Please agree to the Terms & Conditions to proceed',
-          step3SnackBarNotice: 'Please check the box above to agree to the terms',
+          step3SnackBarNotice:
+              'Please check the box above to agree to the terms',
           ctaContinue: 'Continue',
           ctaAcceptAndContinue: 'Accept & Continue',
           ctaAgreeCheckboxAction: 'Agree & Continue',

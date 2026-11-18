@@ -12,6 +12,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanAddToItinerary => '添加到行程';
 
   @override
+  String get scanAddedToPlan => '已加入规划';
+
+  @override
+  String get scanPlanPlaces => '为行程选定的地点';
+
+  @override
+  String get scanPlanOnePlace => '1 个地点';
+
+  @override
   String get scanAddToWishlist => '加入愿望清单';
 
   @override
@@ -56,7 +65,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanScannedLandmark => '扫描的地标';
 
   @override
-  String get scanMapLocation => '地图位置';
+  String get scanMapLocation => '您的当前位置';
 
   @override
   String scanDistanceWalk(int minutes, String distance, String origin) {
@@ -67,6 +76,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String scanDistanceAway(String distance, String origin) {
     return '距离$origin $distance';
   }
+
+  @override
+  String get scanDistanceUnavailable => '获取位置后才能显示距离';
 
   @override
   String get scanMapSearchHelp => '在 Google 地图搜索更多地点';
@@ -1591,10 +1603,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanAnotherPhotoHelp => '这张照片未能提供足够线索来识别具体地标。请重新拍摄，或从相册选择更清晰的图片。';
 
   @override
-  String get scanIdentifyLandmark => '识别地标';
+  String get scanIdentifyLandmark => '扫描地点或美食';
 
   @override
-  String get scanPhotoIntro => '拍摄地标，或从相册选择一张照片。';
+  String get scanPhotoIntro => '拍摄马来西亚地标、餐厅招牌或本地美食，或从相册选择照片。';
+
+  @override
+  String scanListedPlaceDescription(
+    String name,
+    String category,
+    String address,
+  ) {
+    return '$name在$address被列为$category。更多信息请查看地点页面。';
+  }
+
+  @override
+  String scanPlaceDescriptionPending(String name) {
+    return '$name的更多信息尚未核实。到访前请查看地点页面。';
+  }
 
   @override
   String get scanPhotoTips => '拍出更清晰照片的技巧';
@@ -1650,6 +1676,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scanGuideDishVenues => '旅行指南中提到这道菜的地点';
+
+  @override
+  String get scanDishVenuesHelp => '与这道菜相关的餐厅。到访前请先查看菜单。';
+
+  @override
+  String scanDishAreaFallback(String area) {
+    return '显示$area附近的餐厅。开启定位以查看您附近的结果。';
+  }
 
   @override
   String get scanFoodAndCafes => '美食和咖啡馆';

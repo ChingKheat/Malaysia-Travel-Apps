@@ -121,11 +121,12 @@ class AttractionMetadataResolver {
   }
 
   static String resolveDescription(
-    Attraction a, [
+    Attraction a, {
     String? googleDescription,
     double? rating,
     int? reviewCount,
-  ]) {
+    String? address,
+  }) {
     if (googleDescription != null &&
         googleDescription.trim().isNotEmpty &&
         !googleDescription.toLowerCase().contains('unavailable')) {
@@ -138,7 +139,13 @@ class AttractionMetadataResolver {
       return a.description!.trim();
     }
 
-    return 'Description unavailable.';
+    final category = a.category.trim();
+    final where = address == null || address.trim().isEmpty
+        ? ''
+        : ' at ${address.trim()}';
+    return category.isEmpty
+        ? '${a.name} is a listed destination$where. Check its place listing for more details.'
+        : '${a.name} is listed as $category$where. Check its place listing for more details.';
   }
 
   static List<String> resolveTips(Attraction a) {

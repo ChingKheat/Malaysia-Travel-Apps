@@ -80,4 +80,56 @@ const recognitionPresets = [
         'and dietary requirements.',
     aliases: ['nasi lemak', 'nasi lemak bungkus'],
   ),
+  RecognitionPreset(
+    id: 'roti_canai',
+    name: 'Roti Canai',
+    kind: 'food',
+    location: 'Found throughout Malaysia',
+    description: 'Flaky griddled flatbread usually served with dhal or curry.',
+    aliases: ['roti canai'],
+  ),
+  RecognitionPreset(
+    id: 'char_kway_teow',
+    name: 'Char Kway Teow',
+    kind: 'food',
+    location: 'Popular in Penang and throughout Malaysia',
+    description:
+        'Stir-fried flat rice noodles commonly prepared with egg, bean sprouts and seafood or meat.',
+    aliases: ['char kway teow', 'char koay teow'],
+  ),
+  RecognitionPreset(
+    id: 'satay',
+    name: 'Satay',
+    kind: 'food',
+    location: 'Found throughout Malaysia',
+    description:
+        'Seasoned grilled skewers often served with peanut sauce, cucumber and rice cakes.',
+    aliases: ['satay', 'sate'],
+  ),
+  RecognitionPreset(
+    id: 'nasi_dagang',
+    name: 'Nasi Dagang',
+    kind: 'food',
+    location: 'Popular on the east coast of Malaysia',
+    description:
+        'Fragrant rice traditionally paired with fish curry and pickled vegetables.',
+    aliases: ['nasi dagang'],
+  ),
+  RecognitionPreset(
+    id: 'cendol',
+    name: 'Cendol',
+    kind: 'food',
+    location: 'Found throughout Malaysia',
+    description:
+        'Shaved ice dessert with coconut milk, palm sugar syrup and green rice flour jelly.',
+    aliases: ['cendol'],
+  ),
+  RecognitionPreset(
+    id: 'teh_tarik',
+    name: 'Teh Tarik',
+    kind: 'food',
+    location: 'Found throughout Malaysia',
+    description: 'Sweet milk tea poured between cups to create a frothy top.',
+    aliases: ['teh tarik'],
+  ),
 ];

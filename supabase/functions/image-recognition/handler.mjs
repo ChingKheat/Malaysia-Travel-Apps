@@ -132,6 +132,12 @@ export function createHandler({env, fetcher = fetch, now = Date.now, contextOnly
             body.query.length > 120 || /[\x00-\x1f]/.test(body.query)) {
           return json({error: 'Invalid place name'}, 400);
         }
+        if ((body.latitude !== undefined || body.longitude !== undefined) &&
+            (!Number.isFinite(body.latitude) || !Number.isFinite(body.longitude) ||
+              body.latitude < -90 || body.latitude > 90 ||
+              body.longitude < -180 || body.longitude > 180)) {
+          return json({error: 'Invalid search location'}, 400);
+        }
       } else if (operation === 'recognize' || contextScan) {
         const image = body.image;
         if (typeof image === 'string') {
@@ -168,7 +174,8 @@ export function createHandler({env, fetcher = fetch, now = Date.now, contextOnly
       usage.set(user.id, {minute, count});
 
       if (placeLookup) {
-        const {status, ...result} = await searchScanPlaces({env, fetcher, supabaseUrl, query: body.query.trim(), key});
+        const {status, ...result} = await searchScanPlaces({env, fetcher, supabaseUrl,
+          query: body.query.trim(), key, latitude: body.latitude, longitude: body.longitude});
         return json(result, status);
       }
 
