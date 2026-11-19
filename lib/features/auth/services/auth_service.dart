@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/auth/models/user_model.dart';
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
+import 'package:smart_travel_planner/features/profile/services/profile_avatar_service.dart';
 
 class RegisterResult {
   final bool success;
@@ -296,7 +298,10 @@ class AuthService extends ChangeNotifier {
             createdAt: DateTime.now(),
           );
 
-    _currentUser = authenticatedUser;
+    _currentUser = _withAvatar(
+      authenticatedUser,
+      await ProfileAvatarService().displayUrl(uid, authenticatedUser.avatarUrl),
+    );
     _isGuest = false;
     _isLoading = false;
     notifyListeners();
@@ -306,7 +311,7 @@ class AuthService extends ChangeNotifier {
     return LoginResult(
       success: true,
       message: m1LoginSuccess,
-      user: authenticatedUser,
+      user: _currentUser,
     );
   }
 
@@ -389,9 +394,10 @@ class AuthService extends ChangeNotifier {
                     OnboardingService.instance.selectedLanguage,
                 'terms_accepted': OnboardingService.instance.isCompleted,
                 if (OnboardingService.instance.termsAcceptedAt != null)
-                  'terms_accepted_at':
-                      OnboardingService.instance.termsAcceptedAt!
-                          .toIso8601String(),
+                  'terms_accepted_at': OnboardingService
+                      .instance
+                      .termsAcceptedAt!
+                      .toIso8601String(),
               },
             )
             .timeout(const Duration(seconds: 10));
@@ -509,6 +515,42 @@ class AuthService extends ChangeNotifier {
 
   // --- UC300 Manage Profile Flow ---
 
+  UserModel _withAvatar(UserModel user, String avatarUrl) => UserModel(
+    uid: user.uid,
+    name: user.name,
+    email: user.email,
+    createdAt: user.createdAt,
+    avatarUrl: avatarUrl,
+    nationality: user.nationality,
+    travelStyle: user.travelStyle,
+    tripsPlanned: user.tripsPlanned,
+    placesVisited: user.placesVisited,
+    memberSince: user.memberSince,
+    preferredLanguage: user.preferredLanguage,
+    role: user.role,
+    travelPreferences: user.travelPreferences,
+  );
+
+  Future<bool> updateAvatar(Uint8List bytes) async {
+    final user = _currentUser;
+    if (user == null) return false;
+    final url = await ProfileAvatarService().saveLocal(user.uid, bytes);
+    if (url == null || _currentUser?.uid != user.uid) return false;
+    await ProfileAvatarService.imageProvider(url)?.evict();
+    _currentUser = _withAvatar(_currentUser!, url);
+    if (_inMemoryUsers.containsKey(user.uid)) {
+      _inMemoryUsers[user.uid] = _currentUser!.toFirestore();
+    }
+    notifyListeners();
+    unawaited(ProfileAvatarService().syncPending(user.uid));
+    return true;
+  }
+
+  Future<void> syncAvatar() async {
+    final uid = _currentUser?.uid;
+    if (uid != null) await ProfileAvatarService().syncPending(uid);
+  }
+
   /// UC300 Update Profile Implementation (FR300_1 to FR300_8)
   Future<bool> updateProfile({
     required String name,
@@ -582,9 +624,13 @@ class AuthService extends ChangeNotifier {
 
         if (response != null) {
           final loaded = UserModel.fromSupabase(response, uid);
-          _currentUser = loaded;
+          _currentUser = _withAvatar(
+            loaded,
+            await ProfileAvatarService().displayUrl(uid, loaded.avatarUrl),
+          );
           notifyListeners();
-          return loaded;
+          unawaited(ProfileAvatarService().syncPending(uid));
+          return _currentUser!;
         }
       } catch (_) {}
     }
@@ -595,7 +641,10 @@ class AuthService extends ChangeNotifier {
       email: email,
       createdAt: DateTime.now(),
     );
-    _currentUser = fallback;
+    _currentUser = _withAvatar(
+      fallback,
+      await ProfileAvatarService().displayUrl(uid, fallback.avatarUrl),
+    );
     notifyListeners();
     return fallback;
   }
@@ -622,7 +671,13 @@ class AuthService extends ChangeNotifier {
       memberSince: 'Just now',
       role: 'user',
     );
-    _currentUser = guestUser;
+    _currentUser = _withAvatar(
+      guestUser,
+      await ProfileAvatarService().displayUrl(
+        guestUser.uid,
+        guestUser.avatarUrl,
+      ),
+    );
     _isGuest = true;
     _isLoading = false;
     notifyListeners();

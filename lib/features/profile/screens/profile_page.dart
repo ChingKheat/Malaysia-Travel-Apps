@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:image_picker/image_picker.dart';
+import 'package:smart_travel_planner/features/profile/services/profile_avatar_service.dart';
 
 import 'package:smart_travel_planner/features/auth/models/travel_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
@@ -22,9 +24,10 @@ import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setu
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, this.onMyTripsTap});
+  const ProfilePage({super.key, this.onMyTripsTap, this.imagePicker});
 
   final VoidCallback? onMyTripsTap;
+  final ImagePicker? imagePicker;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -32,16 +35,16 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   final _authService = AuthService();
+  late final ImagePicker _imagePicker = widget.imagePicker ?? ImagePicker();
 
   final _settings = ProfilePreferencesService.instance;
   final _trips = SupabaseItineraryService();
   TravelPreferences _preferences = const TravelPreferences();
-  PreferredCurrency _currency = PreferredCurrency.myr;
   TravelFootprint? _footprint;
   int? _tripCount;
   bool _preferencesLoaded = false;
   bool _pending = false;
-  bool _choosingCurrency = false;
+  bool _savingPhoto = false;
   int _statsRequest = 0;
   int _preferencesRequest = 0;
 
@@ -53,7 +56,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     _settings.addListener(_loadPreferences);
     _loadStats(refresh: true);
     _loadPreferences();
-    _loadCurrency();
+    unawaited(_authService.syncAvatar());
     unawaited(_settings.syncTravel(refresh: true));
   }
 
@@ -69,6 +72,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_settings.syncTravel());
+      unawaited(_authService.syncAvatar());
     }
   }
 
@@ -104,11 +108,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _loadCurrency() async {
-    final currency = await _settings.loadCurrency();
-    if (mounted) setState(() => _currency = currency);
-  }
-
   Future<void> _editPreferences() async {
     final uid = _authService.currentUser?.uid;
     await showProfileSheet<void>(
@@ -126,21 +125,36 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _chooseCurrency() async {
-    if (_choosingCurrency) return;
-    _choosingCurrency = true;
+  Future<void> _changePhoto() async {
+    if (_savingPhoto) return;
     try {
-      final selection = await showCurrencySheet(context, _currency);
-      if (!mounted || selection == null || selection == _currency) return;
-      final saved = await _settings.saveCurrency(selection);
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 720,
+        maxHeight: 720,
+        imageQuality: 78,
+      );
+      if (picked == null || !mounted) return;
+      setState(() => _savingPhoto = true);
+      final bytes = await picked.readAsBytes();
+      if (ProfileAvatarService.format(bytes) == null) {
+        if (mounted) {
+          showDemoSnackBar(context, context.l10n.profilePhotoInvalid);
+        }
+        return;
+      }
+      final saved = await _authService.updateAvatar(bytes);
       if (!mounted) return;
       if (saved) {
-        setState(() => _currency = selection);
+        setState(() {});
+        showDemoSnackBar(context, context.l10n.profilePhotoSaved);
       } else {
         showDemoSnackBar(context, context.l10n.profileSaveFailed);
       }
+    } catch (_) {
+      if (mounted) showDemoSnackBar(context, context.l10n.profileSaveFailed);
     } finally {
-      _choosingCurrency = false;
+      if (mounted) setState(() => _savingPhoto = false);
     }
   }
 
@@ -346,15 +360,31 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               decoration: cardDecoration(),
               child: Column(
                 children: [
-                  // Avatar
                   CircleAvatar(
-                    radius: 42,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    radius: 44,
+                    backgroundColor: AppColors.nightAccentContainer,
+                    foregroundImage: ProfileAvatarService.imageProvider(
+                      user.avatarUrl,
+                    ),
+                    onForegroundImageError: (_, _) {},
                     child: const Icon(
                       Icons.person_outline,
                       size: 42,
                       color: AppColors.primary,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    key: const ValueKey('profile-change-photo'),
+                    onPressed: _savingPhoto ? null : _changePhoto,
+                    icon: _savingPhoto
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.add_a_photo_outlined, size: 18),
+                    label: Text(context.l10n.profileChangePhoto),
                   ),
                   const SizedBox(height: 16),
                   // Name
@@ -378,39 +408,19 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Nationality & Travel Style Badges
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildBadge(
-                        user.nationality,
-                        Colors.blue.shade50,
-                        Colors.blue.shade700,
-                      ),
-                      _buildBadge(
-                        user.travelStyle,
-                        Colors.purple.shade50,
-                        Colors.purple.shade700,
-                      ),
-                      if (_preferencesLoaded)
-                        for (final (_, _, value) in _preferenceRows())
-                          _buildBadge(
-                            value,
-                            AppColors.nightAccentContainer,
-                            AppColors.primary,
-                          ),
-                      if (user.isAdmin)
-                        _buildBadge(
-                          context.l10n.admin,
-                          const Color(0xFFFEF3C7),
-                          const Color(0xFFB45309),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+                  // Travel preferences are shown in their own section below.
+                  const SizedBox(height: 16),
+                  _profileDetail(Icons.public_outlined, user.nationality),
+                  const SizedBox(height: 8),
+                  _profileDetail(Icons.explore_outlined, user.travelStyle),
+                  if (user.isAdmin) ...[
+                    const SizedBox(height: 8),
+                    _profileDetail(
+                      Icons.admin_panel_settings_outlined,
+                      context.l10n.admin,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: _editProfile,
                     icon: const Icon(Icons.edit_outlined),
@@ -452,13 +462,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                         ).locale.languageCode]!,
                     onTap: () => showLanguageSelector(context),
                   ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
-                  _buildListTile(
-                    icon: Icons.currency_exchange,
-                    title: context.l10n.profileCurrency,
-                    subtitle: _currency.label,
-                    onTap: _chooseCurrency,
-                  ),
                 ],
               ),
             ),
@@ -481,20 +484,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                  _buildListTile(
-                    icon: Icons.info_outline,
-                    title: context.l10n.aboutSmartTravelPlanner,
-                    subtitle: 'v1.0.0 (FYP Prototype Demo)',
-                    onTap: () => showDemoSheet(
-                      context,
-                      title: context.l10n.aboutApp,
-                      body: context
-                          .l10n
-                          .thisAppIsAPrototypeDesignedForAFinalYearProjectToShowcaseAutomatedRouteSchedulingAndMapVis,
-                      icon: Icons.info,
-                    ),
-                  ),
-                  const Divider(height: 1, color: AppColors.line, indent: 56),
                   _buildListTile(
                     icon: Icons.emergency_outlined,
                     title: context.l10n.profileHotlines,
@@ -556,20 +545,29 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildBadge(String text, Color bgColor, Color textColor) {
+  Widget _profileDetail(IconData icon, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.nightRaised,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.nightLine),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.nightAccent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.nightBody,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

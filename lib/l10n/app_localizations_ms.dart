@@ -9,6 +9,16 @@ class AppLocalizationsMs extends AppLocalizations {
   AppLocalizationsMs([String locale = 'ms']) : super(locale);
 
   @override
+  String get profileChangePhoto => 'Tukar foto';
+
+  @override
+  String get profilePhotoSaved => 'Foto profil dikemas kini.';
+
+  @override
+  String get profilePhotoInvalid =>
+      'Pilih foto JPEG, PNG atau WebP di bawah 2 MB.';
+
+  @override
   String get scanAddToItinerary => 'Tambah pada itinerari';
 
   @override

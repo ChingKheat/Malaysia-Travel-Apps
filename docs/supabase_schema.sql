@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.profiles'::regclass AND conname = 'profiles_user_id_fkey') THEN
@@ -657,6 +658,55 @@ DO $$ BEGIN
 END $$;
 
 -- Community
+-- Private profile photos; only the owner can read or write their user-id folder.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('profile-avatars', 'profile-avatars', false, 2097152,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']::text[])
+ON CONFLICT (id) DO UPDATE SET public = false, file_size_limit = 2097152,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp']::text[];
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'profile_avatars_insert_own') THEN
+    CREATE POLICY profile_avatars_insert_own ON storage.objects FOR INSERT TO authenticated
+      WITH CHECK (bucket_id = 'profile-avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'profile_avatars_update_own') THEN
+    CREATE POLICY profile_avatars_update_own ON storage.objects FOR UPDATE TO authenticated
+      USING (bucket_id = 'profile-avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text)
+      WITH CHECK (bucket_id = 'profile-avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'profile_avatars_select_own') THEN
+    CREATE POLICY profile_avatars_select_own ON storage.objects FOR SELECT TO authenticated
+      USING (bucket_id = 'profile-avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text);
+  END IF;
+END $$;
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('community-photos', 'community-photos', false, 10485760,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']::text[])
+ON CONFLICT (id) DO UPDATE SET public = false, file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp']::text[];
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'community_photos_read') THEN
+    CREATE POLICY community_photos_read ON storage.objects FOR SELECT TO authenticated
+      USING (bucket_id = 'community-photos');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'community_photos_insert_own') THEN
+    CREATE POLICY community_photos_insert_own ON storage.objects FOR INSERT TO authenticated
+      WITH CHECK (bucket_id = 'community-photos' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'community_photos_update_own') THEN
+    CREATE POLICY community_photos_update_own ON storage.objects FOR UPDATE TO authenticated
+      USING (bucket_id = 'community-photos' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text)
+      WITH CHECK (bucket_id = 'community-photos' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'community_photos_delete_own') THEN
+    CREATE POLICY community_photos_delete_own ON storage.objects FOR DELETE TO authenticated
+      USING (bucket_id = 'community-photos' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text);
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.community_posts (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -664,8 +714,27 @@ CREATE TABLE IF NOT EXISTS public.community_posts (
   place text NOT NULL CHECK (char_length(btrim(place)) BETWEEN 1 AND 100),
   topic text NOT NULL CHECK (topic IN ('Local Tip', 'Trip Log', 'Question', 'Photo')),
   body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 2000),
+  photo_paths text[] NOT NULL DEFAULT '{}'::text[],
   created_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS photo_paths text[] NOT NULL DEFAULT '{}'::text[];
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_posts_photo_limit' AND conrelid = 'public.community_posts'::regclass) THEN
+    ALTER TABLE public.community_posts ADD CONSTRAINT community_posts_photo_limit CHECK (cardinality(photo_paths) <= 5);
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'community_posts' AND policyname = 'community_posts_update_own') THEN
+    CREATE POLICY community_posts_update_own ON public.community_posts FOR UPDATE TO authenticated
+      USING ((SELECT auth.uid()) = user_id)
+      WITH CHECK ((SELECT auth.uid()) = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'community_posts' AND policyname = 'community_posts_delete_own') THEN
+    CREATE POLICY community_posts_delete_own ON public.community_posts FOR DELETE TO authenticated
+      USING ((SELECT auth.uid()) = user_id);
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.community_comments (
   id uuid PRIMARY KEY,
@@ -718,6 +787,9 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+-- Apply owner edit permissions after the community setup block's REVOKE ALL.
+GRANT UPDATE (body, place, topic, photo_paths), DELETE ON public.community_posts TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.community_feed()
 RETURNS TABLE (
@@ -788,6 +860,36 @@ $$;
 
 REVOKE ALL ON FUNCTION public.community_feed_v2() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.community_feed_v2() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.community_feed_v3()
+RETURNS TABLE (
+  id uuid, author text, place text, topic text, body text, created_at timestamptz,
+  likes_count bigint, liked boolean, saved boolean, comments jsonb, is_mine boolean,
+  photo_paths text[]
+)
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = ''
+AS $$
+  SELECT p.id, p.author, p.place, p.topic, p.body, p.created_at,
+    (SELECT count(*) FROM public.community_likes l WHERE l.post_id = p.id),
+    EXISTS (SELECT 1 FROM public.community_likes l WHERE l.post_id = p.id AND l.user_id = (SELECT auth.uid())),
+    EXISTS (SELECT 1 FROM public.community_bookmarks b WHERE b.post_id = p.id AND b.user_id = (SELECT auth.uid())),
+    COALESCE((SELECT jsonb_agg(jsonb_build_object(
+      'id', c.id,
+      'body', c.body,
+      'author', community_private.comment_display_name(c.id),
+      'is_mine', c.user_id = (SELECT auth.uid())
+    ) ORDER BY c.created_at, c.id) FROM (
+      SELECT cc.id, cc.user_id, cc.body, cc.created_at FROM public.community_comments cc
+      WHERE cc.post_id = p.id ORDER BY cc.created_at DESC, cc.id DESC LIMIT 30
+    ) c), '[]'::jsonb),
+    p.user_id = (SELECT auth.uid()), p.photo_paths
+  FROM public.community_posts p
+  ORDER BY p.created_at DESC, p.id DESC
+  LIMIT 50
+$$;
+
+REVOKE ALL ON FUNCTION public.community_feed_v3() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.community_feed_v3() TO authenticated;
 
 
 -- Private one-to-one messaging. Apply to an existing project only after review.
@@ -913,3 +1015,4 @@ DO $$ BEGIN
 END $$;
 
 COMMIT;
+

@@ -9,6 +9,15 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get profileChangePhoto => '更换照片';
+
+  @override
+  String get profilePhotoSaved => '头像已更新。';
+
+  @override
+  String get profilePhotoInvalid => '请选择小于 2 MB 的 JPEG、PNG 或 WebP 照片。';
+
+  @override
   String get scanAddToItinerary => '添加到行程';
 
   @override

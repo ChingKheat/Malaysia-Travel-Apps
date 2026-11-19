@@ -116,7 +116,7 @@ void main() {
     },
   );
 
-  testWidgets('preferences, footprint and currency work on a narrow screen', (
+  testWidgets('preferences and footprint work on a narrow screen', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(320, 640);
@@ -155,11 +155,12 @@ void main() {
 
     await tester.pumpWidget(app(const ValueKey(1)));
     await tap('Open profile');
+    expect(find.byKey(const ValueKey('profile-change-photo')), findsOneWidget);
     await tap('Edit');
     await tap('Fast-paced');
     await tap('Vegetarian');
     await tap('Save');
-    expect(find.text('Fast-paced'), findsNWidgets(2));
+    expect(find.text('Fast-paced'), findsOneWidget);
 
     await tap('Places Visited');
     expect(find.text('Travel Footprint'), findsOneWidget);
@@ -170,9 +171,8 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    await tap('Preferred Currency');
-    await tap('EUR (€)');
-    expect(find.text('EUR (€)'), findsOneWidget);
+    expect(find.text('Preferred Currency'), findsNothing);
+    expect(find.text('About Smart Travel Planner'), findsNothing);
     await tap('Tourist Emergency Hotlines');
     expect(find.text('999'), findsOneWidget);
     expect(find.text('112'), findsOneWidget);
@@ -201,8 +201,7 @@ void main() {
 
     await tester.pumpWidget(app(const ValueKey(2)));
     await tap('Open profile');
-    expect(find.text('Fast-paced'), findsNWidgets(2));
-    expect(find.text('EUR (€)'), findsOneWidget);
+    expect(find.text('Fast-paced'), findsOneWidget);
     await tap('Trips Planned');
     expect(openedTrips, isTrue);
     expect(tester.takeException(), isNull);

@@ -274,7 +274,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       final l = lookupAppLocalizations(Locale(code));
-      expect(find.text(l.smartTravelPlanning2), findsOneWidget);
+      expect(find.text('Featured story'), findsOneWidget);
+      expect(find.text('Ask AI Assistant'), findsOneWidget);
       expect(find.text(l.whereToNext), findsOneWidget);
       expect(tester.takeException(), isNull);
     });

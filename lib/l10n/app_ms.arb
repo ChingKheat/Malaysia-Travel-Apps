@@ -1,4 +1,7 @@
 {
+  "profileChangePhoto": "Tukar foto",
+  "profilePhotoSaved": "Foto profil dikemas kini.",
+  "profilePhotoInvalid": "Pilih foto JPEG, PNG atau WebP di bawah 2 MB.",
   "scanAddToItinerary": "Tambah pada itinerari",
   "scanAddedToPlan": "Ditambah ke pelan",
   "scanPlanPlaces": "Tempat dipilih untuk pelan anda",

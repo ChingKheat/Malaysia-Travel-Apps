@@ -84,17 +84,22 @@ void main() {
       find.byType(TextField).first,
       'A quiet morning in Ipoh',
     );
-    await tester.enterText(find.byType(TextField).last, 'Ipoh');
-    await tester.ensureVisible(find.text('Save text draft'));
+    await tester.tap(find.byKey(const ValueKey('community-place-picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Save text draft'));
+    await tester.tap(find.text('Use this place'));
     await tester.pumpAndSettle();
-    expect(find.text('Text draft saved on this device.'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save & close'));
+    await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(const MaterialApp(home: CommunityComposer()));
     await tester.pumpAndSettle();
     expect(find.text('A quiet morning in Ipoh'), findsOneWidget);
-    expect(find.text('Ipoh'), findsOneWidget);
-    expect(find.textContaining('Photos are for preview only'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('community-place-picker')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('post and photos will appear'), findsOneWidget);
   });
 }

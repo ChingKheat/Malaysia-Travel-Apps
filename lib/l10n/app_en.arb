@@ -1,4 +1,7 @@
 {
+  "profileChangePhoto": "Change photo",
+  "profilePhotoSaved": "Profile photo updated.",
+  "profilePhotoInvalid": "Choose a JPEG, PNG or WebP photo under 2 MB.",
   "scanAddToItinerary": "Add to itinerary",
   "scanAddedToPlan": "Added to plan",
   "scanPlanPlaces": "Places selected for your plan",

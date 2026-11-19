@@ -9,6 +9,16 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get profileChangePhoto => 'Change photo';
+
+  @override
+  String get profilePhotoSaved => 'Profile photo updated.';
+
+  @override
+  String get profilePhotoInvalid =>
+      'Choose a JPEG, PNG or WebP photo under 2 MB.';
+
+  @override
   String get scanAddToItinerary => 'Add to itinerary';
 
   @override
