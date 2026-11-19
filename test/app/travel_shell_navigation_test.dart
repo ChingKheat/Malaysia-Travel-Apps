@@ -78,6 +78,30 @@ void main() {
     await _withApp(tester, () async {
       expect(find.text('Featured story'), findsOneWidget);
       expect(find.byKey(const ValueKey('home-my-trips')), findsOneWidget);
+      expect(find.text('My Trips'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-community')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('home-my-trips')),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Image &&
+                widget.image is AssetImage &&
+                (widget.image as AssetImage).assetName ==
+                    'assets/recognition/my_trips_cameron_highlands.png',
+          ),
+        ),
+        findsOneWidget,
+      );
+      for (final key in ['home-my-trips', 'home-community']) {
+        expect(
+          find.descendant(
+            of: find.byKey(ValueKey(key)),
+            matching: find.byIcon(Icons.arrow_forward_rounded),
+          ),
+          findsOneWidget,
+        );
+      }
       expect(find.text('Travel dashboard'), findsNothing);
       await tester.ensureVisible(find.text('Map View'));
       await tester.pump(const Duration(milliseconds: 350));
@@ -95,6 +119,33 @@ void main() {
       );
       await tester.ensureVisible(find.text('Featured story'));
       await tester.pump(const Duration(milliseconds: 350));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  testWidgets('Featured story uses the landmark image and fits its content', (
+    tester,
+  ) async {
+    await _withApp(tester, () async {
+      await tester.tap(find.text('Featured story'));
+      await tester.pumpAndSettle();
+      final image = find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                'assets/recognition/featured_sultan_abdul_samad.png',
+      );
+      expect(image, findsOneWidget);
+      final button = find.text('Plan a Trip to Kuala Lumpur');
+      expect(button, findsOneWidget);
+      final sheetBottom = tester.getBottomLeft(find.byType(BottomSheet)).dy;
+      final buttonBottom = tester
+          .getBottomLeft(
+            find.ancestor(of: button, matching: find.byType(ElevatedButton)),
+          )
+          .dy;
+      expect(sheetBottom - buttonBottom, lessThan(80));
       expect(tester.takeException(), isNull);
     });
   });

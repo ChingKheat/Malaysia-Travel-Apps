@@ -112,6 +112,24 @@ abstract class AppLocalizations {
   /// **'We’ll try to fit these places into your trip.'**
   String get selectedPlacesHelp;
 
+  /// No description provided for @profileChangePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Change photo'**
+  String get profileChangePhoto;
+
+  /// No description provided for @profilePhotoSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo updated.'**
+  String get profilePhotoSaved;
+
+  /// No description provided for @profilePhotoInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a JPEG, PNG or WebP photo under 2 MB.'**
+  String get profilePhotoInvalid;
+
   /// No description provided for @scanAddToItinerary.
   ///
   /// In en, this message translates to:

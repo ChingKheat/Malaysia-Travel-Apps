@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:smart_travel_planner/features/messaging/messaging_screens.dart';
+import 'package:smart_travel_planner/features/messaging/messaging_service.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/features/profile/services/profile_avatar_service.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
@@ -147,19 +151,9 @@ class AppHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              _HeaderBadgeButton(
-                icon: Icons.chat_bubble_outline_rounded,
-                badgeText: '',
-                iconColor: const Color(0xFFB5AEA2),
+              const _MessageBadgeButton(
+                iconColor: Color(0xFFB5AEA2),
                 compact: true,
-                tooltip: 'Messages',
-                onTap: () {
-                  demoHaptic();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MessagesInbox()),
-                  );
-                },
               ),
               const SizedBox(width: 8),
               _NotificationsButton(
@@ -240,19 +234,7 @@ class AppHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            _HeaderBadgeButton(
-              icon: Icons.chat_bubble_outline_rounded,
-              badgeText: '',
-              iconColor: muted,
-              tooltip: 'Messages',
-              onTap: () {
-                demoHaptic();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MessagesInbox()),
-                );
-              },
-            ),
+            _MessageBadgeButton(iconColor: muted),
             const SizedBox(width: 4),
             _NotificationsButton(iconColor: muted),
             const SizedBox(width: 4),
@@ -285,9 +267,10 @@ class AppHeader extends StatelessWidget {
                       backgroundColor: dark
                           ? AppColors.nightSurface
                           : AppColors.sky,
-                      backgroundImage: user != null && user.avatarUrl.isNotEmpty
-                          ? NetworkImage(user.avatarUrl)
-                          : null,
+                      backgroundImage: user == null
+                          ? null
+                          : ProfileAvatarService.imageProvider(user.avatarUrl),
+                      onBackgroundImageError: (_, _) {},
                       child: user == null || user.avatarUrl.isEmpty
                           ? Icon(Icons.person_outline, color: muted, size: 18)
                           : null,
@@ -301,6 +284,102 @@ class AppHeader extends StatelessWidget {
       },
     );
   }
+}
+
+class _MessageBadgeButton extends StatefulWidget {
+  const _MessageBadgeButton({required this.iconColor, this.compact = false});
+  final Color iconColor;
+  final bool compact;
+
+  @override
+  State<_MessageBadgeButton> createState() => _MessageBadgeButtonState();
+}
+
+class _MessageBadgeButtonState extends State<_MessageBadgeButton>
+    with WidgetsBindingObserver {
+  Timer? _timer;
+  int _unread = 0;
+  String? _account;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AuthService().addListener(_onAccountChanged);
+    _refresh();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _refresh());
+  }
+
+  void _onAccountChanged() => _refresh();
+
+  Future<void> _refresh() async {
+    final service = MessagingService();
+    final account = service.account;
+    if (account == null) {
+      if (mounted) {
+        setState(() {
+          _account = null;
+          _unread = 0;
+        });
+      }
+      return;
+    }
+    try {
+      final cached = await service.read('inbox');
+      if (mounted && account == AuthService().currentUser?.uid) {
+        setState(() {
+          _account = account;
+          _unread = _countUnread(cached);
+        });
+      }
+      final fresh = await service.inbox();
+      if (mounted && account == AuthService().currentUser?.uid) {
+        setState(() {
+          _account = account;
+          _unread = _countUnread(fresh);
+        });
+      }
+    } catch (_) {
+      // Keep the cached count while offline.
+    }
+  }
+
+  int _countUnread(List<Map<String, dynamic>> rows) => rows.fold<int>(
+    0,
+    (sum, row) => sum + ((row['unread_count'] as num?)?.toInt() ?? 0),
+  );
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    AuthService().removeListener(_onAccountChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _HeaderBadgeButton(
+    icon: Icons.chat_bubble_outline_rounded,
+    badgeText: _account == AuthService().currentUser?.uid && _unread > 0
+        ? (_unread > 9 ? '9+' : '$_unread')
+        : '',
+    iconColor: widget.iconColor,
+    compact: widget.compact,
+    tooltip: 'Messages',
+    onTap: () async {
+      demoHaptic();
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MessagesInbox()),
+      );
+      if (mounted) _refresh();
+    },
+  );
 }
 
 class _HeaderBadgeButton extends StatelessWidget {

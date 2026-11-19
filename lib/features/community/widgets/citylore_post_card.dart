@@ -10,14 +10,17 @@ class CitylorePostCard extends StatelessWidget {
     required this.onToggleLike,
     required this.onToggleSave,
     required this.onOpenDetail,
+    this.onCommunityShared,
   });
 
   final CommunityPost post;
   final VoidCallback onToggleLike;
   final VoidCallback onToggleSave;
   final VoidCallback onOpenDetail;
+  final VoidCallback? onCommunityShared;
   @override
   Widget build(BuildContext context) {
+    final repost = communityRepostParts(post.body);
     const accentColor = AppColors.nightAccent;
     const cardBg = AppColors.nightSurface;
     const borderColor = AppColors.nightLine;
@@ -29,250 +32,265 @@ class CitylorePostCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: borderColor, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Author Header Row
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.nightAccentContainer,
-                  border: Border.all(
-                    color: accentColor.withValues(alpha: 0.4),
-                    width: 1.2,
+          InkWell(
+            onTap: () => openCommunityPostAuthor(context, post),
+            borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.nightAccentContainer,
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: 0.4),
+                      width: 1.2,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    post.authorInitials,
+                    style: const TextStyle(
+                      color: accentColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5,
+                    ),
                   ),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  post.authorInitials,
-                  style: const TextStyle(
-                    color: accentColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13.5,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        communityAuthorLabel(context, post.author, post.isMine),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        post.date,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: textMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      communityAuthorLabel(context, post.author, post.isMine),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                      ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.nightAccentContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    post.topic,
+                    style: const TextStyle(
+                      color: accentColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      post.date,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 13),
+          if (repost != null) ...[
+            Text(
+              repost.thought,
+              style: const TextStyle(
+                color: AppColors.nightBody,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 8),
-              Text(
-                post.topic,
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => openCommunitySourceAuthor(
+                context,
+                repost.author,
+                repost.sourceId,
+                repost.original,
+              ),
+              child: Text(
+                communityText(
+                  context,
+                  'Shared ${repost.author}’s post',
+                  '分享了 ${repost.author} 的帖子',
+                  'Berkongsi siaran ${repost.author}',
+                ),
                 style: const TextStyle(
                   color: accentColor,
-                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 13),
-
+            ),
+            const SizedBox(height: 12),
+          ],
           InkWell(
             onTap: onOpenDetail,
-            child: Text(
-              post.place,
-              style: const TextStyle(
-                color: AppColors.nightBody,
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'serif',
-                height: 1.25,
-                letterSpacing: -0.25,
+            child: Container(
+              width: double.infinity,
+              padding: repost == null
+                  ? EdgeInsets.zero
+                  : const EdgeInsets.all(12),
+              decoration: repost == null
+                  ? null
+                  : BoxDecoration(
+                      color: AppColors.nightCanvas,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor),
+                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.place,
+                    style: const TextStyle(
+                      color: AppColors.nightBody,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'serif',
+                      height: 1.25,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    repost?.original ?? post.body,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: textBody,
+                      fontSize: 13.5,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
-
-          // 5. Body Text
-          Text(
-            post.body,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: textBody,
-              fontSize: 13.5,
-              height: 1.45,
-            ),
-          ),
+          if (post.photoPaths.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            CommunityPostPhotos(paths: post.photoPaths),
+          ],
           const SizedBox(height: 10),
 
-          // 6. "View related landmark →" and "Read story"
+          // Reactions and story actions
           Row(
             children: [
-              const Spacer(),
-              TextButton(
-                onPressed: onOpenDetail,
-                style: TextButton.styleFrom(
-                  foregroundColor: accentColor,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onToggleLike,
+                  icon: Icon(
+                    post.liked ? Icons.favorite : Icons.favorite_border_rounded,
+                    size: 18,
                   ),
-                  minimumSize: const Size(48, 48),
+                  label: Text('${post.likesCount}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: post.liked ? accentColor : textMuted,
+                    side: const BorderSide(color: borderColor),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
                 ),
-                child: const Text(
-                  'Read story',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onOpenDetail,
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                  label: Text('${post.comments.length}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: textMuted,
+                    side: const BorderSide(color: borderColor),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Tooltip(
+                  message: communityText(
+                    context,
+                    'Share post',
+                    '分享帖子',
+                    'Kongsi siaran',
+                  ),
+                  child: OutlinedButton.icon(
+                    onPressed: () => shareCommunityPost(
+                      context,
+                      post,
+                      onCommunityShared: onCommunityShared,
+                    ),
+                    icon: const Icon(Icons.share_outlined, size: 18),
+                    label: Text(
+                      communityText(context, 'Share', '分享', 'Kongsi'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: textMuted,
+                      side: const BorderSide(color: borderColor),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-
-          // 7. Bottom Action Bar
+          const SizedBox(height: 12),
           Row(
             children: [
-              Tooltip(
-                message: 'Like',
-                child: InkWell(
-                  onTap: onToggleLike,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          post.liked
-                              ? Icons.favorite
-                              : Icons.favorite_border_rounded,
-                          size: 20,
-                          color: post.liked
-                              ? const Color(0xFFEF4444)
-                              : textMuted,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${post.likesCount}',
-                          style: const TextStyle(
-                            color: textMuted,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onOpenDetail,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: accentColor,
+                    side: const BorderSide(color: borderColor),
+                  ),
+                  child: Text(
+                    communityText(context, 'Read story', '阅读故事', 'Baca kisah'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
-              Tooltip(
-                message: 'Comments',
-                child: InkWell(
-                  onTap: onOpenDetail,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.chat_bubble_outline_rounded,
-                          size: 18,
-                          color: textMuted,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${post.comments.length}',
-                          style: const TextStyle(
-                            color: textMuted,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(),
               const SizedBox(width: 8),
-              Tooltip(
-                message: 'Save post',
-                child: InkWell(
-                  onTap: onToggleSave,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 7.5,
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onToggleSave,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: accentColor,
+                    side: BorderSide(
+                      color: post.saved ? accentColor : borderColor,
                     ),
-                    decoration: BoxDecoration(
-                      color: post.saved
-                          ? accentColor.withValues(alpha: 0.18)
-                          : AppColors.nightRaised,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: post.saved ? accentColor : AppColors.nightLine,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          post.saved
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_border_rounded,
-                          size: 14,
-                          color: accentColor,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          post.saved ? 'Saved' : 'Save',
-                          style: const TextStyle(
-                            color: accentColor,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
+                  ),
+                  child: Text(
+                    post.saved
+                        ? communityText(context, 'Saved', '已保存', 'Disimpan')
+                        : communityText(context, 'Save', '保存', 'Simpan'),
                   ),
                 ),
               ),

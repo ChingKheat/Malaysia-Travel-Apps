@@ -1,6 +1,9 @@
 {
   "unscheduledSelectedPlaces": "未安排的已选景点",
   "selectedPlacesHelp": "我们会尽量把这些景点排进行程。",
+  "profileChangePhoto": "更换照片",
+  "profilePhotoSaved": "头像已更新。",
+  "profilePhotoInvalid": "请选择小于 2 MB 的 JPEG、PNG 或 WebP 照片。",
   "scanAddToItinerary": "添加到行程",
   "scanAddedToPlan": "已加入规划",
   "scanPlanPlaces": "为行程选定的地点",

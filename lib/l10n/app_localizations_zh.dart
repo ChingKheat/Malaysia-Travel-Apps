@@ -15,6 +15,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectedPlacesHelp => '我们会尽量把这些景点排进行程。';
 
   @override
+  String get profileChangePhoto => '更换照片';
+
+  @override
+  String get profilePhotoSaved => '头像已更新。';
+
+  @override
+  String get profilePhotoInvalid => '请选择小于 2 MB 的 JPEG、PNG 或 WebP 照片。';
+
+  @override
   String get scanAddToItinerary => '添加到行程';
 
   @override

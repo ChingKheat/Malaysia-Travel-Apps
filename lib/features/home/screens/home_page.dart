@@ -2,9 +2,11 @@ import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/community/explore_page.dart';
+import 'package:smart_travel_planner/features/community/community_page.dart';
 import 'package:smart_travel_planner/features/home/widgets/popular_attractions_section.dart';
 import 'package:smart_travel_planner/features/home/widgets/trip_cards.dart';
 import 'package:smart_travel_planner/features/profile/screens/profile_page.dart';
+import 'package:smart_travel_planner/features/profile/services/profile_avatar_service.dart';
 import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
 import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
@@ -167,88 +169,93 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.72,
-          maxChildSize: 0.9,
-          minChildSize: 0.5,
-          builder: (_, scrollController) {
-            return ListView(
-              controller: scrollController,
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(ctx).height * 0.9,
+            ),
+            child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    'assets/recognition/petronas.jpg',
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'CURATED CITY GUIDE · FEATURED STORY',
-                  style: TextStyle(
-                    color: AppColors.nightAccent,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Kuala Lumpur: Where Heritage Meets Horizon',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'serif',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Kuala Lumpur’s story unfolds along the confluence of the Klang and Gombak rivers. What began as a 19th-century tin-mining outpost has blossomed into one of Southeast Asia’s most captivating metropolises.\n\n'
-                  'From Moorish copper domes and Art Deco market halls to the soaring twin spires of steel and glass, every district tells a tale of vibrant convergence. Wander Petaling Street at dawn for kaya toast and kopi tarik, marvel at the sacred rainbow steps of Batu Caves, and finish your night watching the musical fountains dance under the illuminated skyline of KLCC.',
-                  style: TextStyle(
-                    color: AppColors.nightBody,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    widget.onPlanTap();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.nightAccent,
-                    foregroundColor: AppColors.onNightAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                  const SizedBox(height: 18),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'assets/recognition/featured_sultan_abdul_samad.png',
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  child: const Text(
-                    'Plan a Trip to Kuala Lumpur',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'CURATED CITY GUIDE · FEATURED STORY',
+                    style: TextStyle(
+                      color: AppColors.nightAccent,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Kuala Lumpur: Where Heritage Meets Horizon',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'serif',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Kuala Lumpur’s story unfolds along the confluence of the Klang and Gombak rivers. What began as a 19th-century tin-mining outpost has blossomed into one of Southeast Asia’s most captivating metropolises.\n\n'
+                    'From Moorish copper domes and Art Deco market halls to the soaring twin spires of steel and glass, every district tells a tale of vibrant convergence. Wander Petaling Street at dawn for kaya toast and kopi tarik, marvel at the sacred rainbow steps of Batu Caves, and finish your night watching the musical fountains dance under the illuminated skyline of KLCC.',
+                    style: TextStyle(
+                      color: AppColors.nightBody,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      widget.onPlanTap();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.nightAccent,
+                      foregroundColor: AppColors.onNightAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Plan a Trip to Kuala Lumpur',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -266,8 +273,6 @@ class _HomePageState extends State<HomePage> {
             onAssistantTap: widget.onAssistantTap,
             onFeaturedTap: () => _showFeaturedStory(context),
             showSearch: false,
-            trip: upcomingTrip,
-            onTripTap: widget.onItineraryTap,
           ),
           const SizedBox(height: 16),
           _MyTripsCard(onTap: widget.onItineraryTap),
@@ -306,8 +311,6 @@ class _HomePageState extends State<HomePage> {
           onSearchTap: widget.onPlanTap,
           onAssistantTap: widget.onAssistantTap,
           onFeaturedTap: () => _showFeaturedStory(context),
-          trip: upcomingTrip,
-          onTripTap: widget.onItineraryTap,
         ),
         const SizedBox(height: 16),
 
@@ -353,8 +356,6 @@ class _HomePageState extends State<HomePage> {
           isDarkTheme: true,
         ),
         const SizedBox(height: 20),
-
-        if (upcomingTrip == null) _EmptyTripCard(onPlanTap: widget.onPlanTap),
       ],
     );
   }
@@ -368,16 +369,12 @@ class HeroPanel extends StatelessWidget {
     this.onAssistantTap,
     this.onFeaturedTap,
     this.showSearch = true,
-    this.trip,
-    this.onTripTap,
   });
 
   final VoidCallback onSearchTap;
   final VoidCallback? onAssistantTap;
   final VoidCallback? onFeaturedTap;
   final bool showSearch;
-  final SavedTrip? trip;
-  final VoidCallback? onTripTap;
 
   @override
   Widget build(BuildContext context) {
@@ -395,8 +392,9 @@ class HeroPanel extends StatelessWidget {
                 children: [
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/recognition/petronas.jpg',
+                      'assets/recognition/explore_hero_langkawi.png',
                       fit: BoxFit.cover,
+                      alignment: Alignment.center,
                       excludeFromSemantics: true,
                       errorBuilder: (_, _, _) =>
                           const ColoredBox(color: AppColors.nightRaised),
@@ -409,9 +407,9 @@ class HeroPanel extends StatelessWidget {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
+                            Colors.black.withValues(alpha: .48),
+                            Colors.black.withValues(alpha: .36),
                             Colors.black.withValues(alpha: .72),
-                            Colors.black.withValues(alpha: .52),
-                            Colors.black.withValues(alpha: .85),
                           ],
                         ),
                       ),
@@ -443,11 +441,11 @@ class HeroPanel extends StatelessWidget {
                                     child: CircleAvatar(
                                       radius: 33,
                                       backgroundColor: AppColors.nightRaised,
-                                      foregroundImage:
-                                          user != null &&
-                                              user.avatarUrl.isNotEmpty
-                                          ? NetworkImage(user.avatarUrl)
-                                          : null,
+                                      foregroundImage: user == null
+                                          ? null
+                                          : ProfileAvatarService.imageProvider(
+                                              user.avatarUrl,
+                                            ),
                                       onForegroundImageError:
                                           user != null &&
                                               user.avatarUrl.isNotEmpty
@@ -499,109 +497,13 @@ class HeroPanel extends StatelessWidget {
                                       ],
                                     ),
                                   ),
-                                  if (user != null)
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.white,
-                                    ),
+                                  if (user != null) const _ExploreArrow(),
                                 ],
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 24),
-                        Material(
-                          color: Colors.black.withValues(alpha: .72),
-                          borderRadius: BorderRadius.circular(14),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(14),
-                            onTap: trip == null
-                                ? onSearchTap
-                                : (onTripTap ?? onSearchTap),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    trip == null
-                                        ? Icons.explore_outlined
-                                        : Icons.location_on_outlined,
-                                    color: AppColors.nightAccent,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          trip == null
-                                              ? context.l10n.myTrips
-                                              : context.l10n.destination,
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        Text(
-                                          trip?.destination ??
-                                              context.l10n.planYourTrip,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        if (trip != null)
-                                          Text(
-                                            trip!.isGenerated
-                                                ? trip!.detail
-                                                : trip!.date,
-                                            style: const TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.white,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            children: [
-                              Text(
-                                context.l10n.smartTravelPlanning2,
-                                style: const TextStyle(
-                                  color: AppColors.nightAccent,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                '· 6 Landmarks',
-                                style: TextStyle(
-                                  color: AppColors.nightAccent,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
@@ -623,7 +525,8 @@ class HeroPanel extends StatelessWidget {
                                   child: const FittedBox(
                                     fit: BoxFit.scaleDown,
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
@@ -664,16 +567,10 @@ class HeroPanel extends StatelessWidget {
                                   child: FittedBox(
                                     fit: BoxFit.scaleDown,
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Text(
-                                          '✦ ',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
                                         const Text(
                                           'Ask AI Assistant',
                                           style: TextStyle(
@@ -819,51 +716,73 @@ class _CommunitySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return Material(
+      color: AppColors.nightSurface,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('home-community'),
+        onTap: onOpenCommunity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Expanded(
-              child: Text(
-                'From the Community',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'serif',
-                ),
+            Image.asset(
+              'assets/recognition/community_hero_penang.png',
+              height: 164,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              excludeFromSemantics: true,
+              errorBuilder: (_, _, _) => const SizedBox(
+                height: 164,
+                child: ColoredBox(color: AppColors.nightRaised),
               ),
             ),
-            InkWell(
-              onTap: onOpenCommunity,
-              borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Open Community',
-                      style: TextStyle(
-                        color: AppColors.nightAccent,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          communityText(
+                            context,
+                            'From the Community',
+                            '来自社区',
+                            'Daripada Komuniti',
+                          ),
+                          style: const TextStyle(
+                            color: AppColors.nightBody,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'serif',
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          communityText(
+                            context,
+                            'Travel stories and local tips from fellow travellers.',
+                            '看看其他旅友分享的游记和当地贴士。',
+                            'Kisah perjalanan dan tip tempatan daripada pengembara lain.',
+                          ),
+                          style: const TextStyle(
+                            color: AppColors.nightMuted,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 15,
-                      color: AppColors.nightAccent,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  const _ExploreArrow(),
+                ],
               ),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -875,143 +794,73 @@ class _MyTripsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.nightSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.nightLine, width: 1.2),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          key: const ValueKey('home-my-trips'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.nightAccent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.folder_open_outlined,
-                    color: AppColors.nightAccent,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.l10n.myTrips,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        context.l10n.viewSavedItinerariesAndYourCurrentPlan,
-                        style: const TextStyle(
-                          color: AppColors.nightMuted,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        context.l10n.viewAll,
-                        style: const TextStyle(
-                          color: AppColors.nightAccent,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: AppColors.nightAccent),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyTripCard extends StatelessWidget {
-  const _EmptyTripCard({required this.onPlanTap});
-
-  final VoidCallback onPlanTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPlanTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.nightSurface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.nightLine, width: 1.2),
-        ),
-        child: Row(
+    return Material(
+      color: AppColors.nightSurface,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('home-my-trips'),
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: AppColors.nightAccent.withValues(alpha: 0.12),
-              ),
-              child: const Icon(
-                Icons.add_location_alt_outlined,
-                color: AppColors.nightAccent,
-                size: 28,
+            Image.asset(
+              'assets/recognition/my_trips_cameron_highlands.png',
+              height: 164,
+              fit: BoxFit.cover,
+              excludeFromSemantics: true,
+              errorBuilder: (_, _, _) => const SizedBox(
+                height: 164,
+                child: ColoredBox(color: AppColors.nightRaised),
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
                 children: [
-                  Text(
-                    context.l10n.noActiveTripPlanned,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.l10n.myTrips,
+                          style: const TextStyle(
+                            color: AppColors.nightBody,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'serif',
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          context.l10n.viewSavedItinerariesAndYourCurrentPlan,
+                          style: const TextStyle(
+                            color: AppColors.nightMuted,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    context.l10n.tapToPlanYourSmartSchedule,
-                    style: const TextStyle(
-                      color: AppColors.nightMuted,
-                      fontSize: 13,
-                    ),
-                  ),
+                  const SizedBox(width: 12),
+                  const _ExploreArrow(),
                 ],
               ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: AppColors.nightMuted,
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _ExploreArrow extends StatelessWidget {
+  const _ExploreArrow();
+
+  @override
+  Widget build(BuildContext context) => const Icon(
+    Icons.arrow_forward_rounded,
+    size: 24,
+    color: AppColors.nightAccent,
+  );
 }
