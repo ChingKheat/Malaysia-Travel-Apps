@@ -30,7 +30,7 @@ class AdminPlacesScreen extends StatefulWidget {
 }
 
 class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
-  static const List<String> availableStates = [
+  static const List<String> westMalaysiaStates = [
     'Penang',
     'Kuala Lumpur',
     'Melaka',
@@ -38,14 +38,17 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
     'Johor',
     'Perak',
     'Pahang',
-    'Sabah',
-    'Sarawak',
     'Kedah',
     'Terengganu',
     'Kelantan',
     'Negeri Sembilan',
     'Perlis',
     'Putrajaya',
+  ];
+
+  static const List<String> eastMalaysiaStates = [
+    'Sabah',
+    'Sarawak',
     'Labuan',
   ];
 
@@ -669,21 +672,22 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
 
   Widget _buildIndoorOutdoorBadge(Map<String, dynamic> place) {
     final isIndoor = place['is_indoor'] as bool?;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor;
     final Color textColor;
     final String label;
 
     if (isIndoor == true) {
-      bgColor = const Color(0xFFE0F2FE);
-      textColor = const Color(0xFF0284C7);
+      bgColor = isDark ? const Color(0xFF0C273D) : const Color(0xFFE0F2FE);
+      textColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
       label = '🏠 Indoor';
     } else if (isIndoor == false) {
-      bgColor = const Color(0xFFDCFCE7);
-      textColor = const Color(0xFF16A34A);
+      bgColor = isDark ? const Color(0xFF0E3020) : const Color(0xFFDCFCE7);
+      textColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A);
       label = '☀️ Outdoor';
     } else {
-      bgColor = const Color(0xFFFEF3C7);
-      textColor = const Color(0xFFD97706);
+      bgColor = isDark ? const Color(0xFF33230C) : const Color(0xFFFEF3C7);
+      textColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
       label = '❓ Review';
     }
 
@@ -768,6 +772,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
       return const SizedBox.shrink();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isDone = !_isLoading && _syncProgress >= 1.0;
     final percent = (_syncProgress * 100).toInt().clamp(0, 100);
 
@@ -777,7 +782,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
         color: AppColors.nightSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDone ? const Color(0xFFBBF7D0) : AppColors.nightLine,
+          color: isDone
+              ? (isDark ? const Color(0xFF1E5E3D) : const Color(0xFFBBF7D0))
+              : AppColors.nightLine,
           width: 1.5,
         ),
         boxShadow: [
@@ -804,28 +811,38 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: isDone
-                            ? const Color(0xFFDCFCE7)
-                            : const Color(0xFFEFF6FF),
+                            ? (isDark
+                                ? const Color(0xFF0F3622)
+                                : const Color(0xFFDCFCE7))
+                            : (isDark
+                                ? const Color(0xFF14243B)
+                                : const Color(0xFFEFF6FF)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: isDone
-                          ? const Icon(
+                          ? Icon(
                               Icons.check_circle_rounded,
-                              color: Color(0xFF16A34A),
+                              color: isDark
+                                  ? const Color(0xFF4ADE80)
+                                  : const Color(0xFF16A34A),
                               size: 24,
                             )
                           : _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Color(0xFF2563EB),
+                                color: isDark
+                                    ? const Color(0xFF60A5FA)
+                                    : const Color(0xFF2563EB),
                               ),
                             )
-                          : const Icon(
+                          : Icon(
                               Icons.info_outline_rounded,
-                              color: Color(0xFF2563EB),
+                              color: isDark
+                                  ? const Color(0xFF60A5FA)
+                                  : const Color(0xFF2563EB),
                               size: 24,
                             ),
                     ),
@@ -866,39 +883,49 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFEE2E2),
+                                      color: isDark
+                                          ? const Color(0xFF2C1517)
+                                          : const Color(0xFFFEE2E2),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: const Color(0xFFFCA5A5),
+                                        color: isDark
+                                            ? const Color(0xFF5C2328)
+                                            : const Color(0xFFFCA5A5),
                                       ),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         _isCancelling
-                                            ? const SizedBox(
+                                            ? SizedBox(
                                                 width: 10,
                                                 height: 10,
                                                 child:
                                                     CircularProgressIndicator(
                                                       strokeWidth: 1.5,
-                                                      color: Colors.red,
+                                                      color: isDark
+                                                          ? const Color(0xFFF87171)
+                                                          : Colors.red,
                                                     ),
                                               )
-                                            : const Icon(
+                                            : Icon(
                                                 Icons.close,
                                                 size: 13,
-                                                color: Colors.red,
+                                                color: isDark
+                                                    ? const Color(0xFFF87171)
+                                                    : Colors.red,
                                               ),
                                         const SizedBox(width: 3),
                                         Text(
                                           _isCancelling
                                               ? context.tr('Cancelling…')
                                               : context.l10n.cancel,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w800,
-                                            color: Colors.red,
+                                            color: isDark
+                                                ? const Color(0xFFF87171)
+                                                : Colors.red,
                                           ),
                                         ),
                                       ],
@@ -914,8 +941,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isDone
-                                      ? const Color(0xFFDCFCE7)
-                                      : const Color(0xFFEFF6FF),
+                                      ? (isDark
+                                          ? const Color(0xFF0F3622)
+                                          : const Color(0xFFDCFCE7))
+                                      : (isDark
+                                          ? const Color(0xFF14243B)
+                                          : const Color(0xFFEFF6FF)),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -924,8 +955,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                                     fontWeight: FontWeight.w800,
                                     fontSize: 12,
                                     color: isDone
-                                        ? const Color(0xFF16A34A)
-                                        : const Color(0xFF2563EB),
+                                        ? (isDark
+                                            ? const Color(0xFF4ADE80)
+                                            : const Color(0xFF16A34A))
+                                        : (isDark
+                                            ? const Color(0xFF60A5FA)
+                                            : const Color(0xFF2563EB)),
                                   ),
                                 ),
                               ),
@@ -1082,6 +1117,7 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: AppColors.nightCanvas,
       appBar: AppBar(
@@ -1150,61 +1186,98 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      context.l10n.text1SelectDestinationState,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        context.l10n.text13StatesKl,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  context.l10n.text1SelectDestinationState,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: availableStates.map((st) {
-                    final isSel = st == _selectedState;
-                    return ChoiceChip(
-                      selected: isSel,
-                      label: Text(st),
-                      selectedColor: AppColors.primary,
-                      labelStyle: TextStyle(
-                        color: isSel ? AppColors.onNightAccent : AppColors.ink,
-                        fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                        fontSize: 12,
-                      ),
-                      onSelected: (val) {
-                        if (val && !_isLoading) {
-                          setState(() {
-                            _selectedState = st;
-                          });
-                          _loadStateData();
-                        }
-                      },
+                const SizedBox(height: 16),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final singleColumn = constraints.maxWidth < 280 ||
+                        MediaQuery.textScalerOf(context).scale(14) > 20;
+                    final itemWidth = singleColumn
+                        ? constraints.maxWidth
+                        : (constraints.maxWidth - 8) / 2;
+                    Widget buildStateGroup(List<String> states) => Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: states.map((st) {
+                        final isSel = st == _selectedState;
+                        return SizedBox(
+                          width: itemWidth,
+                          child: ChoiceChip(
+                            selected: isSel,
+                            showCheckmark: false,
+                            selectedColor: AppColors.primary,
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            side: BorderSide(
+                              color: isSel
+                                  ? AppColors.primary
+                                  : Theme.of(context).colorScheme.outlineVariant,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 8,
+                            ),
+                            label: SizedBox(
+                              width: double.infinity,
+                              child: Row(
+                                children: [
+                                  Expanded(child: Text(st)),
+                                  if (isSel) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.check, size: 18, color: AppColors.onNightAccent),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            labelStyle: TextStyle(
+                              color: isSel
+                                  ? AppColors.onNightAccent
+                                  : Theme.of(context).colorScheme.onSurface,
+                              fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                            onSelected: _isLoading
+                                ? null
+                                : (val) {
+                                    if (val) {
+                                      setState(() {
+                                        _selectedState = st;
+                                      });
+                                      _loadStateData();
+                                    }
+                                  },
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.l10n.westMalaysia,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        buildStateGroup(westMalaysiaStates),
+                        const SizedBox(height: 24),
+                        Text(
+                          context.l10n.eastMalaysia,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        buildStateGroup(eastMalaysiaStates),
+                      ],
+                    );
+                  },
                 ),
                 const Divider(height: 24),
                 Row(
@@ -1234,9 +1307,22 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: _dbCount > 0
-                            ? const Color(0xFFE8FDF2)
-                            : const Color(0xFFFEE2E2),
+                            ? (isDark
+                                ? const Color(0xFF132D21)
+                                : const Color(0xFFE8FDF2))
+                            : (isDark
+                                ? const Color(0xFF381A1A)
+                                : const Color(0xFFFEE2E2)),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _dbCount > 0
+                              ? (isDark
+                                  ? const Color(0xFF1E5E3D)
+                                  : const Color(0xFFA7F3D0))
+                              : (isDark
+                                  ? const Color(0xFF7F1D1D)
+                                  : const Color(0xFFFECACA)),
+                        ),
                       ),
                       child: Text(
                         _isFetchingList
@@ -1246,8 +1332,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                             : context.l10n.valuePlaces((_dbCount).toString()),
                         style: TextStyle(
                           color: _dbCount > 0
-                              ? const Color(0xFF059669)
-                              : Colors.red,
+                              ? (isDark
+                                  ? const Color(0xFF4ADE80)
+                                  : const Color(0xFF059669))
+                              : (isDark
+                                  ? const Color(0xFFF87171)
+                                  : Colors.red),
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
@@ -1265,8 +1355,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         count: _currentPlaces
                             .where((p) => p['is_indoor'] == true)
                             .length,
-                        color: const Color(0xFF0284C7),
-                        bgColor: const Color(0xFFE0F2FE),
+                        color: isDark
+                            ? const Color(0xFF38BDF8)
+                            : const Color(0xFF0284C7),
+                        bgColor: isDark
+                            ? const Color(0xFF0C273D)
+                            : const Color(0xFFE0F2FE),
                       ),
                       const SizedBox(width: 8),
                       _buildCountBadge(
@@ -1275,8 +1369,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         count: _currentPlaces
                             .where((p) => p['is_indoor'] == false)
                             .length,
-                        color: const Color(0xFF16A34A),
-                        bgColor: const Color(0xFFDCFCE7),
+                        color: isDark
+                            ? const Color(0xFF4ADE80)
+                            : const Color(0xFF16A34A),
+                        bgColor: isDark
+                            ? const Color(0xFF0E3020)
+                            : const Color(0xFFDCFCE7),
                       ),
                       const SizedBox(width: 8),
                       _buildCountBadge(
@@ -1285,8 +1383,12 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         count: _currentPlaces
                             .where((p) => p['is_indoor'] == null)
                             .length,
-                        color: const Color(0xFFD97706),
-                        bgColor: const Color(0xFFFEF3C7),
+                        color: isDark
+                            ? const Color(0xFFFBBF24)
+                            : const Color(0xFFD97706),
+                        bgColor: isDark
+                            ? const Color(0xFF33230C)
+                            : const Color(0xFFFEF3C7),
                       ),
                     ],
                   ),
@@ -1308,21 +1410,31 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
+                color: isDark
+                    ? const Color(0xFF2C1517)
+                    : const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFFCA5A5)),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF5C2328)
+                      : const Color(0xFFFCA5A5),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.lock, color: Colors.red, size: 20),
-                      SizedBox(width: 8),
+                      Icon(
+                        Icons.lock,
+                        color: isDark ? const Color(0xFFF87171) : Colors.red,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
                         context.l10n.supabaseRowLevelSecurityRlsLocked,
                         style: TextStyle(
-                          color: Colors.red,
+                          color: isDark ? const Color(0xFFF87171) : Colors.red,
                           fontWeight: FontWeight.w900,
                           fontSize: 13,
                         ),
@@ -1346,13 +1458,13 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: SelectableText(
                             'ALTER TABLE public.places DISABLE ROW LEVEL SECURITY;',
                             style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 11,
-                              color: Colors.black,
+                              color: isDark ? AppColors.nightBody : Colors.black,
                             ),
                           ),
                         ),
@@ -1388,21 +1500,35 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
+                color: isDark
+                    ? const Color(0xFF2D200E)
+                    : const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFFCD34D)),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF5E421B)
+                      : const Color(0xFFFCD34D),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.star_half, color: Color(0xFFB45309), size: 20),
-                      SizedBox(width: 8),
+                      Icon(
+                        Icons.star_half,
+                        color: isDark
+                            ? const Color(0xFFFBBF24)
+                            : const Color(0xFFB45309),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
                         context.l10n.missingReviewCountColumnInSupabase,
                         style: TextStyle(
-                          color: Color(0xFFB45309),
+                          color: isDark
+                              ? const Color(0xFFFBBF24)
+                              : const Color(0xFFB45309),
                           fontWeight: FontWeight.w900,
                           fontSize: 13,
                         ),
@@ -1430,13 +1556,13 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: SelectableText(
                             'ALTER TABLE public.places ADD COLUMN IF NOT EXISTS user_ratings_total INTEGER DEFAULT 0;',
                             style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 11,
-                              color: Colors.black,
+                              color: isDark ? AppColors.nightBody : Colors.black,
                             ),
                           ),
                         ),
@@ -1472,19 +1598,23 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text(context.l10n.checkingDatabaseSchema),
-                            duration: Duration(seconds: 1),
+                            duration: const Duration(seconds: 1),
                           ),
                         );
                       },
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.refresh,
                         size: 16,
-                        color: Color(0xFFB45309),
+                        color: isDark
+                            ? const Color(0xFFFBBF24)
+                            : const Color(0xFFB45309),
                       ),
                       label: Text(
                         context.l10n.alreadyRanItTapToRefreshDismiss,
                         style: TextStyle(
-                          color: Color(0xFFB45309),
+                          color: isDark
+                              ? const Color(0xFFFBBF24)
+                              : const Color(0xFFB45309),
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -1576,7 +1706,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: Color(0xFFFCA5A5)),
+                          side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF7F1D1D)
+                                : const Color(0xFFFCA5A5),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1598,7 +1732,11 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: Color(0xFFFCA5A5)),
+                          side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF7F1D1D)
+                                : const Color(0xFFFCA5A5),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1612,12 +1750,16 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
             width: double.infinity,
             child: FilledButton.tonalIcon(
               onPressed: _isLoading ? null : _autoClassifyPlaces,
-              icon: const Icon(Icons.bolt, color: Color(0xFF4F46E5), size: 18),
+              icon: Icon(
+                Icons.bolt,
+                color: isDark ? AppColors.primary : const Color(0xFF4F46E5),
+                size: 18,
+              ),
               label: Text(
                 context.l10n.howToReviewCategoriesAndSettings,
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF4F46E5),
+                  color: isDark ? AppColors.primary : const Color(0xFF4F46E5),
                   fontSize: 13,
                 ),
               ),
@@ -1819,7 +1961,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                               errorBuilder: (_, _, _) => Container(
                                 width: 52,
                                 height: 52,
-                                color: Colors.grey.shade200,
+                                color: isDark
+                                    ? AppColors.nightRaised
+                                    : Colors.grey.shade200,
                                 child: const Icon(
                                   Icons.place,
                                   color: AppColors.primary,
@@ -1829,7 +1973,9 @@ class _AdminPlacesScreenState extends State<AdminPlacesScreen> {
                           : Container(
                               width: 52,
                               height: 52,
-                              color: Colors.grey.shade200,
+                              color: isDark
+                                  ? AppColors.nightRaised
+                                  : Colors.grey.shade200,
                               child: const Icon(
                                 Icons.place,
                                 color: AppColors.primary,

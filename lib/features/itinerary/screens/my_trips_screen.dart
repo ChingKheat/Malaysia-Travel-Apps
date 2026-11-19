@@ -9,10 +9,12 @@ class MyTripsScreen extends StatelessWidget {
     super.key,
     required this.onBackTap,
     required this.onPlanTap,
+    this.initialItineraryId,
   });
 
   final VoidCallback onBackTap;
   final VoidCallback onPlanTap;
+  final String? initialItineraryId;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,13 @@ class MyTripsScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
       ),
-      body: SafeArea(top: false, child: ItineraryPage(onPlanTap: onPlanTap)),
+      body: SafeArea(
+        top: false,
+        child: ItineraryPage(
+          onPlanTap: onPlanTap,
+          initialItineraryId: initialItineraryId,
+        ),
+      ),
     );
   }
 }

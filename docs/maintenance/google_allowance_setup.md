@@ -20,17 +20,19 @@ own allowance; it shows the verified remaining search requests.
 
 ## Default limits (units per US Pacific calendar month)
 
-| SKU in database | Maximum configured limit | Published monthly free allowance |
+| SKU in database | Default app limit | Published monthly free allowance |
 |---|---:|---:|
 | text_search_pro | 4,000 | 5,000 requests |
 | details_pro | 4,000 | 5,000 requests |
-| details_enterprise | 800 | 1,000 requests |
-| photos | 800 | 1,000 photographs |
+| details_enterprise | Uncapped (`NULL`) | 1,000 requests |
+| photos | 5,000 | 1,000 photographs |
 | routes_essentials | 8,000 | 10,000 requests |
 | route_matrix_essentials | 8,000 | 10,000 origin × destination elements |
 
-The database rejects larger configured limits. Limits and the baseline include
-usage already consumed, rather than granting this app an extra allowance.
+The database accepts nonnegative limits. For `details_enterprise`, `NULL`
+removes the app cap while preserving usage tracking and verification. Google
+quotas and billing still apply. To remove the cap for the current month on an
+existing project, run `docs/google_enterprise_uncapped_update.sql`.
 Published prices must be rechecked if Google changes its SKUs or free allowances.
 
 Use a trusted SQL session to configure **each verified SKU separately**. Replace

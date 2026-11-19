@@ -13,6 +13,7 @@ import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/features/itinerary/widgets/modern_date_range_picker.dart';
 import 'itinerary_page.dart';
+import 'trip_selection_screen.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
@@ -229,10 +230,9 @@ class _PlannerPageState extends State<PlannerPage> {
     'is_indoor': place.isIndoor,
   });
 
-  List<TravelStop> get _allMustVisitPlaces {
+  List<TravelStop> get _selectedScanPlaces {
     final seenNames = <String>{};
     return [
-      ..._mustVisit,
       for (final place in _scanPlanPlaces.places)
         TravelStop(
           title: place.name,
@@ -678,7 +678,8 @@ class _PlannerPageState extends State<PlannerPage> {
       travelerType: _travelerType,
       paceCategory: _selectedPace,
       dietaryPreference: _diet,
-      mustVisitPlaces: List.unmodifiable(_allMustVisitPlaces),
+      mustVisitPlaces: List.unmodifiable(_mustVisit),
+      selectedPlaces: List.unmodifiable(_selectedScanPlaces),
       secondaryTransportModes: List.unmodifiable(
         _secondaryModes.where((mode) => mode != travelMode),
       ),
@@ -740,13 +741,13 @@ class _PlannerPageState extends State<PlannerPage> {
                 IconButton(
                   tooltip: context.l10n.planEditPreferences,
                   icon: const Icon(Icons.tune),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(context).maybePop(),
                 ),
               ],
             ),
             body: ItineraryPage(
               compactResult: true,
-              onPlanTap: () => Navigator.of(context).pop(),
+              onPlanTap: () => Navigator.of(context).maybePop(),
             ),
           ),
         ),
@@ -1355,7 +1356,11 @@ class _PlannerPageState extends State<PlannerPage> {
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       key: const ValueKey('plan-my-trips'),
-                      onPressed: widget.onMyTripsTap,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const TripSelectionScreen(),
+                        ),
+                      ),
                       icon: const Icon(Icons.folder_outlined, size: 20),
                       label: Text(context.l10n.myTrips),
                       style: TextButton.styleFrom(
@@ -1935,6 +1940,8 @@ class _PlannerPageState extends State<PlannerPage> {
                                 _scanPlanPlaces.places.length.toString(),
                               ),
                       ),
+                      Text(context.l10n.selectedPlacesHelp),
+                      const SizedBox(height: 8),
                       for (final place in _scanPlanPlaces.places)
                         ListTile(
                           key: ValueKey('plan-scan-place-${place.xid}'),

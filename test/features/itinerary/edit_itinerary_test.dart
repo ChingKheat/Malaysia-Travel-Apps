@@ -7,6 +7,48 @@ import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
 void main() {
   group('UC602: Edit Itinerary Unit Tests', () {
+    testWidgets('placeholder names only match when place IDs match', (
+      tester,
+    ) async {
+      TravelStop stop(String id) => TravelStop(
+        title: 'Saved Google place',
+        time: '09:00 AM - 10:00 AM',
+        note: '',
+        description: '',
+        duration: '60 min',
+        openingHours: 'Hours unverified',
+        tips: const [],
+        icon: Icons.place,
+        color: Colors.blue,
+        placeId: id,
+        dataSource: 'google',
+      );
+
+      Widget screen(List<TravelStop> stops) => MaterialApp(
+        home: EditItineraryScreen(
+          tripTitle: 'Trip',
+          destination: 'Kuala Lumpur',
+          dayNumber: 1,
+          initialStops: stops,
+        ),
+      );
+
+      await tester.pumpWidget(screen([stop('ChIJfirst'), stop('ChIJsecond')]));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Duplicate attractions detected'),
+        findsNothing,
+      );
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(screen([stop('ChIJfirst'), stop('ChIJfirst')]));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Duplicate attractions detected'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('Offline reorder keeps slots and warns before saving', (
       tester,
     ) async {
@@ -186,6 +228,52 @@ void main() {
       longitude: 101.6958,
       placeId: 'poi_central_market',
     );
+
+    testWidgets('back confirms before discarding schedule edits', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const EditItineraryScreen(
+                    tripTitle: 'Trip',
+                    destination: 'Kuala Lumpur',
+                    dayNumber: 1,
+                    initialStops: [stop1, stop2],
+                  ),
+                ),
+              ),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<ReorderableListView>(find.byType(ReorderableListView))
+          // ignore: deprecated_member_use
+          .onReorder!(0, 2);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard schedule changes?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.byType(EditItineraryScreen), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+      expect(find.byType(EditItineraryScreen), findsNothing);
+      expect(find.text('Open'), findsOneWidget);
+    });
 
     test(
       'Reordering stops updates sequence and recalculates route distance accurately',

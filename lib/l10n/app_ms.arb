@@ -1,4 +1,6 @@
 {
+  "unscheduledSelectedPlaces": "Tempat pilihan yang belum dijadualkan",
+  "selectedPlacesHelp": "Kami akan cuba memasukkan tempat ini dalam perjalanan anda.",
   "scanAddToItinerary": "Tambah pada itinerari",
   "scanAddedToPlan": "Ditambah ke pelan",
   "scanPlanPlaces": "Tempat dipilih untuk pelan anda",
@@ -1930,5 +1932,15 @@
   "journeySegmentLoading": "Memuatkan laluan…",
   "journeySegmentUnavailable": "Laluan tidak tersedia",
   "journeySegmentMissingCoordinates": "Laluan tidak tersedia · Koordinat tiada",
-  "journeySegmentDayOffset": "{time} (+{days} hari)"
+  "journeySegmentDayOffset": "{time} (+{days} hari)",
+  "leaveItineraryTitle": "Tinggalkan jadual perjalanan ini?",
+  "leaveItineraryMessage": "Simpan jadual perjalanan anda, simpan sebagai draf pada peranti ini, atau buangnya.",
+  "discardItinerary": "Buang",
+  "decideLater": "Tentukan kemudian",
+  "draftLabel": "Draf",
+  "discardScheduleChangesTitle": "Buang perubahan jadual?",
+  "discardScheduleChangesMessage": "Perubahan anda belum disimpan. Buang perubahan dan kembali?",
+  "draftSavedOnDevice": "Draf disimpan pada peranti ini.",
+  "westMalaysia": "Malaysia Barat",
+  "eastMalaysia": "Malaysia Timur"
 }

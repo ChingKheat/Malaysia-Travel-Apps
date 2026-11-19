@@ -101,10 +101,12 @@ class ItineraryStop {
   TravelStop toTravelStop() {
     if (snapshot != null) {
       final saved = snapshot!;
-      if ((saved.title.trim().isEmpty || saved.title == 'Saved Google place' ||
+      if ((saved.title.trim().isEmpty ||
+              saved.title == 'Saved Google place' ||
               saved.title == 'Attraction') &&
           placeName.trim().isNotEmpty &&
-          placeName != 'Saved Google place' && placeName != 'Attraction') {
+          placeName != 'Saved Google place' &&
+          placeName != 'Attraction') {
         return TravelStop.fromJson({...saved.toJson(), 'title': placeName});
       }
       return saved;
@@ -234,6 +236,7 @@ class Itinerary {
   final DateTime createdAt;
   final List<DailySchedule> dailySchedules;
   final TripPreferences? preferences;
+  final bool isDraft;
 
   const Itinerary({
     required this.itineraryId,
@@ -245,6 +248,7 @@ class Itinerary {
     required this.createdAt,
     this.dailySchedules = const [],
     this.preferences,
+    this.isDraft = false,
   });
 
   factory Itinerary.fromSupabase(Map<String, dynamic> data) {
@@ -256,6 +260,7 @@ class Itinerary {
           ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
 
     return Itinerary(
+      isDraft: data['_local_draft'] == true,
       preferences:
           data['preferences'] is Map && (data['preferences'] as Map).isNotEmpty
           ? TripPreferences.fromJson(

@@ -25,5 +25,14 @@ The scan result and sample PNGs are photo crops from the supplied Citylore refer
 - `sultan_abu_bakar_mosque.jpg`: [Masjid Sultan Abu Bakar, JB (2025), image 02](https://commons.wikimedia.org/wiki/File:Masjid_Sultan_Abu_Bakar,_JB_(2025)_-_img_02.jpg) by Chainwit., [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - `rajakaliamman_glass_temple.jpg`: [Arulmigu Sri Rajakaliamman Glass Temple, JB (2025), image 82](https://commons.wikimedia.org/wiki/File:Arulmigu_Sri_Rajakaliamman_Glass_Temple,_JB_(2025)_-_img_82.jpg) by Chainwit., [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - `johor_zoo.jpg`: [Zoo Johor entrance](https://commons.wikimedia.org/wiki/File:Zoo_Johor_entrance.jpg) by Stress 043, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `petaling_street.jpg`: [Kuala Lumpur. Jalan Petaling. 2019-12-07 16-40-19](https://commons.wikimedia.org/wiki/File:Kuala_Lumpur._Jalan_Petaling._2019-12-07_16-40-19.jpg) by Shesmax, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `merdeka_square.jpg`: [2016 Kuala Lumpur, Budynek Sułtana Abdula Samada (01)](https://commons.wikimedia.org/wiki/File:2016_Kuala_Lumpur,_Budynek_Su%C5%82tana_Abdula_Samada_(01).jpg) by Marcin Konsek, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `kl_tower.jpg`: [KL Tower, Kuala Lumpur, Malaysia](https://commons.wikimedia.org/wiki/File:KL_Tower,_Kuala_Lumpur,_Malaysia.jpg) by Salmiah La Suma, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `thean_hou_temple.jpg`: [Thean Hou Temple, Kuala Lumpur-3](https://commons.wikimedia.org/wiki/File:Thean_Hou_Temple,_Kuala_Lumpur-3.jpg) by Alexey Komarov, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `jalan_alor.jpg`: [Jalan Alor Kuala Lumpur](https://commons.wikimedia.org/wiki/File:Jalan_Alor_Kuala_Lumpur.jpg) by Alexander Synaptic / Spectral Codex, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `aquaria_klcc.jpg`: [Underwater tunnel in Aquaria KLCC](https://commons.wikimedia.org/wiki/File:Underwater_tunnel_in_Aquaria_KLCC.jpg) by Phalinn Ooi, [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/).
+- `saloma_link_bridge.jpg`: [Saloma Link Bridge 04](https://commons.wikimedia.org/wiki/File:Saloma_Link_Bridge_04.jpg) by Renek78, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `pavilion_kl.jpg`: [Pavilion KL outview 2 (211030)](https://commons.wikimedia.org/wiki/File:Pavilion_KL_outview_2_(211030).jpg) by \*angys\*, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `kwai_chai_hong.jpg`: [Kwai Chai Hong 3](https://commons.wikimedia.org/wiki/File:Kwai_Chai_Hong_3.jpg) by Slleong, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
 
 The Commons JPEGs are 960-pixel-wide renditions. The app crops them to fit the cards. Each photo retains its original license.

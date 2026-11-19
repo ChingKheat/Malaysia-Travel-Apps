@@ -164,7 +164,9 @@ CREATE TABLE IF NOT EXISTS public.google_api_budgets (
 
 -- Configurable app limits; usage and expiry checks remain enforced by the reserve RPC.
 ALTER TABLE public.google_api_budgets DROP CONSTRAINT IF EXISTS google_api_budgets_check;
-ALTER TABLE public.google_api_budgets ADD CONSTRAINT google_api_budgets_check CHECK (request_limit >= 0);
+ALTER TABLE public.google_api_budgets ALTER COLUMN request_limit DROP NOT NULL;
+ALTER TABLE public.google_api_budgets ADD CONSTRAINT google_api_budgets_check
+  CHECK (CASE WHEN request_limit IS NULL THEN sku = 'details_enterprise' ELSE request_limit >= 0 END);
 
 CREATE TABLE IF NOT EXISTS public.landmark_catalogue (
   id TEXT PRIMARY KEY,name TEXT NOT NULL,aliases TEXT[] NOT NULL DEFAULT '{}',
@@ -354,7 +356,8 @@ BEGIN
     AND verified_at >= (billing_month::timestamp AT TIME ZONE 'America/Los_Angeles')
     AND valid_until>now()
     AND valid_until <= ((billing_month+INTERVAL '1 month')::timestamp AT TIME ZONE 'America/Los_Angeles')
-    AND baseline_usage::bigint+used_units::bigint+p_units<=request_limit;
+    AND (request_limit IS NULL OR baseline_usage::bigint+used_units::bigint+p_units<=request_limit)
+    AND used_units::bigint+p_units<=2147483647;
   RETURN FOUND;
 END $$;
 
@@ -621,7 +624,7 @@ REVOKE ALL ON FUNCTION public.sanitize_google_itinerary_stop() FROM PUBLIC, anon
 INSERT INTO public.google_api_budgets(sku,billing_month,request_limit)
 SELECT sku,date_trunc('month',now() AT TIME ZONE 'America/Los_Angeles')::date,cap
 FROM (VALUES ('text_search_pro',4000),('details_pro',4000),
-  ('details_enterprise',5000),('photos',5000),('routes_essentials',8000),
+  ('details_enterprise',NULL),('photos',5000),('routes_essentials',8000),
   ('route_matrix_essentials',8000)) AS defaults(sku,cap)
 ON CONFLICT DO NOTHING;
 

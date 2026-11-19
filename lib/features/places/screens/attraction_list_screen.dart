@@ -17,23 +17,8 @@ Widget _attractionCover(Attraction place) {
   final asset = AttractionImageResolver.resolveAsset(place);
   final url = AttractionImageResolver.resolvePhotoUrl(place);
   final (color, icon, _) = ModernAttractionCard.getCategoryMeta(place.category);
-  Widget unavailable() => Builder(
-    builder: (context) => Stack(
-      fit: StackFit.expand,
-      children: [
-        ModernAttractionCard.buildFallbackThumbnail(color, icon),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 64),
-            child: Text(
-              context.l10n.photoUnavailable,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+  Widget unavailable() =>
+      ModernAttractionCard.buildFallbackThumbnail(color, icon);
   if (asset != null) {
     return AttractionAssetImage(
       asset: asset,

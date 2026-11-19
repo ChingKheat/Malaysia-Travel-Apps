@@ -53,6 +53,164 @@ TravelStop stop(Map<String, dynamic> data) =>
 
 void main() {
   test(
+    'Matches a local place only with a nearby matching Google listing',
+    () async {
+      final operations = <String>[];
+      final places = service((request) async {
+        final body = jsonDecode(request.body) as Map;
+        operations.add(body['operation'] as String);
+        if (body['operation'] == 'planner_search') {
+          return http.Response(
+            jsonEncode({
+              'places': [
+                {
+                  'id': 'ChIJWrong',
+                  'displayName': {'text': 'Google museum'},
+                  'location': {'latitude': 5.0, 'longitude': 102.0},
+                },
+                {
+                  'id': 'ChIJ123',
+                  'displayName': {'text': 'Google museum'},
+                  'location': {'latitude': 3.15, 'longitude': 101.7},
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode(fixture()),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      final local = TravelStop.fromJson({
+        'title': 'Google museum',
+        'place_id': 'curated_1',
+        'latitude': 3.15,
+        'longitude': 101.7,
+        'description': 'Local description',
+        'time': '09:00 AM - 10:30 AM',
+      });
+      final details = await places.findDetailsForLocalStop(
+        local,
+        state: 'Johor',
+      );
+      expect(operations, ['planner_search', 'details']);
+      expect(details?.id, 'ChIJ123');
+      final missingDescription = GooglePlaceDetails(
+        'ChIJ123',
+        {...fixture()}..remove('editorialSummary'),
+      );
+      expect(
+        local.withGoogleDetails(missingDescription).description,
+        'Local description',
+      );
+      expect(local.withGoogleDetails(missingDescription).time, local.time);
+      expect(local.placeId, 'curated_1');
+    },
+  );
+  test('Does not match a different or distant place', () async {
+    var calls = 0;
+    final places = service((request) async {
+      calls++;
+      return http.Response(
+        jsonEncode({
+          'places': [
+            {
+              'id': 'ChIJWrong',
+              'displayName': {'text': 'Another museum'},
+              'location': {'latitude': 3.15, 'longitude': 101.7},
+            },
+            {
+              'id': 'ChIJFar',
+              'displayName': {'text': 'Google museum'},
+              'location': {'latitude': 4.15, 'longitude': 101.7},
+            },
+          ],
+        }),
+        200,
+      );
+    });
+    final local = TravelStop.fromJson({
+      'title': 'Google museum',
+      'place_id': 'curated_1',
+      'latitude': 3.15,
+      'longitude': 101.7,
+    });
+    expect(await places.findDetailsForLocalStop(local, state: 'Johor'), isNull);
+    expect(calls, 1);
+  });
+  testWidgets(
+    'Local itinerary place displays live details and keeps local description',
+    (tester) async {
+      final places = service((request) async {
+        final body = jsonDecode(request.body) as Map;
+        if (body['operation'] == 'planner_search') {
+          return http.Response(
+            jsonEncode({
+              'places': [fixture()],
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+        final data = fixture()
+          ..remove('editorialSummary')
+          ..remove('photos');
+        return http.Response(
+          jsonEncode(data),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlaceDetailPage(
+            stop: TravelStop.fromJson({
+              'title': 'Google museum',
+              'place_id': 'curated_1',
+              'latitude': 3.15,
+              'longitude': 101.7,
+              'description': 'Local description',
+              'time': '09:00 AM - 10:30 AM',
+            }),
+            destinationState: 'Johor',
+            placesService: places,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Local description'), findsOneWidget);
+      expect(find.text('Address from Google'), findsOneWidget);
+      expect(find.text('09:00 AM - 10:30 AM'), findsOneWidget);
+    },
+  );
+  testWidgets('Local details remain available when search is offline', (
+    tester,
+  ) async {
+    final places = service((_) async => http.Response('{}', 503));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PlaceDetailPage(
+          stop: TravelStop.fromJson({
+            'title': 'Google museum',
+            'place_id': 'curated_1',
+            'latitude': 3.15,
+            'longitude': 101.7,
+            'description': 'Local description',
+          }),
+          destinationState: 'Johor',
+          placesService: places,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Local description'), findsOneWidget);
+    expect(find.text('Hours unverified'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+  test(
     'Preserves all supplied Google fields, including zero reviews',
     () async {
       final places = service((req) async {

@@ -22,6 +22,7 @@ class TripPreferences {
   final int departureBufferMinutes;
   final int departureTransferMinutes;
   final List<TravelStop> mustVisitPlaces;
+  final List<TravelStop> selectedPlaces;
   final List<String> secondaryTransportModes;
 
   final String? destination;
@@ -69,6 +70,7 @@ class TripPreferences {
     this.departureBufferMinutes = 60,
     this.departureTransferMinutes = 0,
     this.mustVisitPlaces = const [],
+    this.selectedPlaces = const [],
     this.secondaryTransportModes = const [],
 
     // Preserve the public named parameter used by existing forms and tests.
@@ -107,6 +109,7 @@ class TripPreferences {
     'departure_buffer_minutes': departureBufferMinutes,
     'departure_transfer_minutes': departureTransferMinutes,
     'must_visit_places': mustVisitPlaces.map((stop) => stop.toJson()).toList(),
+    'selected_places': selectedPlaces.map((stop) => stop.toJson()).toList(),
     'secondary_transport_modes': secondaryTransportModes,
 
     'budget': budgetCategory,
@@ -137,6 +140,7 @@ class TripPreferences {
     }
 
     final mustVisit = json['must_visit_places'];
+    final selected = json['selected_places'];
     final modes = json['secondary_transport_modes'];
     return TripPreferences(
       travelerType:
@@ -160,6 +164,9 @@ class TripPreferences {
           ? List.unmodifiable(
               mustVisit.map(place).whereType<TravelStop>().take(3),
             )
+          : const [],
+      selectedPlaces: selected is List
+          ? List.unmodifiable(selected.map(place).whereType<TravelStop>())
           : const [],
       secondaryTransportModes: modes is List
           ? List.unmodifiable(
@@ -215,6 +222,7 @@ class TripPreferences {
     int? departureBufferMinutes,
     int? departureTransferMinutes,
     List<TravelStop>? mustVisitPlaces,
+    List<TravelStop>? selectedPlaces,
     List<String>? secondaryTransportModes,
   }) {
     return TripPreferences(
@@ -240,6 +248,7 @@ class TripPreferences {
       departureBufferMinutes:
           departureBufferMinutes ?? this.departureBufferMinutes,
       mustVisitPlaces: mustVisitPlaces ?? this.mustVisitPlaces,
+      selectedPlaces: selectedPlaces ?? this.selectedPlaces,
       secondaryTransportModes:
           secondaryTransportModes ?? this.secondaryTransportModes,
     );

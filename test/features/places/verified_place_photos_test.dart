@@ -17,7 +17,16 @@ void main() {
     () async {
       for (final (id, filename) in [
         ('curated_kl_03', 'central_market.jpg'),
+        ('curated_kl_04', 'jalan_alor.jpg'),
+        ('curated_kl_05', 'thean_hou_temple.jpg'),
+        ('curated_kl_06', 'kl_tower.jpg'),
+        ('curated_kl_07', 'petaling_street.jpg'),
+        ('curated_kl_08', 'pavilion_kl.jpg'),
         ('curated_kl_09', 'perdana_botanical_gardens.jpg'),
+        ('curated_kl_11', 'aquaria_klcc.jpg'),
+        ('curated_kl_12', 'merdeka_square.jpg'),
+        ('curated_kl_14', 'saloma_link_bridge.jpg'),
+        ('curated_kl_15', 'kwai_chai_hong.jpg'),
         ('curated_johor_01', 'legoland_malaysia.jpg'),
         ('curated_johor_02', 'tan_hiok_nee.jpg'),
         ('curated_johor_03', 'sultan_abu_bakar_mosque.jpg'),

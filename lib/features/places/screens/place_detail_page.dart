@@ -13,10 +13,12 @@ class PlaceDetailPage extends StatefulWidget {
     required this.stop,
     this.visitDate,
     this.placesService,
+    this.destinationState,
   });
   final TravelStop stop;
   final DateTime? visitDate;
   final GooglePlacesService? placesService;
+  final String? destinationState;
   @override
   State<PlaceDetailPage> createState() => _PlaceDetailPageState();
 }
@@ -33,18 +35,23 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
     super.initState();
     _stop = widget.stop;
     _service = widget.placesService ?? GooglePlacesService();
-    if (_stop.isGooglePlace) _refresh();
+    if (_stop.isGooglePlace || widget.destinationState != null) _refresh();
   }
 
   Future<void> _refresh() async {
-    final id = _stop.placeId;
-    if (id == null) return;
+    final id = widget.stop.placeId;
+    if (widget.stop.isGooglePlace && id == null) return;
     final generation = ++_generation;
     setState(() {
       _loading = true;
       _error = null;
     });
-    final details = await _service.fetchDetails(id);
+    final details = widget.stop.isGooglePlace
+        ? await _service.fetchDetails(id!)
+        : await _service.findDetailsForLocalStop(
+            widget.stop,
+            state: widget.destinationState!,
+          );
     if (!mounted || generation != _generation) return;
     setState(() {
       _loading = false;
@@ -54,7 +61,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
           _activePhotoIndex = 0;
         }
       } else {
-        _error = _service.lastError ?? 'Live place details unavailable.';
+        _error = _service.lastError ?? context.l10n.livePlaceDetailsUnavailable;
       }
     });
   }

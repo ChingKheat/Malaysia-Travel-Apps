@@ -9,6 +9,13 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get unscheduledSelectedPlaces => 'Unscheduled selected places';
+
+  @override
+  String get selectedPlacesHelp =>
+      'We’ll try to fit these places into your trip.';
+
+  @override
   String get scanAddToItinerary => 'Add to itinerary';
 
   @override
@@ -3612,4 +3619,36 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$time (+$_temp0)';
   }
+
+  @override
+  String get leaveItineraryTitle => 'Leave this itinerary?';
+
+  @override
+  String get leaveItineraryMessage =>
+      'Save your itinerary, keep it as a draft on this device, or discard it.';
+
+  @override
+  String get discardItinerary => 'Discard';
+
+  @override
+  String get decideLater => 'Decide later';
+
+  @override
+  String get draftLabel => 'Draft';
+
+  @override
+  String get discardScheduleChangesTitle => 'Discard schedule changes?';
+
+  @override
+  String get discardScheduleChangesMessage =>
+      'Your changes have not been saved. Discard them and go back?';
+
+  @override
+  String get draftSavedOnDevice => 'Draft saved on this device.';
+
+  @override
+  String get westMalaysia => 'West Malaysia';
+
+  @override
+  String get eastMalaysia => 'East Malaysia';
 }

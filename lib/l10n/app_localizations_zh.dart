@@ -9,6 +9,12 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get unscheduledSelectedPlaces => '未安排的已选景点';
+
+  @override
+  String get selectedPlacesHelp => '我们会尽量把这些景点排进行程。';
+
+  @override
   String get scanAddToItinerary => '添加到行程';
 
   @override
@@ -3480,4 +3486,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String journeySegmentDayOffset(String time, int days) {
     return '$time（+$days 天）';
   }
+
+  @override
+  String get leaveItineraryTitle => '离开此行程？';
+
+  @override
+  String get leaveItineraryMessage => '保存行程、将其作为草稿保留在此设备上，或舍弃行程。';
+
+  @override
+  String get discardItinerary => '舍弃';
+
+  @override
+  String get decideLater => '稍后决定';
+
+  @override
+  String get draftLabel => '草稿';
+
+  @override
+  String get discardScheduleChangesTitle => '放弃日程更改？';
+
+  @override
+  String get discardScheduleChangesMessage => '您的更改尚未保存。要放弃更改并返回吗？';
+
+  @override
+  String get draftSavedOnDevice => '草稿已保存在此设备上。';
+
+  @override
+  String get westMalaysia => '马来西亚西部';
+
+  @override
+  String get eastMalaysia => '马来西亚东部';
 }

@@ -100,6 +100,18 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @unscheduledSelectedPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Unscheduled selected places'**
+  String get unscheduledSelectedPlaces;
+
+  /// No description provided for @selectedPlacesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'We’ll try to fit these places into your trip.'**
+  String get selectedPlacesHelp;
+
   /// No description provided for @scanAddToItinerary.
   ///
   /// In en, this message translates to:
@@ -6182,6 +6194,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{time} (+{days, plural, one{1 day} other{{days} days}})'**
   String journeySegmentDayOffset(String time, int days);
+
+  /// No description provided for @leaveItineraryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this itinerary?'**
+  String get leaveItineraryTitle;
+
+  /// No description provided for @leaveItineraryMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your itinerary, keep it as a draft on this device, or discard it.'**
+  String get leaveItineraryMessage;
+
+  /// No description provided for @discardItinerary.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discardItinerary;
+
+  /// No description provided for @decideLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Decide later'**
+  String get decideLater;
+
+  /// No description provided for @draftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get draftLabel;
+
+  /// No description provided for @discardScheduleChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard schedule changes?'**
+  String get discardScheduleChangesTitle;
+
+  /// No description provided for @discardScheduleChangesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes have not been saved. Discard them and go back?'**
+  String get discardScheduleChangesMessage;
+
+  /// No description provided for @draftSavedOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft saved on this device.'**
+  String get draftSavedOnDevice;
+
+  /// No description provided for @westMalaysia.
+  ///
+  /// In en, this message translates to:
+  /// **'West Malaysia'**
+  String get westMalaysia;
+
+  /// No description provided for @eastMalaysia.
+  ///
+  /// In en, this message translates to:
+  /// **'East Malaysia'**
+  String get eastMalaysia;
 }
 
 class _AppLocalizationsDelegate

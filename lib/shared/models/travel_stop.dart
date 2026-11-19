@@ -62,11 +62,15 @@ class TravelStop {
     title: details.name ?? 'Name unavailable',
     time: time,
     note: '${details.category ?? 'Category unavailable'} • Google Maps',
-    description: details.description ?? 'Description unavailable',
+    description:
+        details.description ??
+        (!isGooglePlace && description.trim().isNotEmpty
+            ? description
+            : 'Description unavailable'),
     duration: duration,
     openingHours:
         (details.hours['weekdayDescriptions'] as List?)?.join('; ') ??
-        'Hours unverified',
+        (!isGooglePlace ? openingHours : 'Hours unverified'),
     tips: [
       details.rating == null
           ? 'Rating unavailable'
@@ -86,7 +90,9 @@ class TravelStop {
     estimatedCost: estimatedCost,
     visitMinutes: visitMinutes,
     isIndoor: isIndoor,
-    operatingHours: details.hours,
+    operatingHours: details.hours.isNotEmpty || isGooglePlace
+        ? details.hours
+        : operatingHours,
     travelMinutes: travelMinutes,
     inboundMode: inboundMode,
     travelCost: travelCost,

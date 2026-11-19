@@ -9,6 +9,14 @@ class AppLocalizationsMs extends AppLocalizations {
   AppLocalizationsMs([String locale = 'ms']) : super(locale);
 
   @override
+  String get unscheduledSelectedPlaces =>
+      'Tempat pilihan yang belum dijadualkan';
+
+  @override
+  String get selectedPlacesHelp =>
+      'Kami akan cuba memasukkan tempat ini dalam perjalanan anda.';
+
+  @override
   String get scanAddToItinerary => 'Tambah pada itinerari';
 
   @override
@@ -3624,4 +3632,36 @@ class AppLocalizationsMs extends AppLocalizations {
   String journeySegmentDayOffset(String time, int days) {
     return '$time (+$days hari)';
   }
+
+  @override
+  String get leaveItineraryTitle => 'Tinggalkan jadual perjalanan ini?';
+
+  @override
+  String get leaveItineraryMessage =>
+      'Simpan jadual perjalanan anda, simpan sebagai draf pada peranti ini, atau buangnya.';
+
+  @override
+  String get discardItinerary => 'Buang';
+
+  @override
+  String get decideLater => 'Tentukan kemudian';
+
+  @override
+  String get draftLabel => 'Draf';
+
+  @override
+  String get discardScheduleChangesTitle => 'Buang perubahan jadual?';
+
+  @override
+  String get discardScheduleChangesMessage =>
+      'Perubahan anda belum disimpan. Buang perubahan dan kembali?';
+
+  @override
+  String get draftSavedOnDevice => 'Draf disimpan pada peranti ini.';
+
+  @override
+  String get westMalaysia => 'Malaysia Barat';
+
+  @override
+  String get eastMalaysia => 'Malaysia Timur';
 }

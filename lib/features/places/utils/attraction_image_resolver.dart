@@ -11,12 +11,29 @@ class AttractionImageResolver {
         'curated_kl_02' => 'assets/recognition/batu_caves.jpg',
         'curated_kl_03' ||
         'wikidata_Q1041262' => 'assets/recognition/central_market.jpg',
+        'curated_kl_04' ||
+        'wikidata_Q19840251' => 'assets/recognition/jalan_alor.jpg',
+        'curated_kl_05' ||
+        'wikidata_Q7777247' => 'assets/recognition/thean_hou_temple.jpg',
+        'curated_kl_06' ||
+        'wikidata_Q744713' => 'assets/recognition/kl_tower.jpg',
+        'curated_kl_07' ||
+        'wikidata_Q1041178' => 'assets/recognition/petaling_street.jpg',
+        'curated_kl_08' ||
+        'wikidata_Q7155877' => 'assets/recognition/pavilion_kl.jpg',
         'curated_kl_09' || 'wikidata_Q12061078' =>
           'assets/recognition/perdana_botanical_gardens.jpg',
         'curated_kl_10' ||
         'wikidata_Q2660049' => 'assets/recognition/kl_bird_park.jpg',
+        'curated_kl_11' ||
+        'wikidata_Q4782782' => 'assets/recognition/aquaria_klcc.jpg',
+        'curated_kl_12' ||
+        'wikidata_Q1544487' ||
+        'wikidata_Q6819001' => 'assets/recognition/merdeka_square.jpg',
         'curated_kl_13' ||
         'wikidata_Q3330187' => 'assets/recognition/islamic_arts_museum.jpg',
+        'curated_kl_14' => 'assets/recognition/saloma_link_bridge.jpg',
+        'curated_kl_15' => 'assets/recognition/kwai_chai_hong.jpg',
         'curated_johor_01' => 'assets/recognition/legoland_malaysia.jpg',
         'curated_johor_02' => 'assets/recognition/tan_hiok_nee.jpg',
         'curated_johor_03' ||
@@ -31,15 +48,69 @@ class AttractionImageResolver {
   static ({String author, String license, String source})? photoCredit(
     Attraction attraction,
   ) => switch (attraction.xid) {
+    'curated_kl_04' || 'wikidata_Q19840251' => (
+      author: 'Alexander Synaptic',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Jalan_Alor_Kuala_Lumpur.jpg',
+    ),
+    'curated_kl_05' || 'wikidata_Q7777247' => (
+      author: 'Alexey Komarov',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Thean_Hou_Temple,_Kuala_Lumpur-3.jpg',
+    ),
+    'curated_kl_06' || 'wikidata_Q744713' => (
+      author: 'Salmiah La Suma',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:KL_Tower,_Kuala_Lumpur,_Malaysia.jpg',
+    ),
+    'curated_kl_07' || 'wikidata_Q1041178' => (
+      author: 'Shesmax',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Kuala_Lumpur._Jalan_Petaling._2019-12-07_16-40-19.jpg',
+    ),
+    'curated_kl_08' || 'wikidata_Q7155877' => (
+      author: '*angys*',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Pavilion_KL_outview_2_(211030).jpg',
+    ),
     'curated_kl_10' || 'wikidata_Q2660049' => (
       author: 'David Berkowitz',
       license: 'CC BY 2.0',
       source: 'https://www.flickr.com/photos/davidberkowitz/9051999114/',
     ),
+    'curated_kl_11' || 'wikidata_Q4782782' => (
+      author: 'Phalinn Ooi',
+      license: 'CC BY 2.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Underwater_tunnel_in_Aquaria_KLCC.jpg',
+    ),
+    'curated_kl_12' || 'wikidata_Q1544487' || 'wikidata_Q6819001' => (
+      author: 'Marcin Konsek',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:2016_Kuala_Lumpur,_Budynek_Su%C5%82tana_Abdula_Samada_(01).jpg',
+    ),
     'curated_kl_13' || 'wikidata_Q3330187' => (
       author: 'travelourplanet.com',
       license: 'CC BY 2.0',
       source: 'https://www.flickr.com/photos/travelourplanet/14968692917/',
+    ),
+    'curated_kl_14' => (
+      author: 'Renek78',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Saloma_Link_Bridge_04.jpg',
+    ),
+    'curated_kl_15' => (
+      author: 'Slleong',
+      license: 'CC0 1.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Kwai_Chai_Hong_3.jpg',
     ),
     'curated_johor_01' => (
       author: 'milst1',

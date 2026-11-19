@@ -222,6 +222,7 @@ class SchedulingEngine {
     Map<String, TravelLeg> walkingLegs = const {},
     int seed = 0,
     bool preserveOrder = false,
+    TravelStop? routeAnchor,
   }) {
     var now = TripPreferences.minutesOf(preferences.dailyStartTime) ?? 510;
     var end = TripPreferences.minutesOf(preferences.dailyEndTime) ?? 1320;
@@ -246,6 +247,9 @@ class SchedulingEngine {
     };
     final primaryMode = preferences.travelMode ?? "Driving";
     final priorities = preferences.mustVisitPlaces
+        .map((stop) => stop.title.trim().toLowerCase())
+        .toSet();
+    final selectedPlaces = preferences.selectedPlaces
         .map((stop) => stop.title.trim().toLowerCase())
         .toSet();
     final dayStart = now;
@@ -327,6 +331,19 @@ class SchedulingEngine {
         final lunchTime = now >= 690 && now <= 840;
         final score =
             (priorities.contains(stop.title.trim().toLowerCase()) ? 1000 : 0) +
+            (selectedPlaces.contains(stop.title.trim().toLowerCase())
+                ? 120
+                : 0) +
+            (routeAnchor != null && identity(stop) == identity(routeAnchor)
+                ? 250
+                : 0) -
+            (routeAnchor != null && identity(stop) != identity(routeAnchor)
+                ? math.min(
+                        120,
+                        legFor(routeAnchor, stop, preferences, legs).minutes,
+                      ) *
+                      0.6
+                : 0) +
             (preferences.travelerType == TravelerType.family &&
                     _interestMatch(stop, const ['Family'])
                 ? 30
@@ -393,6 +410,122 @@ class SchedulingEngine {
       remaining -= best.estimatedCost + travelCost;
     }
     return selected;
+  }
+
+  /// Compare the usual greedy schedule with routes anchored around selected
+  /// places on different days. Selected places remain preferences, not locks.
+  static List<List<TravelStop>> scheduleTrip({
+    required List<TravelStop> candidates,
+    required TripPreferences preferences,
+    required List<DateTime> dates,
+    required List<WeatherForecast?> weather,
+    required List<Map<String, TravelLeg>> dailyLegs,
+    Map<String, TravelLeg> walkingLegs = const {},
+    int seed = 0,
+  }) {
+    final byId = {for (final stop in candidates) identity(stop): stop};
+    final anchors = <TravelStop>[];
+    final seen = <String>{};
+    for (final selected in preferences.selectedPlaces) {
+      final id = identity(selected);
+      final candidate = byId[id];
+      if (candidate != null && seen.add(id)) anchors.add(candidate);
+    }
+
+    List<List<TravelStop>> build(List<TravelStop> order) {
+      final visited = <String>{};
+      final days = <List<TravelStop>>[];
+      for (var day = 0; day < dates.length; day++) {
+        final remainingAnchors = order
+            .where((stop) => !visited.contains(identity(stop)))
+            .toList();
+        final anchor = remainingAnchors.isEmpty ? null : remainingAnchors.first;
+        final deferred = <String>{};
+        if (anchor != null && day < dates.length - 1) {
+          for (final other in remainingAnchors.skip(1)) {
+            final outbound = legFor(anchor, other, preferences, dailyLegs[day]);
+            final inbound = legFor(other, anchor, preferences, dailyLegs[day]);
+            if (math.min(outbound.minutes, inbound.minutes) > 30) {
+              deferred.add(identity(other));
+            }
+          }
+          final futureAnchors = remainingAnchors
+              .where((stop) => deferred.contains(identity(stop)))
+              .toList();
+          for (final stop in candidates) {
+            if (identity(stop) == identity(anchor)) continue;
+            final here = legFor(
+              anchor,
+              stop,
+              preferences,
+              dailyLegs[day],
+            ).minutes;
+            if (futureAnchors.any(
+              (future) =>
+                  legFor(future, stop, preferences, dailyLegs[day]).minutes +
+                      30 <
+                  here,
+            )) {
+              deferred.add(identity(stop));
+            }
+          }
+        }
+        days.add(
+          schedule(
+            candidates: candidates
+                .where((stop) => !deferred.contains(identity(stop)))
+                .toList(),
+            preferences: preferences,
+            date: dates[day],
+            visited: visited,
+            weather: weather[day],
+            legs: dailyLegs[day],
+            walkingLegs: walkingLegs,
+            seed: seed + day,
+            routeAnchor: anchor,
+          ),
+        );
+      }
+      return days;
+    }
+
+    var best = build(const []);
+    if (dates.length < 2 || anchors.length < 2) return best;
+    int covered(List<List<TravelStop>> days) => days
+        .expand((day) => day)
+        .map(identity)
+        .where(seen.contains)
+        .toSet()
+        .length;
+    final mustVisit = preferences.mustVisitPlaces.map(identity).toSet();
+    int coveredMustVisits(List<List<TravelStop>> days) => days
+        .expand((day) => day)
+        .map(identity)
+        .where(mustVisit.contains)
+        .toSet()
+        .length;
+    int routeCost(List<List<TravelStop>> days) {
+      final stops = days.expand((day) => day).toList();
+      // Keep useful visits while preferring shorter trips between stops.
+      return stops.fold<int>(0, (sum, stop) => sum + stop.travelMinutes) -
+          stops.length * 25;
+    }
+
+    final limit = math.min(anchors.length, 6);
+    for (var start = 0; start < limit; start++) {
+      final order = [...anchors.skip(start), ...anchors.take(start)];
+      for (final option in [order, order.reversed.toList()]) {
+        final candidate = build(option);
+        if (coveredMustVisits(candidate) > coveredMustVisits(best) ||
+            (coveredMustVisits(candidate) == coveredMustVisits(best) &&
+                (covered(candidate) > covered(best) ||
+                    (covered(candidate) == covered(best) &&
+                        routeCost(candidate) < routeCost(best))))) {
+          best = candidate;
+        }
+      }
+    }
+    return best;
   }
 
   static TravelLeg legFor(

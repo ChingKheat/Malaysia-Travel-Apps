@@ -69,6 +69,63 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     SmartItineraryService.clearLiveCache();
   });
+  test(
+    'Drafts stay local, survive reload, and convert without duplication',
+    () async {
+      await AuthService().login('tourist@example.com', 'SafeP@ss123!');
+      final cloud = _FakeCloud()..online = true;
+      final service = SupabaseItineraryService.withStore(
+        LocalItineraryStore(),
+        cloud: cloud,
+      );
+      final result = await service.saveItinerary(
+        title: 'Draft trip',
+        destinationState: 'Johor',
+        totalCost: 0,
+        dailySchedules: [],
+        preferences: prefs(),
+        asDraft: true,
+      );
+      expect(result.success, isTrue);
+      await service.syncPending();
+      expect(cloud.rows, isEmpty);
+      final restarted = SupabaseItineraryService.withStore(
+        LocalItineraryStore(),
+        cloud: cloud,
+      );
+      final drafts = await restarted.getSavedItineraries(
+        refresh: false,
+        includeDrafts: true,
+      );
+      expect(drafts.single.isDraft, isTrue);
+      expect(drafts.single.itineraryId, result.itineraryId);
+      final saved = await restarted.saveItinerary(
+        title: 'Draft trip',
+        destinationState: 'Johor',
+        totalCost: 0,
+        dailySchedules: [],
+        itineraryId: result.itineraryId,
+      );
+      expect(saved.success, isTrue);
+      final trips = await restarted.getSavedItineraries(refresh: false);
+      expect(trips, hasLength(1));
+      expect(trips.single.isDraft, isFalse);
+      expect(await restarted.deleteItinerary(result.itineraryId!), isTrue);
+      expect(await restarted.getSavedItineraries(refresh: false), isEmpty);
+    },
+  );
+  test('A failed draft write reports failure', () async {
+    await AuthService().login('tourist@example.com', 'SafeP@ss123!');
+    final service = SupabaseItineraryService.withStore(_FailingStore());
+    final result = await service.saveItinerary(
+      title: 'Draft',
+      destinationState: 'Johor',
+      totalCost: 0,
+      dailySchedules: [],
+      asDraft: true,
+    );
+    expect(result.success, isFalse);
+  });
   test('App resume retries a pending itinerary', () async {
     await AuthService().login('tourist@example.com', 'SafeP@ss123!');
     final cloud = _FakeCloud();

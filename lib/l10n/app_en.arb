@@ -1,4 +1,6 @@
 {
+  "unscheduledSelectedPlaces": "Unscheduled selected places",
+  "selectedPlacesHelp": "We’ll try to fit these places into your trip.",
   "scanAddToItinerary": "Add to itinerary",
   "scanAddedToPlan": "Added to plan",
   "scanPlanPlaces": "Places selected for your plan",
@@ -1963,5 +1965,15 @@
   "journeySegmentUnavailable": "Route unavailable",
   "journeySegmentMissingCoordinates": "Route unavailable · Missing coordinates",
   "journeySegmentDayOffset": "{time} (+{days, plural, one{1 day} other{{days} days}})",
-  "@journeySegmentDayOffset": {"placeholders":{"time":{"type":"String"},"days":{"type":"int"}}}
+  "@journeySegmentDayOffset": {"placeholders":{"time":{"type":"String"},"days":{"type":"int"}}},
+  "leaveItineraryTitle": "Leave this itinerary?",
+  "leaveItineraryMessage": "Save your itinerary, keep it as a draft on this device, or discard it.",
+  "discardItinerary": "Discard",
+  "decideLater": "Decide later",
+  "draftLabel": "Draft",
+  "discardScheduleChangesTitle": "Discard schedule changes?",
+  "discardScheduleChangesMessage": "Your changes have not been saved. Discard them and go back?",
+  "draftSavedOnDevice": "Draft saved on this device.",
+  "westMalaysia": "West Malaysia",
+  "eastMalaysia": "East Malaysia"
 }

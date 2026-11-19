@@ -44,6 +44,11 @@ class SupabaseItineraryService extends ChangeNotifier
   LocalItineraryStore _store = LocalItineraryStore();
   ItineraryCloud _cloud = SupabaseItineraryCloud();
   Future<void> _operations = Future.value();
+
+  @visibleForTesting
+  static void resetOperationsForTesting() {
+    _instance._operations = Future.value();
+  }
   String? _lastUserId;
   String? lastError;
   String lastOperationMessage = '';
@@ -55,6 +60,8 @@ class SupabaseItineraryService extends ChangeNotifier
   static const m2NoSavedTrips =
       'You have no saved trips yet. Tap "Plan a Trip" to generate your first itinerary!';
   static const m3LoadError = 'Unable to load saved trips. Please try again.';
+
+  void refreshViews() => notifyListeners();
 
   Future<T> _serial<T>(Future<T> Function() action) {
     final next = _operations.then((_) => action());
@@ -85,6 +92,7 @@ class SupabaseItineraryService extends ChangeNotifier
     bool isPublic = false,
     TripPreferences? preferences,
     String? itineraryId,
+    bool asDraft = false,
   }) => _serial(() async {
     final user = AuthService().currentUser;
     if (user == null) {
@@ -128,9 +136,17 @@ class SupabaseItineraryService extends ChangeNotifier
           };
         }).toList(),
       };
-      journal[id] = {'trip': trip, 'pending': true, 'deleted': false};
+      if (asDraft && existing != null && existing['draft'] != true) {
+        return const ItinerarySaveResult(success: false, message: m2SaveError);
+      }
+      journal[id] = {
+        'trip': trip,
+        'pending': !asDraft,
+        'deleted': false,
+        'draft': asDraft,
+      };
       await _store.write(user.uid, journal);
-      await _sync(user.uid, journal);
+      if (!asDraft) await _sync(user.uid, journal);
       final synced = (journal[id] as Map)['pending'] != true;
       notifyListeners();
       return ItinerarySaveResult(
@@ -176,32 +192,38 @@ class SupabaseItineraryService extends ChangeNotifier
     ],
   };
 
-  Future<List<Itinerary>> getSavedItineraries({bool refresh = true}) => _serial(
-    () async {
-      final uid = AuthService().currentUser?.uid;
-      if (uid == null) return [];
-      try {
-        final journal = await _store.read(uid);
-        final trips =
-            journal.values
-                .cast<Map>()
-                .where((r) => r['deleted'] != true)
-                .map(
-                  (r) => Itinerary.fromSupabase(
-                    Map<String, dynamic>.from(r['trip'] as Map),
-                  ),
-                )
-                .where((t) => t.userId == uid)
-                .toList()
-              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        if (refresh && _hasCloudSession(uid)) unawaited(syncPending());
-        return trips;
-      } catch (e) {
-        lastError = '$e';
-        return [];
-      }
-    },
-  );
+  Future<List<Itinerary>> getSavedItineraries({
+    bool refresh = true,
+    bool includeDrafts = false,
+  }) => _serial(() async {
+    final uid = AuthService().currentUser?.uid;
+    if (uid == null) return [];
+    try {
+      final journal = await _store.read(uid);
+      final trips =
+          journal.values
+              .cast<Map>()
+              .where(
+                (r) =>
+                    r['deleted'] != true &&
+                    (includeDrafts || r['draft'] != true),
+              )
+              .map(
+                (r) => Itinerary.fromSupabase({
+                  ...Map<String, dynamic>.from(r['trip'] as Map),
+                  '_local_draft': r['draft'] == true,
+                }),
+              )
+              .where((t) => t.userId == uid)
+              .toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (refresh && _hasCloudSession(uid)) unawaited(syncPending());
+      return trips;
+    } catch (e) {
+      lastError = '$e';
+      return [];
+    }
+  });
 
   Future<void> syncPending() => _serial(() async {
     final uid = AuthService().currentUser?.uid;
@@ -215,7 +237,10 @@ class SupabaseItineraryService extends ChangeNotifier
       for (final row in rows) {
         final id = row['itinerary_id'].toString();
         remoteIds.add(id);
-        if ((journal[id] as Map?)?['pending'] == true) continue;
+        if ((journal[id] as Map?)?['pending'] == true ||
+            (journal[id] as Map?)?['draft'] == true) {
+          continue;
+        }
         journal[id] = {
           'trip': _tripJson(Itinerary.fromSupabase(row)),
           'pending': false,
@@ -224,7 +249,9 @@ class SupabaseItineraryService extends ChangeNotifier
       }
       journal.removeWhere(
         (id, record) =>
-            (record as Map)['pending'] != true && !remoteIds.contains(id),
+            (record as Map)['draft'] != true &&
+            record['pending'] != true &&
+            !remoteIds.contains(id),
       );
       await _store.write(uid, journal);
       notifyListeners();
@@ -264,6 +291,13 @@ class SupabaseItineraryService extends ChangeNotifier
       final record = journal[itineraryId] as Map?;
       if (record == null || (record['trip'] as Map)['user_id'] != uid) {
         return false;
+      }
+      if (record['draft'] == true) {
+        journal.remove(itineraryId);
+        await _store.write(uid, journal);
+        lastOperationMessage = 'Draft deleted.';
+        notifyListeners();
+        return true;
       }
       journal[itineraryId] = {...record, 'deleted': true, 'pending': true};
       await _store.write(uid, journal);
@@ -317,7 +351,11 @@ class SupabaseItineraryService extends ChangeNotifier
                       ((snapshot?['travel_cost'] as num?)?.toDouble() ?? 0);
                 }),
           );
-          journal[id] = {...record, 'trip': trip, 'pending': true};
+          journal[id] = {
+            ...record,
+            'trip': trip,
+            'pending': record['draft'] != true,
+          };
           await _store.write(uid, journal);
           await _sync(uid, journal);
           lastOperationMessage = (journal[id] as Map)['pending'] == true

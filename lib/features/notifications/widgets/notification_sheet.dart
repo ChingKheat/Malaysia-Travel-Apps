@@ -143,8 +143,15 @@ Future<void> _activateNotification(
     navigator.pop();
     await navigator.push<void>(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            ItineraryPage(initialItineraryId: notification.relatedEntityId),
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text(context.l10n.myTrips)),
+          body: SafeArea(
+            top: false,
+            child: ItineraryPage(
+              initialItineraryId: notification.relatedEntityId,
+            ),
+          ),
+        ),
       ),
     );
     return;

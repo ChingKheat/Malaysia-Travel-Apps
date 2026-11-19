@@ -1,4 +1,6 @@
 {
+  "unscheduledSelectedPlaces": "未安排的已选景点",
+  "selectedPlacesHelp": "我们会尽量把这些景点排进行程。",
   "scanAddToItinerary": "添加到行程",
   "scanAddedToPlan": "已加入规划",
   "scanPlanPlaces": "为行程选定的地点",
@@ -1930,5 +1932,15 @@
   "journeySegmentLoading": "正在加载路线…",
   "journeySegmentUnavailable": "路线暂不可用",
   "journeySegmentMissingCoordinates": "路线不可用 · 缺少坐标",
-  "journeySegmentDayOffset": "{time}（+{days} 天）"
+  "journeySegmentDayOffset": "{time}（+{days} 天）",
+  "leaveItineraryTitle": "离开此行程？",
+  "leaveItineraryMessage": "保存行程、将其作为草稿保留在此设备上，或舍弃行程。",
+  "discardItinerary": "舍弃",
+  "decideLater": "稍后决定",
+  "draftLabel": "草稿",
+  "discardScheduleChangesTitle": "放弃日程更改？",
+  "discardScheduleChangesMessage": "您的更改尚未保存。要放弃更改并返回吗？",
+  "draftSavedOnDevice": "草稿已保存在此设备上。",
+  "westMalaysia": "马来西亚西部",
+  "eastMalaysia": "马来西亚东部"
 }

@@ -52,6 +52,32 @@ class EditItineraryScreen extends StatefulWidget {
 class _EditItineraryScreenState extends State<EditItineraryScreen> {
   late List<TravelStop> _stops;
   bool _isSaving = false;
+  bool _hasEdits = false;
+  bool _confirmingExit = false;
+
+  Future<void> _confirmExit() async {
+    if (_isSaving || _confirmingExit) return;
+    _confirmingExit = true;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.l10n.discardScheduleChangesTitle),
+        content: Text(context.l10n.discardScheduleChangesMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(context.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(context.l10n.discardItinerary),
+          ),
+        ],
+      ),
+    );
+    _confirmingExit = false;
+    if (discard == true && mounted) Navigator.of(context).pop();
+  }
 
   @override
   void initState() {
@@ -96,8 +122,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
   }
 
   void _onReorder(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex == newIndex) return;
     setState(() {
-      if (newIndex > oldIndex) newIndex -= 1;
+      _hasEdits = true;
       final item = _stops.removeAt(oldIndex);
       _stops.insert(newIndex, item);
       _stops = _recalculateTimes(_stops);
@@ -150,6 +178,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     );
     if (!mounted || result == null) return;
     setState(() {
+      _hasEdits = true;
       _stops[index] = stop.withVisitMinutes(result);
       _stops = _recalculateTimes(_stops);
     });
@@ -166,6 +195,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     }
     final deleted = _stops[index];
     setState(() {
+      _hasEdits = true;
       _stops.removeAt(index);
       _stops = _recalculateTimes(_stops);
     });
@@ -178,6 +208,13 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     );
   }
 
+  bool _hasUsablePlaceName(String name) {
+    final normalized = name.trim().toLowerCase();
+    return normalized.isNotEmpty &&
+        normalized != 'saved google place' &&
+        normalized != 'attraction';
+  }
+
   /// Validates whether a candidate attraction is identical to an existing stop
   /// by checking place ID, normalized name (e.g. ignoring parentheses like (KLCC)),
   /// word token overlap, or GPS proximity (< 400m with common words, or < 50m exact pin).
@@ -187,6 +224,11 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         candidate.xid.toLowerCase().trim() ==
             stop.placeId!.toLowerCase().trim()) {
       return true;
+    }
+
+    if (!_hasUsablePlaceName(candidate.name) ||
+        !_hasUsablePlaceName(stop.title)) {
+      return false;
     }
 
     final n1 = candidate.name.toLowerCase().trim();
@@ -250,6 +292,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
         s2.placeId!.isNotEmpty &&
         s1.placeId!.toLowerCase().trim() == s2.placeId!.toLowerCase().trim()) {
       return true;
+    }
+
+    if (!_hasUsablePlaceName(s1.title) || !_hasUsablePlaceName(s2.title)) {
+      return false;
     }
 
     final n1 = s1.title.toLowerCase().trim();
@@ -673,6 +719,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                                     );
 
                                     setState(() {
+                                      _hasEdits = true;
                                       _stops[stopIndex] = swappedStop;
                                       _stops = _recalculateTimes(_stops);
                                     });
@@ -832,6 +879,7 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
                           );
 
                           setState(() {
+                            _hasEdits = true;
                             _stops.add(newStop);
                             _stops = _recalculateTimes(_stops);
                           });
@@ -1048,7 +1096,10 @@ class _EditItineraryScreenState extends State<EditItineraryScreen> {
     );
 
     return PopScope<List<TravelStop>>(
-      canPop: !_isSaving,
+      canPop: !_isSaving && !_hasEdits,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _hasEdits) _confirmExit();
+      },
       child: Scaffold(
         backgroundColor: AppColors.nightCanvas,
         appBar: AppBar(

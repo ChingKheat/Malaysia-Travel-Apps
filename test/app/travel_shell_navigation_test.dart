@@ -12,8 +12,10 @@ import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.
 import 'package:smart_travel_planner/features/itinerary/screens/itinerary_ready_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/itinerary_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
+import 'package:smart_travel_planner/features/itinerary/screens/trip_selection_screen.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
+import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
@@ -24,6 +26,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     TripPreferencesService.clearPreferences();
     SmartItineraryService.clearLiveCache();
+    SupabaseItineraryService.resetOperationsForTesting();
   });
 
   testWidgets(
@@ -151,7 +154,8 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('plan-my-trips')));
         await tester.pumpAndSettle();
-        expect(find.byType(MyTripsScreen), findsOneWidget);
+        expect(find.byType(MyTripsScreen), findsNothing);
+        expect(find.byType(TripSelectionScreen), findsOneWidget);
         await tester.pageBack();
         await tester.pumpAndSettle();
         expect(find.text('Johor, Malaysia'), findsOneWidget);
@@ -189,22 +193,22 @@ void main() {
     });
   });
 
-  testWidgets('My Trips retains the selected day and supports system back', (
+  testWidgets('Plan shows trip choices before opening an itinerary', (
     tester,
   ) async {
-    final validation = TripPreferencesService.validatePreferences(
-      const TripPreferences(
-        destination: 'Kuala Lumpur',
-        numberOfDays: 2,
-        dailyStartTime: TimeOfDay(hour: 9, minute: 0),
-        dailyEndTime: TimeOfDay(hour: 21, minute: 0),
-        interests: ['Culture'],
-        budgetCategory: 'Medium',
-        travelMode: 'Driving',
-      ),
+    const preferences = TripPreferences(
+      destination: 'Kuala Lumpur',
+      numberOfDays: 2,
+      dailyStartTime: TimeOfDay(hour: 9, minute: 0),
+      dailyEndTime: TimeOfDay(hour: 21, minute: 0),
+      interests: ['Culture'],
+      budgetCategory: 'Medium',
+      travelMode: 'Driving',
     );
+    final validation = TripPreferencesService.validatePreferences(preferences);
     expect(validation.success, isTrue);
     await _withApp(tester, () async {
+      TripPreferencesService.activate(preferences);
       await tester.tap(find.byKey(const ValueKey('home-my-trips')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Day 2'));
@@ -224,14 +228,21 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('plan-my-trips')));
       await tester.pumpAndSettle();
+      expect(find.byType(TripSelectionScreen), findsOneWidget);
+      expect(find.text('Select Planned Itinerary'), findsOneWidget);
+      await tester.tap(find.text('Kuala Lumpur Custom Schedule').last);
+      await tester.pumpAndSettle();
       expect(
         tester
             .widget<DayPill>(
               find.byWidgetPredicate((w) => w is DayPill && w.label == 'Day 2'),
             )
             .active,
-        isTrue,
+        isFalse,
       );
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(TripSelectionScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

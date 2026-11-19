@@ -72,7 +72,8 @@ class _ItineraryPageState extends State<ItineraryPage>
     _loadedUserId = AuthService().currentUser?.uid;
     SupabaseItineraryService().addListener(_onRepositoryChanged);
     _loadSavedTripsFromDatabase().then((_) {
-      if (mounted && _availableTrips.isNotEmpty) {
+      if (!mounted) return;
+      if (_availableTrips.isNotEmpty) {
         _loadWeatherForDay(_selectedDay);
       }
     });
@@ -250,6 +251,7 @@ class _ItineraryPageState extends State<ItineraryPage>
     try {
       final dbTrips = await SupabaseItineraryService().getSavedItineraries(
         refresh: refresh,
+        includeDrafts: true,
       );
       if (mounted && userId == AuthService().currentUser?.uid) {
         setState(() {
@@ -456,6 +458,34 @@ class _ItineraryPageState extends State<ItineraryPage>
                                             : AppColors.ink,
                                       ),
                                     ),
+                                    if ((index -
+                                                (TripPreferencesService
+                                                            .storedPreferences ==
+                                                        null
+                                                    ? 0
+                                                    : 1)) >=
+                                            0 &&
+                                        (index -
+                                                (TripPreferencesService
+                                                            .storedPreferences ==
+                                                        null
+                                                    ? 0
+                                                    : 1)) <
+                                            _rawDbItineraries.length &&
+                                        _rawDbItineraries[index -
+                                                (TripPreferencesService
+                                                            .storedPreferences ==
+                                                        null
+                                                    ? 0
+                                                    : 1)]
+                                            .isDraft)
+                                      Text(
+                                        context.l10n.draftLabel,
+                                        style: const TextStyle(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     const SizedBox(height: 3),
                                     Text(
                                       '${trip.destination} • ${context.tripDate(trip)}',
@@ -816,6 +846,17 @@ class _ItineraryPageState extends State<ItineraryPage>
     }
   }
 
+  List<TravelStop> get _unscheduledSelectedPlaces {
+    final scheduled = <String>{
+      for (var day = 0; day < _totalDays; day++)
+        for (final stop in _rawStopsForDay(day))
+          stop.title.trim().toLowerCase(),
+    };
+    return _preferences.selectedPlaces
+        .where((stop) => !scheduled.contains(stop.title.trim().toLowerCase()))
+        .toList();
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: SingleChildScrollView(
@@ -956,8 +997,179 @@ class _ItineraryPageState extends State<ItineraryPage>
     );
   }
 
+  bool _allowResultPop = false;
+  bool _handlingResultBack = false;
+
+  Future<bool> _saveCurrentTrip({bool asDraft = false}) async {
+    setState(() => _isSavingTrip = true);
+    final wasActive = _selectedSavedItinerary == null;
+    final revision = SmartItineraryService.revision;
+    final trip = _currentTrip;
+    final daysCount = trip.totalDays;
+    final userPrefs = _preferences;
+    final totalCost = List.generate(
+      daysCount,
+      _getStopsForDay,
+    ).fold<double>(0, (sum, stops) => sum + SchedulingEngine.cost(stops));
+    final destState = trip.destination.split(',').first.trim();
+
+    final dailySchedules = <DailySchedule>[];
+    for (int day = 0; day < daysCount; day++) {
+      final dayStops = _getStopsForDay(day);
+      dailySchedules.add(
+        DailySchedule(
+          scheduleId: '',
+          itineraryId: '',
+          dayNumber: day + 1,
+          scheduleDate: _dateForDay(day),
+          totalDistanceKm: SmartItineraryService.calculateRouteDistanceKm(
+            dayStops,
+          ),
+          stops: [
+            for (int i = 0; i < dayStops.length; i++)
+              ItineraryStop(
+                snapshot: dayStops[i],
+                id: '',
+                scheduleId: '',
+                placeId:
+                    (dayStops[i].placeId != null &&
+                        dayStops[i].placeId!.isNotEmpty)
+                    ? dayStops[i].placeId!
+                    : 'poi_${destState.toLowerCase().replaceAll(' ', '_')}_d${day + 1}_$i',
+                placeName: dayStops[i].title,
+                stopOrder: i + 1,
+                arrivalTime: dayStops[i].time.contains('-')
+                    ? dayStops[i].time.split('-').first.trim()
+                    : '09:00 AM',
+                departureTime: dayStops[i].time.contains('-')
+                    ? dayStops[i].time.split('-').last.trim()
+                    : '11:00 AM',
+                category: dayStops[i].category,
+                latitude: dayStops[i].latitude,
+                longitude: dayStops[i].longitude,
+                photoUrl: dayStops[i].photoUrls.isNotEmpty
+                    ? dayStops[i].photoUrls.join('|')
+                    : (dayStops[i].primaryPhotoUrl ?? ''),
+                photoUrls: dayStops[i].photoUrls,
+              ),
+          ],
+        ),
+      );
+    }
+
+    final result = await SupabaseItineraryService().saveItinerary(
+      preferences: userPrefs,
+      itineraryId: asDraft
+          ? (_selectedSavedItinerary?.isDraft == true
+                ? _selectedSavedItinerary?.itineraryId
+                : null)
+          : _selectedSavedItinerary?.itineraryId ??
+                TripPreferencesService.activeItineraryId,
+      title: trip.title,
+      destinationState: destState,
+      totalCost: totalCost,
+      dailySchedules: dailySchedules,
+      asDraft: asDraft,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isSavingTrip = false;
+        if (result.success) _draftSave = result;
+      });
+    }
+    if (mounted) {
+      if (result.success) {
+        if (wasActive && revision == SmartItineraryService.revision) {
+          TripPreferencesService.activeItineraryId = result.itineraryId;
+        }
+        await _loadSavedTripsFromDatabase();
+      }
+      if (!mounted) return result.success;
+      showDemoSnackBar(
+        context,
+        result.success && asDraft
+            ? context.l10n.draftSavedOnDevice
+            : result.message,
+        icon: result.success ? Icons.cloud_done : Icons.error_outline,
+      );
+    }
+    return result.success;
+  }
+
+  Future<void> _handleResultBack() async {
+    if (_handlingResultBack || _isSavingTrip || _isRegenerating) return;
+    _handlingResultBack = true;
+    try {
+      if (_draftSave == null) {
+        final choice = await showDialog<String>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(context.l10n.leaveItineraryTitle),
+            content: Text(context.l10n.leaveItineraryMessage),
+            scrollable: true,
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext, 'save'),
+                      child: Text(context.l10n.saveItinerary),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(dialogContext, 'draft'),
+                      child: Text(context.l10n.decideLater),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, 'discard'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(
+                          dialogContext,
+                        ).colorScheme.error,
+                      ),
+                      child: Text(context.l10n.discardItinerary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+        if (!mounted || choice == null) return;
+        if (choice != 'discard') {
+          final success = await _saveCurrentTrip(asDraft: choice == 'draft');
+          if (!success || !mounted) return;
+        }
+      }
+      if (!mounted) return;
+      TripPreferencesService.clearPreferences();
+      SmartItineraryService.clearLiveCache();
+      SupabaseItineraryService().refreshViews();
+      setState(() => _allowResultPop = true);
+      Navigator.of(context).pop();
+    } finally {
+      _handlingResultBack = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!widget.compactResult) return _buildContent(context);
+    return PopScope(
+      canPop: _allowResultPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _handleResultBack();
+      },
+      child: _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_availableTrips.isEmpty) {
       return _buildEmptyState();
     }
@@ -977,6 +1189,17 @@ class _ItineraryPageState extends State<ItineraryPage>
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
       children: [
+        if (_selectedSavedItinerary?.isDraft == true)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              context.l10n.draftLabel,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         if (widget.compactResult) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -1212,6 +1435,8 @@ class _ItineraryPageState extends State<ItineraryPage>
                                     builder: (_) => PlaceDetailPage(
                                       stop: stop,
                                       visitDate: _dateForDay(_selectedDay),
+                                      destinationState:
+                                          _preferences.destination,
                                     ),
                                   ),
                                 ),
@@ -1245,6 +1470,14 @@ class _ItineraryPageState extends State<ItineraryPage>
             const SizedBox(height: 12),
           ],
         ),
+        if (_unscheduledSelectedPlaces.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              '${context.l10n.unscheduledSelectedPlaces}: ${_unscheduledSelectedPlaces.map((place) => place.title).join(', ')}',
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ),
         ?_diningSuggestion(),
         if (_selectedSavedItinerary == null &&
             SmartItineraryService.dayWarnings[_selectedDay]?.isNotEmpty == true)
@@ -1340,105 +1573,7 @@ class _ItineraryPageState extends State<ItineraryPage>
               onPressed: _isSavingTrip || _isRegenerating
                   ? null
                   : () async {
-                      setState(() => _isSavingTrip = true);
-                      final wasActive = _selectedSavedItinerary == null;
-                      final revision = SmartItineraryService.revision;
-                      final daysCount = trip.totalDays;
-                      final userPrefs = _preferences;
-                      final totalCost =
-                          List.generate(
-                            daysCount,
-                            _getStopsForDay,
-                          ).fold<double>(
-                            0,
-                            (sum, stops) => sum + SchedulingEngine.cost(stops),
-                          );
-                      final destState = trip.destination
-                          .split(',')
-                          .first
-                          .trim();
-
-                      final dailySchedules = <DailySchedule>[];
-                      for (int day = 0; day < daysCount; day++) {
-                        final dayStops = _getStopsForDay(day);
-                        dailySchedules.add(
-                          DailySchedule(
-                            scheduleId: '',
-                            itineraryId: '',
-                            dayNumber: day + 1,
-                            scheduleDate: _dateForDay(day),
-                            totalDistanceKm:
-                                SmartItineraryService.calculateRouteDistanceKm(
-                                  dayStops,
-                                ),
-                            stops: [
-                              for (int i = 0; i < dayStops.length; i++)
-                                ItineraryStop(
-                                  snapshot: dayStops[i],
-                                  id: '',
-                                  scheduleId: '',
-                                  placeId:
-                                      (dayStops[i].placeId != null &&
-                                          dayStops[i].placeId!.isNotEmpty)
-                                      ? dayStops[i].placeId!
-                                      : 'poi_${destState.toLowerCase().replaceAll(' ', '_')}_d${day + 1}_$i',
-                                  placeName: dayStops[i].title,
-                                  stopOrder: i + 1,
-                                  arrivalTime: dayStops[i].time.contains('-')
-                                      ? dayStops[i].time.split('-').first.trim()
-                                      : '09:00 AM',
-                                  departureTime: dayStops[i].time.contains('-')
-                                      ? dayStops[i].time.split('-').last.trim()
-                                      : '11:00 AM',
-                                  category: dayStops[i].category,
-                                  latitude: dayStops[i].latitude,
-                                  longitude: dayStops[i].longitude,
-                                  photoUrl: dayStops[i].photoUrls.isNotEmpty
-                                      ? dayStops[i].photoUrls.join('|')
-                                      : (dayStops[i].primaryPhotoUrl ?? ''),
-                                  photoUrls: dayStops[i].photoUrls,
-                                ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      final result = await SupabaseItineraryService()
-                          .saveItinerary(
-                            preferences: userPrefs,
-                            itineraryId:
-                                _selectedSavedItinerary?.itineraryId ??
-                                TripPreferencesService.activeItineraryId,
-                            title: trip.title,
-                            destinationState: destState,
-                            totalCost: totalCost,
-                            dailySchedules: dailySchedules,
-                          );
-
-                      if (mounted) {
-                        setState(() {
-                          _isSavingTrip = false;
-                          if (result.success) _draftSave = result;
-                        });
-                      }
-                      if (context.mounted) {
-                        if (result.success) {
-                          if (wasActive &&
-                              revision == SmartItineraryService.revision) {
-                            TripPreferencesService.activeItineraryId =
-                                result.itineraryId;
-                          }
-                          await _loadSavedTripsFromDatabase();
-                        }
-                        if (!context.mounted) return;
-                        showDemoSnackBar(
-                          context,
-                          result.message,
-                          icon: result.success
-                              ? Icons.cloud_done
-                              : Icons.error_outline,
-                        );
-                      }
+                      await _saveCurrentTrip();
                     },
               icon: const Icon(Icons.bookmark_add_outlined),
               label: Text(context.l10n.saveItinerary),

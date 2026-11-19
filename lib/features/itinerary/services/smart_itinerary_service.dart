@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
+import 'package:smart_travel_planner/shared/models/weather_forecast.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
@@ -154,16 +155,24 @@ class SmartItineraryService {
     final resolvedPriorities = await Future.wait(
       preferences.mustVisitPlaces.map(resolve),
     );
+    final resolvedSelected = await Future.wait(
+      preferences.selectedPlaces.map(resolve),
+    );
     final origin = preferences.dailyOrigin;
     final resolvedOrigin = origin == null ? null : await resolve(origin);
     final effectivePreferences = preferences.copyWith(
       departurePoint: resolvedOrigin,
       mustVisitPlaces: resolvedPriorities,
+      selectedPlaces: resolvedSelected,
     );
     final titles = <String>{};
     final ids = <String>{};
     candidates = [
-      for (final stop in [...resolvedPriorities, ...candidates])
+      for (final stop in [
+        ...resolvedPriorities,
+        ...resolvedSelected,
+        ...candidates,
+      ])
         if (stop.latitude != 0 &&
             stop.longitude != 0 &&
             !titles.contains(_normalizedTitle(stop.title)) &&
@@ -188,9 +197,9 @@ class SmartItineraryService {
       else
         Future.value(<String, TravelLeg>{}),
     ]);
-    final visited = <String>{};
-    final days = <int, List<TravelStop>>{};
-    final warnings = <int, String>{};
+    final dates = <DateTime>[];
+    final forecasts = <WeatherForecast?>[];
+    final legsByDay = <Map<String, TravelLeg>>[];
     for (var day = 0; day < (preferences.numberOfDays ?? 3); day++) {
       final date = preferences.dateForDay(day);
       final departureMinutes =
@@ -212,19 +221,26 @@ class SmartItineraryService {
         state: destination,
         date: date,
       );
-      final stops = SchedulingEngine.schedule(
-        candidates: candidates,
-        preferences: effectivePreferences,
-        date: date,
-        visited: visited,
-        weather: weather,
-        legs: dayLegs,
-        walkingLegs: walkingLegs,
-        seed: seed + day,
-      );
-      days[day] = stops;
-      warnings[day] = _warning(stops, weather.isAvailable);
+      dates.add(date);
+      forecasts.add(weather);
+      legsByDay.add(dayLegs);
     }
+    final plannedDays = SchedulingEngine.scheduleTrip(
+      candidates: candidates,
+      preferences: effectivePreferences,
+      dates: dates,
+      weather: forecasts,
+      dailyLegs: legsByDay,
+      walkingLegs: walkingLegs,
+      seed: seed,
+    );
+    final days = <int, List<TravelStop>>{
+      for (var day = 0; day < plannedDays.length; day++) day: plannedDays[day],
+    };
+    final warnings = <int, String>{
+      for (var day = 0; day < plannedDays.length; day++)
+        day: _warning(plannedDays[day], forecasts[day]?.isAvailable == true),
+    };
     final scheduled = days.values
         .expand((stops) => stops)
         .map((stop) => _normalizedTitle(stop.title))
@@ -286,7 +302,11 @@ class SmartItineraryService {
       return _liveGeneratedDays[dayIndex]!;
     }
     final visited = <String>{};
-    final candidates = _offlineCandidates(preferences);
+    final candidates = [
+      ...preferences.mustVisitPlaces,
+      ...preferences.selectedPlaces,
+      ..._offlineCandidates(preferences),
+    ];
     List<TravelStop> stops = [];
     for (var day = 0; day <= dayIndex; day++) {
       stops = SchedulingEngine.schedule(

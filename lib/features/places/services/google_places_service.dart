@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'place_catalog_service.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
@@ -406,6 +407,86 @@ class GooglePlacesService {
     if (!stop.isGooglePlace || stop.placeId == null) return stop;
     final details = await fetchDetails(stop.placeId!);
     return details == null ? stop : stop.withGoogleDetails(details);
+  }
+
+  /// Resolve a local place only when both the name and location agree.
+  /// Google data remains transient and is never written to the local catalog.
+  Future<GooglePlaceDetails?> findDetailsForLocalStop(
+    TravelStop stop, {
+    required String state,
+  }) async {
+    if (stop.isGooglePlace ||
+        stop.title.trim().isEmpty ||
+        !stop.latitude.isFinite ||
+        !stop.longitude.isFinite ||
+        stop.latitude.abs() > 90 ||
+        stop.longitude.abs() > 180 ||
+        stop.latitude == 0 ||
+        stop.longitude == 0) {
+      return null;
+    }
+    final results = await searchPlannerPlaces(query: stop.title, state: state);
+    final matches = <({String id, double distance})>[];
+    for (final result in results) {
+      final id = result['id'];
+      final name = (result['displayName'] as Map?)?['text'];
+      final location = result['location'] as Map?;
+      final lat = location?['latitude'];
+      final lng = location?['longitude'];
+      if (id is! String ||
+          name is! String ||
+          lat is! num ||
+          lng is! num ||
+          !lat.isFinite ||
+          !lng.isFinite ||
+          !_samePlaceName(stop.title, name)) {
+        continue;
+      }
+      final distance = const Distance().as(
+        LengthUnit.Meter,
+        LatLng(stop.latitude, stop.longitude),
+        LatLng(lat.toDouble(), lng.toDouble()),
+      );
+      if (distance <= 2000) matches.add((id: id, distance: distance));
+    }
+    matches.sort((a, b) => a.distance.compareTo(b.distance));
+    if (matches.isEmpty ||
+        (matches.length > 1 &&
+            matches[1].distance - matches[0].distance < 100)) {
+      return null;
+    }
+    final details = await fetchDetails(matches.first.id);
+    if (details == null ||
+        details.name == null ||
+        !_samePlaceName(stop.title, details.name!) ||
+        details.latitude == null ||
+        details.longitude == null ||
+        !details.latitude!.isFinite ||
+        !details.longitude!.isFinite ||
+        details.latitude!.abs() > 90 ||
+        details.longitude!.abs() > 180 ||
+        const Distance().as(
+              LengthUnit.Meter,
+              LatLng(stop.latitude, stop.longitude),
+              LatLng(details.latitude!, details.longitude!),
+            ) >
+            2000) {
+      return null;
+    }
+    return details;
+  }
+
+  static bool _samePlaceName(String first, String second) {
+    Set<String> words(String value) => value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .split(' ')
+        .where((word) => word.isNotEmpty && word != 'state')
+        .map((word) => word == 'masjid' ? 'mosque' : word)
+        .toSet();
+    final a = words(first), b = words(second);
+    if (a.isEmpty || b.isEmpty) return false;
+    return 2 * a.intersection(b).length / (a.length + b.length) >= 0.8;
   }
 
   // Kept for older callers: expiring Google photo URLs must never be persisted.
