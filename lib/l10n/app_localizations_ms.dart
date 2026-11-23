@@ -9,10 +9,12 @@ class AppLocalizationsMs extends AppLocalizations {
   AppLocalizationsMs([String locale = 'ms']) : super(locale);
 
   @override
-  String get unscheduledSelectedPlaces => 'Tempat pilihan yang belum dijadualkan';
+  String get unscheduledSelectedPlaces =>
+      'Tempat pilihan yang belum dijadualkan';
 
   @override
-  String get selectedPlacesHelp => 'Kami akan cuba memasukkan tempat ini dalam perjalanan anda.';
+  String get selectedPlacesHelp =>
+      'Kami akan cuba memasukkan tempat ini dalam perjalanan anda.';
 
   @override
   String get profileChangePhoto => 'Tukar foto';
@@ -21,7 +23,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get profilePhotoSaved => 'Foto profil dikemas kini.';
 
   @override
-  String get profilePhotoInvalid => 'Pilih foto JPEG, PNG atau WebP di bawah 2 MB.';
+  String get profilePhotoInvalid =>
+      'Pilih foto JPEG, PNG atau WebP di bawah 2 MB.';
 
   @override
   String get scanAddToItinerary => 'Tambah pada itinerari';
@@ -42,6 +45,32 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanWishlist => 'Senarai hajat';
 
   @override
+  String get scanWishlistAddToPlan => 'Tambah ke pelan';
+
+  @override
+  String get scanWishlistAddNote => 'Tambah nota';
+
+  @override
+  String get scanWishlistNote => 'Nota anda';
+
+  @override
+  String get scanWishlistNoteHint => 'Mengapa anda ingin melawat?';
+
+  @override
+  String get scanWishlistNoteFailed => 'Nota tidak dapat disimpan. Cuba lagi.';
+
+  @override
+  String get scanWishlistNothingToPlan =>
+      'Pilih tempat yang mempunyai lokasi untuk ditambah ke pelan.';
+
+  @override
+  String get scanWishlistOtherPlaces => 'Lokasi diperlukan';
+
+  @override
+  String get scanWishlistLocationHelp =>
+      'Lokasi tepat diperlukan sebelum tempat ini boleh ditambah ke pelan.';
+
+  @override
   String get scanClearWishlist => 'Kosongkan senarai hajat';
 
   @override
@@ -57,7 +86,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanViewWishlist => 'Lihat senarai hajat';
 
   @override
-  String get scanWishlistEmpty => 'Tempat yang anda tambah ke senarai hajat akan dipaparkan di sini.';
+  String get scanWishlistEmpty =>
+      'Tempat yang anda tambah ke senarai hajat akan dipaparkan di sini.';
 
   @override
   String get scanOriginalPhoto => 'Foto Asal';
@@ -74,7 +104,8 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get scanQuickLandmarksHint => 'Ketik tempat untuk melihat kisah dan butirannya.';
+  String get scanQuickLandmarksHint =>
+      'Ketik tempat untuk melihat kisah dan butirannya.';
 
   @override
   String get scanScannedLandmark => 'mercu tanda yang diimbas';
@@ -93,19 +124,22 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get scanDistanceUnavailable => 'Jarak tidak tersedia sehingga lokasi diketahui';
+  String get scanDistanceUnavailable =>
+      'Jarak tidak tersedia sehingga lokasi diketahui';
 
   @override
   String get scanMapSearchHelp => 'Cari lebih banyak tempat di Google Maps';
 
   @override
-  String get scanNoItinerary => 'Simpan itinerari dahulu, kemudian pilih hari untuk menambah tempat ini.';
+  String get scanNoItinerary =>
+      'Simpan itinerari dahulu, kemudian pilih hari untuk menambah tempat ini.';
 
   @override
   String get scanStopAlreadyAdded => 'Tempat ini sudah ada pada hari tersebut.';
 
   @override
-  String get scanStopLocationUnavailable => 'Lokasi tempat tidak tersedia. Cuba lagi selepas butiran tempat dimuatkan.';
+  String get scanStopLocationUnavailable =>
+      'Lokasi tempat tidak tersedia. Cuba lagi selepas butiran tempat dimuatkan.';
 
   @override
   String get appLanguage => 'Bahasa Aplikasi';
@@ -114,7 +148,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get languageChanged => 'Bahasa telah ditukar.';
 
   @override
-  String get languageSessionOnly => 'Bahasa ditukar untuk sesi ini. Pilihan anda tidak dapat disimpan.';
+  String get languageSessionOnly =>
+      'Bahasa ditukar untuk sesi ini. Pilihan anda tidak dapat disimpan.';
 
   @override
   String get home => 'Utama';
@@ -278,10 +313,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get openingHours => 'Waktu operasi';
 
   @override
-  String get openingHoursUnavailableCheckBeforeVisiting => 'Waktu operasi tidak tersedia. Semak sebelum melawat.';
+  String get openingHoursUnavailableCheckBeforeVisiting =>
+      'Waktu operasi tidak tersedia. Semak sebelum melawat.';
 
   @override
-  String get operatingHoursMayVaryDuringPublicHolidaysOrSpecialEvents => 'Waktu operasi mungkin berubah pada cuti umum atau acara khas.';
+  String get operatingHoursMayVaryDuringPublicHolidaysOrSpecialEvents =>
+      'Waktu operasi mungkin berubah pada cuti umum atau acara khas.';
 
   @override
   String get hoursUnverified => 'Waktu belum disahkan';
@@ -358,7 +395,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get airConditioned => 'Berhawa dingin';
 
   @override
-  String get comfortableFootwearAdvised => 'Disarankan memakai kasut yang selesa';
+  String get comfortableFootwearAdvised =>
+      'Disarankan memakai kasut yang selesa';
 
   @override
   String get welcomeBack => 'Selamat Kembali';
@@ -376,7 +414,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get smartTravelPlanning2 => 'Perancangan Pelancongan Pintar';
 
   @override
-  String get yourSmartTravelCompanionInMalaysia => 'Teman Pelancongan Pintar Anda\ndi Malaysia';
+  String get yourSmartTravelCompanionInMalaysia =>
+      'Teman Pelancongan Pintar Anda\ndi Malaysia';
 
   @override
   String get autoSmartScheduling => 'Penjadualan Pintar Automatik';
@@ -415,13 +454,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get malaysiaTravelPortal => 'Portal Pelancongan Malaysia';
 
   @override
-  String get accessAiItinerariesWeatherAlertsAndSmartRouteOptimization => 'Akses jadual perjalanan AI, amaran cuaca dan pengoptimuman laluan pintar.';
+  String get accessAiItinerariesWeatherAlertsAndSmartRouteOptimization =>
+      'Akses jadual perjalanan AI, amaran cuaca dan pengoptimuman laluan pintar.';
 
   @override
-  String get signInToManageYourMalaysiaTravelPlans => 'Log masuk untuk mengurus rancangan perjalanan Malaysia anda.';
+  String get signInToManageYourMalaysiaTravelPlans =>
+      'Log masuk untuk mengurus rancangan perjalanan Malaysia anda.';
 
   @override
-  String get registerAsANewTouristToPlanYourPersonalizedTripsInMalaysia => 'Daftar untuk merancang perjalanan peribadi anda di Malaysia.';
+  String get registerAsANewTouristToPlanYourPersonalizedTripsInMalaysia =>
+      'Daftar untuk merancang perjalanan peribadi anda di Malaysia.';
 
   @override
   String get emailAddress => 'Alamat E-mel';
@@ -463,7 +505,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get pleaseEnterYourPassword => 'Sila masukkan kata laluan anda';
 
   @override
-  String get passwordMustBeAtLeast6Characters => 'Kata laluan mesti sekurang-kurangnya 6 aksara';
+  String get passwordMustBeAtLeast6Characters =>
+      'Kata laluan mesti sekurang-kurangnya 6 aksara';
 
   @override
   String get passwordStrengthPolicyC3 => 'Syarat Kekuatan Kata Laluan (C3):';
@@ -487,7 +530,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get checkYourEmail => 'Semak e-mel anda';
 
   @override
-  String get ifThisEmailCanBeRegisteredAConfirmationEmailWillBeSentOpenTheLinkInThatEmailThenReturnHere => 'Jika e-mel ini boleh didaftarkan, e-mel pengesahan akan dihantar. Buka pautan dalam e-mel itu, kemudian kembali untuk log masuk. Anda belum log masuk.';
+  String
+  get ifThisEmailCanBeRegisteredAConfirmationEmailWillBeSentOpenTheLinkInThatEmailThenReturnHere =>
+      'Jika e-mel ini boleh didaftarkan, e-mel pengesahan akan dihantar. Buka pautan dalam e-mel itu, kemudian kembali untuk log masuk. Anda belum log masuk.';
 
   @override
   String get loggedInAsGuestTraveler => 'Log masuk sebagai Pelancong Tetamu!';
@@ -514,7 +559,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get changeYourFullName => 'Tukar nama penuh anda';
 
   @override
-  String get areYouSureYouWantToLogOutOfYourTravelProfile => 'Adakah anda pasti mahu log keluar?';
+  String get areYouSureYouWantToLogOutOfYourTravelProfile =>
+      'Adakah anda pasti mahu log keluar?';
 
   @override
   String get pushNotifications => 'Pemberitahuan Tolak';
@@ -523,7 +569,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get darkMode => 'Mod Gelap';
 
   @override
-  String get darkModeIsNotSupportedInTheDemoVersion => 'Mod gelap tidak disokong dalam versi demo.';
+  String get darkModeIsNotSupportedInTheDemoVersion =>
+      'Mod gelap tidak disokong dalam versi demo.';
 
   @override
   String get privacyTerms => 'Privasi & Terma';
@@ -562,7 +609,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get imageRecognition2 => 'Pengecaman imej';
 
   @override
-  String get discoverMalaysiaThroughYourCamera => 'Terokai Malaysia melalui kamera anda';
+  String get discoverMalaysiaThroughYourCamera =>
+      'Terokai Malaysia melalui kamera anda';
 
   @override
   String get planYourTrip => 'Rancang Perjalanan Anda';
@@ -574,7 +622,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get tripAssistant => 'Pembantu Pelancongan';
 
   @override
-  String get aiHelpTranslationAndWeatherAlerts => 'Bantuan AI, terjemahan dan amaran cuaca';
+  String get aiHelpTranslationAndWeatherAlerts =>
+      'Bantuan AI, terjemahan dan amaran cuaca';
 
   @override
   String helloValue(String arg0) {
@@ -587,7 +636,8 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get whereWouldYouLikeToExploreToday => 'Di mana anda ingin meneroka hari ini?';
+  String get whereWouldYouLikeToExploreToday =>
+      'Di mana anda ingin meneroka hari ini?';
 
   @override
   String get whereToNext => 'Ke mana seterusnya?';
@@ -596,7 +646,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get popularAttractions => 'Tarikan Popular';
 
   @override
-  String get topMustVisitDestinationsInMalaysia => 'Destinasi wajib dilawati di Malaysia';
+  String get topMustVisitDestinationsInMalaysia =>
+      'Destinasi wajib dilawati di Malaysia';
 
   @override
   String get browseAttractions => 'Lihat Tarikan';
@@ -605,7 +656,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get myTrips => 'Perjalanan Saya';
 
   @override
-  String get viewSavedItinerariesAndYourCurrentPlan => 'Lihat jadual tersimpan dan rancangan semasa anda';
+  String get viewSavedItinerariesAndYourCurrentPlan =>
+      'Lihat jadual tersimpan dan rancangan semasa anda';
 
   @override
   String get viewItinerary => 'Lihat Jadual Perjalanan';
@@ -632,16 +684,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get offlineMode => 'Mod luar talian';
 
   @override
-  String get itineraryLabelsReadyInEnglishMalayAndChinese => 'Label jadual tersedia dalam bahasa Inggeris, Melayu dan Cina.';
+  String get itineraryLabelsReadyInEnglishMalayAndChinese =>
+      'Label jadual tersedia dalam bahasa Inggeris, Melayu dan Cina.';
 
   @override
   String get aTripThatFitsYou => 'Perjalanan yang sesuai untuk anda';
 
   @override
-  String get whereAndWhenWouldYouLikeToGo => 'Ke mana dan bila anda ingin pergi?';
+  String get whereAndWhenWouldYouLikeToGo =>
+      'Ke mana dan bila anda ingin pergi?';
 
   @override
-  String get chooseYourDatesDailyPaceAndFavouriteThingsToDo => 'Pilih tarikh, rentak harian dan aktiviti kegemaran anda.';
+  String get chooseYourDatesDailyPaceAndFavouriteThingsToDo =>
+      'Pilih tarikh, rentak harian dan aktiviti kegemaran anda.';
 
   @override
   String get destination => 'Destinasi';
@@ -677,7 +732,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get chooseASuggestedSchedule => 'Pilih jadual yang dicadangkan';
 
   @override
-  String get setAsideTimeForAttractionsMealsAndGettingAround => 'Peruntukkan masa untuk tarikan, makanan dan perjalanan.';
+  String get setAsideTimeForAttractionsMealsAndGettingAround =>
+      'Peruntukkan masa untuk tarikan, makanan dan perjalanan.';
 
   @override
   String get relaxed => 'Santai';
@@ -698,7 +754,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get interests => 'Minat';
 
   @override
-  String get pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou => 'Pilih satu atau lebih minat. Kami akan mencari tempat yang sesuai.';
+  String get pickOneOrMoreInterestsWeLlUseTheseToFindPlacesForYou =>
+      'Pilih satu atau lebih minat. Kami akan mencari tempat yang sesuai.';
 
   @override
   String get chooseYourDailyBudget => 'Pilih bajet harian anda';
@@ -725,13 +782,15 @@ class AppLocalizationsMs extends AppLocalizations {
   String get overRm300 => 'Lebih RM300';
 
   @override
-  String get perPersonIncludingMealsAttractionTicketsAndLocalTransport => 'Seorang, termasuk makanan, tiket tarikan dan pengangkutan tempatan.';
+  String get perPersonIncludingMealsAttractionTicketsAndLocalTransport =>
+      'Seorang, termasuk makanan, tiket tarikan dan pengangkutan tempatan.';
 
   @override
   String get gettingAround => 'Pengangkutan';
 
   @override
-  String get chooseHowYouWillTravelBetweenPlaces => 'Pilih cara perjalanan antara tempat.';
+  String get chooseHowYouWillTravelBetweenPlaces =>
+      'Pilih cara perjalanan antara tempat.';
 
   @override
   String get driving => 'Memandu';
@@ -746,10 +805,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get publicTransport => 'Pengangkutan Awam';
 
   @override
-  String get exploreFurtherByCarOrEHailing => 'Teroka lebih jauh dengan kereta atau e-hailing.';
+  String get exploreFurtherByCarOrEHailing =>
+      'Teroka lebih jauh dengan kereta atau e-hailing.';
 
   @override
-  String get enjoyNearbyPlacesAtAWalkingPace => 'Nikmati tempat berdekatan dengan berjalan kaki.';
+  String get enjoyNearbyPlacesAtAWalkingPace =>
+      'Nikmati tempat berdekatan dengan berjalan kaki.';
 
   @override
   String get generateMyItinerary => 'Jana Jadual Perjalanan Saya';
@@ -758,7 +819,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get generating => 'Sedang menjana…';
 
   @override
-  String get buildingItineraryFromSavedPlaces => 'Membina jadual daripada tempat tersimpan…';
+  String get buildingItineraryFromSavedPlaces =>
+      'Membina jadual daripada tempat tersimpan…';
 
   @override
   String get checkYourTripPreferences => 'Semak pilihan perjalanan anda';
@@ -782,10 +844,13 @@ class AppLocalizationsMs extends AppLocalizations {
   String get chooseATravelMode => 'Pilih cara perjalanan.';
 
   @override
-  String get transitPlanningIsNotAvailableYetChooseDrivingOrWalkingToGenerateYourTrip => 'Perancangan transit belum tersedia. Pilih memandu atau berjalan kaki.';
+  String
+  get transitPlanningIsNotAvailableYetChooseDrivingOrWalkingToGenerateYourTrip =>
+      'Perancangan transit belum tersedia. Pilih memandu atau berjalan kaki.';
 
   @override
-  String get itineraryGeneratedOpeningPreview => 'Jadual telah dijana — membuka pratonton.';
+  String get itineraryGeneratedOpeningPreview =>
+      'Jadual telah dijana — membuka pratonton.';
 
   @override
   String get myItinerary => 'Jadual Perjalanan Saya';
@@ -852,10 +917,13 @@ class AppLocalizationsMs extends AppLocalizations {
   String get regenerateItinerary2 => 'Jana semula jadual perjalanan?';
 
   @override
-  String get yourCurrentUnsavedChangesWillBeReplacedSavedTripsWillRemainAvailable => 'Perubahan yang belum disimpan akan diganti. Perjalanan tersimpan kekal tersedia.';
+  String
+  get yourCurrentUnsavedChangesWillBeReplacedSavedTripsWillRemainAvailable =>
+      'Perubahan yang belum disimpan akan diganti. Perjalanan tersimpan kekal tersedia.';
 
   @override
-  String get completeTripPreferencesInPlanBeforeRegenerating => 'Lengkapkan pilihan perjalanan dalam Rancang sebelum menjana semula.';
+  String get completeTripPreferencesInPlanBeforeRegenerating =>
+      'Lengkapkan pilihan perjalanan dalam Rancang sebelum menjana semula.';
 
   @override
   String get deleteItinerary => 'Padam Jadual Perjalanan?';
@@ -872,7 +940,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get unableToDeleteThisItinerary => 'Tidak dapat memadam jadual ini.';
 
   @override
-  String get unableToSaveItineraryChangesOnThisDevice => 'Tidak dapat menyimpan perubahan pada peranti ini.';
+  String get unableToSaveItineraryChangesOnThisDevice =>
+      'Tidak dapat menyimpan perubahan pada peranti ini.';
 
   @override
   String get noItinerariesYet => 'Belum Ada Jadual Perjalanan';
@@ -881,13 +950,17 @@ class AppLocalizationsMs extends AppLocalizations {
   String get noActiveTripPlanned => 'Tiada Perjalanan Aktif';
 
   @override
-  String get youHaveNoActiveOrSavedTripsSetYourTravelPreferencesToGenerateASmartDayByDaySchedule => 'Anda tiada perjalanan aktif atau tersimpan. Tetapkan pilihan untuk menjana jadual harian pintar.';
+  String
+  get youHaveNoActiveOrSavedTripsSetYourTravelPreferencesToGenerateASmartDayByDaySchedule =>
+      'Anda tiada perjalanan aktif atau tersimpan. Tetapkan pilihan untuk menjana jadual harian pintar.';
 
   @override
-  String get tapToPlanYourSmartSchedule => 'Ketik untuk merancang jadual pintar';
+  String get tapToPlanYourSmartSchedule =>
+      'Ketik untuk merancang jadual pintar';
 
   @override
-  String get tapToViewScheduleDetails => 'Ketik untuk melihat jadual dan butiran';
+  String get tapToViewScheduleDetails =>
+      'Ketik untuk melihat jadual dan butiran';
 
   @override
   String get activeGeneratedPlan => 'Rancangan Aktif Dijana';
@@ -905,7 +978,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get clearActivePlan => 'Kosongkan Rancangan Aktif?';
 
   @override
-  String get areYouSureYouWantToClearYourCurrentGeneratedTripAndResetToDefault => 'Adakah anda pasti mahu mengosongkan perjalanan semasa dan menetapkan semula?';
+  String
+  get areYouSureYouWantToClearYourCurrentGeneratedTripAndResetToDefault =>
+      'Adakah anda pasti mahu mengosongkan perjalanan semasa dan menetapkan semula?';
 
   @override
   String get addStop => 'Tambah Hentian';
@@ -926,7 +1001,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get addToWishlist => 'Tambah ke Senarai Hajat';
 
   @override
-  String get selectAnAttractionToAppendToYourDayRoute => 'Pilih tarikan untuk ditambah pada laluan harian';
+  String get selectAnAttractionToAppendToYourDayRoute =>
+      'Pilih tarikan untuk ditambah pada laluan harian';
 
   @override
   String get removeStop => 'Buang hentian';
@@ -938,10 +1014,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get swapAttraction2 => 'Tukar tarikan';
 
   @override
-  String get dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces => 'Seret pemegang untuk menyusun semula. Ketik Tukar untuk menggantikan dengan tempat dalam bangunan.';
+  String get dragItemsByTheHandleToReorderTapSwapToReplaceWithIndoorPlaces =>
+      'Seret pemegang untuk menyusun semula. Ketik Tukar untuk menggantikan dengan tempat dalam bangunan.';
 
   @override
-  String get anItineraryDayMustHaveAtLeast1Stop => 'Setiap hari mesti mempunyai sekurang-kurangnya 1 hentian.';
+  String get anItineraryDayMustHaveAtLeast1Stop =>
+      'Setiap hari mesti mempunyai sekurang-kurangnya 1 hentian.';
 
   @override
   String get duplicateStopToday => 'Hentian berulang hari ini';
@@ -950,26 +1028,36 @@ class AppLocalizationsMs extends AppLocalizations {
   String get inOtherDay => 'Pada hari lain';
 
   @override
-  String get duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave => 'Tarikan berulang dikesan hari ini. Buang atau tukar untuk menyimpan.';
+  String get duplicateAttractionsDetectedTodayPleaseRemoveOrSwapThemToSave =>
+      'Tarikan berulang dikesan hari ini. Buang atau tukar untuk menyimpan.';
 
   @override
-  String get cannotSaveThisOrderExceedsDailyHoursOpeningHoursBudgetOrWeatherConstraints => 'Tidak dapat menyimpan: susunan ini melanggar had masa harian, waktu operasi, bajet atau cuaca.';
+  String
+  get cannotSaveThisOrderExceedsDailyHoursOpeningHoursBudgetOrWeatherConstraints =>
+      'Tidak dapat menyimpan: susunan ini melanggar had masa harian, waktu operasi, bajet atau cuaca.';
 
   @override
-  String cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop(String arg0) {
+  String
+  cannotSaveValueAppearsMultipleTimesTodayPleaseRemoveOrSwapTheDuplicateStop(
+    String arg0,
+  ) {
     return 'Tidak dapat menyimpan: \"$arg0\" berulang hari ini. Buang atau tukar hentian itu.';
   }
 
   @override
-  String cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary(String arg0) {
+  String cannotSaveValueIsAlreadyScheduledOnAnotherDayOfThisItinerary(
+    String arg0,
+  ) {
     return 'Tidak dapat menyimpan: \"$arg0\" telah dijadualkan pada hari lain.';
   }
 
   @override
-  String get connectToRefreshGooglePlaceLocationsBeforeSavingScheduleChanges => 'Sambung ke Internet untuk mengemas kini lokasi Google sebelum menyimpan perubahan.';
+  String get connectToRefreshGooglePlaceLocationsBeforeSavingScheduleChanges =>
+      'Sambung ke Internet untuk mengemas kini lokasi Google sebelum menyimpan perubahan.';
 
   @override
-  String get stopReorderedScheduleTimesAutomaticallyAdjusted => 'Hentian disusun semula. Masa jadual dilaras secara automatik.';
+  String get stopReorderedScheduleTimesAutomaticallyAdjusted =>
+      'Hentian disusun semula. Masa jadual dilaras secara automatik.';
 
   @override
   String removedValueTimesUpdated(String arg0) {
@@ -997,10 +1085,12 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get rainForecastedTodaySwappingToAnIndoorAttractionIsRecommended => 'Hujan diramal hari ini. Disarankan menukar kepada tarikan dalam bangunan.';
+  String get rainForecastedTodaySwappingToAnIndoorAttractionIsRecommended =>
+      'Hujan diramal hari ini. Disarankan menukar kepada tarikan dalam bangunan.';
 
   @override
-  String get goodWeatherTodayYouCanKeepItIndoorOrSwapToAnOutdoorSight => 'Cuaca baik hari ini! Kekalkan aktiviti dalam bangunan atau tukar ke luar.';
+  String get goodWeatherTodayYouCanKeepItIndoorOrSwapToAnOutdoorSight =>
+      'Cuaca baik hari ini! Kekalkan aktiviti dalam bangunan atau tukar ke luar.';
 
   @override
   String get scheduledTime => 'Masa dijadualkan';
@@ -1018,7 +1108,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get outdoorSight => 'Tarikan luar bangunan';
 
   @override
-  String get indoorAttractionWeatherSafe => 'Tarikan dalam bangunan • Selamat daripada cuaca';
+  String get indoorAttractionWeatherSafe =>
+      'Tarikan dalam bangunan • Selamat daripada cuaca';
 
   @override
   String get outdoorSightseeing => 'Bersiar-siar di luar';
@@ -1103,13 +1194,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get calculatingRouteEstimate => 'Mengira anggaran laluan...';
 
   @override
-  String get tapMapPinsToViewPlaceDetails => 'Ketik pin peta untuk melihat butiran tempat';
+  String get tapMapPinsToViewPlaceDetails =>
+      'Ketik pin peta untuk melihat butiran tempat';
 
   @override
-  String get select25LocationsToDrawARoute => 'Pilih 2–5 lokasi untuk melukis laluan';
+  String get select25LocationsToDrawARoute =>
+      'Pilih 2–5 lokasi untuk melukis laluan';
 
   @override
-  String get mapCenteredOnYourCurrentLocation => 'Peta dipusatkan pada lokasi semasa anda.';
+  String get mapCenteredOnYourCurrentLocation =>
+      'Peta dipusatkan pada lokasi semasa anda.';
 
   @override
   String get unableToOpenGoogleMaps => 'Tidak dapat membuka Google Maps.';
@@ -1118,7 +1212,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get unableToOpenThisLink => 'Tidak dapat membuka pautan ini.';
 
   @override
-  String get googleMapsIsNotConfiguredForThisPlatformYetYourSavedPlacesRemainAvailableInTheList => 'Google Maps belum dikonfigurasi untuk platform ini. Tempat tersimpan masih tersedia dalam senarai.';
+  String
+  get googleMapsIsNotConfiguredForThisPlatformYetYourSavedPlacesRemainAvailableInTheList =>
+      'Google Maps belum dikonfigurasi untuk platform ini. Tempat tersimpan masih tersedia dalam senarai.';
 
   @override
   String valueKmValueStops(String arg0, String arg1) {
@@ -1184,23 +1280,31 @@ class AppLocalizationsMs extends AppLocalizations {
   String get noSavedPlacesYet => 'Belum Ada Tempat Tersimpan';
 
   @override
-  String noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm(String arg0) {
+  String noAttractionsMatchValueTryCheckingForTyposOrSearchingABroaderTerm(
+    String arg0,
+  ) {
     return 'Tiada tarikan sepadan dengan \"$arg0\". Semak ejaan atau cuba carian lebih umum.';
   }
 
   @override
-  String get noAttractionsMatchThisFilterInThisCity => 'Tiada tarikan sepadan dengan penapis ini di bandar ini.';
+  String get noAttractionsMatchThisFilterInThisCity =>
+      'Tiada tarikan sepadan dengan penapis ini di bandar ini.';
 
   @override
-  String noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation(String arg0) {
+  String
+  noSpotsFoundInThisCategoryNearValueTryChoosingAnotherCategoryOrSelectingANewLocation(
+    String arg0,
+  ) {
     return 'Tiada tempat dalam kategori ini berhampiran $arg0. Cuba kategori atau lokasi lain.';
   }
 
   @override
-  String get unableToLoadAttractionsPleaseTryAgain => 'Tidak dapat memuatkan tarikan. Sila cuba lagi.';
+  String get unableToLoadAttractionsPleaseTryAgain =>
+      'Tidak dapat memuatkan tarikan. Sila cuba lagi.';
 
   @override
-  String get unableToLoadDetailsRetry => 'Tidak dapat memuatkan butiran. Cuba lagi.';
+  String get unableToLoadDetailsRetry =>
+      'Tidak dapat memuatkan butiran. Cuba lagi.';
 
   @override
   String get saved => 'Disimpan';
@@ -1218,7 +1322,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get removeFromSaved => 'Buang daripada simpanan';
 
   @override
-  String get savedListCanHoldUpTo10Attractions => 'Senarai simpanan boleh memuatkan sehingga 10 tarikan.';
+  String get savedListCanHoldUpTo10Attractions =>
+      'Senarai simpanan boleh memuatkan sehingga 10 tarikan.';
 
   @override
   String savedValueToYourList(String arg0) {
@@ -1237,12 +1342,17 @@ class AppLocalizationsMs extends AppLocalizations {
   String get savedToFavoritePlaces => 'Disimpan ke tempat kegemaran';
 
   @override
-  String browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist(String arg0) {
+  String
+  browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist(
+    String arg0,
+  ) {
     return 'Lihat tarikan di $arg0 dan ketik \"Simpan\" untuk membina senarai hajat perjalanan anda.';
   }
 
   @override
-  String get savedPlacesCanBeViewedOnTheMapTabToSeeOptimalDrivingPathsOrVisitThePlanTabToAutomaticallyS => 'Lihat tempat tersimpan pada tab Peta untuk laluan memandu, atau gunakan tab Rancang untuk jadual berbilang hari.';
+  String
+  get savedPlacesCanBeViewedOnTheMapTabToSeeOptimalDrivingPathsOrVisitThePlanTabToAutomaticallyS =>
+      'Lihat tempat tersimpan pada tab Peta untuk laluan memandu, atau gunakan tab Rancang untuk jadual berbilang hari.';
 
   @override
   String topIconicSpotsInValue(String arg0) {
@@ -1286,16 +1396,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get liveGoogleInformation => 'Maklumat Google langsung';
 
   @override
-  String get livePlaceDetailsUnavailable => 'Butiran tempat langsung tidak tersedia.';
+  String get livePlaceDetailsUnavailable =>
+      'Butiran tempat langsung tidak tersedia.';
 
   @override
-  String get showingAvailablePlaceInformation => 'Memaparkan maklumat tempat yang tersedia.';
+  String get showingAvailablePlaceInformation =>
+      'Memaparkan maklumat tempat yang tersedia.';
 
   @override
   String get googlePlacesUnavailable => 'Google Places tidak tersedia';
 
   @override
-  String get attractionDetailsMapLinkCopiedToClipboard => 'Butiran tarikan dan pautan peta disalin!';
+  String get attractionDetailsMapLinkCopiedToClipboard =>
+      'Butiran tarikan dan pautan peta disalin!';
 
   @override
   String valueReviews(String arg0) {
@@ -1341,7 +1454,8 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get askPlacesFoodWeatherOrPlans => 'Tanya tentang tempat, makanan, cuaca atau rancangan...';
+  String get askPlacesFoodWeatherOrPlans =>
+      'Tanya tentang tempat, makanan, cuaca atau rancangan...';
 
   @override
   String get sendPrompt => 'Hantar Soalan';
@@ -1350,7 +1464,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get geminiIsThinking => 'Gemini sedang berfikir...';
 
   @override
-  String get gemini15FlashMalaysianTravelAi => 'Gemini 1.5 Flash • AI Pelancongan Malaysia';
+  String get gemini15FlashMalaysianTravelAi =>
+      'Gemini 1.5 Flash • AI Pelancongan Malaysia';
 
   @override
   String get assistantResponseLanguage => 'Bahasa jawapan pembantu';
@@ -1367,7 +1482,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get clearChatHistory => 'Kosongkan Sejarah Sembang?';
 
   @override
-  String get thisWillResetYourConversationWithTheTravelAssistant => 'Ini akan menetapkan semula perbualan anda dengan pembantu pelancongan.';
+  String get thisWillResetYourConversationWithTheTravelAssistant =>
+      'Ini akan menetapkan semula perbualan anda dengan pembantu pelancongan.';
 
   @override
   String get chatHistoryCleared => 'Sejarah sembang dikosongkan.';
@@ -1388,19 +1504,23 @@ class AppLocalizationsMs extends AppLocalizations {
   String get isItGoingToRainInKlToday => '🌧️ Adakah hujan di KL hari ini?';
 
   @override
-  String get bestHalalFoodNearBukitBintang => '🍜 Makanan halal terbaik dekat Bukit Bintang';
+  String get bestHalalFoodNearBukitBintang =>
+      '🍜 Makanan halal terbaik dekat Bukit Bintang';
 
   @override
   String get culturalEtiquetteForBatuCaves => '🏛️ Etika budaya di Batu Caves';
 
   @override
-  String get howToGetFromKlSentralToKlcc => '🚇 Cara pergi dari KL Sentral ke KLCC';
+  String get howToGetFromKlSentralToKlcc =>
+      '🚇 Cara pergi dari KL Sentral ke KLCC';
 
   @override
-  String get usefulMalayTravelPhrases => '🗣️ Frasa perjalanan bahasa Melayu berguna';
+  String get usefulMalayTravelPhrases =>
+      '🗣️ Frasa perjalanan bahasa Melayu berguna';
 
   @override
-  String get topIndoorShoppingAndMuseums => '🛍️ Tempat membeli-belah dan muzium dalam bangunan terbaik';
+  String get topIndoorShoppingAndMuseums =>
+      '🛍️ Tempat membeli-belah dan muzium dalam bangunan terbaik';
 
   @override
   String valueRain(String arg0) {
@@ -1422,10 +1542,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get demoResults => 'Hasil Demo';
 
   @override
-  String get discoverALandmarkOrALocalDish => 'Kenali mercu tanda atau hidangan tempatan';
+  String get discoverALandmarkOrALocalDish =>
+      'Kenali mercu tanda atau hidangan tempatan';
 
   @override
-  String get chooseAPhotoReviewItThenIdentifyWhatYouSee => 'Pilih foto, semak, kemudian kenal pasti kandungannya.';
+  String get chooseAPhotoReviewItThenIdentifyWhatYouSee =>
+      'Pilih foto, semak, kemudian kenal pasti kandungannya.';
 
   @override
   String get takePhoto => 'Ambil Foto';
@@ -1434,10 +1556,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get uploadFromGallery => 'Muat Naik dari Galeri';
 
   @override
-  String get launchYourCameraToCaptureALandmarkOrFood => 'Buka kamera untuk mengambil foto mercu tanda atau makanan';
+  String get launchYourCameraToCaptureALandmarkOrFood =>
+      'Buka kamera untuk mengambil foto mercu tanda atau makanan';
 
   @override
-  String get selectAPhotoFromYourPhotoLibrary => 'Pilih foto daripada galeri anda';
+  String get selectAPhotoFromYourPhotoLibrary =>
+      'Pilih foto daripada galeri anda';
 
   @override
   String get yourPhotoIsReady => 'Foto anda sedia';
@@ -1464,37 +1588,51 @@ class AppLocalizationsMs extends AppLocalizations {
   String get chooseAnother => 'Pilih Lain';
 
   @override
-  String get readyToDiscoverWhatYouFound => 'Sedia untuk mengenali penemuan anda?';
+  String get readyToDiscoverWhatYouFound =>
+      'Sedia untuk mengenali penemuan anda?';
 
   @override
-  String get forTheBestResultUseOneClearLandmarkOrDishKeepItCentredAndAvoidBlurryOrVeryDarkPhotos => 'Untuk hasil terbaik, gunakan satu mercu tanda atau hidangan yang jelas di tengah foto. Elakkan foto kabur atau gelap.';
+  String
+  get forTheBestResultUseOneClearLandmarkOrDishKeepItCentredAndAvoidBlurryOrVeryDarkPhotos =>
+      'Untuk hasil terbaik, gunakan satu mercu tanda atau hidangan yang jelas di tengah foto. Elakkan foto kabur atau gelap.';
 
   @override
-  String get forBetterAccuracyKeepTheLandmarkOrFoodDishWellLitAndCentered => 'Untuk ketepatan lebih baik, pastikan pencahayaan baik dan subjek di tengah.';
+  String get forBetterAccuracyKeepTheLandmarkOrFoodDishWellLitAndCentered =>
+      'Untuk ketepatan lebih baik, pastikan pencahayaan baik dan subjek di tengah.';
 
   @override
-  String get sampleScansWorkOfflineLiveRecognitionAndTranslationRequireAnOnlineAccount => 'Imbasan sampel berfungsi di luar talian. Pengecaman langsung dan terjemahan memerlukan akaun dalam talian.';
+  String
+  get sampleScansWorkOfflineLiveRecognitionAndTranslationRequireAnOnlineAccount =>
+      'Imbasan sampel berfungsi di luar talian. Pengecaman langsung dan terjemahan memerlukan akaun dalam talian.';
 
   @override
-  String get onlyResultTextIsSavedInYourLocalHistoryThePhotoIsNotStoredByTheApp => 'Hanya teks hasil disimpan dalam sejarah setempat; aplikasi tidak menyimpan foto.';
+  String
+  get onlyResultTextIsSavedInYourLocalHistoryThePhotoIsNotStoredByTheApp =>
+      'Hanya teks hasil disimpan dalam sejarah setempat; aplikasi tidak menyimpan foto.';
 
   @override
-  String get recognizeSendsThisPhotoToGoogleVisionThroughOurSecureService => 'Pengecaman menghantar foto ini ke Google Vision melalui perkhidmatan selamat kami. ';
+  String get recognizeSendsThisPhotoToGoogleVisionThroughOurSecureService =>
+      'Pengecaman menghantar foto ini ke Google Vision melalui perkhidmatan selamat kami. ';
 
   @override
-  String get scanCameraAccessError => 'Kamera atau galeri tidak tersedia. Semak kebenaran dalam Tetapan.';
+  String get scanCameraAccessError =>
+      'Kamera atau galeri tidak tersedia. Semak kebenaran dalam Tetapan.';
 
   @override
-  String get restartTheAppToEnableTheCameraAndPhotoLibrary => 'Mulakan semula aplikasi untuk mengaktifkan kamera dan galeri.';
+  String get restartTheAppToEnableTheCameraAndPhotoLibrary =>
+      'Mulakan semula aplikasi untuk mengaktifkan kamera dan galeri.';
 
   @override
-  String get scanOpenPhotoError => 'Foto ini tidak dapat dibuka. Cuba foto lain.';
+  String get scanOpenPhotoError =>
+      'Foto ini tidak dapat dibuka. Cuba foto lain.';
 
   @override
-  String get chooseAPhotoSmallerThan4Mb => 'Pilih foto lebih kecil daripada 4 MB.';
+  String get chooseAPhotoSmallerThan4Mb =>
+      'Pilih foto lebih kecil daripada 4 MB.';
 
   @override
-  String get scanRecognitionUnavailable => 'Pengecaman imej tidak tersedia buat sementara. Cuba lagi nanti.';
+  String get scanRecognitionUnavailable =>
+      'Pengecaman imej tidak tersedia buat sementara. Cuba lagi nanti.';
 
   @override
   String get recentScans => 'Imbasan Terkini';
@@ -1503,7 +1641,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get noScansYet => 'Belum ada imbasan';
 
   @override
-  String get yourCompletedRecognitionResultsWillAppearHereDemoResultsStaySeparateHistoryIsCurrentlyStor => 'Hasil pengecaman anda akan dipaparkan di sini. Hasil demo diasingkan. Sejarah disimpan pada peranti ini.';
+  String
+  get yourCompletedRecognitionResultsWillAppearHereDemoResultsStaySeparateHistoryIsCurrentlyStor =>
+      'Hasil pengecaman anda akan dipaparkan di sini. Hasil demo diasingkan. Sejarah disimpan pada peranti ini.';
 
   @override
   String get clearHistory => 'Kosongkan sejarah';
@@ -1512,7 +1652,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get clearScanHistory => 'Kosongkan sejarah imbasan?';
 
   @override
-  String get removeAllScanResultsSavedOnThisDeviceThisCannotBeUndone => 'Padam semua hasil imbasan pada peranti ini? Tindakan ini tidak boleh dibatalkan.';
+  String get removeAllScanResultsSavedOnThisDeviceThisCannotBeUndone =>
+      'Padam semua hasil imbasan pada peranti ini? Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get goToScanner => 'Pergi ke Pengimbas';
@@ -1521,19 +1662,25 @@ class AppLocalizationsMs extends AppLocalizations {
   String get tryPreparedRecognitionResults => 'Cuba hasil pengecaman sampel';
 
   @override
-  String get browsePreparedLandmarkAndFoodResultsToUnderstandWhatTheFinishedRecognitionScreenWillShow => 'Lihat hasil mercu tanda dan makanan sampel untuk memahami paparan pengecaman.';
+  String
+  get browsePreparedLandmarkAndFoodResultsToUnderstandWhatTheFinishedRecognitionScreenWillShow =>
+      'Lihat hasil mercu tanda dan makanan sampel untuk memahami paparan pengecaman.';
 
   @override
-  String get thisIsAPreparedDemoResultItHasNotAnalysedYourUploadedPhotoAndIsNotAddedToScanHistory => 'Ini hasil demo yang disediakan. Foto anda tidak dianalisis dan hasil ini tidak ditambah ke sejarah.';
+  String
+  get thisIsAPreparedDemoResultItHasNotAnalysedYourUploadedPhotoAndIsNotAddedToScanHistory =>
+      'Ini hasil demo yang disediakan. Foto anda tidak dianalisis dan hasil ini tidak ditambah ke sejarah.';
 
   @override
-  String get noPreparedTestResultIsAvailableYet => 'Belum ada hasil ujian sampel.';
+  String get noPreparedTestResultIsAvailableYet =>
+      'Belum ada hasil ujian sampel.';
 
   @override
   String get runTestRecognition => 'Jalankan pengecaman ujian';
 
   @override
-  String get testRecognitionUsesPreparedCatalogResultsToPreviewTheFlow => 'Pengecaman ujian menggunakan hasil katalog sampel untuk pratonton aliran.';
+  String get testRecognitionUsesPreparedCatalogResultsToPreviewTheFlow =>
+      'Pengecaman ujian menggunakan hasil katalog sampel untuk pratonton aliran.';
 
   @override
   String get viewDemoResult => 'Lihat hasil demo';
@@ -1554,16 +1701,22 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanTryAnotherPhoto => 'Cuba foto lain';
 
   @override
-  String get scanAnotherPhotoHelp => 'Kami tidak dapat mengenal pasti mercu tanda tertentu daripada foto ini. Ambil semula foto atau pilih imej yang lebih jelas daripada galeri.';
+  String get scanAnotherPhotoHelp =>
+      'Kami tidak dapat mengenal pasti mercu tanda tertentu daripada foto ini. Ambil semula foto atau pilih imej yang lebih jelas daripada galeri.';
 
   @override
   String get scanIdentifyLandmark => 'Imbas tempat atau hidangan';
 
   @override
-  String get scanPhotoIntro => 'Ambil gambar mercu tanda Malaysia, papan tanda restoran atau hidangan tempatan, atau pilih foto daripada galeri.';
+  String get scanPhotoIntro =>
+      'Ambil gambar mercu tanda Malaysia, papan tanda restoran atau hidangan tempatan, atau pilih foto daripada galeri.';
 
   @override
-  String scanListedPlaceDescription(String name, String category, String address) {
+  String scanListedPlaceDescription(
+    String name,
+    String category,
+    String address,
+  ) {
     return '$name disenaraikan sebagai $category di $address. Semak penyenaraian tempat untuk maklumat lanjut.';
   }
 
@@ -1579,19 +1732,22 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanTipLight => 'Gunakan pencahayaan yang baik';
 
   @override
-  String get scanTipLightDetail => 'Pegang kamera dengan stabil dan ketik mercu tanda untuk memfokus. Elakkan gambar kabur, silau dan bayang yang gelap.';
+  String get scanTipLightDetail =>
+      'Pegang kamera dengan stabil dan ketik mercu tanda untuk memfokus. Elakkan gambar kabur, silau dan bayang yang gelap.';
 
   @override
   String get scanTipFrame => 'Rakam keseluruhan mercu tanda';
 
   @override
-  String get scanTipFrameDetail => 'Undur sedikit supaya bentuk dan ciri khasnya kelihatan. Jika boleh, elakkan kenderaan dan orang ramai menghalang pandangan.';
+  String get scanTipFrameDetail =>
+      'Undur sedikit supaya bentuk dan ciri khasnya kelihatan. Jika boleh, elakkan kenderaan dan orang ramai menghalang pandangan.';
 
   @override
   String get scanTipSign => 'Sertakan papan tanda yang jelas';
 
   @override
-  String get scanTipSignDetail => 'Jika bangunan sukar dikenal pasti, ambil gambar pintu masuk atau papan nama supaya tulisannya dapat dibaca.';
+  String get scanTipSignDetail =>
+      'Jika bangunan sukar dikenal pasti, ambil gambar pintu masuk atau papan nama supaya tulisannya dapat dibaca.';
 
   @override
   String get scanNeedsClue => 'Belum ada padanan yang jelas';
@@ -1622,13 +1778,16 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get scanNearbyNoLocation => 'Lokasi belum disahkan. Gunakan Peta untuk meneroka kawasan sekitar anda.';
+  String get scanNearbyNoLocation =>
+      'Lokasi belum disahkan. Gunakan Peta untuk meneroka kawasan sekitar anda.';
 
   @override
-  String get scanGuideDishVenues => 'Tempat dalam panduan perjalanan yang menyebut hidangan ini';
+  String get scanGuideDishVenues =>
+      'Tempat dalam panduan perjalanan yang menyebut hidangan ini';
 
   @override
-  String get scanDishVenuesHelp => 'Restoran yang sepadan dengan carian hidangan ini. Semak menu sebelum berkunjung.';
+  String get scanDishVenuesHelp =>
+      'Restoran yang sepadan dengan carian hidangan ini. Semak menu sebelum berkunjung.';
 
   @override
   String scanDishAreaFallback(String area) {
@@ -1645,7 +1804,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanFindingNearby => 'Mencari tempat berdekatan…';
 
   @override
-  String get scanNoNearbyListings => 'Tiada penyenaraian tersedia di sini. Anda juga boleh mencari dalam Peta.';
+  String get scanNoNearbyListings =>
+      'Tiada penyenaraian tersedia di sini. Anda juga boleh mencari dalam Peta.';
 
   @override
   String get scanTakeAnotherPhoto => 'Ambil foto lain';
@@ -1657,7 +1817,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanPlacesInArea => 'Tempat di kawasan ini';
 
   @override
-  String get scanChooseAreaPlace => 'Tempat ini berada dalam kawasan yang dikenal pasti. Pilih jika anda mengenalinya, atau ambil foto lain.';
+  String get scanChooseAreaPlace =>
+      'Tempat ini berada dalam kawasan yang dikenal pasti. Pilih jika anda mengenalinya, atau ambil foto lain.';
 
   @override
   String scanSuggestedArea(String area) {
@@ -1713,7 +1874,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get referencePossibleMatches => 'Padanan yang mungkin';
 
   @override
-  String get referenceChooseSubject => 'Pilih subjek jika anda mengenalinya. Jika tiada padanan, cari tempat itu.';
+  String get referenceChooseSubject =>
+      'Pilih subjek jika anda mengenalinya. Jika tiada padanan, cari tempat itu.';
 
   @override
   String visionConfidenceValue(String arg0) {
@@ -1721,7 +1883,9 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get identificationUsesVisionDetectionsGuideDescriptionsComeFromTheAppSCuratedCatalog => 'Pengecaman menggunakan pengesanan Vision. Penerangan panduan daripada katalog pilihan aplikasi.';
+  String
+  get identificationUsesVisionDetectionsGuideDescriptionsComeFromTheAppSCuratedCatalog =>
+      'Pengecaman menggunakan pengesanan Vision. Penerangan panduan daripada katalog pilihan aplikasi.';
 
   @override
   String get resultLanguage => 'Bahasa hasil';
@@ -1730,25 +1894,32 @@ class AppLocalizationsMs extends AppLocalizations {
   String get translating => 'Menterjemah…';
 
   @override
-  String get machineTranslatedTextTheOriginalEnglishResultStaysInYourHistory => 'Teks terjemahan mesin. Hasil asal bahasa Inggeris kekal dalam sejarah.';
+  String get machineTranslatedTextTheOriginalEnglishResultStaysInYourHistory =>
+      'Teks terjemahan mesin. Hasil asal bahasa Inggeris kekal dalam sejarah.';
 
   @override
-  String get translationIsUnavailableYourOriginalResultIsStillAvailable => 'Terjemahan tidak tersedia. Hasil asal masih tersedia.';
+  String get translationIsUnavailableYourOriginalResultIsStillAvailable =>
+      'Terjemahan tidak tersedia. Hasil asal masih tersedia.';
 
   @override
   String get findRestaurants => 'Cari restoran';
 
   @override
-  String get chooseARestaurantBeforeAddingThisDishToYourTravelPlan => 'Pilih restoran sebelum menambah hidangan ini ke rancangan perjalanan.';
+  String get chooseARestaurantBeforeAddingThisDishToYourTravelPlan =>
+      'Pilih restoran sebelum menambah hidangan ini ke rancangan perjalanan.';
 
   @override
-  String get theseActionsWillBeAvailableWhenLiveRecognitionAndTourismDetailsAreConnected => 'Tindakan ini tersedia apabila pengecaman langsung dan butiran pelancongan disambungkan.';
+  String
+  get theseActionsWillBeAvailableWhenLiveRecognitionAndTourismDetailsAreConnected =>
+      'Tindakan ini tersedia apabila pengecaman langsung dan butiran pelancongan disambungkan.';
 
   @override
   String get availableAfterSetup => 'Tersedia selepas persediaan';
 
   @override
-  String get afterLiveRecognitionIsConnectedSuccessfulScansWillBeSavedHereAutomatically => 'Selepas pengecaman langsung disambungkan, imbasan berjaya akan disimpan di sini.';
+  String
+  get afterLiveRecognitionIsConnectedSuccessfulScansWillBeSavedHereAutomatically =>
+      'Selepas pengecaman langsung disambungkan, imbasan berjaya akan disimpan di sini.';
 
   @override
   String get adults => 'Dewasa';
@@ -1772,13 +1943,15 @@ class AppLocalizationsMs extends AppLocalizations {
   String get selectPlannedItinerary => 'Pilih Jadual Dirancang';
 
   @override
-  String get switchBetweenYourActiveTripsAndCustomGeneratedPlans => 'Tukar antara perjalanan aktif dan rancangan tersuai';
+  String get switchBetweenYourActiveTripsAndCustomGeneratedPlans =>
+      'Tukar antara perjalanan aktif dan rancangan tersuai';
 
   @override
   String get smartScheduleDailyStops => 'Jadual pintar dan hentian harian';
 
   @override
-  String get autoSmartSchedulingForTouristsInMalaysia => 'Penjadualan pintar automatik untuk pelancong di Malaysia';
+  String get autoSmartSchedulingForTouristsInMalaysia =>
+      'Penjadualan pintar automatik untuk pelancong di Malaysia';
 
   @override
   String get smartItineraryScheduling => 'Penjadualan Perjalanan Pintar';
@@ -1829,124 +2002,167 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get builtA3DayKlPlanWithFoodAndShoppingStops => 'Rancangan KL 3 hari dengan makanan dan membeli-belah telah dibina.';
+  String get builtA3DayKlPlanWithFoodAndShoppingStops =>
+      'Rancangan KL 3 hari dengan makanan dan membeli-belah telah dibina.';
 
   @override
-  String get reorderedStopsToSaveAbout45MinutesOfTravelTime => 'Hentian disusun semula untuk menjimatkan kira-kira 45 minit perjalanan.';
+  String get reorderedStopsToSaveAbout45MinutesOfTravelTime =>
+      'Hentian disusun semula untuk menjimatkan kira-kira 45 minit perjalanan.';
 
   @override
-  String get rainAfter3PmIndoorBackupStopsAddedAutomatically => 'Hujan selepas 3 petang — hentian sandaran dalam bangunan ditambah secara automatik.';
+  String get rainAfter3PmIndoorBackupStopsAddedAutomatically =>
+      'Hujan selepas 3 petang — hentian sandaran dalam bangunan ditambah secara automatik.';
 
   @override
-  String get dailySpendKeptWithinYourRm150300MediumBudget => 'Perbelanjaan harian dalam bajet sederhana RM150–300.';
+  String get dailySpendKeptWithinYourRm150300MediumBudget =>
+      'Perbelanjaan harian dalam bajet sederhana RM150–300.';
 
   @override
-  String get mapsAndItineraryCachedForUseWithoutMobileData => 'Peta dan jadual dicache untuk kegunaan tanpa data mudah alih.';
+  String get mapsAndItineraryCachedForUseWithoutMobileData =>
+      'Peta dan jadual dicache untuk kegunaan tanpa data mudah alih.';
 
   @override
-  String get routeOptimizedTravelTimeReducedBy45Minutes => 'Laluan dioptimumkan — masa perjalanan dikurangkan 45 minit.';
+  String get routeOptimizedTravelTimeReducedBy45Minutes =>
+      'Laluan dioptimumkan — masa perjalanan dikurangkan 45 minit.';
 
   @override
   String get notifications => 'Pemberitahuan';
 
   @override
-  String get thisAppIsAPrototypeDesignedForAFinalYearProjectToShowcaseAutomatedRouteSchedulingAndMapVis => 'Aplikasi ini ialah prototaip Projek Tahun Akhir untuk mempamerkan penjadualan laluan automatik dan visualisasi peta di Malaysia.';
+  String
+  get thisAppIsAPrototypeDesignedForAFinalYearProjectToShowcaseAutomatedRouteSchedulingAndMapVis =>
+      'Aplikasi ini ialah prototaip Projek Tahun Akhir untuk mempamerkan penjadualan laluan automatik dan visualisasi peta di Malaysia.';
 
   @override
   String get readOurTermsOfService => 'Baca terma perkhidmatan kami';
 
   @override
-  String get byUsingThisAppYouAgreeToOurTermsOfServiceNoRealPersonalDataIsCollectedOrSentToAnyServer => 'Dengan menggunakan aplikasi ini, anda bersetuju dengan terma perkhidmatan kami. Tiada data peribadi sebenar dikumpulkan atau dihantar ke pelayan.';
+  String
+  get byUsingThisAppYouAgreeToOurTermsOfServiceNoRealPersonalDataIsCollectedOrSentToAnyServer =>
+      'Dengan menggunakan aplikasi ini, anda bersetuju dengan terma perkhidmatan kami. Tiada data peribadi sebenar dikumpulkan atau dihantar ke pelayan.';
 
   @override
-  String get enterYourCredentialsToManageYourMalaysiaTrips => 'Masukkan maklumat log masuk untuk mengurus perjalanan Malaysia anda.';
+  String get enterYourCredentialsToManageYourMalaysiaTrips =>
+      'Masukkan maklumat log masuk untuk mengurus perjalanan Malaysia anda.';
 
   @override
-  String get invalidEmailOrPasswordMin6Chars => 'E-mel atau kata laluan tidak sah (min 6 aksara)';
+  String get invalidEmailOrPasswordMin6Chars =>
+      'E-mel atau kata laluan tidak sah (min 6 aksara)';
 
   @override
-  String get listeningForVoiceCommandsInEnglishMalayOrChineseTapBelowToSendASampleSpokenQuery => 'Mendengar arahan suara dalam bahasa Inggeris, Melayu atau Cina...\n\nKetik di bawah untuk menghantar soalan suara sampel.';
+  String
+  get listeningForVoiceCommandsInEnglishMalayOrChineseTapBelowToSendASampleSpokenQuery =>
+      'Mendengar arahan suara dalam bahasa Inggeris, Melayu atau Cina...\n\nKetik di bawah untuk menghantar soalan suara sampel.';
 
   @override
-  String get recommend2IndoorSpotsIfItRainsNearKlccThisAfternoon => 'Cadangkan 2 tempat dalam bangunan jika hujan dekat KLCC petang ini.';
+  String get recommend2IndoorSpotsIfItRainsNearKlccThisAfternoon =>
+      'Cadangkan 2 tempat dalam bangunan jika hujan dekat KLCC petang ini.';
 
   @override
-  String get accountCreatedSuccessfullyRedirectingToHomepage => 'Akaun berjaya dicipta! Menghala ke halaman utama...';
+  String get accountCreatedSuccessfullyRedirectingToHomepage =>
+      'Akaun berjaya dicipta! Menghala ke halaman utama...';
 
   @override
-  String get pleaseCompleteAllMandatoryRegistrationFields => 'Sila lengkapkan semua medan pendaftaran wajib.';
+  String get pleaseCompleteAllMandatoryRegistrationFields =>
+      'Sila lengkapkan semua medan pendaftaran wajib.';
 
   @override
-  String get pleaseEnterAValidEmailAddressEGUserExampleCom => 'Sila masukkan alamat e-mel yang sah (cth. user@example.com).';
+  String get pleaseEnterAValidEmailAddressEGUserExampleCom =>
+      'Sila masukkan alamat e-mel yang sah (cth. user@example.com).';
 
   @override
-  String get passwordMustContainAtLeast8CharactersIncluding1Uppercase1Lowercase1NumberAnd1SpecialCharac => 'Kata laluan mesti mengandungi sekurang-kurangnya 8 aksara, termasuk 1 huruf besar, 1 huruf kecil, 1 nombor dan 1 aksara khas.';
+  String
+  get passwordMustContainAtLeast8CharactersIncluding1Uppercase1Lowercase1NumberAnd1SpecialCharac =>
+      'Kata laluan mesti mengandungi sekurang-kurangnya 8 aksara, termasuk 1 huruf besar, 1 huruf kecil, 1 nombor dan 1 aksara khas.';
 
   @override
-  String get passwordAndConfirmPasswordDoNotMatchPleaseReEnter => 'Kata laluan dan pengesahan tidak sepadan. Sila masukkan semula.';
+  String get passwordAndConfirmPasswordDoNotMatchPleaseReEnter =>
+      'Kata laluan dan pengesahan tidak sepadan. Sila masukkan semula.';
 
   @override
-  String get thisEmailAddressHasAlreadyBeenRegisteredPleaseLogInOrUseAnotherEmailAddress => 'Alamat e-mel ini telah didaftarkan. Sila log masuk atau gunakan e-mel lain.';
+  String
+  get thisEmailAddressHasAlreadyBeenRegisteredPleaseLogInOrUseAnotherEmailAddress =>
+      'Alamat e-mel ini telah didaftarkan. Sila log masuk atau gunakan e-mel lain.';
 
   @override
-  String get registrationTimedOutCheckYourEmailForAConfirmationMessageBeforeTryingAgainAsYourAccountMay => 'Pendaftaran tamat masa. Semak e-mel pengesahan sebelum mencuba lagi kerana akaun anda mungkin telah dicipta.';
+  String
+  get registrationTimedOutCheckYourEmailForAConfirmationMessageBeforeTryingAgainAsYourAccountMay =>
+      'Pendaftaran tamat masa. Semak e-mel pengesahan sebelum mencuba lagi kerana akaun anda mungkin telah dicipta.';
 
   @override
-  String get loginSuccessfulRedirectingToHomepage => 'Log masuk berjaya. Menghala ke halaman utama...';
+  String get loginSuccessfulRedirectingToHomepage =>
+      'Log masuk berjaya. Menghala ke halaman utama...';
 
   @override
-  String get pleaseEnterYourEmailAddressAndPassword => 'Sila masukkan alamat e-mel dan kata laluan anda.';
+  String get pleaseEnterYourEmailAddressAndPassword =>
+      'Sila masukkan alamat e-mel dan kata laluan anda.';
 
   @override
-  String get pleaseEnterAValidEmailAddress => 'Sila masukkan alamat e-mel yang sah.';
+  String get pleaseEnterAValidEmailAddress =>
+      'Sila masukkan alamat e-mel yang sah.';
 
   @override
-  String get theEmailAddressOrPasswordIsIncorrectPleaseTryAgain => 'Alamat e-mel atau kata laluan tidak betul. Sila cuba lagi.';
+  String get theEmailAddressOrPasswordIsIncorrectPleaseTryAgain =>
+      'Alamat e-mel atau kata laluan tidak betul. Sila cuba lagi.';
 
   @override
-  String get authenticationServiceIsCurrentlyUnavailablePleaseTryAgainLater => 'Perkhidmatan pengesahan tidak tersedia. Sila cuba lagi kemudian.';
+  String get authenticationServiceIsCurrentlyUnavailablePleaseTryAgainLater =>
+      'Perkhidmatan pengesahan tidak tersedia. Sila cuba lagi kemudian.';
 
   @override
-  String get theLoginRequestTimedOutPleaseCheckYourNetworkAndTryAgain => 'Permintaan log masuk tamat masa. Semak rangkaian dan cuba lagi.';
+  String get theLoginRequestTimedOutPleaseCheckYourNetworkAndTryAgain =>
+      'Permintaan log masuk tamat masa. Semak rangkaian dan cuba lagi.';
 
   @override
   String get profileUpdatedSuccessfully => 'Profil berjaya dikemas kini!';
 
   @override
-  String get fullNameFieldCannotBeEmptyPleaseEnterYourName => 'Nama Penuh tidak boleh kosong. Sila masukkan nama anda.';
+  String get fullNameFieldCannotBeEmptyPleaseEnterYourName =>
+      'Nama Penuh tidak boleh kosong. Sila masukkan nama anda.';
 
   @override
-  String get unableToSaveProfileChangesPleaseCheckYourNetworkAndTryAgain => 'Tidak dapat menyimpan perubahan profil. Semak rangkaian dan cuba lagi.';
+  String get unableToSaveProfileChangesPleaseCheckYourNetworkAndTryAgain =>
+      'Tidak dapat menyimpan perubahan profil. Semak rangkaian dan cuba lagi.';
 
   @override
-  String get tripPreferencesRecordedSuccessfullyGeneratingYourItinerary => 'Pilihan perjalanan berjaya direkodkan. Menjana jadual anda.';
+  String get tripPreferencesRecordedSuccessfullyGeneratingYourItinerary =>
+      'Pilihan perjalanan berjaya direkodkan. Menjana jadual anda.';
 
   @override
-  String get pleaseCompleteAllMandatoryTripPreferenceFields => 'Sila lengkapkan semua medan pilihan perjalanan wajib.';
+  String get pleaseCompleteAllMandatoryTripPreferenceFields =>
+      'Sila lengkapkan semua medan pilihan perjalanan wajib.';
 
   @override
-  String get pleaseEnterOrSelectAValidDestination => 'Sila masukkan atau pilih destinasi yang sah.';
+  String get pleaseEnterOrSelectAValidDestination =>
+      'Sila masukkan atau pilih destinasi yang sah.';
 
   @override
-  String get pleaseSelectAValidNumberOfTravelDays => 'Sila pilih bilangan hari perjalanan yang sah.';
+  String get pleaseSelectAValidNumberOfTravelDays =>
+      'Sila pilih bilangan hari perjalanan yang sah.';
 
   @override
-  String get dailyEndTimeMustBeLaterThanDailyStartTime => 'Waktu tamat harian mesti selepas waktu mula harian.';
+  String get dailyEndTimeMustBeLaterThanDailyStartTime =>
+      'Waktu tamat harian mesti selepas waktu mula harian.';
 
   @override
-  String get pleaseSelectAtLeastOneTravelInterest => 'Sila pilih sekurang-kurangnya satu minat perjalanan.';
+  String get pleaseSelectAtLeastOneTravelInterest =>
+      'Sila pilih sekurang-kurangnya satu minat perjalanan.';
 
   @override
-  String get pleaseSelectAValidEstimatedBudgetCategory => 'Sila pilih kategori anggaran bajet yang sah.';
+  String get pleaseSelectAValidEstimatedBudgetCategory =>
+      'Sila pilih kategori anggaran bajet yang sah.';
 
   @override
-  String get theSelectedTravelModeIsNotSupportedPleaseSelectDrivingOrWalking => 'Cara perjalanan tidak disokong. Pilih Memandu atau Berjalan Kaki.';
+  String get theSelectedTravelModeIsNotSupportedPleaseSelectDrivingOrWalking =>
+      'Cara perjalanan tidak disokong. Pilih Memandu atau Berjalan Kaki.';
 
   @override
-  String get authenticationRequiredPleaseLogInToSaveYourItinerary => 'Pengesahan diperlukan. Log masuk untuk menyimpan jadual anda.';
+  String get authenticationRequiredPleaseLogInToSaveYourItinerary =>
+      'Pengesahan diperlukan. Log masuk untuk menyimpan jadual anda.';
 
   @override
-  String get deletedOnThisDeviceCloudSyncIsPending => 'Dipadam pada peranti ini. Penyegerakan awan menunggu.';
+  String get deletedOnThisDeviceCloudSyncIsPending =>
+      'Dipadam pada peranti ini. Penyegerakan awan menunggu.';
 
   @override
   String get adminDatabaseHub => 'Hab Pangkalan Data Pentadbir';
@@ -1955,28 +2171,34 @@ class AppLocalizationsMs extends AppLocalizations {
   String get adminHubAccess => 'Akses Hab Pentadbir';
 
   @override
-  String get adminAccessTapToLogInAsAdmin => 'Akses pentadbir (Ketik untuk log masuk)';
+  String get adminAccessTapToLogInAsAdmin =>
+      'Akses pentadbir (Ketik untuk log masuk)';
 
   @override
   String get loginAsAdmin => 'Log Masuk sebagai Pentadbir';
 
   @override
-  String get loggedInAsAdministratorChingKheat => 'Log masuk sebagai Pentadbir (Ching Kheat)';
+  String get loggedInAsAdministratorChingKheat =>
+      'Log masuk sebagai Pentadbir (Ching Kheat)';
 
   @override
-  String get theAdminDatabaseHubRequiresAdministratorPrivilegesToFetchSyncAndImportPlacesFromGoogle => 'Hab ini memerlukan hak pentadbir untuk mengambil, menyegerak dan mengimport tempat Google.';
+  String
+  get theAdminDatabaseHubRequiresAdministratorPrivilegesToFetchSyncAndImportPlacesFromGoogle =>
+      'Hab ini memerlukan hak pentadbir untuk mengambil, menyegerak dan mengimport tempat Google.';
 
   @override
   String get secretDataSeederPortal => 'Portal Pengisian Data';
 
   @override
-  String get secretPortalToFetchSyncPlaces => 'Portal untuk mengambil dan menyegerak tempat';
+  String get secretPortalToFetchSyncPlaces =>
+      'Portal untuk mengambil dan menyegerak tempat';
 
   @override
   String get signInAsAnAdministrator => 'Log masuk sebagai pentadbir.';
 
   @override
-  String get signInAsAnAdministratorToImportGooglePlaceIds => 'Log masuk sebagai pentadbir untuk mengimport ID tempat Google.';
+  String get signInAsAnAdministratorToImportGooglePlaceIds =>
+      'Log masuk sebagai pentadbir untuk mengimport ID tempat Google.';
 
   @override
   String get text1SelectDestinationState => '1. Pilih Negeri Destinasi';
@@ -1993,7 +2215,9 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get discoveringNewPlacesExistingRecordsArePreservedUseUpdateSavedPlacesToRefreshTheirDetails => 'Mencari tempat baharu. Rekod sedia ada dikekalkan; gunakan Kemas kini tempat tersimpan untuk butiran terkini.';
+  String
+  get discoveringNewPlacesExistingRecordsArePreservedUseUpdateSavedPlacesToRefreshTheirDetails =>
+      'Mencari tempat baharu. Rekod sedia ada dikekalkan; gunakan Kemas kini tempat tersimpan untuk butiran terkini.';
 
   @override
   String get updateSavedPlaces => 'Kemas kini tempat tersimpan';
@@ -2007,16 +2231,23 @@ class AppLocalizationsMs extends AppLocalizations {
   String get updateAllSavedPlaces => 'Kemas kini semua tempat tersimpan';
 
   @override
-  String get startANewUpdateOfAllSavedPlaces => 'Mulakan kemas kini baharu semua tempat tersimpan';
+  String get startANewUpdateOfAllSavedPlaces =>
+      'Mulakan kemas kini baharu semua tempat tersimpan';
 
   @override
-  String get refreshHoursRatingsNamesAndLocationsForAllSavedPlacesDiscoverNewPlacesBelowOnlyAddsNewIds => 'Kemas kini waktu, penilaian, nama dan lokasi tempat tersimpan. Carian tempat baharu di bawah hanya menambah ID baharu.';
+  String
+  get refreshHoursRatingsNamesAndLocationsForAllSavedPlacesDiscoverNewPlacesBelowOnlyAddsNewIds =>
+      'Kemas kini waktu, penilaian, nama dan lokasi tempat tersimpan. Carian tempat baharu di bawah hanya menambah ID baharu.';
 
   @override
-  String get updatesEverySavedGooglePlaceInThisStateIncludingOpeningHoursRatingsNameAndLocationYourCate => 'Mengemas kini setiap tempat Google tersimpan di negeri ini, termasuk waktu operasi, penilaian, nama dan lokasi. Kategori dan pilihan dalam/luar bangunan dikekalkan.';
+  String
+  get updatesEverySavedGooglePlaceInThisStateIncludingOpeningHoursRatingsNameAndLocationYourCate =>
+      'Mengemas kini setiap tempat Google tersimpan di negeri ini, termasuk waktu operasi, penilaian, nama dan lokasi. Kategori dan pilihan dalam/luar bangunan dikekalkan.';
 
   @override
-  String get usesTheFullDetailsAllowanceKeepThisPageOpenLeavingPausesTheUpdateProgressIsSavedOnThisDevi => 'Menggunakan kuota butiran penuh. Kekalkan halaman ini terbuka. Keluar akan menjeda kemas kini; kemajuan disimpan pada peranti. Respons berjaya tanpa waktu operasi menandakannya sebagai tidak diketahui.';
+  String
+  get usesTheFullDetailsAllowanceKeepThisPageOpenLeavingPausesTheUpdateProgressIsSavedOnThisDevi =>
+      'Menggunakan kuota butiran penuh. Kekalkan halaman ini terbuka. Keluar akan menjeda kemas kini; kemajuan disimpan pada peranti. Respons berjaya tanpa waktu operasi menandakannya sebagai tidak diketahui.';
 
   @override
   String get pauseUpdate => 'Jeda kemas kini';
@@ -2046,10 +2277,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get reviewSavedPlace => 'Semak tempat tersimpan';
 
   @override
-  String get reviewStoredDataLoadLiveDetails => 'Semak data tersimpan / muatkan butiran langsung';
+  String get reviewStoredDataLoadLiveDetails =>
+      'Semak data tersimpan / muatkan butiran langsung';
 
   @override
-  String get incompleteImportNeedsReview => 'Import tidak lengkap — perlu semakan';
+  String get incompleteImportNeedsReview =>
+      'Import tidak lengkap — perlu semakan';
 
   @override
   String get appCategory => 'Kategori aplikasi';
@@ -2064,13 +2297,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get confirmAndSaveReview => 'Sahkan dan simpan semakan';
 
   @override
-  String get onlyAppCategoryAndSettingAreSavedExistingGoogleDetailsAreNotStored => 'Hanya kategori aplikasi dan persekitaran disimpan. Butiran Google sedia ada tidak disimpan.';
+  String
+  get onlyAppCategoryAndSettingAreSavedExistingGoogleDetailsAreNotStored =>
+      'Hanya kategori aplikasi dan persekitaran disimpan. Butiran Google sedia ada tidak disimpan.';
 
   @override
   String get loadRetryLiveDetails => 'Muatkan / cuba semula butiran langsung';
 
   @override
-  String get loadLiveDetailsToSeeTheNameAndAddress => 'Muatkan butiran langsung untuk melihat nama dan alamat.';
+  String get loadLiveDetailsToSeeTheNameAndAddress =>
+      'Muatkan butiran langsung untuk melihat nama dan alamat.';
 
   @override
   String googleTypeValue(String arg0) {
@@ -2078,36 +2314,47 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified(String arg0) {
+  String settingSuggestionValueConfirmUsingYourKnowledgeThisIsNotVerified(
+    String arg0,
+  ) {
     return 'Cadangan persekitaran: $arg0 — sahkan dengan pengetahuan anda; ini belum disahkan.';
   }
 
   @override
-  String get howToReviewCategoriesAndSettings => 'Cara menyemak kategori dan persekitaran';
+  String get howToReviewCategoriesAndSettings =>
+      'Cara menyemak kategori dan persekitaran';
 
   @override
-  String get openReviewOnASavedPlaceLoadLiveDetailsCheckTheSuggestionThenConfirmItsCategoryAndSettingNo => 'Buka Semak pada tempat tersimpan. Muatkan butiran langsung, semak cadangan, kemudian sahkan kategori dan persekitaran. Tiada perubahan pukal.';
+  String
+  get openReviewOnASavedPlaceLoadLiveDetailsCheckTheSuggestionThenConfirmItsCategoryAndSettingNo =>
+      'Buka Semak pada tempat tersimpan. Muatkan butiran langsung, semak cadangan, kemudian sahkan kategori dan persekitaran. Tiada perubahan pukal.';
 
   @override
   String get savedPlacesInspector => 'Pemeriksa Tempat Tersimpan';
 
   @override
-  String get viewAdminSyncedPlacesInspectSavedData => 'Lihat tempat disegerak pentadbir dan data tersimpan';
+  String get viewAdminSyncedPlacesInspectSavedData =>
+      'Lihat tempat disegerak pentadbir dan data tersimpan';
 
   @override
   String get storedDatabaseInformation => 'Maklumat pangkalan data tersimpan';
 
   @override
-  String get databaseUnavailableReconnectToCheckYourSavedPlaces => 'Pangkalan data tidak tersedia. Sambung semula untuk menyemak tempat tersimpan.';
+  String get databaseUnavailableReconnectToCheckYourSavedPlaces =>
+      'Pangkalan data tidak tersedia. Sambung semula untuk menyemak tempat tersimpan.';
 
   @override
-  String get unableToReadSavedPlacesRefreshTheDatabaseListBeforeStartingAnotherImport => 'Tidak dapat membaca tempat tersimpan. Muat semula senarai sebelum import lain.';
+  String
+  get unableToReadSavedPlacesRefreshTheDatabaseListBeforeStartingAnotherImport =>
+      'Tidak dapat membaca tempat tersimpan. Muat semula senarai sebelum import lain.';
 
   @override
-  String get savedPlacesAreUnavailableTryAgainLater => 'Tempat tersimpan tidak tersedia. Cuba lagi kemudian.';
+  String get savedPlacesAreUnavailableTryAgainLater =>
+      'Tempat tersimpan tidak tersedia. Cuba lagi kemudian.';
 
   @override
-  String get savedPlaceIdsAndAppCategoriesGoogleDetailsWereNotStored => 'ID tempat dan kategori aplikasi disimpan. Butiran Google tidak disimpan.';
+  String get savedPlaceIdsAndAppCategoriesGoogleDetailsWereNotStored =>
+      'ID tempat dan kategori aplikasi disimpan. Butiran Google tidak disimpan.';
 
   @override
   String get savedGooglePlace => 'Tempat Google tersimpan';
@@ -2159,7 +2406,8 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get checkingVerifiedGoogleAllowance => 'Menyemak kuota Google yang disahkan…';
+  String get checkingVerifiedGoogleAllowance =>
+      'Menyemak kuota Google yang disahkan…';
 
   @override
   String get checking => 'Menyemak…';
@@ -2182,33 +2430,49 @@ class AppLocalizationsMs extends AppLocalizations {
   String get syncing => 'Menyegerak...';
 
   @override
-  String lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst(String arg0, String arg1) {
+  String
+  lastSuccessfulSyncValueValueSyncingAgainWillUseGoogleApiQuotaYouCanKeepTheExistingDataInst(
+    String arg0,
+    String arg1,
+  ) {
     return 'Penyegerakan terakhir berjaya: $arg0 ($arg1).\n\nPenyegerakan semula menggunakan kuota Google API. Anda boleh mengekalkan data sedia ada.';
   }
 
   @override
-  String get thisStateAlreadyHasStoredPlacesButItsPreviousSyncTimeWasNotRecordedSyncingAgainWillUseGoog => 'Negeri ini mempunyai tempat tersimpan tetapi masa penyegerakan tidak direkodkan. Penyegerakan semula menggunakan kuota Google API.';
+  String
+  get thisStateAlreadyHasStoredPlacesButItsPreviousSyncTimeWasNotRecordedSyncingAgainWillUseGoog =>
+      'Negeri ini mempunyai tempat tersimpan tetapi masa penyegerakan tidak direkodkan. Penyegerakan semula menggunakan kuota Google API.';
 
   @override
-  String get thisStateHasNoSavedRecordsSyncingItWillUseGoogleApiQuota => 'Negeri ini tiada rekod tersimpan. Penyegerakan menggunakan kuota Google API.';
+  String get thisStateHasNoSavedRecordsSyncingItWillUseGoogleApiQuota =>
+      'Negeri ini tiada rekod tersimpan. Penyegerakan menggunakan kuota Google API.';
 
   @override
-  String get olderImportsHaveNoRecordedDateCheckTheExistingPlacesBeforeSyncingAgain => 'Import lama tiada tarikh direkodkan. Semak tempat sedia ada sebelum menyegerak semula.';
+  String
+  get olderImportsHaveNoRecordedDateCheckTheExistingPlacesBeforeSyncingAgain =>
+      'Import lama tiada tarikh direkodkan. Semak tempat sedia ada sebelum menyegerak semula.';
 
   @override
-  String get someOlderImportsHaveUnverifiedCountriesOrStatesTheseAreMarkedForReviewRepeatingTheFullSync => 'Sesetengah import lama mempunyai negara atau negeri belum disahkan. Rekod ditanda untuk semakan; penyegerakan penuh tidak akan membaikinya.';
+  String
+  get someOlderImportsHaveUnverifiedCountriesOrStatesTheseAreMarkedForReviewRepeatingTheFullSync =>
+      'Sesetengah import lama mempunyai negara atau negeri belum disahkan. Rekod ditanda untuk semakan; penyegerakan penuh tidak akan membaikinya.';
 
   @override
-  String get showingSavedHistoryCloudHistoryIsUnavailable => 'Memaparkan sejarah tersimpan; sejarah awan tidak tersedia.';
+  String get showingSavedHistoryCloudHistoryIsUnavailable =>
+      'Memaparkan sejarah tersimpan; sejarah awan tidak tersedia.';
 
   @override
-  String get timestampSavedOnThisDeviceOnly => 'Cap masa disimpan pada peranti ini sahaja.';
+  String get timestampSavedOnThisDeviceOnly =>
+      'Cap masa disimpan pada peranti ini sahaja.';
 
   @override
-  String get fetchSyncIsBlockedUntilTheCurrentGoogleAllowanceIsVerifiedWithAtLeast48RequestsRemainingSa => 'Ambil & Segerak disekat sehingga kuota Google disahkan dengan sekurang-kurangnya 48 permintaan berbaki. ID dan jadual tersimpan kekal tersedia.';
+  String
+  get fetchSyncIsBlockedUntilTheCurrentGoogleAllowanceIsVerifiedWithAtLeast48RequestsRemainingSa =>
+      'Ambil & Segerak disekat sehingga kuota Google disahkan dengan sekurang-kurangnya 48 permintaan berbaki. ID dan jadual tersimpan kekal tersedia.';
 
   @override
-  String get pendingSyncTapFetchAndSave => 'Menunggu penyegerakan — ketik Ambil dan simpan';
+  String get pendingSyncTapFetchAndSave =>
+      'Menunggu penyegerakan — ketik Ambil dan simpan';
 
   @override
   String get fetchAndSaveThisPage => 'Ambil dan simpan halaman ini';
@@ -2225,7 +2489,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get loadingNames => 'Memuatkan nama…';
 
   @override
-  String get loadsUpTo20NamesFromGoogleUsingTheCurrentAllowance => 'Memuatkan sehingga 20 nama Google menggunakan kuota semasa.';
+  String get loadsUpTo20NamesFromGoogleUsingTheCurrentAllowance =>
+      'Memuatkan sehingga 20 nama Google menggunakan kuota semasa.';
 
   @override
   String get previous20 => '20 Sebelumnya';
@@ -2237,7 +2502,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get importStopped => 'Import dihentikan';
 
   @override
-  String get manuallyDiscoverGooglePlacesForTheSelectedStateSaveIdsAndAppCategoriesLoadCurrentDetailsWh => 'Cari tempat Google secara manual untuk negeri dipilih. Simpan ID dan kategori; muatkan butiran semasa apabila perlu.';
+  String
+  get manuallyDiscoverGooglePlacesForTheSelectedStateSaveIdsAndAppCategoriesLoadCurrentDetailsWh =>
+      'Cari tempat Google secara manual untuk negeri dipilih. Simpan ID dan kategori; muatkan butiran semasa apabila perlu.';
 
   @override
   String queryingTopPlacesInValue(String arg0) {
@@ -2255,7 +2522,9 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase(String arg0) {
+  String thisWillDeleteAllCachedPlacesForValueFromTheSupabaseDatabase(
+    String arg0,
+  ) {
     return 'Ini akan memadam semua tempat dicache untuk $arg0 daripada pangkalan data Supabase.';
   }
 
@@ -2295,7 +2564,11 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String cachedValueOfValueInspectedValueTarget(String arg0, String arg1, String arg2) {
+  String cachedValueOfValueInspectedValueTarget(
+    String arg0,
+    String arg1,
+    String arg2,
+  ) {
     return 'Dicache $arg0 daripada $arg1 diperiksa (sasaran $arg2)…';
   }
 
@@ -2315,7 +2588,9 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get downloadsOfficialGooglePhotosForTopPlacesAndSavesThemToSupabaseStoragePlacesAlreadyCachedA => 'Memuat turun foto rasmi Google untuk tempat teratas ke Supabase Storage. Tempat yang sudah dicache dilangkau untuk menjimatkan kuota API.';
+  String
+  get downloadsOfficialGooglePhotosForTopPlacesAndSavesThemToSupabaseStoragePlacesAlreadyCachedA =>
+      'Memuat turun foto rasmi Google untuk tempat teratas ke Supabase Storage. Tempat yang sudah dicache dilangkau untuk menjimatkan kuota API.';
 
   @override
   String get autoSaveTop5Highlights => 'Simpan Automatik 5 Sorotan Teratas';
@@ -2335,7 +2610,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get noPlacesRetrievedYet => 'Belum ada tempat diperoleh.';
 
   @override
-  String get liveGooglePlacesApiActiveForMalaysia => 'Google Places API langsung aktif untuk Malaysia';
+  String get liveGooglePlacesApiActiveForMalaysia =>
+      'Google Places API langsung aktif untuk Malaysia';
 
   @override
   String get rawJsonOutput => 'Output JSON Mentah';
@@ -2349,10 +2625,12 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get selectADestinationInMalaysiaOrSimulateGpsPositions => 'Pilih destinasi di Malaysia atau simulasikan kedudukan GPS.';
+  String get selectADestinationInMalaysiaOrSimulateGpsPositions =>
+      'Pilih destinasi di Malaysia atau simulasikan kedudukan GPS.';
 
   @override
-  String get mockDeviceCoordinatesInMalaysia => 'Koordinat peranti simulasi di Malaysia';
+  String get mockDeviceCoordinatesInMalaysia =>
+      'Koordinat peranti simulasi di Malaysia';
 
   @override
   String detectedStateValue(String arg0) {
@@ -2412,7 +2690,11 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String valueUpdatedValueNeedReviewValueRemaining(String arg0, String arg1, String arg2) {
+  String valueUpdatedValueNeedReviewValueRemaining(
+    String arg0,
+    String arg1,
+    String arg2,
+  ) {
     return '$arg0 dikemas kini · $arg1 perlu semakan · $arg2 berbaki';
   }
 
@@ -2426,13 +2708,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get uc300FlowTestingTools => 'Alat Ujian Aliran UC300';
 
   @override
-  String get quicklyTestMessagesM1M6AlternativeFlowsA1A3 => 'Uji mesej M1–M6 dan aliran alternatif A1–A3';
+  String get quicklyTestMessagesM1M6AlternativeFlowsA1A3 =>
+      'Uji mesej M1–M6 dan aliran alternatif A1–A3';
 
   @override
-  String get quicklyTestMessagesM1M6AlternativeFlowsA1A5 => 'Uji mesej M1–M6 dan aliran alternatif A1–A5';
+  String get quicklyTestMessagesM1M6AlternativeFlowsA1A5 =>
+      'Uji mesej M1–M6 dan aliran alternatif A1–A5';
 
   @override
-  String get quicklyTestMessagesM1M8AlternativeFlowsA1A7 => 'Uji mesej M1–M8 dan aliran alternatif A1–A7';
+  String get quicklyTestMessagesM1M8AlternativeFlowsA1A7 =>
+      'Uji mesej M1–M8 dan aliran alternatif A1–A7';
 
   @override
   String get fillValidCredentials => 'Isi Maklumat Log Masuk Sah';
@@ -2477,7 +2762,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get testA7Transit => 'Uji A7 (Transit)';
 
   @override
-  String get recognizeSendsThisPhotoToGoogleVisionThroughOurSecureServiceOnlyResultTextIsSavedInYourLoc => 'Pengecaman menghantar foto ini ke Google Vision melalui perkhidmatan selamat kami. Hanya teks hasil disimpan dalam sejarah setempat; aplikasi tidak menyimpan foto.';
+  String
+  get recognizeSendsThisPhotoToGoogleVisionThroughOurSecureServiceOnlyResultTextIsSavedInYourLoc =>
+      'Pengecaman menghantar foto ini ke Google Vision melalui perkhidmatan selamat kami. Hanya teks hasil disimpan dalam sejarah setempat; aplikasi tidak menyimpan foto.';
 
   @override
   String skipPlaceValueAndContinue(String arg0) {
@@ -2530,7 +2817,12 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp(String arg0, String arg1, String arg2) {
+  String
+  valueValuePlacesFoundValueSearchRequestsInThatSyncReviewTheExistingPlacesBeforeUsingMoreAp(
+    String arg0,
+    String arg1,
+    String arg2,
+  ) {
     return '$arg0\n$arg1 tempat ditemui · $arg2 permintaan carian dalam penyegerakan itu.\nSemak tempat sedia ada sebelum menggunakan lebih banyak kuota API.';
   }
 
@@ -2540,21 +2832,31 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String categoryValueLocationValueValue(String arg0, String arg1, String arg2) {
+  String categoryValueLocationValueValue(
+    String arg0,
+    String arg1,
+    String arg2,
+  ) {
     return 'Kategori: $arg0\nLokasi: ($arg1, $arg2)';
   }
 
   @override
-  String get alreadyRanItTapToRefreshDismiss => 'Sudah Jalankan? Ketik untuk Muat Semula & Tutup';
+  String get alreadyRanItTapToRefreshDismiss =>
+      'Sudah Jalankan? Ketik untuk Muat Semula & Tutup';
 
   @override
-  String get demoInfoTapLogInToSignInWithPreFilledTestUser => 'Maklumat Demo: Ketik Log Masuk untuk menggunakan pengguna ujian yang diisi.';
+  String get demoInfoTapLogInToSignInWithPreFilledTestUser =>
+      'Maklumat Demo: Ketik Log Masuk untuk menggunakan pengguna ujian yang diisi.';
 
   @override
-  String get missingReviewCountColumnInSupabase => 'Lajur Bilangan Ulasan Tiada dalam Supabase';
+  String get missingReviewCountColumnInSupabase =>
+      'Lajur Bilangan Ulasan Tiada dalam Supabase';
 
   @override
-  String placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE(String arg0) {
+  String
+  placesInValueAreCurrentlySavedWithoutReviewCountsToRankByPopularityScoreAndDisplayReviewsE(
+    String arg0,
+  ) {
     return 'Tempat di $arg0 disimpan tanpa bilangan ulasan. Untuk menyusun mengikut populariti dan memaparkan ulasan (cth. 12.4k), jalankan ini dalam Supabase SQL Editor kemudian ketik Ambil & Segerak semula:';
   }
 
@@ -2562,10 +2864,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get sqlCommandCopiedToClipboard => 'Arahan SQL disalin!';
 
   @override
-  String get supabaseRowLevelSecurityRlsLocked => 'Keselamatan Peringkat Baris (RLS) Supabase Dikunci';
+  String get supabaseRowLevelSecurityRlsLocked =>
+      'Keselamatan Peringkat Baris (RLS) Supabase Dikunci';
 
   @override
-  String get toAllowSavingPlacesRunThis1LineCommandInYourSupabaseSqlEditor => 'Untuk membenarkan simpanan tempat, jalankan arahan satu baris ini dalam Supabase SQL Editor:';
+  String get toAllowSavingPlacesRunThis1LineCommandInYourSupabaseSqlEditor =>
+      'Untuk membenarkan simpanan tempat, jalankan arahan satu baris ini dalam Supabase SQL Editor:';
 
   @override
   String get text8Am10Pm => '8 pagi – 10 malam';
@@ -2594,7 +2898,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get outdoorFriendly => 'Sesuai untuk Luar Bangunan';
 
   @override
-  String get highRainRiskIndoorRecommended => 'Risiko Hujan Tinggi (Disarankan Dalam Bangunan)';
+  String get highRainRiskIndoorRecommended =>
+      'Risiko Hujan Tinggi (Disarankan Dalam Bangunan)';
 
   @override
   String get scatteredShowersCarryUmbrella => 'Hujan Berselerak (Bawa Payung)';
@@ -2603,37 +2908,49 @@ class AppLocalizationsMs extends AppLocalizations {
   String get partlyCloudy => 'Separa Mendung';
 
   @override
-  String get noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours => 'Tiada tempat tambahan sesuai untuk hari ini. Cuba kurangkan hari atau panjangkan waktu harian.';
+  String get noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours =>
+      'Tiada tempat tambahan sesuai untuk hari ini. Cuba kurangkan hari atau panjangkan waktu harian.';
 
   @override
-  String get forecastUnavailableForThisDateWeatherFilteringWasNotApplied => 'Ramalan tarikh ini tidak tersedia; penapisan cuaca tidak digunakan.';
+  String get forecastUnavailableForThisDateWeatherFilteringWasNotApplied =>
+      'Ramalan tarikh ini tidak tersedia; penapisan cuaca tidak digunakan.';
 
   @override
-  String get travelTimesAreDistanceBasedEstimates => 'Masa perjalanan ialah anggaran berdasarkan jarak.';
+  String get travelTimesAreDistanceBasedEstimates =>
+      'Masa perjalanan ialah anggaran berdasarkan jarak.';
 
   @override
-  String get someOpeningHoursAreUnverifiedConfirmBeforeVisiting => 'Sesetengah waktu operasi belum disahkan. Sahkan sebelum melawat.';
+  String get someOpeningHoursAreUnverifiedConfirmBeforeVisiting =>
+      'Sesetengah waktu operasi belum disahkan. Sahkan sebelum melawat.';
 
   @override
-  String get costsArePlanningEstimatesExcludingAccommodationAndTravelToTheFirstStop => 'Kos ialah anggaran perancangan, tidak termasuk penginapan dan perjalanan ke hentian pertama.';
+  String
+  get costsArePlanningEstimatesExcludingAccommodationAndTravelToTheFirstStop =>
+      'Kos ialah anggaran perancangan, tidak termasuk penginapan dan perjalanan ke hentian pertama.';
 
   @override
-  String get itinerarySavedSuccessfullyToYourProfile => 'Jadual berjaya disimpan dalam profil anda!';
+  String get itinerarySavedSuccessfullyToYourProfile =>
+      'Jadual berjaya disimpan dalam profil anda!';
 
   @override
-  String get savedOnThisDeviceCloudSyncIsPending => 'Disimpan pada peranti ini. Penyegerakan awan menunggu.';
+  String get savedOnThisDeviceCloudSyncIsPending =>
+      'Disimpan pada peranti ini. Penyegerakan awan menunggu.';
 
   @override
-  String get unableToSaveItineraryOnThisDevicePleaseTryAgain => 'Tidak dapat menyimpan jadual pada peranti ini. Sila cuba lagi.';
+  String get unableToSaveItineraryOnThisDevicePleaseTryAgain =>
+      'Tidak dapat menyimpan jadual pada peranti ini. Sila cuba lagi.';
 
   @override
-  String get savedItineraryLoadedSuccessfully => 'Jadual tersimpan berjaya dimuatkan.';
+  String get savedItineraryLoadedSuccessfully =>
+      'Jadual tersimpan berjaya dimuatkan.';
 
   @override
-  String get youHaveNoSavedTripsYetTapPlanATripToGenerateYourFirstItinerary => 'Anda belum mempunyai perjalanan tersimpan. Ketik \"Rancang Perjalanan\" untuk menjana jadual pertama!';
+  String get youHaveNoSavedTripsYetTapPlanATripToGenerateYourFirstItinerary =>
+      'Anda belum mempunyai perjalanan tersimpan. Ketik \"Rancang Perjalanan\" untuk menjana jadual pertama!';
 
   @override
-  String get unableToLoadSavedTripsPleaseTryAgain => 'Tidak dapat memuatkan perjalanan tersimpan. Sila cuba lagi.';
+  String get unableToLoadSavedTripsPleaseTryAgain =>
+      'Tidak dapat memuatkan perjalanan tersimpan. Sila cuba lagi.';
 
   @override
   String get savedTripCouldNotBeFound => 'Perjalanan tersimpan tidak ditemui.';
@@ -2642,19 +2959,26 @@ class AppLocalizationsMs extends AppLocalizations {
   String get allSavedPlacesUpdated => 'Semua tempat tersimpan dikemas kini.';
 
   @override
-  String get passFinishedWithIssuesRetryToReviewFailedPlaces => 'Pusingan selesai dengan isu. Cuba lagi untuk menyemak tempat gagal.';
+  String get passFinishedWithIssuesRetryToReviewFailedPlaces =>
+      'Pusingan selesai dengan isu. Cuba lagi untuk menyemak tempat gagal.';
 
   @override
-  String get pausedResumeToContinueFromTheNextPlace => 'Dijeda. Sambung untuk meneruskan dari tempat seterusnya.';
+  String get pausedResumeToContinueFromTheNextPlace =>
+      'Dijeda. Sambung untuk meneruskan dari tempat seterusnya.';
 
   @override
-  String get unableToSaveProgressStopAndRetryBeforeContinuing => 'Tidak dapat menyimpan kemajuan. Hentikan dan cuba lagi sebelum meneruskan.';
+  String get unableToSaveProgressStopAndRetryBeforeContinuing =>
+      'Tidak dapat menyimpan kemajuan. Hentikan dan cuba lagi sebelum meneruskan.';
 
   @override
-  String get skippedByAdministratorExistingDataPreserved => 'Dilangkau oleh pentadbir; data sedia ada dikekalkan.';
+  String get skippedByAdministratorExistingDataPreserved =>
+      'Dilangkau oleh pentadbir; data sedia ada dikekalkan.';
 
   @override
-  String skippedValueResumeToContinueUpdatingPlacesInValue(String arg0, String arg1) {
+  String skippedValueResumeToContinueUpdatingPlacesInValue(
+    String arg0,
+    String arg1,
+  ) {
     return '$arg0 dilangkau. Sambung untuk mengemas kini tempat di $arg1.';
   }
 
@@ -2672,10 +2996,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get thisStateIsAlreadyUpdating => 'Negeri ini sedang dikemas kini.';
 
   @override
-  String get stoppedBeforeRefreshStarted => 'Dihentikan sebelum kemas kini bermula.';
+  String get stoppedBeforeRefreshStarted =>
+      'Dihentikan sebelum kemas kini bermula.';
 
   @override
-  String returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5) {
+  String
+  returnedValueStateAcceptedValueUniqueValueWrongStateValueInvalidValueCategoryReviewValue(
+    String arg0,
+    String arg1,
+    String arg2,
+    String arg3,
+    String arg4,
+    String arg5,
+  ) {
     return 'Diterima $arg0 · negeri diterima $arg1 · unik $arg2 · negeri salah $arg3 · tidak sah $arg4 · semakan kategori $arg5';
   }
 
@@ -2692,10 +3025,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get hidePassword => 'Sembunyikan kata laluan';
 
   @override
-  String get pleaseEnterATravelQuestionOrTapASuggestion => 'Sila masukkan soalan perjalanan atau ketik cadangan.';
+  String get pleaseEnterATravelQuestionOrTapASuggestion =>
+      'Sila masukkan soalan perjalanan atau ketik cadangan.';
 
   @override
-  String get promptIsTooShortPleaseBeMoreSpecific => 'Soalan terlalu pendek. Sila berikan butiran lanjut.';
+  String get promptIsTooShortPleaseBeMoreSpecific =>
+      'Soalan terlalu pendek. Sila berikan butiran lanjut.';
 
   @override
   String get activeSmartItinerary => 'Jadual Pintar Aktif';
@@ -2722,7 +3057,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scan => 'Imbas';
 
   @override
-  String get identifyMalaysianLandmarksAndLocalDishes => 'Kenal pasti mercu tanda dan hidangan tempatan Malaysia';
+  String get identifyMalaysianLandmarksAndLocalDishes =>
+      'Kenal pasti mercu tanda dan hidangan tempatan Malaysia';
 
   @override
   String get scanningPhoto => 'Mengimbas foto…';
@@ -2734,7 +3070,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get howToTakeAGoodPhoto => 'Cara mengambil foto yang baik';
 
   @override
-  String get frameOneDishOrLandmarkSoItsEasyToIdentify => 'Bingkaikan satu hidangan atau mercu tanda supaya mudah dikenal pasti.';
+  String get frameOneDishOrLandmarkSoItsEasyToIdentify =>
+      'Bingkaikan satu hidangan atau mercu tanda supaya mudah dikenal pasti.';
 
   @override
   String get tipFoodCategory => '01  MAKANAN';
@@ -2743,7 +3080,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get centerTheSubject => 'Pusatkan subjek';
 
   @override
-  String get shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate => 'Ambil gambar dari atas dan tinggalkan sedikit ruang di sekeliling pinggan.';
+  String get shootFromAboveAndLeaveALittleSpaceAroundTheWholePlate =>
+      'Ambil gambar dari atas dan tinggalkan sedikit ruang di sekeliling pinggan.';
 
   @override
   String get tipLandmarkCategory => '02  MERCU TANDA';
@@ -2752,22 +3090,28 @@ class AppLocalizationsMs extends AppLocalizations {
   String get includeTheKeyFeature => 'Sertakan ciri utama';
 
   @override
-  String get stepBackToFitTheStatueAndStepsWaitForAClearView => 'Undur sedikit untuk memuatkan patung dan tangga. Tunggu pandangan yang jelas.';
+  String get stepBackToFitTheStatueAndStepsWaitForAClearView =>
+      'Undur sedikit untuk memuatkan patung dan tangga. Tunggu pandangan yang jelas.';
 
   @override
-  String get aPlateOfNasiLemakCenteredInTheFrame => 'Sepinggan nasi lemak di tengah bingkai';
+  String get aPlateOfNasiLemakCenteredInTheFrame =>
+      'Sepinggan nasi lemak di tengah bingkai';
 
   @override
-  String get theGoldenStatueAndStepsAtBatuCaves => 'Patung emas dan tangga di Batu Caves';
+  String get theGoldenStatueAndStepsAtBatuCaves =>
+      'Patung emas dan tangga di Batu Caves';
 
   @override
   String get checkTheLightAndFocus => 'Semak pencahayaan dan fokus';
 
   @override
-  String get useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady => 'Gunakan cahaya lembut dari hadapan atau sisi. Ketik subjek untuk fokus dan pegang telefon dengan stabil.';
+  String
+  get useSoftLightFromTheFrontOrSideTapTheSubjectToFocusAndHoldYourPhoneSteady =>
+      'Gunakan cahaya lembut dari hadapan atau sisi. Ketik subjek untuk fokus dan pegang telefon dengan stabil.';
 
   @override
-  String get scanHistoryPhotoPrivacy => 'Foto yang dipilih dihantar kepada Google untuk pengecaman. Foto dan hasilnya disimpan dalam Sejarah pada peranti ini.';
+  String get scanHistoryPhotoPrivacy =>
+      'Foto yang dipilih dihantar kepada Google untuk pengecaman. Foto dan hasilnya disimpan dalam Sejarah pada peranti ini.';
 
   @override
   String get planPersonalize => 'Sesuaikan pilihan perjalanan';
@@ -2821,7 +3165,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planClassic => 'Peneroka kali pertama · budaya dan mercu tanda KL';
 
   @override
-  String get planFood => 'Peneroka makanan Malaysia · santai dan makanan jalanan';
+  String get planFood =>
+      'Peneroka makanan Malaysia · santai dan makanan jalanan';
 
   @override
   String get planFamily => 'Percutian keluarga · santai dan aktiviti keluarga';
@@ -2881,13 +3226,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planSuggest => 'Cadangkan pilihan';
 
   @override
-  String get planFillNoMatch => 'Tiada pilihan yang disokong ditemui. Isi borang di bawah.';
+  String get planFillNoMatch =>
+      'Tiada pilihan yang disokong ditemui. Isi borang di bawah.';
 
   @override
-  String get planFillLocal => 'Cadangan setempat digunakan. Semak pilihan anda di bawah.';
+  String get planFillLocal =>
+      'Cadangan setempat digunakan. Semak pilihan anda di bawah.';
 
   @override
-  String get planFillReview => 'Cadangan Gemini digunakan. Semak pilihan anda di bawah.';
+  String get planFillReview =>
+      'Cadangan Gemini digunakan. Semak pilihan anda di bawah.';
 
   @override
   String get planHailing => 'Grab / E-panggilan';
@@ -2899,7 +3247,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planNoPlaces => 'Tiada tempat sepadan. Cuba carian lain.';
 
   @override
-  String get planAirportTransfer => 'Anggaran masa perjalanan ke lapangan terbang';
+  String get planAirportTransfer =>
+      'Anggaran masa perjalanan ke lapangan terbang';
 
   @override
   String get planBasics => 'Asas perjalanan';
@@ -2914,13 +3263,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planHighlightsInterests => 'Tarikan dan minat';
 
   @override
-  String get planHalalBranchNote => 'Pilihan makan. Nando’s Malaysia menyatakan ia diperakui JAKIM. Semak status semasa cawangan sebelum berkunjung.';
+  String get planHalalBranchNote =>
+      'Pilihan makan. Nando’s Malaysia menyatakan ia diperakui JAKIM. Semak status semasa cawangan sebelum berkunjung.';
 
   @override
-  String get planHalalDirectoryNote => 'Semak status pensijilan premis makanan dalam direktori JAKIM.';
+  String get planHalalDirectoryNote =>
+      'Semak status pensijilan premis makanan dalam direktori JAKIM.';
 
   @override
-  String get planVegetarianBranchNote => 'Pilihan makan. Restoran menerbitkan menu vegetarian dan alamatnya.';
+  String get planVegetarianBranchNote =>
+      'Pilihan makan. Restoran menerbitkan menu vegetarian dan alamatnya.';
 
   @override
   String get planRestaurantSource => 'Laman restoran';
@@ -2932,16 +3284,20 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planContinueWho => 'Terus ke pengembara dan rentak';
 
   @override
-  String get planTapToProceed => 'Ketik di bawah untuk terus ke langkah seterusnya';
+  String get planTapToProceed =>
+      'Ketik di bawah untuk terus ke langkah seterusnya';
 
   @override
-  String get planUnlockDates => 'Pilih tarikh perjalanan di atas untuk meneruskan';
+  String get planUnlockDates =>
+      'Pilih tarikh perjalanan di atas untuk meneruskan';
 
   @override
-  String get planUnlockBasics => 'Sahkan maklumat asas perjalanan di atas dahulu';
+  String get planUnlockBasics =>
+      'Sahkan maklumat asas perjalanan di atas dahulu';
 
   @override
-  String get planUnlockHours => 'Tetapkan waktu bersiar-siar harian yang sah di atas';
+  String get planUnlockHours =>
+      'Tetapkan waktu bersiar-siar harian yang sah di atas';
 
   @override
   String get planUnlockMode => 'Pilih cara pengangkutan anda di atas';
@@ -2950,7 +3306,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planUnlockBudget => 'Pilih bajet harian di atas untuk meneruskan';
 
   @override
-  String get planUnlockInterests => 'Pilih sekurang-kurangnya satu minat di atas untuk meneruskan';
+  String get planUnlockInterests =>
+      'Pilih sekurang-kurangnya satu minat di atas untuk meneruskan';
 
   @override
   String get planContinueHours => 'Terus ke waktu harian';
@@ -2959,7 +3316,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get planContinueBudget => 'Terus ke bajet dan makanan';
 
   @override
-  String get planLogisticsHelp => 'Tambah waktu dan titik mula untuk membantu merancang hari anda. Semua ruangan adalah pilihan.';
+  String get planLogisticsHelp =>
+      'Tambah waktu dan titik mula untuk membantu merancang hari anda. Semua ruangan adalah pilihan.';
 
   @override
   String get planContinueHighlights => 'Terus ke tarikan dan minat';
@@ -3004,10 +3362,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get profileEdit => 'Sunting';
 
   @override
-  String get profilePending => 'Disimpan pada peranti ini. Penyegerakan awan belum selesai.';
+  String get profilePending =>
+      'Disimpan pada peranti ini. Penyegerakan awan belum selesai.';
 
   @override
-  String get profileSaveFailed => 'Tidak dapat menyimpan pada peranti ini. Cuba lagi.';
+  String get profileSaveFailed =>
+      'Tidak dapat menyimpan pada peranti ini. Cuba lagi.';
 
   @override
   String get profileRegions => 'Negeri dan wilayah';
@@ -3016,16 +3376,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get profileRegionsVisited => 'Negeri dan Wilayah yang Dilawati';
 
   @override
-  String get profileCoverage => 'Malaysia mempunyai 13 negeri dan 3 wilayah persekutuan. Liputan dikira berdasarkan lawatan yang direkodkan dengan lokasi yang disahkan.';
+  String get profileCoverage =>
+      'Malaysia mempunyai 13 negeri dan 3 wilayah persekutuan. Liputan dikira berdasarkan lawatan yang direkodkan dengan lokasi yang disahkan.';
 
   @override
-  String get profileNoRegions => 'Belum ada rekod lawatan dengan negeri atau wilayah yang disahkan.';
+  String get profileNoRegions =>
+      'Belum ada rekod lawatan dengan negeri atau wilayah yang disahkan.';
 
   @override
   String get profileFootprint => 'Jejak Perjalanan';
 
   @override
-  String get profileNoVisits => 'Belum ada lawatan direkodkan untuk perjalanan tersimpan. Tandakan tempat sebagai dilawati dalam Pelan Hari Ini untuk melihatnya di sini.';
+  String get profileNoVisits =>
+      'Belum ada lawatan direkodkan untuk perjalanan tersimpan. Tandakan tempat sebagai dilawati dalam Pelan Hari Ini untuk melihatnya di sini.';
 
   @override
   String get profileCurrency => 'Mata Wang Pilihan';
@@ -3055,19 +3418,22 @@ class AppLocalizationsMs extends AppLocalizations {
   String get profilePoliceAmbulance => 'Polis dan Ambulans';
 
   @override
-  String get profilePoliceAmbulanceInfo => 'Nombor kecemasan kebangsaan Malaysia.';
+  String get profilePoliceAmbulanceInfo =>
+      'Nombor kecemasan kebangsaan Malaysia.';
 
   @override
   String get profileMobileEmergency => 'Kecemasan Telefon Bimbit';
 
   @override
-  String get profileMobileEmergencyInfo => 'Nombor kecemasan alternatif melalui telefon bimbit.';
+  String get profileMobileEmergencyInfo =>
+      'Nombor kecemasan alternatif melalui telefon bimbit.';
 
   @override
   String get profileTouristPolice => 'Balai Polis Pelancong MaTiC';
 
   @override
-  String get profileTouristPoliceInfo => 'Hubungi balai di Kuala Lumpur untuk laporan polis dan bantuan pelancong.';
+  String get profileTouristPoliceInfo =>
+      'Hubungi balai di Kuala Lumpur untuk laporan polis dan bantuan pelancong.';
 
   @override
   String get profileCall => 'Hubungi';
@@ -3076,25 +3442,33 @@ class AppLocalizationsMs extends AppLocalizations {
   String get profileDialerError => 'Tidak dapat membuka pendail telefon.';
 
   @override
-  String get profileAdminSignIn => 'Log keluar dan log masuk dengan akaun pentadbir untuk mengakses hab.';
+  String get profileAdminSignIn =>
+      'Log keluar dan log masuk dengan akaun pentadbir untuk mengakses hab.';
 
   @override
   String get notificationMarkAllRead => 'Tandakan semua sebagai dibaca';
 
   @override
-  String get notificationEmptyTitle => 'Anda sudah mengikuti perkembangan terkini!';
+  String get notificationEmptyTitle =>
+      'Anda sudah mengikuti perkembangan terkini!';
 
   @override
-  String get notificationEmptyBody => 'Peringatan perjalanan dan komen pada hantaran anda akan dipaparkan di sini.';
+  String get notificationEmptyBody =>
+      'Peringatan perjalanan dan komen pada hantaran anda akan dipaparkan di sini.';
 
   @override
-  String get notificationTripReminder => 'Perjalanan akan bermula tidak lama lagi';
+  String get notificationTripReminder =>
+      'Perjalanan akan bermula tidak lama lagi';
 
   @override
   String get notificationCommunityComment => 'Komen baharu';
 
   @override
-  String notificationTripMessage(Object title, Object destination, Object date) {
+  String notificationTripMessage(
+    Object title,
+    Object destination,
+    Object date,
+  ) {
     return '$title di $destination bermula pada $date.';
   }
 
@@ -3110,34 +3484,42 @@ class AppLocalizationsMs extends AppLocalizations {
   String get notificationViewPost => 'Lihat hantaran';
 
   @override
-  String get notificationUnavailable => 'Perjalanan atau hantaran ini tiada lagi.';
+  String get notificationUnavailable =>
+      'Perjalanan atau hantaran ini tiada lagi.';
 
   @override
   String get offlineEditTitle => 'Simpan tanpa semakan laluan?';
 
   @override
-  String get offlineRemovalWarning => 'Lokasi tempat tidak tersedia. Masa hentian yang tinggal akan dikekalkan, tetapi masa perjalanan, jarak dan waktu operasi tidak dapat disahkan. Semak laluan apabila dalam talian.';
+  String get offlineRemovalWarning =>
+      'Lokasi tempat tidak tersedia. Masa hentian yang tinggal akan dikekalkan, tetapi masa perjalanan, jarak dan waktu operasi tidak dapat disahkan. Semak laluan apabila dalam talian.';
 
   @override
   String get offlineSaveAnyway => 'Tetap simpan';
 
   @override
-  String get dietaryVerificationNotice => 'Kesesuaian diet tidak disahkan secara automatik. Restoran yang dikenal pasti dikecualikan daripada jadual; tempat lain mungkin masih menyajikan makanan. Sila semak sebelum berkunjung.';
+  String get dietaryVerificationNotice =>
+      'Kesesuaian diet tidak disahkan secara automatik. Restoran yang dikenal pasti dikecualikan daripada jadual; tempat lain mungkin masih menyajikan makanan. Sila semak sebelum berkunjung.';
 
   @override
-  String get offlineRemovalRetainsTimes => 'Hentian dibuang. Masa yang tinggal kekal sehingga lokasi tersedia.';
+  String get offlineRemovalRetainsTimes =>
+      'Hentian dibuang. Masa yang tinggal kekal sehingga lokasi tersedia.';
 
   @override
-  String get savedRouteNeedsVerification => 'Sesetengah lokasi tempat tidak tersedia. Masa dan jarak laluan mungkin tidak terkini. Muat semula butiran tempat dan semak laluan apabila dalam talian.';
+  String get savedRouteNeedsVerification =>
+      'Sesetengah lokasi tempat tidak tersedia. Masa dan jarak laluan mungkin tidak terkini. Muat semula butiran tempat dan semak laluan apabila dalam talian.';
 
   @override
-  String get offlineReorderNeedsReview => 'Laluan tidak tersedia. Susunan perlu disemak apabila dalam talian.';
+  String get offlineReorderNeedsReview =>
+      'Laluan tidak tersedia. Susunan perlu disemak apabila dalam talian.';
 
   @override
-  String get offlineReorderWarning => 'Slot masa sedia ada akan diberikan kepada susunan baharu. Masa perjalanan, tempoh lawatan dan waktu operasi tidak dapat disahkan. Semak laluan dan jadual apabila dalam talian.';
+  String get offlineReorderWarning =>
+      'Slot masa sedia ada akan diberikan kepada susunan baharu. Masa perjalanan, tempoh lawatan dan waktu operasi tidak dapat disahkan. Semak laluan dan jadual apabila dalam talian.';
 
   @override
-  String get googleRouteReviewReminder => 'Semak laluan dan waktu operasi sebelum perjalanan, terutamanya selepas suntingan luar talian.';
+  String get googleRouteReviewReminder =>
+      'Semak laluan dan waktu operasi sebelum perjalanan, terutamanya selepas suntingan luar talian.';
 
   @override
   String get todayPlan => 'Rancangan hari ini';
@@ -3279,7 +3661,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get journeySegmentUnavailable => 'Laluan tidak tersedia';
 
   @override
-  String get journeySegmentMissingCoordinates => 'Laluan tidak tersedia · Koordinat tiada';
+  String get journeySegmentMissingCoordinates =>
+      'Laluan tidak tersedia · Koordinat tiada';
 
   @override
   String journeySegmentDayOffset(String time, int days) {
@@ -3290,7 +3673,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get leaveItineraryTitle => 'Tinggalkan jadual perjalanan ini?';
 
   @override
-  String get leaveItineraryMessage => 'Simpan jadual perjalanan anda, simpan sebagai draf pada peranti ini, atau buangnya.';
+  String get leaveItineraryMessage =>
+      'Simpan jadual perjalanan anda, simpan sebagai draf pada peranti ini, atau buangnya.';
 
   @override
   String get discardItinerary => 'Buang';
@@ -3305,7 +3689,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get discardScheduleChangesTitle => 'Buang perubahan jadual?';
 
   @override
-  String get discardScheduleChangesMessage => 'Perubahan anda belum disimpan. Buang perubahan dan kembali?';
+  String get discardScheduleChangesMessage =>
+      'Perubahan anda belum disimpan. Buang perubahan dan kembali?';
 
   @override
   String get draftSavedOnDevice => 'Draf disimpan pada peranti ini.';

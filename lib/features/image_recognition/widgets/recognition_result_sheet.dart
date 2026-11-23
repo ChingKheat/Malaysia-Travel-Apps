@@ -154,7 +154,23 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      final places = await _wishlist.toggle(spot);
+      final listing =
+          !_saved.contains(spot.xid) &&
+              spot.latitude == 0 &&
+              spot.longitude == 0
+          ? await _listing(spot.name, spot.googlePlaceId)
+          : null;
+      final resolved = listing?.latitude != null && listing?.longitude != null
+          ? Attraction(
+              xid: spot.xid,
+              name: spot.name,
+              latitude: listing!.latitude!,
+              longitude: listing.longitude!,
+              category: spot.category,
+              description: spot.description ?? listing.description,
+            )
+          : spot;
+      final places = await _wishlist.toggle(resolved);
       if (mounted) {
         setState(() => _saved = places.map((place) => place.xid).toSet());
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -395,8 +411,8 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
                     ? 'scan_${scanNameKey(source.name)}'
                     : 'google_$placeId'),
             name: source.name,
-            latitude: _origin?.latitude ?? 0,
-            longitude: _origin?.longitude ?? 0,
+            latitude: _origin?.latitude ?? _resolvedOrigin?.latitude ?? 0,
+            longitude: _origin?.longitude ?? _resolvedOrigin?.longitude ?? 0,
             category:
                 _origin?.category ??
                 (source.kind == 'restaurant'

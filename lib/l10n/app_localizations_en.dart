@@ -44,6 +44,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanWishlist => 'Wishlist';
 
   @override
+  String get scanWishlistAddToPlan => 'Add to plan';
+
+  @override
+  String get scanWishlistAddNote => 'Add a note';
+
+  @override
+  String get scanWishlistNote => 'Your note';
+
+  @override
+  String get scanWishlistNoteHint => 'Why do you want to visit?';
+
+  @override
+  String get scanWishlistNoteFailed => 'Could not save your note. Try again.';
+
+  @override
+  String get scanWishlistNothingToPlan =>
+      'Select a place with a known location to add to your plan.';
+
+  @override
+  String get scanWishlistOtherPlaces => 'Location needed';
+
+  @override
+  String get scanWishlistLocationHelp =>
+      'An exact location is needed before this place can be added to a plan.';
+
+  @override
   String get scanClearWishlist => 'Clear wishlist';
 
   @override

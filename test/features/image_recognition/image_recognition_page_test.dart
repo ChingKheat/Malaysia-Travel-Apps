@@ -118,6 +118,64 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'Wishlist groups places, saves a note, and sends selections to Plan',
+    (tester) async {
+      phoneSize(tester);
+      final wishlist = PlaceWishlistStore('recognition-test');
+      await wishlist.toggle(
+        const Attraction(
+          xid: 'garden_kl',
+          name: 'Test Garden',
+          latitude: 3.15,
+          longitude: 101.69,
+          category: 'Park',
+        ),
+      );
+      await wishlist.toggle(
+        const Attraction(
+          xid: 'park_langkawi',
+          name: 'Island Park',
+          latitude: 6.35,
+          longitude: 99.80,
+          category: 'Park',
+        ),
+      );
+      await tester.pumpWidget(page());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
+      await tester.pumpAndSettle();
+      expect(find.text('Kuala Lumpur'), findsOneWidget);
+      expect(find.text('Langkawi'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Add a note'),
+        findsNWidgets(2),
+      );
+
+      await tester.tap(find.text('Add a note').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, 'Visit at sunset');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Visit at sunset'), findsOneWidget);
+      expect((await wishlist.loadNotes()).values, contains('Visit at sunset'));
+
+      await tester.tap(find.text('Add to plan').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Select all'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add to plan').last);
+      await tester.pumpAndSettle();
+      final planned = ScanPlanPlacesStore('recognition-test').places;
+      expect(
+        planned.map((place) => place.name),
+        containsAll(['Test Garden', 'Island Park']),
+      );
+      expect((await wishlist.load()), hasLength(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Wishlist clears selected places and keeps the others', (
     tester,
   ) async {
@@ -147,6 +205,32 @@ void main() {
     expect(find.text('Test Garden'), findsNothing);
     expect(find.text('Test Museum'), findsOneWidget);
     expect((await store.load()).single.name, 'Test Museum');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Wishlist repairs an older landmark with missing coordinates', (
+    tester,
+  ) async {
+    phoneSize(tester);
+    final wishlist = PlaceWishlistStore('recognition-test');
+    await wishlist.toggle(
+      const Attraction(
+        xid: 'scan_sultan_abdul_samad',
+        name: 'Sultan Abdul Samad Building',
+        latitude: 0,
+        longitude: 0,
+        category: 'Historic Landmark',
+      ),
+    );
+    await tester.pumpWidget(page());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
+    await tester.pumpAndSettle();
+    expect(find.text('Location needed'), findsNothing);
+    expect(find.text('Kuala Lumpur'), findsOneWidget);
+    final repaired = (await wishlist.load()).single;
+    expect(repaired.latitude, greaterThan(0));
+    expect(repaired.longitude, greaterThan(0));
     expect(tester.takeException(), isNull);
   });
 
@@ -222,7 +306,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(name));
+    await tester.tap(
+      find.descendant(of: find.byType(ListTile), matching: find.text(name)),
+    );
     await tester.pumpAndSettle();
     final detail = tester.widget<AttractionDetailPage>(
       find.byType(AttractionDetailPage),
@@ -336,6 +422,10 @@ void main() {
     expect(
       (await PlaceWishlistStore('recognition-test').load()).single.name,
       'Petronas Twin Towers',
+    );
+    expect(
+      (await PlaceWishlistStore('recognition-test').load()).single.latitude,
+      greaterThan(0),
     );
     final wishlist = find.widgetWithText(OutlinedButton, 'Wishlist');
     await tester.scrollUntilVisible(wishlist, -180);
