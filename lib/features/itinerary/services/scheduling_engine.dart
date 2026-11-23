@@ -4,7 +4,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/shared/models/weather_forecast.dart';
-import 'package:smart_travel_planner/features/places/services/place_classifier.dart';
 
 class TravelLeg {
   final int minutes;
@@ -28,8 +27,18 @@ class SchedulingEngine {
         ) *
         1.28;
     final walking = mode == 'Walking';
+    final double speed;
+    if (walking) {
+      speed = 4.5;
+    } else if (km > 50) {
+      speed = 70.0;
+    } else if (km > 15) {
+      speed = 45.0;
+    } else {
+      speed = 28.0;
+    }
     return TravelLeg(
-      (km / (walking ? 4.5 : 28) * 60).ceil() + (walking ? 0 : 5),
+      (km / speed * 60).ceil() + (walking ? 0 : 5),
       km,
     );
   }
@@ -118,7 +127,8 @@ class SchedulingEngine {
   }
 
   static int? fit(TravelStop stop, DateTime date, int arrival, int dayEnd) {
-    final windows = intervals(stop, date) ?? [(0, 1440)];
+    final windows = intervals(stop, date);
+    if (windows == null) return null;
     for (final window in windows..sort((a, b) => a.$1.compareTo(b.$1))) {
       final start = math.max(arrival, window.$1);
       if (start + stop.visitMinutes <= math.min(window.$2, dayEnd)) {
@@ -223,6 +233,7 @@ class SchedulingEngine {
     int seed = 0,
     bool preserveOrder = false,
     TravelStop? routeAnchor,
+    Set<String> previousStopIds = const {},
   }) {
     var now = TripPreferences.minutesOf(preferences.dailyStartTime) ?? 510;
     var end = TripPreferences.minutesOf(preferences.dailyEndTime) ?? 1320;
@@ -246,18 +257,16 @@ class SchedulingEngine {
       null => candidates.length,
     };
     final primaryMode = preferences.travelMode ?? "Driving";
-    final priorities = preferences.mustVisitPlaces
-        .map((stop) => stop.title.trim().toLowerCase())
-        .toSet();
-    final selectedPlaces = preferences.selectedPlaces
-        .map((stop) => stop.title.trim().toLowerCase())
-        .toSet();
+    final priorities = preferences.mustVisitPlaces.map(identity).toSet();
+    final selectedPlaces = preferences.selectedPlaces.map(identity).toSet();
     final dayStart = now;
     final spreadLowBudgetVisits =
         preferences.budgetCategory == 'Low' &&
         !preserveOrder &&
         end - dayStart >= 10 * 60;
     var remaining = preferences.dailyBudget;
+    final requiresIndoor =
+        weather?.isAvailable == true && !weather!.isSuitableForOutdoor;
     final pool = [...candidates];
     final selected = <TravelStop>[];
     final random = math.Random(seed);
@@ -268,20 +277,25 @@ class SchedulingEngine {
       int bestTravelStart = 0;
       var bestMode = primaryMode;
       TravelLeg bestLeg = const TravelLeg(0, 0);
+      var bestPriority = -1;
       var bestScore = -double.infinity;
+      final hasIndoorRemaining = pool.any(
+        (s) =>
+            !visited.contains(identity(s)) &&
+            s.isIndoor == true &&
+            s.visitMinutes > 0,
+      );
+      final enforceIndoor =
+          requiresIndoor && (hasIndoorRemaining || selected.isNotEmpty);
       for (final stop in pool) {
-        if (visited.contains(identity(stop)) ||
+        final stopId = identity(stop);
+        if (visited.contains(stopId) ||
             stop.visitMinutes <= 0 ||
             stop.estimatedCost < 0 ||
             !stop.estimatedCost.isFinite) {
           continue;
         }
-        final indoor =
-            stop.isIndoor ??
-            PlaceClassifier.classify(category: stop.category, name: stop.title);
-        if (weather?.isAvailable == true &&
-            !weather!.isSuitableForOutdoor &&
-            indoor == false) {
+        if (enforceIndoor && stop.isIndoor != true) {
           continue;
         }
         final origin = preferences.dailyOrigin;
@@ -327,13 +341,40 @@ class SchedulingEngine {
         final restricted =
             preferences.dietaryPreference == DietaryPreference.halalFriendly ||
             preferences.dietaryPreference == DietaryPreference.vegetarian;
-        if (meal && restricted) continue;
+        final priority = priorities.contains(stopId)
+            ? 2
+            : selectedPlaces.contains(stopId)
+            ? 1
+            : 0;
+        final userChosen = priority > 0;
+        if (meal && restricted && !userChosen) continue;
+
+        // Regional clustering guard:
+        // Prevent scheduling stops that are excessively distant from the day's cluster
+        // anchor or previous stop (e.g. 170 km / 2.5 hrs away) within a single day.
+        final dayAnchor = selected.firstOrNull ??
+            routeAnchor ??
+            (origin != null && origin.latitude != 0 && origin.longitude != 0
+                ? origin
+                : null);
+        if (!preserveOrder && !userChosen && previous != null) {
+          if (leg.minutes > 60 || leg.distanceKm > 50.0) {
+            continue;
+          }
+        }
+        if (!preserveOrder && !userChosen && dayAnchor != null && selected.isNotEmpty) {
+          final anchorLeg = legFor(dayAnchor, stop, preferences, legs);
+          if (anchorLeg.minutes > 75 || anchorLeg.distanceKm > 55.0) {
+            continue;
+          }
+        }
+
         final lunchTime = now >= 690 && now <= 840;
+        final double travelPenalty = leg.minutes <= 30
+            ? leg.minutes.toDouble()
+            : 30.0 + (leg.minutes - 30) * 2.5;
         final score =
-            (priorities.contains(stop.title.trim().toLowerCase()) ? 1000 : 0) +
-            (selectedPlaces.contains(stop.title.trim().toLowerCase())
-                ? 120
-                : 0) +
+            (requiresIndoor && stop.isIndoor == true ? 200 : 0) +
             (routeAnchor != null && identity(stop) == identity(routeAnchor)
                 ? 250
                 : 0) -
@@ -362,24 +403,22 @@ class SchedulingEngine {
                       ).hasMatch('${s.category} ${s.title}'),
                     )
                 ? 150
-                : 0) +
-            (weather?.isAvailable == true &&
-                    !weather!.isSuitableForOutdoor &&
-                    indoor == true
-                ? 100
                 : 0) -
-            leg.minutes -
+            travelPenalty -
+            (!userChosen && previousStopIds.contains(stopId) ? 120 : 0) -
             (start - travelStart - leg.minutes) * 0.5 -
             (spreadLowBudgetVisits && later == null ? 120 : 0) -
             cost * (preferences.budgetCategory == 'Low' ? 3.0 : 0.15) -
             stop.visitMinutes * 0.02 +
-            ties[identity(stop)]! * 0.001;
-        if (score > bestScore) {
+            ties[stopId]! * 0.001;
+        if (priority > bestPriority ||
+            (priority == bestPriority && score > bestScore)) {
           best = stop;
           bestStart = start;
           bestTravelStart = travelStart;
           bestLeg = leg;
           bestMode = mode;
+          bestPriority = priority;
           bestScore = score;
         }
         if (preserveOrder) break;
@@ -422,26 +461,40 @@ class SchedulingEngine {
     required List<Map<String, TravelLeg>> dailyLegs,
     Map<String, TravelLeg> walkingLegs = const {},
     int seed = 0,
+    Set<String> previousStopIds = const {},
   }) {
     final byId = {for (final stop in candidates) identity(stop): stop};
     final anchors = <TravelStop>[];
     final seen = <String>{};
-    for (final selected in preferences.selectedPlaces) {
+    for (final selected in [
+      ...preferences.mustVisitPlaces,
+      ...preferences.selectedPlaces,
+    ]) {
       final id = identity(selected);
       final candidate = byId[id];
       if (candidate != null && seen.add(id)) anchors.add(candidate);
     }
 
-    List<List<TravelStop>> build(List<TravelStop> order) {
+    List<List<TravelStop>> build(
+      List<TravelStop> order, {
+      int? firstDay,
+      String? excludedSuggestion,
+      Set<String> avoidRepeating = const {},
+    }) {
       final visited = <String>{};
-      final days = <List<TravelStop>>[];
-      for (var day = 0; day < dates.length; day++) {
+      final days = List<List<TravelStop>>.filled(dates.length, const []);
+      final dayOrder = [
+        ?firstDay,
+        for (var day = 0; day < dates.length; day++)
+          if (day != firstDay) day,
+      ];
+      for (final day in dayOrder) {
         final remainingAnchors = order
             .where((stop) => !visited.contains(identity(stop)))
             .toList();
         final anchor = remainingAnchors.isEmpty ? null : remainingAnchors.first;
         final deferred = <String>{};
-        if (anchor != null && day < dates.length - 1) {
+        if (anchor != null && day != dayOrder.last) {
           for (final other in remainingAnchors.skip(1)) {
             final outbound = legFor(anchor, other, preferences, dailyLegs[day]);
             final inbound = legFor(other, anchor, preferences, dailyLegs[day]);
@@ -470,27 +523,88 @@ class SchedulingEngine {
             }
           }
         }
-        days.add(
-          schedule(
-            candidates: candidates
-                .where((stop) => !deferred.contains(identity(stop)))
-                .toList(),
-            preferences: preferences,
-            date: dates[day],
-            visited: visited,
-            weather: weather[day],
-            legs: dailyLegs[day],
-            walkingLegs: walkingLegs,
-            seed: seed + day,
-            routeAnchor: anchor,
-          ),
+        days[day] = schedule(
+          candidates: candidates
+              .where((stop) {
+                final id = identity(stop);
+                return id != excludedSuggestion && !deferred.contains(id);
+              })
+              .toList(),
+          preferences: preferences,
+          date: dates[day],
+          visited: visited,
+          weather: weather[day],
+          legs: dailyLegs[day],
+          walkingLegs: walkingLegs,
+          seed: seed + day,
+          routeAnchor: anchor,
+          previousStopIds: avoidRepeating,
         );
       }
       return days;
     }
 
+    List<TravelStop> refitDay(int day, List<TravelStop> stops) => schedule(
+      candidates: stops,
+      preferences: preferences,
+      date: dates[day],
+      visited: <String>{},
+      weather: weather[day],
+      legs: dailyLegs[day],
+      walkingLegs: walkingLegs,
+      seed: seed + day,
+    );
+
+    int travelMinutes(List<TravelStop> stops) =>
+        stops.fold(0, (sum, stop) => sum + stop.travelMinutes);
+
+    // Refit both routes before moving a visit. Keep every scheduled place and
+    // leave the day it came from with at least two visits.
+    void balanceSingleVisitDays(List<List<TravelStop>> days) {
+      for (var day = 0; day < days.length; day++) {
+        if (days[day].length != 1) continue;
+        ({
+          int donor,
+          List<TravelStop> filledDay,
+          List<TravelStop> remaining,
+          int extraTravel,
+        })?
+        bestMove;
+        for (var donor = 0; donor < days.length; donor++) {
+          final donorStops = days[donor];
+          if (donorStops.length < 3) continue;
+          for (final stop in donorStops) {
+            final filledDay = refitDay(day, [...days[day], stop]);
+            if (filledDay.length != 2) continue;
+            final remaining = refitDay(donor, [
+              for (final other in donorStops)
+                if (other != stop) other,
+            ]);
+            if (remaining.length != donorStops.length - 1) continue;
+            final extraTravel =
+                travelMinutes(filledDay) +
+                travelMinutes(remaining) -
+                travelMinutes(days[day]) -
+                travelMinutes(donorStops);
+            if (bestMove == null || extraTravel < bestMove.extraTravel) {
+              bestMove = (
+                donor: donor,
+                filledDay: filledDay,
+                remaining: remaining,
+                extraTravel: extraTravel,
+              );
+            }
+          }
+        }
+        if (bestMove != null) {
+          days[day] = bestMove.filledDay;
+          days[bestMove.donor] = bestMove.remaining;
+        }
+      }
+    }
+
     var best = build(const []);
-    if (dates.length < 2 || anchors.length < 2) return best;
+    var bestOrder = <TravelStop>[];
     int covered(List<List<TravelStop>> days) => days
         .expand((day) => day)
         .map(identity)
@@ -507,11 +621,12 @@ class SchedulingEngine {
     int routeCost(List<List<TravelStop>> days) {
       final stops = days.expand((day) => day).toList();
       // Keep useful visits while preferring shorter trips between stops.
-      return stops.fold<int>(0, (sum, stop) => sum + stop.travelMinutes) -
-          stops.length * 25;
+      return travelMinutes(stops) - stops.length * 25;
     }
 
-    final limit = math.min(anchors.length, 6);
+    final limit = dates.length < 2 || anchors.length < 2
+        ? 0
+        : math.min(anchors.length, 6);
     for (var start = 0; start < limit; start++) {
       final order = [...anchors.skip(start), ...anchors.take(start)];
       for (final option in [order, order.reversed.toList()]) {
@@ -522,7 +637,75 @@ class SchedulingEngine {
                     (covered(candidate) == covered(best) &&
                         routeCost(candidate) < routeCost(best))))) {
           best = candidate;
+          bestOrder = option;
         }
+      }
+    }
+    balanceSingleVisitDays(best);
+
+    Set<String> stopIds(List<List<TravelStop>> days) =>
+        days.expand((day) => day).map(identity).toSet();
+    int sparseDays(List<List<TravelStop>> days) =>
+        days.where((day) => day.length < 2).length;
+    int emptyDays(List<List<TravelStop>> days) =>
+        days.where((day) => day.isEmpty).length;
+    bool preservesCoverage(
+      List<List<TravelStop>> candidate, {
+      int allowedVisitLoss = 0,
+    }) {
+      final current = stopIds(best);
+      final replacement = stopIds(candidate);
+      return replacement.length >= current.length - allowedVisitLoss &&
+          replacement.containsAll(current.intersection(seen)) &&
+          emptyDays(candidate) <= emptyDays(best);
+    }
+
+    // Give a constrained day first choice of the candidate pool if moving an
+    // individual visit could not fill it. If a suggested stop isolates that
+    // day, try a nearby cluster even if the trip loses one optional visit.
+    int? priorityDay;
+    String? excludedSuggestion;
+    for (var day = 0; day < dates.length; day++) {
+      if (best[day].length != 1) continue;
+      final isolatedStopId = identity(best[day].single);
+      for (final excluded in [
+        if (day > 0) null,
+        if (!seen.contains(isolatedStopId)) isolatedStopId,
+      ]) {
+        final candidate = build(
+          bestOrder,
+          firstDay: day,
+          excludedSuggestion: excluded,
+        );
+        balanceSingleVisitDays(candidate);
+        if (candidate[day].length >= 2 &&
+            sparseDays(candidate) < sparseDays(best) &&
+            preservesCoverage(
+              candidate,
+              allowedVisitLoss: excluded == null ? 0 : 1,
+            )) {
+          best = candidate;
+          priorityDay = day;
+          excludedSuggestion = excluded;
+          break;
+        }
+      }
+    }
+
+    if (previousStopIds.isNotEmpty) {
+      final alternative = build(
+        bestOrder,
+        firstDay: priorityDay,
+        excludedSuggestion: excludedSuggestion,
+        avoidRepeating: previousStopIds,
+      );
+      balanceSingleVisitDays(alternative);
+      final earlierSuggestions = previousStopIds.difference(seen);
+      if (preservesCoverage(alternative) &&
+          sparseDays(alternative) <= sparseDays(best) &&
+          stopIds(alternative).intersection(earlierSuggestions).length <
+              stopIds(best).intersection(earlierSuggestions).length) {
+        best = alternative;
       }
     }
     return best;

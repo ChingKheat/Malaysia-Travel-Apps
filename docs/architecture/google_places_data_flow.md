@@ -52,15 +52,16 @@ labelled offline estimates remain. No failure falls back to a client REST key.
 
 ## Verified allowances
 
-Postgres reserves billable units atomically before every upstream request, shared
-by all Edge Function instances. Separate rows cover search Pro, details Pro,
-details Enterprise, photos, routes Essentials and matrix Essentials. Limits are
-below the published free allowances. Baseline usage is included. Failed/time-out
-requests are conservatively retained in the counter.
+Postgres reserves billable units atomically for search Pro and details Pro.
+All Edge Function instances share
+those counters, which include baseline usage and keep reservations for failed
+or timed-out requests. Full place details, photos, directions and travel-time
+matrices use Google Cloud quotas and billing and are tracked in Google Cloud.
 
 New budgets are disabled and unverified. Missing configuration, stale review,
-missing current-month rows and exhausted limits block Google requests. Counters
-do not reset on sync/restart/redeployment. New billing months need verification.
+missing current-month rows and exhausted limits block operations that require
+a reservation. Counters persist across sync, restart and redeployment. New
+billing months need verification for these operations.
 The mobile app can read an admin status but cannot approve or reserve allowance.
 
 See maintenance/google_allowance_setup.md for trusted setup, key replacement,

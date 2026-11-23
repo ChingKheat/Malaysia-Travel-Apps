@@ -1784,17 +1784,52 @@
   "planArrival": "Arrival time",
   "planDeparture": "Departure time",
   "planAirport": "Airport departure · allow 3 hours",
-  "planAccommodation": "Daily starting point",
+  "planAccommodation": "Daily starting point (optional)",
   "planOptionalDetails": "Optional trip details",
   "planLocalTime": "Times are local to your destination.",
   "planSetArrival": "Not set",
   "planSetDeparture": "Not set",
-  "planChooseStartingPoint": "Not set",
+  "planChooseStartingPoint": "Choose a place",
+  "planClearStartingPoint": "Clear starting point",
+  "planTransitMinutes": "Minutes between stops",
+  "planTransitMinutesHelp": "Enter 1–240 minutes, including walking, waiting and transfers.",
+  "planTransitMinutesError": "Enter a whole number from 1 to 240.",
   "planUndecided": "Undecided",
   "planTravelers": "Traveler type",
   "planPace": "Sightseeing pace",
   "planDiet": "Dining preference",
   "planMustVisit": "Must-visit attractions (up to 3)",
+  "planFromSavedPlaces": "From saved places",
+  "planSearchAttractions": "Search all",
+  "applyFromSavedPlaces": "Apply from saved places",
+  "noSavedPlacesToApply": "No saved places found yet. Bookmark attractions in Explore or save spots in Scan to quickly select them here.",
+  "savedPlacesApplied": "Applied saved places to your must-visit attractions.",
+  "selectSavedPlaces": "Select Saved Places",
+  "selectSavedPlacesHelp": "Select up to {count} to add as must-visit attractions.",
+  "@selectSavedPlacesHelp": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "applySelectedPlaces": "Apply selected ({count})",
+  "@applySelectedPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "placeAlreadyAdded": "Already added",
+  "matchesDestination": "Matches {destination}",
+  "@matchesDestination": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
   "planPresets": "Quick presets",
   "planClassic": "First-time explorer · culture and KL landmarks",
   "planFood": "Malaysian food explorer · relaxed and street food",
@@ -1823,6 +1858,15 @@
   "planHailing": "Grab / E-hailing",
   "planSearchOnline": "Search online with Google Places",
   "planNoPlaces": "No matching places. Try another search.",
+  "planAddManualOrigin": "Add starting point manually",
+  "planUseCurrentLocation": "Use current location",
+  "planCurrentLocation": "Current location",
+  "planCurrentLocationUnavailable": "Couldn’t get your location. Try again or choose a place.",
+  "planManualOriginHelp": "Drop a pin at your hotel in a map app. Copy its latitude and longitude here, in that order.",
+  "planManualOriginName": "Hotel or place name",
+  "planManualOriginNameRequired": "Enter the hotel or place name.",
+  "planManualOriginCoordinates": "Coordinates",
+  "planManualOriginInvalidCoordinates": "Enter valid latitude and longitude.",
   "planAirportTransfer": "Estimated transfer time to the airport",
   "planBasics": "Trip basics",
   "planWhoPace": "Who & pace",
@@ -1949,6 +1993,13 @@
   "@todayPlanDirectionsTo": {"placeholders":{"place":{"type":"String"}}},
   "todayPlanVisited": "Visited",
   "todayPlanSkipped": "Skipped",
+  "todayPlanBackToItinerary": "Back to itinerary",
+  "todayPlanCompletedSubtitle": "All planned visits for today are complete.",
+  "todayPlanExploring": "Exploring",
+  "todayPlanTransit": "Travel",
+  "todayPlanReopenDay": "Reset day progress",
+  "todayPlanReopenPrompt": "Reset progress and restart today’s plan?",
+  "todayPlanReset": "Reset",
   "viewRoute": "View route",
   "editVisitDuration": "Edit visit duration",
   "openFullscreenMap": "Open fullscreen map",
@@ -1978,5 +2029,19 @@
   "discardScheduleChangesMessage": "Your changes have not been saved. Discard them and go back?",
   "draftSavedOnDevice": "Draft saved on this device.",
   "westMalaysia": "West Malaysia",
-  "eastMalaysia": "East Malaysia"
+  "eastMalaysia": "East Malaysia",
+  "forgotPassword": "Forgot password?",
+  "passwordRecoveryTitle": "Reset password",
+  "passwordRecoveryEmailHelp": "Enter the email address you use to log in.",
+  "passwordRecoverySendCode": "Send code",
+  "passwordRecoveryCodeHelp": "If an account uses this email address, a reset code will arrive shortly. Check your spam folder if needed.",
+  "passwordRecoveryCode": "Reset code",
+  "passwordRecoveryVerifyCode": "Verify code",
+  "passwordRecoveryInvalidCode": "Enter a valid reset code. If it has expired, go back and request another one.",
+  "passwordRecoveryExpired": "This reset session expired. Request a new code.",
+  "passwordRecoveryNewPassword": "New password",
+  "passwordRecoverySave": "Save new password",
+  "passwordRecoverySamePassword": "Choose a different password.",
+  "passwordRecoveryUnavailable": "Password recovery is unavailable right now. Try again in a moment.",
+  "passwordRecoverySuccess": "Password updated. Log in with your new password."
 }

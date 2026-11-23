@@ -83,13 +83,13 @@ test('Photo fetch never forwards API key to the image host and returns only byte
   });
   const result=await handler(request({operation:'photo',photoName:'places/ChIJ123/photos/ABC123'}));
   assert.equal(result.status,200);assert.deepEqual([...new Uint8Array(await result.arrayBuffer())],[1,2,3]);
-  assert.equal(calls.length,4);assert.equal(result.headers.get('cache-control'),'no-store');
+  assert.equal(calls.length,3);assert.equal(result.headers.get('cache-control'),'no-store');
 });
 test('Rejects unexpected photo destinations and maps expired references to 410',async()=>{
   for(const photoUri of ['http://lh3.googleusercontent.com/image','https://evil.test/image', 'https://googleusercontent.com.evil.test/image']) {
     const {handler,calls}=setup(()=>Response.json({photoUri}));
     assert.equal((await handler(request({operation:'photo',photoName:'places/ChIJ123/photos/ABC123'}))).status,502);
-    assert.equal(calls.length,3);
+    assert.equal(calls.length,2);
   }
   const {handler}=setup(()=>new Response('expired',{status:400}));
   assert.equal((await handler(request({operation:'photo',photoName:'places/ChIJ123/photos/ABC123'}))).status,410);
@@ -114,20 +114,40 @@ test('All 16 Malaysian areas are accepted and unknown areas spend no quota',asyn
   assert.equal(calls.filter(c=>c.url.endsWith('/rpc/reserve_google_api_usage')).length,before);
 });
 
-test('Basic and full details reserve the matching SKU with fixed masks',async()=>{
+test('Basic details reserve their SKU and both profiles use fixed masks',async()=>{
   const {handler,calls}=setup(()=>Response.json({id:'ChIJ123'}));
   for(const profile of ['basic','full']) {
     assert.equal((await handler(request({operation:'details',placeId:'ChIJ123',profile}))).status,200);
-    const reservation=calls.at(-2);
-    assert.deepEqual(JSON.parse(reservation.options.body),{p_sku:profile==='basic'?'details_pro':'details_enterprise',p_units:1});
+    if(profile==='basic') {
+      const reservation=calls.at(-2);
+      assert.deepEqual(JSON.parse(reservation.options.body),{p_sku:'details_pro',p_units:1});
+      assert.equal(reservation.options.headers.apikey,config.SUPABASE_SERVICE_ROLE_KEY);
+    }
     assert.equal(calls.at(-1).options.headers['X-Goog-FieldMask'].includes('rating'),profile==='full');
     assert.equal(calls.at(-1).options.headers['X-Goog-FieldMask'].includes('editorialSummary'),false);
-    assert.equal(reservation.options.headers.apikey,config.SUPABASE_SERVICE_ROLE_KEY);
     assert.equal(calls.at(-1).options.headers.apikey,undefined);
   }
 });
 
-test('Unverified, exhausted and unavailable budgets never call Google',async()=>{
+test('Full details and photos load without a Supabase allowance',async()=>{
+  const {handler,calls}=setup(url=>{
+    if(url.includes('/media?')) return Response.json({photoUri:'https://lh3.googleusercontent.com/image'});
+    if(url.startsWith('https://lh3.googleusercontent.com/')) {
+      return new Response('photo',{headers:{'content-type':'image/jpeg'}});
+    }
+    return Response.json({id:'ChIJ123'});
+  },{SUPABASE_SERVICE_ROLE_KEY:undefined});
+  for(const body of [
+    {operation:'details',placeId:'ChIJ123'},
+    {operation:'details',placeId:'ChIJ123',profile:'full'},
+    {operation:'photo',photoName:'places/ChIJ123/photos/ABC123'},
+  ]) {
+    assert.equal((await handler(request(body))).status,200);
+  }
+  assert.ok(calls.every(({url})=>!url.endsWith('/rpc/reserve_google_api_usage')));
+});
+
+test('Basic details fail closed when their budget is denied or unavailable',async()=>{
   for(const budgetResponse of [()=>Response.json(false),()=>new Response('',{status:503}),()=>{throw Error('offline');}]) {
     let googleCalls=0;
     const handler=createHandler({env:n=>config[n],fetcher:async(url)=>{
@@ -135,11 +155,11 @@ test('Unverified, exhausted and unavailable budgets never call Google',async()=>
       if(url.endsWith('/rpc/reserve_google_api_usage'))return budgetResponse();
       googleCalls++;throw Error('Google must not be called');
     }});
-    assert.ok([429,502,503].includes((await handler(request({operation:'details',placeId:'ChIJ123'}))).status));
+    assert.ok([429,502,503].includes((await handler(request({operation:'details',placeId:'ChIJ123',profile:'basic'}))).status));
     assert.equal(googleCalls,0);
   }
   const {handler,calls}=setup(()=>{throw Error('unexpected');},{SUPABASE_SERVICE_ROLE_KEY:undefined});
-  assert.equal((await handler(request({operation:'details',placeId:'ChIJ123'}))).status,503);
+  assert.equal((await handler(request({operation:'details',placeId:'ChIJ123',profile:'basic'}))).status,503);
   assert.equal(calls.length,1);
 });
 
@@ -156,7 +176,7 @@ test('Concurrent independent instances share the reservation gate',async()=>{
   };
   const first=createHandler({env:n=>config[n],fetcher});
   const second=createHandler({env:n=>config[n],fetcher});
-  const results=await Promise.all(Array.from({length:10},(_,i)=>(i%2?first:second)(request({operation:'details',placeId:'ChIJ123'}))));
+  const results=await Promise.all(Array.from({length:10},(_,i)=>(i%2?first:second)(request({operation:'details',placeId:'ChIJ123',profile:'basic'}))));
   assert.equal(results.filter(r=>r.status===200).length,2);
   assert.equal(results.filter(r=>r.status===429).length,8);
   assert.equal(used,2);assert.equal(googleCalls,2);

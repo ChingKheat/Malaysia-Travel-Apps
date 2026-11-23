@@ -2983,7 +2983,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planAirport => '机场出发 · 预留 3 小时';
 
   @override
-  String get planAccommodation => '每日出发点';
+  String get planAccommodation => '每日出发点（可选）';
 
   @override
   String get planOptionalDetails => '选填行程详情';
@@ -2998,7 +2998,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planSetDeparture => '未设置';
 
   @override
-  String get planChooseStartingPoint => '未设置';
+  String get planChooseStartingPoint => '选择地点';
+
+  @override
+  String get planClearStartingPoint => '清除出发点';
+
+  @override
+  String get planTransitMinutes => '站点之间的时间（分钟）';
+
+  @override
+  String get planTransitMinutesHelp => '请输入 1 至 240 分钟，包括步行、等候和换乘时间。';
+
+  @override
+  String get planTransitMinutesError => '请输入 1 至 240 之间的整数。';
 
   @override
   String get planUndecided => '尚未决定';
@@ -3014,6 +3026,42 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get planMustVisit => '必去景点（最多 3 个）';
+
+  @override
+  String get planFromSavedPlaces => '从已保存地点添加';
+
+  @override
+  String get planSearchAttractions => '搜索全部';
+
+  @override
+  String get applyFromSavedPlaces => '应用已保存地点';
+
+  @override
+  String get noSavedPlacesToApply => '暂无已保存地点。可在“探索”中收藏景点或在“扫描”中保存地点，以便在此快速选择。';
+
+  @override
+  String get savedPlacesApplied => '已将保存地点应用到必去景点。';
+
+  @override
+  String get selectSavedPlaces => '选择已保存地点';
+
+  @override
+  String selectSavedPlacesHelp(String count) {
+    return '最多可选择 $count 个添加为必去景点。';
+  }
+
+  @override
+  String applySelectedPlaces(String count) {
+    return '应用所选 ($count)';
+  }
+
+  @override
+  String get placeAlreadyAdded => '已添加';
+
+  @override
+  String matchesDestination(String destination) {
+    return '与 $destination 匹配';
+  }
 
   @override
   String get planPresets => '快速预设';
@@ -3098,6 +3146,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get planNoPlaces => '未找到匹配地点，请尝试其他关键词。';
+
+  @override
+  String get planAddManualOrigin => '手动添加出发点';
+
+  @override
+  String get planUseCurrentLocation => '使用当前位置';
+
+  @override
+  String get planCurrentLocation => '当前位置';
+
+  @override
+  String get planCurrentLocationUnavailable => '无法获取你的位置。请重试或选择一个地点。';
+
+  @override
+  String get planManualOriginHelp => '在地图应用中标记酒店位置，然后按纬度、经度的顺序将坐标复制到这里。';
+
+  @override
+  String get planManualOriginName => '酒店或地点名称';
+
+  @override
+  String get planManualOriginNameRequired => '请输入酒店或地点名称。';
+
+  @override
+  String get planManualOriginCoordinates => '坐标';
+
+  @override
+  String get planManualOriginInvalidCoordinates => '请输入有效的纬度和经度。';
 
   @override
   String get planAirportTransfer => '预计前往机场的交通时间';
@@ -3441,6 +3516,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todayPlanSkipped => '已跳过';
 
   @override
+  String get todayPlanBackToItinerary => '返回行程';
+
+  @override
+  String get todayPlanCompletedSubtitle => '今日所有计划行程已完成。';
+
+  @override
+  String get todayPlanExploring => '游览';
+
+  @override
+  String get todayPlanTransit => '途中交通';
+
+  @override
+  String get todayPlanReopenDay => '重置今日进度';
+
+  @override
+  String get todayPlanReopenPrompt => '重置进度并重新开始今日行程？';
+
+  @override
+  String get todayPlanReset => '重置';
+
+  @override
   String get viewRoute => '查看路线';
 
   @override
@@ -3525,4 +3621,47 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get eastMalaysia => '马来西亚东部';
+
+  @override
+  String get forgotPassword => '忘记密码？';
+
+  @override
+  String get passwordRecoveryTitle => '重置密码';
+
+  @override
+  String get passwordRecoveryEmailHelp => '请输入您登录时使用的电子邮箱。';
+
+  @override
+  String get passwordRecoverySendCode => '发送验证码';
+
+  @override
+  String get passwordRecoveryCodeHelp =>
+      '如果此邮箱已关联账户，您很快就会收到重置验证码。如有需要，请查看垃圾邮件文件夹。';
+
+  @override
+  String get passwordRecoveryCode => '重置验证码';
+
+  @override
+  String get passwordRecoveryVerifyCode => '验证验证码';
+
+  @override
+  String get passwordRecoveryInvalidCode => '请输入有效的重置验证码。如果验证码已过期，请返回并重新获取。';
+
+  @override
+  String get passwordRecoveryExpired => '本次重置会话已过期。请重新获取验证码。';
+
+  @override
+  String get passwordRecoveryNewPassword => '新密码';
+
+  @override
+  String get passwordRecoverySave => '保存新密码';
+
+  @override
+  String get passwordRecoverySamePassword => '请选择一个不同的密码。';
+
+  @override
+  String get passwordRecoveryUnavailable => '暂时无法重置密码，请稍后再试。';
+
+  @override
+  String get passwordRecoverySuccess => '密码已更新，请使用新密码登录。';
 }

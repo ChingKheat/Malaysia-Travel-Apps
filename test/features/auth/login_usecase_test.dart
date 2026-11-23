@@ -1,5 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/features/auth/widgets/login_form.dart';
+import 'package:smart_travel_planner/l10n/app_localizations.dart';
 
 void main() {
   test(
@@ -103,6 +106,59 @@ void main() {
         // Check that session is established
         expect(authService.isLoggedIn, isTrue);
         expect(authService.currentUser!.uid, equals(result.user!.uid));
+      },
+    );
+
+    test('LoginResult emptyFields set is mutable and safe to modify', () {
+      final res = LoginResult(
+        success: false,
+        message: AuthService.m4InvalidCredentials,
+      );
+      expect(() => res.emptyFields.add('test'), returnsNormally);
+      expect(() => res.emptyFields.clear(), returnsNormally);
+    });
+
+    testWidgets(
+      'Consecutive login attempts do not throw Unhandled Exception for unmodifiable set',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: LoginForm()),
+          ),
+        );
+
+        final loginFinder = find.widgetWithText(FilledButton, 'Log In');
+        expect(loginFinder, findsOneWidget);
+
+        // Attempt 1: Empty fields
+        await tester.tap(loginFinder);
+        await tester.pumpAndSettle();
+        expect(find.text(AuthService.m2LoginMandatory), findsOneWidget);
+
+        // Attempt 2: Tap again without entering anything - must not crash
+        await tester.tap(loginFinder);
+        await tester.pumpAndSettle();
+        expect(find.text(AuthService.m2LoginMandatory), findsOneWidget);
+
+        // Attempt 3: Enter invalid credentials
+        await tester.enterText(
+          find.byType(TextField).first,
+          'wrong@example.com',
+        );
+        await tester.enterText(
+          find.byType(TextField).last,
+          'WrongP@ss123!',
+        );
+        await tester.tap(loginFinder);
+        await tester.pumpAndSettle();
+        expect(find.text(AuthService.m4InvalidCredentials), findsOneWidget);
+
+        // Attempt 4: Tap again immediately - must not crash
+        await tester.tap(loginFinder);
+        await tester.pumpAndSettle();
+        expect(find.text(AuthService.m4InvalidCredentials), findsOneWidget);
       },
     );
   });

@@ -10,7 +10,10 @@ class ApiKeys {
   static String get openWeatherMap => _runtimeWeatherKey ?? openWeatherMapEnv;
   static set openWeatherMap(String key) => _runtimeWeatherKey = key;
 
-  static const googleMapsEnv = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+  static const googleMapsEnv = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: 'AIzaSyDAPLDpQt61HmTptGwswe9usaUVRoxhcMw',
+  );
 
   /// Client-side Gemini key. Mobile binaries can be inspected, so production
   /// deployments should proxy Gemini through a trusted backend.

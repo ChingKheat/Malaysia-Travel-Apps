@@ -1763,17 +1763,52 @@
   "planArrival": "Waktu ketibaan",
   "planDeparture": "Waktu berlepas",
   "planAirport": "Pelepasan lapangan terbang · peruntukkan 3 jam",
-  "planAccommodation": "Titik mula harian",
+  "planAccommodation": "Titik mula harian (pilihan)",
   "planOptionalDetails": "Butiran perjalanan pilihan",
   "planLocalTime": "Waktu mengikut zon waktu destinasi anda.",
   "planSetArrival": "Belum ditetapkan",
   "planSetDeparture": "Belum ditetapkan",
-  "planChooseStartingPoint": "Belum ditetapkan",
+  "planChooseStartingPoint": "Pilih lokasi",
+  "planClearStartingPoint": "Kosongkan titik mula",
+  "planTransitMinutes": "Minit antara persinggahan",
+  "planTransitMinutesHelp": "Masukkan 1–240 minit, termasuk masa berjalan kaki, menunggu dan bertukar pengangkutan.",
+  "planTransitMinutesError": "Masukkan nombor bulat dari 1 hingga 240.",
   "planUndecided": "Belum diputuskan",
   "planTravelers": "Jenis pengembara",
   "planPace": "Rentak lawatan",
   "planDiet": "Pilihan makanan",
   "planMustVisit": "Tarikan wajib dilawati (sehingga 3)",
+  "planFromSavedPlaces": "Dari tempat tersimpan",
+  "planSearchAttractions": "Cari semua",
+  "applyFromSavedPlaces": "Gunakan dari tempat tersimpan",
+  "noSavedPlacesToApply": "Tiada tempat tersimpan dijumpai lagi. Tanda buku tarikan di Teroka atau simpan tempat di Imbas untuk memilihnya di sini.",
+  "savedPlacesApplied": "Tempat tersimpan telah digunakan pada tarikan wajib dilawati.",
+  "selectSavedPlaces": "Pilih Tempat Tersimpan",
+  "selectSavedPlacesHelp": "Pilih sehingga {count} untuk ditambah sebagai tarikan wajib dilawati.",
+  "@selectSavedPlacesHelp": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "applySelectedPlaces": "Gunakan pilihan ({count})",
+  "@applySelectedPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "placeAlreadyAdded": "Telah ditambah",
+  "matchesDestination": "Sepadan dengan {destination}",
+  "@matchesDestination": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
   "planPresets": "Pratetap pantas",
   "planClassic": "Peneroka kali pertama · budaya dan mercu tanda KL",
   "planFood": "Peneroka makanan Malaysia · santai dan makanan jalanan",
@@ -1802,6 +1837,15 @@
   "planHailing": "Grab / E-panggilan",
   "planSearchOnline": "Cari dalam talian dengan Google Places",
   "planNoPlaces": "Tiada tempat sepadan. Cuba carian lain.",
+  "planAddManualOrigin": "Tambah titik mula secara manual",
+  "planUseCurrentLocation": "Gunakan lokasi semasa",
+  "planCurrentLocation": "Lokasi semasa",
+  "planCurrentLocationUnavailable": "Lokasi anda tidak dapat dikesan. Cuba lagi atau pilih tempat.",
+  "planManualOriginHelp": "Letakkan pin di lokasi hotel anda dalam aplikasi peta. Salin latitud dan longitudnya ke sini mengikut turutan itu.",
+  "planManualOriginName": "Nama hotel atau tempat",
+  "planManualOriginNameRequired": "Masukkan nama hotel atau tempat.",
+  "planManualOriginCoordinates": "Koordinat",
+  "planManualOriginInvalidCoordinates": "Masukkan latitud dan longitud yang sah.",
   "planAirportTransfer": "Anggaran masa perjalanan ke lapangan terbang",
   "planBasics": "Asas perjalanan",
   "planWhoPace": "Pengembara dan rentak",
@@ -1920,6 +1964,13 @@
   "todayPlanDirectionsTo": "Arah ke {place}",
   "todayPlanVisited": "Sudah dilawati",
   "todayPlanSkipped": "Dilangkau",
+  "todayPlanBackToItinerary": "Kembali ke jadual perjalanan",
+  "todayPlanCompletedSubtitle": "Semua lawatan hari ini telah selesai.",
+  "todayPlanExploring": "Melawat",
+  "todayPlanTransit": "Perjalanan",
+  "todayPlanReopenDay": "Tetapkan semula kemajuan hari",
+  "todayPlanReopenPrompt": "Tetapkan semula kemajuan dan mulakan semula pelan hari ini?",
+  "todayPlanReset": "Tetapkan semula",
   "viewRoute": "Lihat laluan",
   "editVisitDuration": "Edit tempoh lawatan",
   "openFullscreenMap": "Buka peta skrin penuh",
@@ -1945,5 +1996,19 @@
   "discardScheduleChangesMessage": "Perubahan anda belum disimpan. Buang perubahan dan kembali?",
   "draftSavedOnDevice": "Draf disimpan pada peranti ini.",
   "westMalaysia": "Malaysia Barat",
-  "eastMalaysia": "Malaysia Timur"
+  "eastMalaysia": "Malaysia Timur",
+  "forgotPassword": "Lupa kata laluan?",
+  "passwordRecoveryTitle": "Tetapkan semula kata laluan",
+  "passwordRecoveryEmailHelp": "Masukkan alamat e-mel yang anda gunakan untuk log masuk.",
+  "passwordRecoverySendCode": "Hantar kod",
+  "passwordRecoveryCodeHelp": "Jika alamat e-mel ini digunakan oleh akaun, anda akan menerima kod dalam masa terdekat. Semak folder spam jika perlu.",
+  "passwordRecoveryCode": "Kod tetapan semula",
+  "passwordRecoveryVerifyCode": "Sahkan kod",
+  "passwordRecoveryInvalidCode": "Masukkan kod tetapan semula yang sah. Jika kod telah tamat tempoh, kembali dan minta kod baharu.",
+  "passwordRecoveryExpired": "Sesi tetapan semula telah tamat tempoh. Minta kod baharu.",
+  "passwordRecoveryNewPassword": "Kata laluan baharu",
+  "passwordRecoverySave": "Simpan kata laluan baharu",
+  "passwordRecoverySamePassword": "Pilih kata laluan yang berbeza.",
+  "passwordRecoveryUnavailable": "Tetapan semula kata laluan tidak tersedia buat masa ini. Cuba lagi sebentar nanti.",
+  "passwordRecoverySuccess": "Kata laluan telah dikemas kini. Log masuk dengan kata laluan baharu."
 }

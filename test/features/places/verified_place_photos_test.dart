@@ -32,12 +32,25 @@ void main() {
         ('curated_johor_03', 'sultan_abu_bakar_mosque.jpg'),
         ('curated_johor_04', 'rajakaliamman_glass_temple.jpg'),
         ('curated_johor_05', 'johor_zoo.jpg'),
+        ('curated_johor_06', 'danga_bay_waterfront.jpg'),
+        ('curated_johor_07', 'pasar_karat.jpg'),
+        ('curated_johor_08', 'johor_heritage_food_trail.jpg'),
+        ('curated_johor_09', 'puteri_harbour.jpg'),
+        ('curated_johor_10', 'kota_tinggi_waterfalls.jpg'),
+        ('curated_johor_11', 'desaru_beach.jpg'),
+        ('curated_johor_12', 'johor_premium_outlets.jpg'),
+        ('curated_johor_13', 'mid_valley_southkey.jpg'),
+        ('curated_johor_14', 'johor_chinese_heritage_museum.jpg'),
+        ('curated_johor_15', 'johor_bahru_city_square.jpg'),
       ]) {
         final attraction = curatedMalaysianAttractions.singleWhere(
           (place) => place.xid == id,
         );
         final asset = 'assets/recognition/$filename';
         expect(AttractionImageResolver.resolveAsset(attraction), asset);
+        if (id.startsWith('curated_johor_')) {
+          expect(AttractionImageResolver.photoCredit(attraction), isNotNull);
+        }
         final bytes = await rootBundle.load(asset);
         final codec = await ui.instantiateImageCodec(
           bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),

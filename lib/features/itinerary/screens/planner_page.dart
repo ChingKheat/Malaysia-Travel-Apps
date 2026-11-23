@@ -1,9 +1,10 @@
 import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
+import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
-import '../services/planner_smart_fill.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
@@ -17,16 +18,32 @@ import 'trip_selection_screen.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
+import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+enum _LocationStatus { idle, locating, unavailable }
 
 class _DepartureSearch extends SearchDelegate<TravelStop?> {
-  _DepartureSearch(this.options, this.destination, {this.excluded = const {}});
+  _DepartureSearch(
+    this.options,
+    this.destination, {
+    this.excluded = const {},
+    this.forStartingPoint = false,
+    GooglePlacesService? places,
+  }) : _places = places ?? GooglePlacesService();
 
   final List<TravelStop> options;
   final String? destination;
   final Set<String> excluded;
-  final _places = GooglePlacesService();
+  final bool forStartingPoint;
+  final GooglePlacesService _places;
+  static final _curatedById = {
+    for (final place in curatedMalaysianAttractions) place.xid: place,
+  };
   String? _requestedQuery;
   Future<List<TravelStop>>? _pendingResults;
+  int _suggestionVersion = 0;
+  final _locationStatus = ValueNotifier(_LocationStatus.idle);
 
   @override
   List<Widget> buildActions(BuildContext context) => [
@@ -45,6 +62,13 @@ class _DepartureSearch extends SearchDelegate<TravelStop?> {
     final places = await _places.searchPlannerPlaces(query: term, state: state);
     final stops = <TravelStop>[];
     for (final place in places) {
+      if (forStartingPoint &&
+          !GooglePlacesService.addressMatchesState(
+            place['formattedAddress'],
+            state,
+          )) {
+        continue;
+      }
       final stop = GooglePlacesService.convertGooglePlaceToStop(
         place: place,
         timeRange: '',
@@ -65,7 +89,9 @@ class _DepartureSearch extends SearchDelegate<TravelStop?> {
     if (term.length < 2 || state == null) return buildSuggestions(context);
     if (_requestedQuery != term) {
       _requestedQuery = term;
-      _pendingResults = _search(term, state);
+      _pendingResults = forStartingPoint
+          ? _searchAfterPause(context, term, state)
+          : _search(term, state);
     }
     return FutureBuilder<List<TravelStop>>(
       key: ValueKey(term),
@@ -77,6 +103,22 @@ class _DepartureSearch extends SearchDelegate<TravelStop?> {
     );
   }
 
+  Future<List<TravelStop>> _searchAfterPause(
+    BuildContext context,
+    String term,
+    String state,
+  ) async {
+    final route = ModalRoute.of(context);
+    final version = ++_suggestionVersion;
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (version != _suggestionVersion ||
+        route?.isActive != true ||
+        query.trim() != term) {
+      return [];
+    }
+    return _search(term, state);
+  }
+
   List<TravelStop> get _localResults => options
       .where(
         (place) =>
@@ -85,11 +127,177 @@ class _DepartureSearch extends SearchDelegate<TravelStop?> {
       .toList();
 
   @override
-  Widget buildSuggestions(BuildContext context) => _resultsList(
-    context,
-    _localResults,
-    searchOnline: query.trim().length >= 2 && destination != null,
+  Widget buildSuggestions(BuildContext context) {
+    final canSearch = query.trim().length >= 2 && destination != null;
+    if (forStartingPoint) {
+      if (canSearch) return buildResults(context);
+      if (_requestedQuery != null) {
+        _requestedQuery = null;
+        _pendingResults = null;
+        _suggestionVersion++;
+      }
+    }
+    return _resultsList(context, _localResults, searchOnline: canSearch);
+  }
+
+  Future<void> _addManualOrigin(BuildContext context) async {
+    final l = context.l10n;
+    final formKey = GlobalKey<FormState>();
+    final initialName = query.trim();
+    late String name;
+    late (double, double) coordinates;
+    final origin = await showDialog<TravelStop>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.planAddManualOrigin),
+        scrollable: true,
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l.planManualOriginHelp),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: initialName,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l.planManualOriginName,
+                  errorMaxLines: 3,
+                ),
+                validator: (value) => (value ?? '').trim().isEmpty
+                    ? l.planManualOriginNameRequired
+                    : null,
+                onSaved: (value) => name = value!.trim(),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: l.planManualOriginCoordinates,
+                  hintText: '3.1579, 101.7123',
+                  errorMaxLines: 3,
+                ),
+                autocorrect: false,
+                enableSuggestions: false,
+                validator: (value) => _parseCoordinates(value) == null
+                    ? l.planManualOriginInvalidCoordinates
+                    : null,
+                onSaved: (value) => coordinates = _parseCoordinates(value)!,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final form = formKey.currentState!;
+              if (!form.validate()) return;
+              form.save();
+              Navigator.of(
+                dialogContext,
+              ).pop(_location((name, coordinates.$1, coordinates.$2)));
+            },
+            child: Text(l.save),
+          ),
+        ],
+      ),
+    );
+    if (context.mounted && origin != null) close(context, origin);
+  }
+
+  Future<TravelStop?> _currentOrigin(String title) async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+      final coordinates = _validCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      return coordinates == null
+          ? null
+          : _location((title, coordinates.$1, coordinates.$2));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _chooseCurrentLocation(BuildContext context) async {
+    if (_locationStatus.value == _LocationStatus.locating) return;
+    final route = ModalRoute.of(context);
+    final navigationContext = Navigator.of(context).context;
+    _locationStatus.value = _LocationStatus.locating;
+    final point = await _currentOrigin(context.l10n.planCurrentLocation);
+    _locationStatus.value = point == null
+        ? _LocationStatus.unavailable
+        : _LocationStatus.idle;
+    if (point != null && navigationContext.mounted && route?.isCurrent == true) {
+      close(navigationContext, point);
+    }
+  }
+
+  Widget _currentLocationTile() => ValueListenableBuilder(
+    valueListenable: _locationStatus,
+    builder: (context, status, _) {
+      final l = context.l10n;
+      final locating = status == _LocationStatus.locating;
+      return ListTile(
+        leading: locating
+            ? const SizedBox.square(
+                dimension: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.my_location),
+        title: Text(l.planUseCurrentLocation),
+        subtitle: status == _LocationStatus.unavailable
+            ? Text(l.planCurrentLocationUnavailable)
+            : null,
+        enabled: !locating,
+        onTap: locating ? null : () => _chooseCurrentLocation(context),
+      );
+    },
   );
+
+  (double, double)? _parseCoordinates(String? input) {
+    final parts = input?.split(',');
+    if (parts == null || parts.length != 2) return null;
+    return _validCoordinates(
+      double.tryParse(parts.first),
+      double.tryParse(parts.last),
+    );
+  }
+
+  (double, double)? _validCoordinates(double? latitude, double? longitude) {
+    // The trip planner uses zero coordinates to indicate a missing location.
+    if (latitude == null ||
+        longitude == null ||
+        !latitude.isFinite ||
+        !longitude.isFinite ||
+        latitude == 0 ||
+        longitude == 0 ||
+        latitude.abs() > 90 ||
+        longitude.abs() > 180) {
+      return null;
+    }
+    return (latitude, longitude);
+  }
 
   Widget _resultsList(
     BuildContext context,
@@ -100,6 +308,7 @@ class _DepartureSearch extends SearchDelegate<TravelStop?> {
     final seen = <String>{};
     return ListView(
       children: [
+        if (forStartingPoint) _currentLocationTile(),
         if (searchOnline)
           ListTile(
             leading: const Icon(Icons.public),
@@ -108,20 +317,78 @@ class _DepartureSearch extends SearchDelegate<TravelStop?> {
           ),
         if (loading) const LinearProgressIndicator(),
         for (final stop in stops)
-          if (seen.add(stop.title.toLowerCase()))
-            ListTile(
-              title: Text(stop.title),
-              subtitle: stop.isGooglePlace ? Text(stop.note) : null,
-              onTap: () => close(context, stop),
-            ),
+          if (seen.add(stop.title.toLowerCase())) _placeResult(context, stop),
         if (stops.isEmpty && !loading && !searchOnline)
           ListTile(title: Text(context.l10n.planNoPlaces)),
+        if (forStartingPoint)
+          ListTile(
+            leading: const Icon(Icons.add_location_alt_outlined),
+            title: Text(context.l10n.planAddManualOrigin),
+            onTap: () => _addManualOrigin(context),
+          ),
       ],
+    );
+  }
+
+  Widget _placeResult(BuildContext context, TravelStop stop) {
+    final attraction = _curatedById[stop.placeId];
+    final asset = attraction == null
+        ? null
+        : AttractionImageResolver.resolveAsset(attraction);
+    final credit = asset != null && attraction != null
+        ? AttractionImageResolver.photoCredit(attraction)
+        : null;
+    const placeholder = ColoredBox(
+      color: AppColors.nightRaised,
+      child: Center(child: Icon(Icons.place_outlined, color: AppColors.muted)),
+    );
+    return ListTile(
+      minTileHeight: 72,
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox.square(
+          dimension: 56,
+          child: asset == null
+              ? placeholder
+              : Image.asset(
+                  asset,
+                  fit: BoxFit.cover,
+                  cacheWidth: (56 * MediaQuery.devicePixelRatioOf(context))
+                      .round(),
+                  excludeFromSemantics: true,
+                  errorBuilder: (_, _, _) => placeholder,
+                ),
+        ),
+      ),
+      title: Text(stop.title),
+      subtitle: credit != null
+          ? Text(
+              '© ${credit.author} · ${credit.license}',
+              style: Theme.of(context).textTheme.bodySmall,
+            )
+          : stop.isGooglePlace
+          ? Text(stop.note)
+          : null,
+      trailing: credit == null
+          ? null
+          : IconButton(
+              tooltip: context.l10n.source,
+              icon: const Icon(Icons.info_outline),
+              onPressed: () => launchUrl(Uri.parse(credit.source)),
+            ),
+      onTap: () => close(context, stop),
     );
   }
 }
 
-enum _PlannerGroup { basics, who, backupTransport, dining, highlights }
+TravelStop _location((String, double, double) point) => TravelStop.fromJson({
+  'title': point.$1,
+  'latitude': point.$2,
+  'longitude': point.$3,
+  'opening_hours': 'Hours unverified',
+});
+
+enum _PlannerGroup { basics, who, dining, highlights }
 
 enum PlanStep {
   destination,
@@ -150,6 +417,7 @@ class PlannerPage extends StatefulWidget {
     @visibleForTesting this.initialInterests,
     @visibleForTesting this.initialBudgetCategory,
     @visibleForTesting this.initialTravelMode,
+    @visibleForTesting this.startingPointPlaces,
   });
 
   final VoidCallback onItineraryReady;
@@ -164,6 +432,7 @@ class PlannerPage extends StatefulWidget {
   final Set<String>? initialInterests;
   final String? initialBudgetCategory;
   final String? initialTravelMode;
+  final GooglePlacesService? startingPointPlaces;
 
   @override
   State<PlannerPage> createState() => _PlannerPageState();
@@ -178,11 +447,13 @@ class _PlannerPageState extends State<PlannerPage> {
   final Set<String> interests = <String>{};
   String budgetCategory = '';
   String travelMode = '';
-  int? _transitPlanningMinutes;
+  String _transitMinutesInput = '';
+  int? get _transitPlanningMinutes {
+    final minutes = int.tryParse(_transitMinutesInput.trim(), radix: 10);
+    return minutes != null && minutes >= 1 && minutes <= 240 ? minutes : null;
+  }
+
   TravelStop? _departurePoint;
-  TravelStop? _accommodation;
-  final _description = TextEditingController();
-  String? _fillMessage;
   TimeOfDay? _arrival;
   TimeOfDay? _departure;
   bool _airport = false;
@@ -195,7 +466,6 @@ class _PlannerPageState extends State<PlannerPage> {
   late final ScanPlanPlacesStore _scanPlanPlaces = ScanPlanPlacesStore(
     widget.userId,
   );
-  final _secondaryModes = <String>{};
 
   static const _klOrigins = [
     ('Bukit Bintang', 3.1468, 101.7113),
@@ -203,23 +473,23 @@ class _PlannerPageState extends State<PlannerPage> {
     ('KL Sentral', 3.1341, 101.6862),
   ];
 
-  TravelStop _location((String, double, double) point) => TravelStop.fromJson({
-    'title': point.$1,
-    'latitude': point.$2,
-    'longitude': point.$3,
-    'opening_hours': 'Hours unverified',
-  });
-
-  Future<void> _chooseAccommodation() async {
+  Future<void> _chooseStartingPoint() async {
+    final state = destination;
     final point = await showSearch<TravelStop?>(
       context: context,
-      delegate: _DepartureSearch([
-        if (destination == 'Kuala Lumpur') ..._klOrigins.map(_location),
-        ...curatedMalaysianAttractions.map(_highlight),
-      ], destination),
+      delegate: _DepartureSearch(
+        [
+          if (state == 'Kuala Lumpur') ..._klOrigins.map(_location),
+          if (state != null)
+            ...curatedAttractionsForState(state).map(_highlight),
+        ],
+        state,
+        forStartingPoint: true,
+        places: widget.startingPointPlaces,
+      ),
     );
     if (mounted && point != null) {
-      setState(() => _accommodation = point);
+      setState(() => _departurePoint = point);
     }
   }
 
@@ -287,6 +557,85 @@ class _PlannerPageState extends State<PlannerPage> {
     setState(() => _mustVisit.add(point));
   }
 
+  Future<List<Attraction>> _loadSavedPlaces() async {
+    final seen = <String>{};
+    final result = <Attraction>[];
+
+    try {
+      final wishlist = await PlaceWishlistStore(widget.userId).load();
+      for (final p in wishlist) {
+        final key = p.xid.isNotEmpty ? p.xid : p.name.trim().toLowerCase();
+        if (seen.add(key)) {
+          result.add(p);
+        }
+      }
+    } catch (_) {}
+
+    for (final p in _scanPlanPlaces.places) {
+      final key = p.xid.isNotEmpty ? p.xid : p.name.trim().toLowerCase();
+      if (seen.add(key)) {
+        result.add(p);
+      }
+    }
+
+    return result;
+  }
+
+  Future<void> _chooseFromSavedPlaces() async {
+    if (_mustVisit.length >= 3) return;
+    final savedPlaces = await _loadSavedPlaces();
+    if (!mounted) return;
+
+    if (savedPlaces.isEmpty) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.noSavedPlacesToApply),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    final remaining = 3 - _mustVisit.length;
+    final selectedToAdd = await showModalBottomSheet<List<Attraction>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _SavedPlacesSelectionSheet(
+        savedPlaces: savedPlaces,
+        alreadyAddedIds: {
+          for (final stop in _mustVisit) ...[
+            if (stop.placeId != null) stop.placeId!,
+            stop.title.trim().toLowerCase(),
+          ],
+        },
+        remainingSlots: remaining,
+        destination: destination,
+      ),
+    );
+
+    if (!mounted || selectedToAdd == null || selectedToAdd.isEmpty) return;
+
+    setState(() {
+      for (final place in selectedToAdd) {
+        if (_mustVisit.length < 3) {
+          _mustVisit.add(_highlight(place));
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.savedPlacesApplied),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   bool _destinationConfirmed = false;
   bool _datesConfirmed = false;
   bool _logisticsConfirmed = false;
@@ -349,7 +698,6 @@ class _PlannerPageState extends State<PlannerPage> {
   void dispose() {
     _scanPlanPlaces.removeListener(_onScanPlanPlacesChanged);
     ProfilePreferencesService.instance.removeListener(_loadProfileDefaults);
-    _description.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -537,7 +885,7 @@ class _PlannerPageState extends State<PlannerPage> {
                       final isSelected = state == destination;
                       return ListTile(
                         title: Text(
-                          '$state, Malaysia',
+                          state,
                           style: TextStyle(
                             fontWeight: isSelected
                                 ? FontWeight.w800
@@ -566,7 +914,6 @@ class _PlannerPageState extends State<PlannerPage> {
       setState(() {
         if (destination != selected) {
           _departurePoint = null;
-          _accommodation = null;
           _mustVisit.clear();
         }
         destination = selected;
@@ -585,8 +932,8 @@ class _PlannerPageState extends State<PlannerPage> {
     final defaultRange =
         travelDates ??
         DateTimeRange(
-          start: DateTime(now.year, now.month, now.day + 7),
-          end: DateTime(now.year, now.month, now.day + 9),
+          start: DateTime(now.year, now.month, now.day + 1),
+          end: DateTime(now.year, now.month, now.day + 3),
         );
 
     final DateTimeRange? picked;
@@ -668,7 +1015,6 @@ class _PlannerPageState extends State<PlannerPage> {
       travelMode: travelMode,
       transitPlanningMinutes: _transitPlanningMinutes,
       departurePoint: _departurePoint,
-      accommodationArea: _accommodation,
       arrivalTime: _arrival,
       departureTime: _departure,
       departureBufferMinutes: _airport ? 180 : 60,
@@ -680,9 +1026,7 @@ class _PlannerPageState extends State<PlannerPage> {
       dietaryPreference: _diet,
       mustVisitPlaces: List.unmodifiable(_mustVisit),
       selectedPlaces: List.unmodifiable(_selectedScanPlaces),
-      secondaryTransportModes: List.unmodifiable(
-        _secondaryModes.where((mode) => mode != travelMode),
-      ),
+      secondaryTransportModes: const [],
     );
 
     // Validate using TripPreferencesService (FR300_3 to FR300_9)
@@ -890,182 +1234,6 @@ class _PlannerPageState extends State<PlannerPage> {
     };
   }
 
-  void _applyPreset(int index) {
-    _profilePaceOverridden = true;
-    _profileDietOverridden = true;
-    setState(() {
-      switch (index) {
-        case 0:
-          if (destination == null) {
-            destination = 'Kuala Lumpur';
-            _destinationConfirmed = true;
-          }
-          if (destination == 'Kuala Lumpur') {
-            _accommodation ??= _location(_klOrigins.first);
-            if (_mustVisit.isEmpty) {
-              const landmarks = {
-                'curated_kl_01',
-                'curated_kl_02',
-                'curated_kl_12',
-              };
-              _mustVisit.addAll(
-                curatedMalaysianAttractions
-                    .where((place) => landmarks.contains(place.xid))
-                    .map(_highlight),
-              );
-            }
-          }
-          _pace ??= PaceCategory.balanced;
-          if (travelMode.isEmpty) {
-            travelMode = 'E-hailing';
-            _modeConfirmed = false;
-          }
-          _secondaryModes.add('Public Transport');
-          interests.addAll(['Culture', 'History']);
-        case 1:
-          _pace ??= PaceCategory.relaxed;
-          if (_diet == DietaryPreference.unrestricted) {
-            _diet = DietaryPreference.streetFood;
-          }
-          interests.addAll(['Food', 'Nightlife']);
-        case 2:
-          if (_travelerType == TravelerType.solo) {
-            _travelerType = TravelerType.family;
-          }
-          _pace ??= PaceCategory.relaxed;
-          interests.addAll(['Family', 'Adventure']);
-      }
-    });
-  }
-
-  Future<void> _reviewSmartFill() async {
-    final suggestions = PlannerSmartFill.localSuggestions(
-      _description.text.trim(),
-    );
-    if (suggestions.isEmpty) {
-      setState(() => _fillMessage = context.l10n.planFillNoMatch);
-      return;
-    }
-    final labels = <String, String>{
-      'traveler': 'Travelers',
-      'pace': 'Pace',
-      'diet': 'Dining',
-      'interest': 'Interest',
-      'transport': 'Transport',
-      'accommodation': 'Starting area',
-    };
-    final applicable = suggestions.entries
-        .where(
-          (entry) =>
-              entry.key != 'accommodation' || destination == 'Kuala Lumpur',
-        )
-        .toList();
-    if (applicable.isEmpty) {
-      setState(() => _fillMessage = context.l10n.planFillNoMatch);
-      return;
-    }
-    final apply = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Review suggestions'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Applying these suggestions may replace the corresponding current choices. You can edit them afterward.',
-              ),
-              const SizedBox(height: 12),
-              for (final entry in applicable)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '${labels[entry.key] ?? entry.key}: ${entry.value}',
-                  ),
-                ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apply suggestions'),
-          ),
-        ],
-      ),
-    );
-    if (apply == true && mounted) _smartFill();
-  }
-
-  Future<void> _reviewPreset(int index, String title) async {
-    const details = [
-      'Adds culture and history, balanced pace, e-hailing and public transport. If empty, adds Kuala Lumpur, a starting area and landmarks.',
-      'Adds food and nightlife, a relaxed pace and street food dining when unrestricted.',
-      'Adds family and adventure interests, a relaxed pace and family travelers when currently solo.',
-    ];
-    final apply = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(
-          '${details[index]} You can change these choices afterward.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apply preset'),
-          ),
-        ],
-      ),
-    );
-    if (apply == true && mounted) _applyPreset(index);
-  }
-
-  void _smartFill() {
-    final text = _description.text.trim();
-    if (text.isEmpty) return;
-    final suggestions = PlannerSmartFill.localSuggestions(text);
-    T? suggested<T extends Enum>(List<T> values, String key) =>
-        values.where((value) => value.name == suggestions[key]).firstOrNull;
-    setState(() {
-      _travelerType =
-          suggested(TravelerType.values, 'traveler') ?? _travelerType;
-      if (suggested(PaceCategory.values, 'pace') case final pace?) {
-        _profilePaceOverridden = true;
-        _pace = pace;
-      }
-      if (suggested(DietaryPreference.values, 'diet') case final diet?) {
-        _profileDietOverridden = true;
-        _diet = diet;
-      }
-      if (suggestions['interest'] case final String interest) {
-        interests.add(interest);
-      }
-      if (suggestions['transport'] case final String mode) {
-        travelMode = mode;
-        _modeConfirmed = false;
-      }
-      if (destination == 'Kuala Lumpur') {
-        final origin = _klOrigins
-            .where((point) => point.$1 == suggestions['accommodation'])
-            .firstOrNull;
-        if (origin != null) _accommodation = _location(origin);
-      }
-      _fillMessage = suggestions.isEmpty
-          ? context.l10n.planFillNoMatch
-          : context.l10n.planFillLocal;
-    });
-  }
-
   Widget _tripPickerTile({
     required String label,
     String? detail,
@@ -1109,7 +1277,7 @@ class _PlannerPageState extends State<PlannerPage> {
     }) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title),
+        _PlanLabel(title),
         const SizedBox(height: 8),
         _SelectionCardLayout(
           twoColumns: twoColumns,
@@ -1187,15 +1355,6 @@ class _PlannerPageState extends State<PlannerPage> {
             },
           ),
         const SizedBox(height: 8),
-        _tripPickerTile(
-          label: l.planAccommodation,
-          detail: _accommodation?.title,
-          onTap: _chooseAccommodation,
-          onClear: _accommodation == null
-              ? null
-              : () => setState(() => _accommodation = null),
-        ),
-        const SizedBox(height: 8),
         Text(l.planLocalTime, style: Theme.of(context).textTheme.bodySmall),
       ],
       _PlannerGroup.who => [
@@ -1231,24 +1390,6 @@ class _PlannerPageState extends State<PlannerPage> {
           },
         ),
       ],
-      _PlannerGroup.backupTransport => [
-        for (final option in [
-          ('Public Transport', l.planRail),
-          ('Walking', l.planWalk),
-        ])
-          if (option.$1 != travelMode)
-            CheckboxListTile(
-              title: Text(option.$2),
-              value: _secondaryModes.contains(option.$1),
-              onChanged: (enabled) => setState(() {
-                if (enabled == true) {
-                  _secondaryModes.add(option.$1);
-                } else {
-                  _secondaryModes.remove(option.$1);
-                }
-              }),
-            ),
-      ],
       _PlannerGroup.dining => [
         cards(
           l.planDiet,
@@ -1267,20 +1408,115 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
       ],
       _PlannerGroup.highlights => [
-        ListTile(
-          title: Text(l.planMustVisit),
-          trailing: const Icon(Icons.search),
-          onTap: _mustVisit.length >= 3 ? null : _chooseHighlight,
-        ),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final stop in _mustVisit)
-              InputChip(
-                label: Text(stop.title),
-                onDeleted: () => setState(() => _mustVisit.remove(stop)),
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l.planMustVisit,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                  ),
+                  if (_mustVisit.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_mustVisit.length}/3',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    key: const ValueKey('plan-from-saved-places-btn'),
+                    onPressed: _mustVisit.length >= 3
+                        ? null
+                        : _chooseFromSavedPlaces,
+                    icon: const Icon(Icons.bookmark_outline_rounded, size: 17),
+                    label: Text(l.planFromSavedPlaces),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: BorderSide(
+                        color: _mustVisit.length >= 3
+                            ? AppColors.line.withValues(alpha: 0.5)
+                            : AppColors.primary.withValues(alpha: 0.6),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('plan-search-highlight-btn'),
+                    onPressed: _mustVisit.length >= 3 ? null : _chooseHighlight,
+                    icon: const Icon(Icons.search_rounded, size: 17),
+                    label: Text(l.planSearchAttractions),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.ink,
+                      side: const BorderSide(color: AppColors.line),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_mustVisit.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    for (final stop in _mustVisit)
+                      InputChip(
+                        key: ValueKey(
+                          'must-visit-chip-${stop.placeId ?? stop.title}',
+                        ),
+                        avatar: const Icon(
+                          Icons.place_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        label: Text(stop.title),
+                        onDeleted: () =>
+                            setState(() => _mustVisit.remove(stop)),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     };
@@ -1398,58 +1634,6 @@ class _PlannerPageState extends State<PlannerPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _PlannerShortcutCard(
-                  icon: Icons.auto_awesome_outlined,
-                  title: context.l10n.planSmartFill,
-                  subtitle:
-                      'Describe your trip to preview suggested preferences.',
-                  children: [
-                    TextField(
-                      controller: _description,
-                      maxLength: 1000,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: context.l10n.planDescribeTrip,
-                      ),
-                    ),
-                    FilledButton(
-                      onPressed: _reviewSmartFill,
-                      child: Text(context.l10n.planSuggest),
-                    ),
-                    if (_fillMessage != null) ...[
-                      const SizedBox(height: 8),
-                      Text(_fillMessage!),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _PlannerShortcutCard(
-                  icon: Icons.tune_rounded,
-                  title: context.l10n.planPresets,
-                  subtitle:
-                      'Start with a suggested travel style and review its choices.',
-                  children: [
-                    for (final entry in [
-                      context.l10n.planClassic,
-                      context.l10n.planFood,
-                      context.l10n.planFamily,
-                    ].indexed)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(entry.$2),
-                        subtitle: Text(
-                          [
-                            'Culture and landmarks',
-                            'Food and nightlife',
-                            'Family-friendly adventures',
-                          ][entry.$1],
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _reviewPreset(entry.$1, entry.$2),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 _PlanSection(
                   key: const ValueKey('trip-basics-section'),
                   isHighlighted:
@@ -1473,7 +1657,7 @@ class _PlannerPageState extends State<PlannerPage> {
                       label: context.l10n.destination,
                       value: destination == null
                           ? context.l10n.selectDestination
-                          : '$destination, Malaysia',
+                          : destination!,
                       isPlaceholder: destination == null,
                       icon: Icons.place_outlined,
                       isHighlighted: _activeStep == PlanStep.destination,
@@ -1675,6 +1859,7 @@ class _PlannerPageState extends State<PlannerPage> {
                       nested: true,
                       enabled: canEditMode,
                       isHighlighted: _activeStep == PlanStep.travelMode,
+                      quietHighlight: true,
                       onTap: canEditMode
                           ? () => setState(
                               () => _activeStep = PlanStep.travelMode,
@@ -1698,11 +1883,6 @@ class _PlannerPageState extends State<PlannerPage> {
                                 'E-hailing',
                                 'Grab / E-hailing',
                                 Icons.local_taxi_outlined,
-                              ),
-                              (
-                                'Walking',
-                                'Walking',
-                                Icons.directions_walk_outlined,
                               ),
                               (
                                 'Public Transport',
@@ -1731,67 +1911,57 @@ class _PlannerPageState extends State<PlannerPage> {
                         ),
                         if (modeError)
                           const _PlanFieldError('Choose a travel mode.'),
-                        Material(
-                          type: MaterialType.transparency,
-                          child: ListTile(
-                            leading: const Icon(Icons.trip_origin),
-                            title: const Text('Daily starting point'),
-                            subtitle: Text(
-                              _departurePoint?.title ?? 'Choose a place',
-                            ),
-                            onTap: () async {
-                              final point = await showSearch<TravelStop?>(
-                                context: context,
-                                delegate: _DepartureSearch([
-                                  if (destination == 'Kuala Lumpur')
-                                    ..._klOrigins.map(_location),
-                                  ...curatedMalaysianAttractions.map(
-                                    _highlight,
-                                  ),
-                                ], destination),
-                              );
-                              if (!mounted || point == null) return;
-                              setState(() => _departurePoint = point);
-                            },
+                        const SizedBox(height: 8),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
                           ),
+                          leading: const Icon(Icons.place_outlined),
+                          title: Text(context.l10n.planAccommodation),
+                          subtitle: Text(
+                            _departurePoint?.title ??
+                                context.l10n.planChooseStartingPoint,
+                          ),
+                          onTap: _chooseStartingPoint,
+                          trailing: _departurePoint == null
+                              ? const Icon(Icons.chevron_right)
+                              : IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  tooltip: context.l10n.planClearStartingPoint,
+                                  onPressed: () =>
+                                      setState(() => _departurePoint = null),
+                                ),
                         ),
-                        if (travelMode.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          _PlanInlineNote(
-                            icon: travelMode == 'Public Transport'
-                                ? Icons.info_outline
-                                : Icons.check_circle_outline,
-                            text: switch (travelMode) {
-                              'Driving' || 'E-hailing' =>
-                                'Explore further by car or e-hailing.',
-                              'Walking' =>
-                                'Enjoy nearby places at a walking pace.',
-                              _ =>
-                                'Enter a planning estimate per leg, including walking, waiting and transfers.',
-                            },
+                        if (travelMode.isNotEmpty &&
+                            travelMode != 'Public Transport') ...[
+                          const SizedBox(height: 8),
+                          const _PlanInlineNote(
+                            icon: Icons.check_circle_outline,
+                            text: 'Explore further by car or e-hailing.',
                           ),
                         ],
-                        if (travelMode == 'Public Transport')
+                        if (travelMode == 'Public Transport') ...[
+                          const SizedBox(height: 8),
                           TextFormField(
-                            initialValue: _transitPlanningMinutes?.toString(),
+                            initialValue: _transitMinutesInput,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Estimated minutes per leg (1–240)',
+                            decoration: InputDecoration(
+                              labelText: context.l10n.planTransitMinutes,
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.always,
+                              helper: Text(context.l10n.planTransitMinutesHelp),
+                              errorMaxLines: 3,
                             ),
-                            onChanged: (text) {
-                              final minutes = int.tryParse(text);
-                              setState(
-                                () => _transitPlanningMinutes =
-                                    minutes != null &&
-                                        minutes >= 1 &&
-                                        minutes <= 240
-                                    ? minutes
-                                    : null,
-                              );
-                            },
+                            forceErrorText:
+                                _transitMinutesInput.isNotEmpty &&
+                                    _transitPlanningMinutes == null
+                                ? context.l10n.planTransitMinutesError
+                                : null,
+                            onChanged: (text) =>
+                                setState(() => _transitMinutesInput = text),
                           ),
+                        ],
                         if (travelMode.isNotEmpty) ...[
-                          ..._extraFields(_PlannerGroup.backupTransport),
                           _PlanStepContinueButton(
                             onPressed:
                                 travelMode == 'Public Transport' &&
@@ -1802,7 +1972,7 @@ class _PlannerPageState extends State<PlannerPage> {
                                     _advanceToStep(PlanStep.budget);
                                   },
                             label: context.l10n.planContinueBudget,
-                            disabledHint: context.l10n.planUnlockMode,
+                            showDecorations: false,
                           ),
                         ],
                       ],
@@ -1861,10 +2031,7 @@ class _PlannerPageState extends State<PlannerPage> {
                               context.localNumber(days),
                             ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Estimates in Malaysian ringgit (RM) include meals, attraction fees and local transport. Accommodation and travel to the first stop are excluded; prices are not confirmed.',
-                    ),
+                    const SizedBox(height: 16),
                     ..._extraFields(_PlannerGroup.dining),
                     _PlanStepContinueButton(
                       onPressed: budgetCategory.isEmpty
@@ -2032,54 +2199,6 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 }
 
-class _PlannerShortcutCard extends StatelessWidget {
-  const _PlannerShortcutCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.children,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-      side: const BorderSide(color: AppColors.line),
-    );
-    return Material(
-      color: AppColors.nightSurface,
-      shape: shape,
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        shape: const Border(),
-        collapsedShape: const Border(),
-        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.nightAccentContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 21),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(subtitle),
-        ),
-        children: children,
-      ),
-    );
-  }
-}
-
 class _PlanSection extends StatelessWidget {
   const _PlanSection({
     super.key,
@@ -2092,6 +2211,7 @@ class _PlanSection extends StatelessWidget {
     this.enabled = true,
     this.isHighlighted = false,
     this.showHighlightBadge = true,
+    this.quietHighlight = false,
     this.onTap,
   });
 
@@ -2104,17 +2224,19 @@ class _PlanSection extends StatelessWidget {
   final bool enabled;
   final bool isHighlighted;
   final bool showHighlightBadge;
+  final bool quietHighlight;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final emphasize = isHighlighted && !quietHighlight;
     final border = hasError
         ? Border.all(color: Colors.red.shade700, width: 1.5)
-        : isHighlighted
+        : emphasize
         ? Border.all(color: AppColors.primary, width: 2.0)
         : Border.all(color: AppColors.line, width: 1.0);
 
-    final shadows = isHighlighted
+    final shadows = emphasize
         ? [
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.38),
@@ -2129,7 +2251,7 @@ class _PlanSection extends StatelessWidget {
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.all(nested ? 8 : 16),
       decoration: BoxDecoration(
-        color: isHighlighted
+        color: emphasize
             ? Color.alphaBlend(
                 AppColors.primary.withValues(alpha: 0.05),
                 AppColors.nightSurface,
@@ -2148,14 +2270,20 @@ class _PlanSection extends StatelessWidget {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 350),
-                  padding: const EdgeInsets.all(9),
+                  padding: EdgeInsets.all(quietHighlight ? 8 : 9),
                   decoration: BoxDecoration(
-                    color: isHighlighted
+                    color: quietHighlight
+                        ? AppColors.nightRaised
+                        : emphasize
                         ? AppColors.primary.withValues(alpha: 0.22)
                         : AppColors.nightAccentContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, size: 21, color: AppColors.primary),
+                  child: Icon(
+                    icon,
+                    size: 21,
+                    color: quietHighlight ? AppColors.muted : AppColors.primary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2168,7 +2296,7 @@ class _PlanSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isHighlighted && showHighlightBadge)
+                if (emphasize && showHighlightBadge)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
@@ -2548,6 +2676,7 @@ class PlanStepContinueButton extends StatelessWidget {
     this.icon = Icons.arrow_forward_rounded,
     this.hint,
     this.disabledHint,
+    this.showDecorations = true,
   });
 
   final String label;
@@ -2555,6 +2684,7 @@ class PlanStepContinueButton extends StatelessWidget {
   final IconData icon;
   final String? hint;
   final String? disabledHint;
+  final bool showDecorations;
 
   @override
   Widget build(BuildContext context) {
@@ -2564,50 +2694,51 @@ class PlanStepContinueButton extends StatelessWidget {
         : (disabledHint ?? context.l10n.planUnlockDates);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 18.0, bottom: 4.0),
+      padding: EdgeInsets.only(top: showDecorations ? 18 : 16, bottom: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isEnabled)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
+          if (showDecorations)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isEnabled)
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    )
+                  else
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size: 15,
                       color: AppColors.primary,
-                      shape: BoxShape.circle,
                     ),
-                  )
-                else
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    size: 15,
-                    color: AppColors.primary,
-                  ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    hintText,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isEnabled
-                          ? AppColors.primary
-                          : AppColors.primary.withValues(alpha: 0.95),
-                      letterSpacing: 0.2,
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      hintText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isEnabled
+                            ? AppColors.primary
+                            : AppColors.primary.withValues(alpha: 0.95),
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutCubic,
@@ -2625,7 +2756,7 @@ class PlanStepContinueButton extends StatelessWidget {
                     : AppColors.primary.withValues(alpha: 0.7),
                 width: 1.5,
               ),
-              boxShadow: isEnabled
+              boxShadow: isEnabled && showDecorations
                   ? [
                       BoxShadow(
                         color: AppColors.primary.withValues(alpha: 0.45),
@@ -2904,7 +3035,7 @@ class _PlanLabel extends StatelessWidget {
     return Text(
       context.tr(text),
       style: const TextStyle(
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: FontWeight.w700,
         color: AppColors.ink,
       ),
@@ -2924,6 +3055,361 @@ class _PlanFieldError extends StatelessWidget {
       child: Text(
         context.tr(text),
         style: TextStyle(fontSize: 13, color: Colors.red.shade700),
+      ),
+    );
+  }
+}
+
+class _SavedPlacesSelectionSheet extends StatefulWidget {
+  const _SavedPlacesSelectionSheet({
+    required this.savedPlaces,
+    required this.alreadyAddedIds,
+    required this.remainingSlots,
+    this.destination,
+  });
+
+  final List<Attraction> savedPlaces;
+  final Set<String> alreadyAddedIds;
+  final int remainingSlots;
+  final String? destination;
+
+  @override
+  State<_SavedPlacesSelectionSheet> createState() =>
+      _SavedPlacesSelectionSheetState();
+}
+
+class _SavedPlacesSelectionSheetState
+    extends State<_SavedPlacesSelectionSheet> {
+  final Set<Attraction> _selected = {};
+
+  bool _matchesDestination(Attraction place) {
+    if (widget.destination == null || widget.destination!.isEmpty) return false;
+    final dest = widget.destination!.toLowerCase();
+    final area = switch (widget.destination) {
+      'Kuala Lumpur' => 'kl',
+      'Penang' => 'penang',
+      'Melaka' => 'melaka',
+      'Kedah' => 'langkawi',
+      'Perak' => 'ipoh',
+      _ => dest,
+    };
+    if (place.xid.toLowerCase().contains(area)) return true;
+    if (place.name.toLowerCase().contains(dest)) return true;
+    if (place.description?.toLowerCase().contains(dest) ?? false) return true;
+    return false;
+  }
+
+  bool _isAlreadyAdded(Attraction place) {
+    return widget.alreadyAddedIds.contains(place.xid) ||
+        widget.alreadyAddedIds.contains(place.name.trim().toLowerCase());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final sortedPlaces = [...widget.savedPlaces]
+      ..sort((a, b) {
+        final aMatch = _matchesDestination(a) ? 1 : 0;
+        final bMatch = _matchesDestination(b) ? 1 : 0;
+        return bMatch.compareTo(aMatch);
+      });
+
+    final maxCanSelect = widget.remainingSlots;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.nightSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.muted.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.selectSavedPlaces,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.ink,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l.selectSavedPlacesHelp(maxCanSelect.toString()),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: AppColors.muted,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.line),
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount: sortedPlaces.length,
+              separatorBuilder: (_, _) =>
+                  const Divider(height: 1, indent: 52, color: AppColors.line),
+              itemBuilder: (context, index) {
+                final place = sortedPlaces[index];
+                final isAdded = _isAlreadyAdded(place);
+                final isSelected = _selected.contains(place);
+                final matches = _matchesDestination(place);
+                final canSelectMore = _selected.length < maxCanSelect;
+
+                return InkWell(
+                  key: ValueKey('saved-place-item-${place.xid}'),
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: isAdded
+                      ? null
+                      : () {
+                          setState(() {
+                            if (isSelected) {
+                              _selected.remove(place);
+                            } else if (canSelectMore) {
+                              _selected.add(place);
+                            } else {
+                              ScaffoldMessenger.of(
+                                context,
+                              ).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    l.selectSavedPlacesHelp(
+                                      maxCanSelect.toString(),
+                                    ),
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          });
+                        },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: matches
+                                ? AppColors.primary.withValues(alpha: 0.15)
+                                : AppColors.nightCanvas,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: matches
+                                  ? AppColors.primary.withValues(alpha: 0.4)
+                                  : AppColors.line,
+                            ),
+                          ),
+                          child: Icon(
+                            matches
+                                ? Icons.star_border_rounded
+                                : Icons.place_outlined,
+                            size: 20,
+                            color: matches
+                                ? AppColors.primary
+                                : AppColors.muted,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                place.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isAdded
+                                      ? AppColors.muted
+                                      : AppColors.ink,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 4,
+                                children: [
+                                  if (place.category.isNotEmpty)
+                                    Text(
+                                      place.category,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.muted,
+                                      ),
+                                    ),
+                                  if (matches && widget.destination != null)
+                                    Text(
+                                      '• ${l.matchesDestination(widget.destination!)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (isAdded)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.nightCanvas,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.check,
+                                  size: 13,
+                                  color: AppColors.muted,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  l.placeAlreadyAdded,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Checkbox(
+                            value: isSelected,
+                            activeColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            onChanged: isAdded
+                                ? null
+                                : (checked) {
+                                    setState(() {
+                                      if (checked == true) {
+                                        if (canSelectMore) {
+                                          _selected.add(place);
+                                        } else {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).hideCurrentSnackBar();
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                l.selectSavedPlacesHelp(
+                                                  maxCanSelect.toString(),
+                                                ),
+                                              ),
+                                              duration: const Duration(
+                                                seconds: 2,
+                                              ),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
+                                      } else {
+                                        _selected.remove(place);
+                                      }
+                                    });
+                                  },
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.line),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              12,
+              20,
+              12 + MediaQuery.paddingOf(context).bottom,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton(
+                key: const ValueKey('apply-saved-places-confirm-btn'),
+                onPressed: _selected.isEmpty
+                    ? null
+                    : () => Navigator.of(context).pop(_selected.toList()),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  l.applySelectedPlaces(_selected.length.toString()),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

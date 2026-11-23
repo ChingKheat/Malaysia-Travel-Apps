@@ -42,6 +42,18 @@ class AttractionImageResolver {
           'assets/recognition/rajakaliamman_glass_temple.jpg',
         'curated_johor_05' ||
         'wikidata_Q28219616' => 'assets/recognition/johor_zoo.jpg',
+        'curated_johor_06' => 'assets/recognition/danga_bay_waterfront.jpg',
+        'curated_johor_07' => 'assets/recognition/pasar_karat.jpg',
+        'curated_johor_08' =>
+          'assets/recognition/johor_heritage_food_trail.jpg',
+        'curated_johor_09' => 'assets/recognition/puteri_harbour.jpg',
+        'curated_johor_10' => 'assets/recognition/kota_tinggi_waterfalls.jpg',
+        'curated_johor_11' => 'assets/recognition/desaru_beach.jpg',
+        'curated_johor_12' => 'assets/recognition/johor_premium_outlets.jpg',
+        'curated_johor_13' => 'assets/recognition/mid_valley_southkey.jpg',
+        'curated_johor_14' =>
+          'assets/recognition/johor_chinese_heritage_museum.jpg',
+        'curated_johor_15' => 'assets/recognition/johor_bahru_city_square.jpg',
         _ => null,
       };
 
@@ -140,6 +152,66 @@ class AttractionImageResolver {
       author: 'Stress 043',
       license: 'CC BY-SA 4.0',
       source: 'https://commons.wikimedia.org/wiki/File:Zoo_Johor_entrance.jpg',
+    ),
+    'curated_johor_06' => (
+      author: 'derek2688',
+      license: 'CC BY 3.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Danga_bay_-_walkway_by_the_sea_-_panoramio.jpg',
+    ),
+    'curated_johor_07' => (
+      author: 'poya',
+      license: 'CC BY 3.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:JB_Bazar.JPG',
+    ),
+    'curated_johor_08' => (
+      author: 'Paul Ng',
+      license: 'CC BY-SA 2.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Breakfast_tour_of_JB_old_town_-_Flickr.jpg',
+    ),
+    'curated_johor_09' => (
+      author: 'Mohd Fazlin Mohd Effendy Ooi',
+      license: 'CC BY 2.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Puteri_Harbour_in_Johor%2C_Malaysia.jpg',
+    ),
+    'curated_johor_10' => (
+      author: 'Nicolas Lannuzel',
+      license: 'CC BY-SA 2.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Kota_Tinggi_waterfalls_-_Flickr.jpg',
+    ),
+    'curated_johor_11' => (
+      author: 'Chongkian',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Desaru_Beach.jpg',
+    ),
+    'curated_johor_12' => (
+      author: 'Chongkian',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Johor_Premium_Outlets.jpg',
+    ),
+    'curated_johor_13' => (
+      author: 'Chongkian',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Mid_Valley_Southkey.jpg',
+    ),
+    'curated_johor_14' => (
+      author: 'Ralff Nestor Nacor',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Johor_Bahru_Chinese_Heritage_Museum%2C_Malaysia.jpg',
+    ),
+    'curated_johor_15' => (
+      author: 'Ralff Nestor Nacor',
+      license: 'CC BY-SA 4.0',
+      source:
+          'https://commons.wikimedia.org/wiki/File:Johor_Bahru_City_Square%2C_Malaysia.jpg',
     ),
     _ => null,
   };

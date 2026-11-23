@@ -16,7 +16,8 @@ class TravelMatrixService {
   static final _cache =
       <String, ({DateTime at, Map<String, TravelLeg> legs})>{};
 
-  /// At most 20x20 elements. Missing/error responses use labelled distance estimates.
+  /// Looks up pairs among the first ten points (up to 100 elements).
+  /// The scheduler falls back to planning estimates for missing legs.
   Future<Map<String, TravelLeg>> fetch(
     List<TravelStop> stops,
     String mode, {

@@ -9,7 +9,6 @@ import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
-import 'place_classifier.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
 
 class GooglePlacesService {
@@ -100,6 +99,7 @@ class GooglePlacesService {
     required String query,
     bool isMeal = false,
     int maxResults = 8,
+    double indoorShare = 0,
     bool Function()? shouldContinue,
   }) async {
     final rows = await _catalog.load(state: destinationState);
@@ -110,10 +110,23 @@ class GooglePlacesService {
       (a, b) =>
           ((b['rating'] as num?) ?? 0).compareTo((a['rating'] as num?) ?? 0),
     );
+    final limit = maxResults.clamp(0, 32);
+    Iterable<Map<String, dynamic>> ranked = matches;
+    if (indoorShare > 0 && limit > 0) {
+      final indoor = matches.where((row) => row['is_indoor'] == true);
+      // Keep a slot for other venues on mixed-weather trips.
+      final indoorSlots = indoorShare >= 1 || limit == 1
+          ? limit
+          : (limit * indoorShare).ceil().clamp(1, limit - 1);
+      ranked = indoor
+          .take(indoorSlots)
+          .followedBy(matches.where((row) => row['is_indoor'] != true))
+          .followedBy(indoor.skip(indoorSlots));
+    }
     final hydrated = await hydrateRows(
-      matches.take(maxResults.clamp(0, 32)),
+      ranked,
       full: true,
-      limit: 32,
+      limit: limit,
       shouldContinue: shouldContinue,
     );
     return hydrated
@@ -222,6 +235,30 @@ class GooglePlacesService {
     maxResults: 8,
     planner: true,
   );
+
+  static bool addressMatchesState(Object? address, String state) {
+    if (address is! String) return false;
+    final region = address
+        .toLowerCase()
+        .split(',')
+        .map((part) => part.trim())
+        .lastWhere(
+          (part) => part.isNotEmpty && part != 'malaysia',
+          orElse: () => '',
+        )
+        .replaceFirst(RegExp(r'^\d{5}\s+'), '')
+        .replaceFirst(
+          RegExp(r'^(federal territory of |wilayah persekutuan )'),
+          '',
+        )
+        .replaceFirst(RegExp(r'\s+darul\b.*$'), '');
+    final normalizedRegion = switch (region) {
+      'pulau pinang' => 'penang',
+      'malacca' => 'melaka',
+      _ => region,
+    };
+    return normalizedRegion == state.toLowerCase();
+  }
 
   Future<List<Map<String, dynamic>>> _fetchPlacesByText({
     required String query,
@@ -589,10 +626,10 @@ class GooglePlacesService {
       visitMinutes: isMeal ? 75 : 90,
       estimatedCost: SmartItineraryService.estimateVisitCost(
         isMeal ? 'Food' : primaryType,
+        placeId: pId,
+        title: displayName,
       ),
-      isIndoor:
-          place['is_indoor'] as bool? ??
-          PlaceClassifier.classify(category: primaryType, name: displayName),
+      isIndoor: place['is_indoor'] as bool?,
       title: displayName,
       time: timeRange,
       note: '$primaryType • Google Maps',

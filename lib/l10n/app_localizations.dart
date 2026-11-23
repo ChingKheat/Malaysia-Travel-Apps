@@ -5250,7 +5250,7 @@ abstract class AppLocalizations {
   /// No description provided for @planAccommodation.
   ///
   /// In en, this message translates to:
-  /// **'Daily starting point'**
+  /// **'Daily starting point (optional)'**
   String get planAccommodation;
 
   /// No description provided for @planOptionalDetails.
@@ -5280,8 +5280,32 @@ abstract class AppLocalizations {
   /// No description provided for @planChooseStartingPoint.
   ///
   /// In en, this message translates to:
-  /// **'Not set'**
+  /// **'Choose a place'**
   String get planChooseStartingPoint;
+
+  /// No description provided for @planClearStartingPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear starting point'**
+  String get planClearStartingPoint;
+
+  /// No description provided for @planTransitMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes between stops'**
+  String get planTransitMinutes;
+
+  /// No description provided for @planTransitMinutesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 1–240 minutes, including walking, waiting and transfers.'**
+  String get planTransitMinutesHelp;
+
+  /// No description provided for @planTransitMinutesError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from 1 to 240.'**
+  String get planTransitMinutesError;
 
   /// No description provided for @planUndecided.
   ///
@@ -5312,6 +5336,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Must-visit attractions (up to 3)'**
   String get planMustVisit;
+
+  /// No description provided for @planFromSavedPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'From saved places'**
+  String get planFromSavedPlaces;
+
+  /// No description provided for @planSearchAttractions.
+  ///
+  /// In en, this message translates to:
+  /// **'Search all'**
+  String get planSearchAttractions;
+
+  /// No description provided for @applyFromSavedPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply from saved places'**
+  String get applyFromSavedPlaces;
+
+  /// No description provided for @noSavedPlacesToApply.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved places found yet. Bookmark attractions in Explore or save spots in Scan to quickly select them here.'**
+  String get noSavedPlacesToApply;
+
+  /// No description provided for @savedPlacesApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied saved places to your must-visit attractions.'**
+  String get savedPlacesApplied;
+
+  /// No description provided for @selectSavedPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Saved Places'**
+  String get selectSavedPlaces;
+
+  /// No description provided for @selectSavedPlacesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Select up to {count} to add as must-visit attractions.'**
+  String selectSavedPlacesHelp(String count);
+
+  /// No description provided for @applySelectedPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply selected ({count})'**
+  String applySelectedPlaces(String count);
+
+  /// No description provided for @placeAlreadyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Already added'**
+  String get placeAlreadyAdded;
+
+  /// No description provided for @matchesDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches {destination}'**
+  String matchesDestination(String destination);
 
   /// No description provided for @planPresets.
   ///
@@ -5480,6 +5564,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No matching places. Try another search.'**
   String get planNoPlaces;
+
+  /// No description provided for @planAddManualOrigin.
+  ///
+  /// In en, this message translates to:
+  /// **'Add starting point manually'**
+  String get planAddManualOrigin;
+
+  /// No description provided for @planUseCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use current location'**
+  String get planUseCurrentLocation;
+
+  /// No description provided for @planCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Current location'**
+  String get planCurrentLocation;
+
+  /// No description provided for @planCurrentLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t get your location. Try again or choose a place.'**
+  String get planCurrentLocationUnavailable;
+
+  /// No description provided for @planManualOriginHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop a pin at your hotel in a map app. Copy its latitude and longitude here, in that order.'**
+  String get planManualOriginHelp;
+
+  /// No description provided for @planManualOriginName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hotel or place name'**
+  String get planManualOriginName;
+
+  /// No description provided for @planManualOriginNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the hotel or place name.'**
+  String get planManualOriginNameRequired;
+
+  /// No description provided for @planManualOriginCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'Coordinates'**
+  String get planManualOriginCoordinates;
+
+  /// No description provided for @planManualOriginInvalidCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter valid latitude and longitude.'**
+  String get planManualOriginInvalidCoordinates;
 
   /// No description provided for @planAirportTransfer.
   ///
@@ -6117,6 +6255,48 @@ abstract class AppLocalizations {
   /// **'Skipped'**
   String get todayPlanSkipped;
 
+  /// No description provided for @todayPlanBackToItinerary.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to itinerary'**
+  String get todayPlanBackToItinerary;
+
+  /// No description provided for @todayPlanCompletedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All planned visits for today are complete.'**
+  String get todayPlanCompletedSubtitle;
+
+  /// No description provided for @todayPlanExploring.
+  ///
+  /// In en, this message translates to:
+  /// **'Exploring'**
+  String get todayPlanExploring;
+
+  /// No description provided for @todayPlanTransit.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel'**
+  String get todayPlanTransit;
+
+  /// No description provided for @todayPlanReopenDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset day progress'**
+  String get todayPlanReopenDay;
+
+  /// No description provided for @todayPlanReopenPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset progress and restart today’s plan?'**
+  String get todayPlanReopenPrompt;
+
+  /// No description provided for @todayPlanReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get todayPlanReset;
+
   /// No description provided for @viewRoute.
   ///
   /// In en, this message translates to:
@@ -6272,6 +6452,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'East Malaysia'**
   String get eastMalaysia;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPassword;
+
+  /// No description provided for @passwordRecoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get passwordRecoveryTitle;
+
+  /// No description provided for @passwordRecoveryEmailHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the email address you use to log in.'**
+  String get passwordRecoveryEmailHelp;
+
+  /// No description provided for @passwordRecoverySendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get passwordRecoverySendCode;
+
+  /// No description provided for @passwordRecoveryCodeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account uses this email address, a reset code will arrive shortly. Check your spam folder if needed.'**
+  String get passwordRecoveryCodeHelp;
+
+  /// No description provided for @passwordRecoveryCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset code'**
+  String get passwordRecoveryCode;
+
+  /// No description provided for @passwordRecoveryVerifyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify code'**
+  String get passwordRecoveryVerifyCode;
+
+  /// No description provided for @passwordRecoveryInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid reset code. If it has expired, go back and request another one.'**
+  String get passwordRecoveryInvalidCode;
+
+  /// No description provided for @passwordRecoveryExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This reset session expired. Request a new code.'**
+  String get passwordRecoveryExpired;
+
+  /// No description provided for @passwordRecoveryNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get passwordRecoveryNewPassword;
+
+  /// No description provided for @passwordRecoverySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save new password'**
+  String get passwordRecoverySave;
+
+  /// No description provided for @passwordRecoverySamePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a different password.'**
+  String get passwordRecoverySamePassword;
+
+  /// No description provided for @passwordRecoveryUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Password recovery is unavailable right now. Try again in a moment.'**
+  String get passwordRecoveryUnavailable;
+
+  /// No description provided for @passwordRecoverySuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated. Log in with your new password.'**
+  String get passwordRecoverySuccess;
 }
 
 class _AppLocalizationsDelegate

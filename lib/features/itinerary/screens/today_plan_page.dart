@@ -304,6 +304,33 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
     await _save();
   }
 
+  Future<void> _resetDay() async {
+    final l10n = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.todayPlanReopenPrompt),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.todayPlanReset),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _completed.clear();
+    _skipped.clear();
+    _started = true;
+    _paused = false;
+    _ended = false;
+    await _save();
+  }
+
   bool _showsTravel(TravelStop stop) =>
       stop.travelMinutes > 0 && !_skipped.contains(_id(stop));
 
@@ -359,6 +386,12 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
                 ),
               ],
             ),
+          if (_ended || (current == null && _stops.isNotEmpty && _completed.isNotEmpty))
+            IconButton(
+              tooltip: l10n.todayPlanReopenDay,
+              icon: const Icon(Icons.restart_alt_outlined),
+              onPressed: _busy ? null : _resetDay,
+            ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
@@ -404,23 +437,23 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
           ),
         ),
       ),
-      bottomNavigationBar: current != null && !_ended
-          ? Material(
-              color: colors.surface,
-              child: SafeArea(
-                top: false,
-                child: Center(
-                  heightFactor: 1,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 640),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
+      bottomNavigationBar: Material(
+        color: colors.surface,
+        child: SafeArea(
+          top: false,
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: current != null && !_ended
+                      ? FilledButton.icon(
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
                             textStyle: theme.textTheme.labelLarge?.copyWith(
@@ -448,14 +481,24 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
                                 ? l10n.todayPlanResume
                                 : l10n.todayPlanStart,
                           ),
+                        )
+                      : FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            textStyle: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.arrow_back),
+                          label: Text(l10n.todayPlanBackToItinerary),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               ),
-            )
-          : null,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -464,6 +507,13 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
     context.l10n.todayPlanMinutes(stop.visitMinutes),
     ?status,
   ].join(' · ');
+
+  String _formatMins(int minutes) {
+    if (minutes < 60) return context.l10n.todayPlanMinutes(minutes);
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    return mins == 0 ? '${hours}h' : '${hours}h ${mins}m';
+  }
 
   Widget _summary(List<TravelStop> remaining) {
     final l10n = context.l10n;
@@ -474,6 +524,7 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
     );
     final current = remaining.firstOrNull;
     final next = remaining.skip(1).firstOrNull;
+    final isDone = _ended || current == null;
     final status = _ended
         ? l10n.todayPlanEnded
         : current == null
@@ -486,6 +537,13 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
     final origin =
         _stops.where((stop) => _completed.contains(_id(stop))).lastOrNull ??
         widget.preferences.departurePoint;
+
+    final totalVisitMinutes = _stops
+        .where((s) => _completed.contains(_id(s)))
+        .fold<int>(0, (sum, s) => sum + s.visitMinutes);
+    final totalTravelMinutes = _stops
+        .where((s) => _completed.contains(_id(s)))
+        .fold<int>(0, (sum, s) => sum + s.travelMinutes);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -502,7 +560,7 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
             style: caption,
           ),
           const SizedBox(height: 12),
-          if (current != null && !_ended) ...[
+          if (!isDone) ...[
             Text(
               status,
               style: theme.textTheme.labelLarge?.copyWith(
@@ -514,14 +572,37 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
           Semantics(
             header: true,
             liveRegion: true,
-            child: Text(
-              current != null && !_ended ? current.title : status,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              children: [
+                if (isDone) ...[
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: colors.primary,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    !isDone ? current.title : status,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          if (current != null && !_ended) ...[
+          if (isDone) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.todayPlanCompletedSubtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (!isDone) ...[
             const SizedBox(height: 4),
             Text(
               _visitDetails(current),
@@ -530,7 +611,7 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
               ),
             ),
           ],
-          if (next != null && !_ended) ...[
+          if (!isDone && next != null) ...[
             const SizedBox(height: 8),
             Text(
               l10n.todayPlanNext(next.title, next.time.split(' - ').first),
@@ -558,6 +639,43 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
             ),
             style: caption,
           ),
+          if (isDone && _completed.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Divider(color: colors.outline.withValues(alpha: 0.5), height: 1),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _MetricCell(
+                    label: l10n.todayPlanVisited,
+                    value: '${_completed.length} / ${_stops.length}',
+                  ),
+                ),
+                Container(
+                  height: 32,
+                  width: 1,
+                  color: colors.outline.withValues(alpha: 0.5),
+                ),
+                Expanded(
+                  child: _MetricCell(
+                    label: l10n.todayPlanExploring,
+                    value: _formatMins(totalVisitMinutes),
+                  ),
+                ),
+                Container(
+                  height: 32,
+                  width: 1,
+                  color: colors.outline.withValues(alpha: 0.5),
+                ),
+                Expanded(
+                  child: _MetricCell(
+                    label: l10n.todayPlanTransit,
+                    value: _formatMins(totalTravelMinutes),
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (current != null && TripNavigation.hasCoordinates(current)) ...[
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -632,6 +750,8 @@ class _TodayPlanPageState extends State<TodayPlanPage> {
       title: stop.title,
       detail: _visitDetails(stop, status: state),
       active: active,
+      visited: visited,
+      skipped: skipped,
     );
   }
 }
@@ -645,6 +765,8 @@ class _TimelineRow extends StatelessWidget {
     this.last = false,
     this.active = false,
     this.travel = false,
+    this.visited = false,
+    this.skipped = false,
     this.actionLabel,
     this.onTap,
   });
@@ -656,6 +778,8 @@ class _TimelineRow extends StatelessWidget {
   final String detail;
   final bool active;
   final bool travel;
+  final bool visited;
+  final bool skipped;
   final String? actionLabel;
   final VoidCallback? onTap;
 
@@ -674,7 +798,11 @@ class _TimelineRow extends StatelessWidget {
             bottom: last ? null : 0,
             height: last ? 28 : null,
             width: 2,
-            child: ColoredBox(color: colors.outline),
+            child: ColoredBox(
+              color: visited
+                  ? colors.primary.withValues(alpha: 0.35)
+                  : colors.outline,
+            ),
           ),
         Padding(
           padding: const EdgeInsetsDirectional.only(start: 44),
@@ -702,7 +830,14 @@ class _TimelineRow extends StatelessWidget {
                                     ? theme.textTheme.labelLarge?.copyWith(
                                         color: colors.onSurfaceVariant,
                                       )
-                                    : theme.textTheme.titleSmall,
+                                    : theme.textTheme.titleSmall?.copyWith(
+                                        color: skipped
+                                            ? colors.onSurfaceVariant.withValues(alpha: 0.6)
+                                            : null,
+                                        decoration: skipped
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -738,18 +873,66 @@ class _TimelineRow extends StatelessWidget {
               width: travel ? 24 : 32,
               height: travel ? 24 : 32,
               decoration: BoxDecoration(
-                color: active ? colors.primary : theme.scaffoldBackgroundColor,
+                color: active
+                    ? colors.primary
+                    : visited
+                    ? colors.primary.withValues(alpha: 0.12)
+                    : theme.scaffoldBackgroundColor,
                 shape: BoxShape.circle,
                 border: active || travel
                     ? null
-                    : Border.all(color: colors.outline),
+                    : Border.all(
+                        color: visited
+                            ? colors.primary.withValues(alpha: 0.5)
+                            : colors.outline,
+                      ),
               ),
               child: Icon(
                 icon,
                 size: 16,
-                color: active ? colors.onPrimary : colors.onSurfaceVariant,
+                color: active
+                    ? colors.onPrimary
+                    : visited
+                    ? colors.primary
+                    : colors.onSurfaceVariant,
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricCell extends StatelessWidget {
+  const _MetricCell({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+            fontSize: 11,
           ),
         ),
       ],

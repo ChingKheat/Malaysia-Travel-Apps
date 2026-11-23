@@ -22,6 +22,11 @@ import 'package:smart_travel_planner/features/auth/screens/auth_screen.dart';
 import 'package:smart_travel_planner/features/admin/screens/admin_places_screen.dart';
 import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setup_screen.dart';
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
+import 'package:smart_travel_planner/shared/models/attraction.dart';
+import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
+import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
+import 'package:smart_travel_planner/features/places/screens/attraction_list_screen.dart';
+import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.onMyTripsTap, this.imagePicker});
@@ -47,6 +52,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   bool _savingPhoto = false;
   int _statsRequest = 0;
   int _preferencesRequest = 0;
+  List<Attraction> _savedPlaces = [];
+  bool _savedPlacesLoaded = false;
 
   @override
   void initState() {
@@ -56,6 +63,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     _settings.addListener(_loadPreferences);
     _loadStats(refresh: true);
     _loadPreferences();
+    _loadSavedPlaces();
     unawaited(_authService.syncAvatar());
     unawaited(_settings.syncTravel(refresh: true));
   }
@@ -73,7 +81,159 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       unawaited(_settings.syncTravel());
       unawaited(_authService.syncAvatar());
+      _loadSavedPlaces();
     }
+  }
+
+  Future<void> _loadSavedPlaces() async {
+    final uid = _authService.currentUser?.uid ?? 'guest';
+    try {
+      final places = await PlaceWishlistStore(uid).load();
+      if (mounted) {
+        setState(() {
+          _savedPlaces = places;
+          _savedPlacesLoaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _savedPlacesLoaded = true);
+      }
+    }
+  }
+
+  Future<void> _removeSavedPlace(Attraction place) async {
+    final uid = _authService.currentUser?.uid ?? 'guest';
+    demoHaptic();
+    try {
+      await PlaceWishlistStore(uid).remove(place.xid);
+      if (mounted) {
+        setState(() {
+          _savedPlaces.removeWhere((p) => p.xid == place.xid);
+        });
+        showDemoSnackBar(
+          context,
+          context.l10n.removedValueFromSaved(place.name),
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openAttractionDetails(Attraction place) async {
+    final uid = _authService.currentUser?.uid ?? 'guest';
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AttractionDetailPage(
+          attraction: place,
+          isSaved: true,
+          onToggleSaved: (p) {
+            PlaceWishlistStore(uid).toggle(p);
+            return true;
+          },
+        ),
+      ),
+    );
+    if (mounted) _loadSavedPlaces();
+  }
+
+  Widget _buildPlaceThumbnail(Attraction place) {
+    final asset = AttractionImageResolver.resolveAsset(place);
+    final photoUrl = AttractionImageResolver.resolvePhotoUrl(place);
+    final (color, icon, _) = ModernAttractionCard.getCategoryMeta(
+      place.category,
+    );
+
+    Widget fallback() =>
+        ModernAttractionCard.buildFallbackThumbnail(color, icon);
+
+    if (asset != null) {
+      return Image.asset(
+        asset,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback(),
+      );
+    }
+    if (photoUrl != null) {
+      return Image.network(
+        photoUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback(),
+      );
+    }
+    return fallback();
+  }
+
+  void _showSavedPlacesSheet() {
+    showProfileSheet<void>(
+      context,
+      title: context.l10n.yourSavedPlaces,
+      body: (sheetContext) {
+        if (_savedPlaces.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                context.l10n.noSavedPlacesYet,
+                style: const TextStyle(color: AppColors.muted),
+              ),
+            ),
+          );
+        }
+        return Column(
+          children: [
+            for (var i = 0; i < _savedPlaces.length; i++) ...[
+              if (i > 0)
+                const Divider(height: 1, color: AppColors.nightLine, indent: 60),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: _buildPlaceThumbnail(_savedPlaces[i]),
+                  ),
+                ),
+                title: Text(
+                  _savedPlaces[i].name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: AppColors.ink,
+                  ),
+                ),
+                subtitle: Text(
+                  _savedPlaces[i].category.isNotEmpty
+                      ? _savedPlaces[i].category
+                      : context.l10n.attractions,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(
+                    Icons.bookmark_remove_outlined,
+                    size: 20,
+                    color: AppColors.muted,
+                  ),
+                  tooltip: context.l10n.removeFromSaved,
+                  onPressed: () async {
+                    Navigator.pop(sheetContext);
+                    await _removeSavedPlace(_savedPlaces[i]);
+                  },
+                ),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await _openAttractionDetails(_savedPlaces[i]);
+                },
+              ),
+            ],
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _loadStats({bool refresh = false}) async {
@@ -433,6 +593,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
 
             _buildStatistics(),
             const SizedBox(height: 20),
+            _buildSavedPlacesSection(),
+            const SizedBox(height: 20),
             _buildTravelPreferences(),
             const SizedBox(height: 20),
 
@@ -461,6 +623,22 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                           context,
                         ).locale.languageCode]!,
                     onTap: () => showLanguageSelector(context),
+                  ),
+                  const Divider(height: 1, color: AppColors.line, indent: 56),
+                  _buildListTile(
+                    icon: Icons.auto_stories_outlined,
+                    title: _setupGuideTitle(context),
+                    subtitle: _setupGuideSubtitle(context),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const OnboardingSetupScreen(
+                            isRevisit: true,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -629,6 +807,233 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     ),
   );
 
+  Widget _buildSavedPlacesSection() {
+    final places = _savedPlaces;
+
+    return Container(
+      width: double.infinity,
+      decoration: cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.bookmark_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    context.l10n.yourSavedPlaces,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ),
+                if (places.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      context.localNumber(places.length),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  if (places.length > 3) ...[
+                    const SizedBox(width: 6),
+                    TextButton(
+                      onPressed: _showSavedPlacesSheet,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        context.l10n.seeAll,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
+          if (places.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.bookmark_border_rounded,
+                        size: 24,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      context.l10n.noSavedPlacesYet,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.l10n.scanWishlistEmpty,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.muted,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            const Divider(height: 1, color: AppColors.nightLine),
+            for (
+              var i = 0;
+              i < (places.length > 3 ? 3 : places.length);
+              i++
+            ) ...[
+              if (i > 0)
+                const Divider(height: 1, color: AppColors.nightLine, indent: 76),
+              _buildSavedPlaceTile(places[i]),
+            ],
+            if (places.length > 3) ...[
+              const Divider(height: 1, color: AppColors.nightLine),
+              InkWell(
+                onTap: _showSavedPlacesSheet,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${context.l10n.seeAll} (${places.length})',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavedPlaceTile(Attraction place) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openAttractionDetails(place),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: _buildPlaceThumbnail(place),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      place.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      place.category.isNotEmpty
+                          ? place.category
+                          : context.l10n.attractions,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.bookmark_remove_outlined,
+                  size: 20,
+                  color: AppColors.muted,
+                ),
+                tooltip: context.l10n.removeFromSaved,
+                onPressed: () => _removeSavedPlace(place),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatistics() {
     final count = _tripCount;
     final footprint = _footprint;
@@ -638,6 +1043,12 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
         count == null ? null : context.localNumber(count),
         Icons.event_note,
         _openTrips,
+      ),
+      _buildStatCard(
+        context.l10n.savedAttractions,
+        _savedPlacesLoaded ? context.localNumber(_savedPlaces.length) : null,
+        Icons.bookmark_outline_rounded,
+        _showSavedPlacesSheet,
       ),
       _buildStatCard(
         context.l10n.placesVisited,
@@ -656,9 +1067,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final scale = MediaQuery.textScalerOf(context).scale(1);
-        final columns = width / scale >= 270
-            ? 3
-            : (width / scale >= 180 ? 2 : 1);
+        final columns = width / scale >= 540 ? 4 : 2;
         const gap = 8.0;
 
         final rows = <List<Widget>>[];
@@ -741,6 +1150,30 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  String _setupGuideTitle(BuildContext context) {
+    final lang = Localizations.localeOf(context).languageCode;
+    switch (lang) {
+      case 'zh':
+        return '欢迎设置导览 (3步)';
+      case 'ms':
+        return 'Panduan Persediaan (3 Langkah)';
+      default:
+        return 'Welcome Setup Guide (3 Steps)';
+    }
+  }
+
+  String _setupGuideSubtitle(BuildContext context) {
+    final lang = Localizations.localeOf(context).languageCode;
+    switch (lang) {
+      case 'zh':
+        return '重新查看语言选择、位置授权与服务条款';
+      case 'ms':
+        return 'Semak semula pilihan bahasa, lokasi dan terma';
+      default:
+        return 'Review language, location and travel terms';
+    }
   }
 
   Widget _buildListTile({

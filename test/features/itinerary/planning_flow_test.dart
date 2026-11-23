@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
@@ -17,6 +18,7 @@ import 'package:smart_travel_planner/features/itinerary/services/supabase_itiner
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/shared/services/weather_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/travel_matrix_service.dart';
+import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 
 TravelStop place(
   String id, {
@@ -26,6 +28,7 @@ TravelStop place(
   double lat = 3.15,
   double lng = 101.71,
   bool? indoor,
+  String openingHours = 'Hours unverified',
   Map<String, dynamic> hours = const {'open': '09:00', 'close': '18:00'},
 }) => TravelStop(
   title: id,
@@ -33,7 +36,7 @@ TravelStop place(
   note: 'Test venue',
   description: 'Venue',
   duration: '$visit min',
-  openingHours: 'Hours unverified',
+  openingHours: openingHours,
   tips: const [],
   icon: Icons.place,
   color: Colors.blue,
@@ -354,13 +357,20 @@ void main() {
   test(
     'Route matrix parses directed durations, preserves unreachable routes, and falls back on failure',
     () async {
-      final candidates = [place('a'), place('b')];
+      final outsidePool = place('outside', lat: 3.16);
+      final candidates = [
+        place('a'),
+        place('b'),
+        for (var i = 2; i < 10; i++) place('candidate-$i'),
+        outsidePool,
+      ];
       final matrix = TravelMatrixService(
         accessToken: 'test',
         client: MockClient((request) async {
           expect(request.url.host, 'yavslytukzgphvaqspcq.supabase.co');
           expect(jsonDecode(request.body)['operation'], 'matrix');
           expect(jsonDecode(request.body)['mode'], 'Walking');
+          expect(jsonDecode(request.body)['points'], hasLength(10));
           expect(request.headers.containsKey('X-Goog-Api-Key'), false);
           return http.Response(
             jsonEncode([
@@ -385,6 +395,14 @@ void main() {
       expect(legs['a>b']!.minutes, 3);
       expect(legs['a>b']!.estimated, isFalse);
       expect(legs['b>a']!.minutes, greaterThan(1440));
+      final fallback = SchedulingEngine.legFor(
+        candidates.first,
+        outsidePool,
+        prefs(),
+        legs,
+      );
+      expect(fallback.minutes, greaterThan(0));
+      expect(fallback.estimated, isTrue);
       final offline = TravelMatrixService(
         accessToken: 'test',
         client: MockClient((_) async => throw StateError('Offline')),
@@ -457,6 +475,56 @@ void main() {
     expect(result.first.time.startsWith('10:00 AM'), isTrue);
   });
   test(
+    'Skips unknown hours even for a must-visit and allows 24-hour stops',
+    () {
+      final unknown = place('Unverified museum', hours: {});
+      final alwaysOpen = place(
+        'Public square',
+        openingHours: 'Open 24 hours',
+        hours: {},
+      );
+      final stops = SchedulingEngine.schedule(
+        candidates: [unknown, alwaysOpen],
+        preferences: prefs().copyWith(mustVisitPlaces: [unknown]),
+        date: DateTime(2026, 10, 20),
+        visited: {},
+      );
+      expect(stops.map((stop) => stop.title), [alwaysOpen.title]);
+    },
+  );
+  test(
+    'Uses curated hours when catalog candidates have no usable hours',
+    () async {
+      final unknown = place('Unverified museum', hours: {});
+      SharedPreferences.setMockInitialValues({
+        'place_catalog_v2:${SupabaseConfig.supabaseUrl}:Kuala Lumpur':
+            jsonEncode([
+              {
+                'place_id': unknown.placeId,
+                'name': unknown.title,
+                'state': 'Kuala Lumpur',
+                'category': unknown.category,
+                'latitude': unknown.latitude,
+                'longitude': unknown.longitude,
+              },
+            ]),
+      });
+      final generated =
+          await SmartItineraryService.generateLiveItineraryForAllDays(
+            preferences: prefs(
+              budget: 'Medium',
+            ).copyWith(mustVisitPlaces: [unknown]),
+            requireVisits: true,
+          );
+
+      expect(generated, isTrue);
+      final stops = SmartItineraryService.getLiveStops(0)!;
+      expect(stops, isNotEmpty);
+      expect(stops.map((stop) => stop.title), isNot(contains(unknown.title)));
+      expect(SmartItineraryService.dayWarnings[0], contains(unknown.title));
+    },
+  );
+  test(
     'Weekly closure, split hours, and overnight spill use the selected date',
     () {
       final s = place(
@@ -523,12 +591,25 @@ void main() {
     expect(stops.last.time.startsWith('10:47 AM'), isTrue);
   });
   test(
-    'Heavy rain excludes outdoor places and retains indoor alternatives',
+    'Heavy rain schedules reviewed indoor places and skips unreviewed places',
     () {
+      final unreviewedMuseum = GooglePlacesService.convertGooglePlaceToStop(
+        place: {
+          'id': 'unreviewed-museum',
+          'displayName': {'text': 'Unreviewed museum'},
+          'location': {'latitude': 3.15, 'longitude': 101.71},
+          'regularOpeningHours': {'open': '09:00', 'close': '18:00'},
+        },
+        timeRange: '',
+        durationLabel: '90 min',
+      );
+      final unreviewedMarket = place('market');
       final stops = SchedulingEngine.schedule(
         candidates: [
           place('park', indoor: false),
           place('museum', indoor: true),
+          unreviewedMuseum,
+          unreviewedMarket,
         ],
         preferences: prefs(),
         date: DateTime(2026, 10, 20),
@@ -542,6 +623,17 @@ void main() {
         ),
       );
       expect(stops.map((s) => s.title), ['museum']);
+
+      final dryStops = SchedulingEngine.schedule(
+        candidates: [unreviewedMuseum, unreviewedMarket],
+        preferences: prefs(),
+        date: DateTime(2026, 10, 20),
+        visited: {},
+      );
+      expect(
+        dryStops.map((s) => s.title),
+        unorderedEquals(['Unreviewed museum', 'market']),
+      );
     },
   );
   test(

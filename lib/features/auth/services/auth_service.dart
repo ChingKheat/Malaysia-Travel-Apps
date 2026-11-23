@@ -18,9 +18,9 @@ class RegisterResult {
     required this.success,
     required this.message,
     this.user,
-    this.emptyFields = const {},
+    Set<String>? emptyFields,
     this.requiresEmailConfirmation = false,
-  });
+  }) : emptyFields = emptyFields != null ? Set<String>.from(emptyFields) : <String>{};
 }
 
 class LoginResult {
@@ -33,8 +33,8 @@ class LoginResult {
     required this.success,
     required this.message,
     this.user,
-    this.emptyFields = const {},
-  });
+    Set<String>? emptyFields,
+  }) : emptyFields = emptyFields != null ? Set<String>.from(emptyFields) : <String>{};
 }
 
 class AuthService extends ChangeNotifier {
@@ -273,8 +273,13 @@ class AuthService extends ChangeNotifier {
         _isLoading = false;
         notifyListeners();
         return LoginResult(success: false, message: m6RequestTimeout);
-      } catch (_) {
+      } catch (e) {
         // Fall back to local verification if network error or Supabase down
+        if (!_userPasswords.containsKey(cleanEmail)) {
+          _isLoading = false;
+          notifyListeners();
+          return LoginResult(success: false, message: m6RequestTimeout);
+        }
       }
     }
 

@@ -7,7 +7,6 @@ import 'package:smart_travel_planner/l10n/app_localizations.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
-import 'package:smart_travel_planner/features/auth/screens/auth_screen.dart';
 import 'package:smart_travel_planner/features/auth/screens/welcome_screen.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'travel_shell.dart';
@@ -78,13 +77,7 @@ class SmartTravelApp extends StatelessWidget {
               if (!skipOnboarding && !onboarding.isCompleted) {
                 return const OnboardingSetupScreen();
               }
-              if (skipOnboarding) {
-                return const WelcomeScreen(showLanguageSelector: true);
-              }
-              return const AuthScreen(
-                initialTabIndex: 0,
-                showLanguageSelector: false,
-              );
+              return const WelcomeScreen(showLanguageSelector: true);
             },
           ),
         ),

@@ -54,7 +54,17 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('onboarding-cta-button')));
     await tester.pumpAndSettle();
 
-    // Now verified to transition directly to Login page (AuthScreen with Log In tab active)!
+    // Now verified to transition to WelcomeScreen!
+    expect(find.byType(WelcomeScreen), findsOneWidget);
+    expect(find.text('Welcome!'), findsOneWidget);
+    expect(find.text('Smart Travel\nPlanning'), findsOneWidget);
+    expect(find.text('Get Started'), findsOneWidget);
+    expect(find.text('Log In / Sign Up'), findsOneWidget);
+
+    // Tap Log In / Sign Up to verify AuthScreen access
+    await tester.ensureVisible(find.text('Log In / Sign Up'));
+    await tester.tap(find.text('Log In / Sign Up'));
+    await tester.pumpAndSettle();
     expect(find.byType(AuthScreen), findsOneWidget);
     expect(find.text('Log In'), findsWidgets);
     expect(find.text('Create Account'), findsWidgets);

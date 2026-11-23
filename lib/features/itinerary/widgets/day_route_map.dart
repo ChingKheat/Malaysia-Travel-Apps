@@ -48,8 +48,11 @@ class _DayRouteMapState extends State<DayRouteMap> {
           mode: widget.mode,
           routes: _routes,
           onRetry: () {
-            setState(() => _routes = _load());
-            return _routes;
+            final next = _load();
+            setState(() {
+              _routes = next;
+            });
+            return next;
           },
         ),
       ),
@@ -845,8 +848,11 @@ class _FullscreenDayRouteState extends State<_FullscreenDayRoute> {
         mode: widget.mode,
         routes: _routes,
         onRetry: () {
-          setState(() => _routes = widget.serviceRetry());
-          return _routes;
+          final next = widget.serviceRetry();
+          setState(() {
+            _routes = next;
+          });
+          return next;
         },
         fullscreen: true,
         initialLeg: widget.initialLeg,

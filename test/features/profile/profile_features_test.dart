@@ -12,6 +12,8 @@ import 'package:smart_travel_planner/features/profile/screens/profile_page.dart'
 import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
 import 'package:smart_travel_planner/features/profile/services/travel_footprint.dart';
 import 'package:smart_travel_planner/l10n/app_localizations.dart';
+import 'package:smart_travel_planner/shared/models/attraction.dart';
+import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
 
 void main() {
   final auth = AuthService();
@@ -204,6 +206,43 @@ void main() {
     expect(find.text('Fast-paced'), findsOneWidget);
     await tap('Trips Planned');
     expect(openedTrips, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('displays saved places and removes them on tap', (tester) async {
+    await tester.runAsync(auth.loginAsGuest);
+    final uid = auth.currentUser!.uid;
+    final wishlist = PlaceWishlistStore(uid);
+    await wishlist.add(
+      const Attraction(
+        xid: 'attr-1',
+        name: 'Batu Caves',
+        category: 'Landmark',
+        latitude: 3.2379,
+        longitude: 101.6840,
+      ),
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        locale: Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ProfilePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your Saved Places'), findsOneWidget);
+    expect(find.text('Batu Caves'), findsOneWidget);
+
+    final removeBtn = find.byTooltip('Remove from saved').first;
+    await tester.ensureVisible(removeBtn);
+    await tester.tap(removeBtn);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Batu Caves'), findsNothing);
+    expect(find.text('No Saved Places Yet'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

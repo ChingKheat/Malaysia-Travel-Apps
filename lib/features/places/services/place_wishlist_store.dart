@@ -98,6 +98,32 @@ class PlaceWishlistStore {
     return places;
   }
 
+  Future<bool> add(Attraction place) async {
+    final places = await load();
+    if (places.any(
+      (item) =>
+          item.xid == place.xid ||
+          (item.name.isNotEmpty &&
+              item.name.trim().toLowerCase() == place.name.trim().toLowerCase()),
+    )) {
+      return false;
+    }
+    places.add(place);
+    final prefs = await SharedPreferences.getInstance();
+    await _write(prefs, places);
+    return true;
+  }
+
+  Future<bool> remove(String id) async {
+    final places = await load();
+    final before = places.length;
+    places.removeWhere((item) => item.xid == id);
+    if (places.length == before) return false;
+    final prefs = await SharedPreferences.getInstance();
+    await _write(prefs, places);
+    return true;
+  }
+
   Future<void> _write(SharedPreferences prefs, List<Attraction> places) async {
     final saved = await prefs.setString(
       _key,

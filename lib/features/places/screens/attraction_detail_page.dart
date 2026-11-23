@@ -1,3 +1,5 @@
+import 'package:smart_travel_planner/core/config/supabase_config.dart';
+import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import '../utils/attraction_image_resolver.dart';
 import '../widgets/google_place_image.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
@@ -40,6 +42,8 @@ class AttractionDetailPage extends StatefulWidget {
 
 class _AttractionDetailPageState extends State<AttractionDetailPage> {
   late final GooglePlacesService _service;
+  Attraction? _overrideAttraction;
+  Attraction get _attraction => _overrideAttraction ?? widget.attraction;
   late bool _saved;
   GooglePlaceDetails? _details;
   bool _loading = false;
@@ -55,7 +59,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     _service = widget.placesService ?? GooglePlacesService();
     _saved = widget.isSaved;
     _details = widget.initialDetails;
-    if (widget.attraction.googlePlaceId != null && _details == null) {
+    if (_details == null) {
       _refresh();
     }
   }
@@ -72,16 +76,59 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
       _error = null;
     });
     GooglePlaceDetails? details;
-    try {
-      details = await _service.fetchDetails(widget.attraction.googlePlaceId!);
-    } catch (_) {
-      details = null;
+    final googleId = _attraction.googlePlaceId;
+    if (googleId != null) {
+      try {
+        details = await _service.fetchDetails(googleId);
+      } catch (_) {
+        details = null;
+      }
+    } else {
+      // 1. Check real data in Supabase database places table
+      try {
+        final client = SupabaseConfig.client;
+        if (client != null) {
+          final cleanId = _attraction.xid.replaceFirst('google_', '');
+          final row = await client
+              .from('places')
+              .select('operating_hours, rating, user_ratings_total')
+              .eq('place_id', cleanId)
+              .maybeSingle();
+          if (row != null && row['operating_hours'] is Map) {
+            final hoursMap =
+                Map<String, dynamic>.from(row['operating_hours'] as Map);
+            _overrideAttraction =
+                _attraction.copyWith(operatingHours: hoursMap);
+          }
+        }
+      } catch (_) {}
+
+      // 2. Try fetching real Google Places details via API matching
+      try {
+        final state = AttractionMetadataResolver.resolveState(_attraction);
+        final stop = TravelStop(
+          title: _attraction.name,
+          time: '',
+          note: '',
+          description: _attraction.description ?? '',
+          duration: '',
+          openingHours: '',
+          tips: const [],
+          icon: Icons.place,
+          color: Colors.blue,
+          latitude: _attraction.latitude,
+          longitude: _attraction.longitude,
+          category: _attraction.category,
+        );
+        details = await _service.findDetailsForLocalStop(stop, state: state);
+      } catch (_) {}
     }
+
     if (!mounted) return;
     setState(() {
       _loading = false;
       _details = details ?? _details;
-      if (_details == null) {
+      if (_details == null && _attraction.weekdayOpeningHours.isEmpty) {
         _error = _service.lastError ?? 'Place details are unavailable.';
       }
     });
@@ -191,14 +238,19 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final a = widget.attraction;
+    final a = _attraction;
     final details = _details;
 
-    final hours =
-        (details?.hours['weekdayDescriptions'] as List?)
-            ?.whereType<String>()
-            .toList() ??
-        [];
+    final googleHours = (details?.hours['weekdayDescriptions'] as List?)
+        ?.whereType<String>()
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final dbHours = a.weekdayOpeningHours;
+
+    final hours = (googleHours != null && googleHours.isNotEmpty)
+        ? googleHours
+        : dbHours;
 
     final rating = details?.rating ?? a.rating;
     final reviewCount = details?.reviewCount ?? a.userRatingsTotal;
@@ -236,21 +288,26 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
             elevation: 0,
             backgroundColor: AppColors.nightSurface,
             surfaceTintColor: Colors.transparent,
+            systemOverlayStyle: SystemUiOverlayStyle.light,
             leading: Padding(
               padding: const EdgeInsets.all(8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92),
+                  color: Colors.black.withValues(alpha: 0.45),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 8,
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: const BackButton(color: AppColors.primaryDark),
+                child: const BackButton(color: Colors.white),
               ),
             ),
             actions: [
@@ -258,12 +315,20 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
+                    color: _saved
+                        ? AppColors.primary.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.45),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _saved
+                          ? AppColors.primary
+                          : Colors.white.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 8,
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
                     ],
@@ -273,7 +338,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                       _saved
                           ? Icons.bookmark_rounded
                           : Icons.bookmark_border_rounded,
-                      color: _saved ? AppColors.primary : AppColors.primaryDark,
+                      color: _saved ? AppColors.primary : Colors.white,
                       size: 20,
                     ),
                     tooltip: _saved
@@ -288,12 +353,16 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                 padding: const EdgeInsets.only(top: 8, bottom: 8, right: 14),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
+                    color: Colors.black.withValues(alpha: 0.45),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 8,
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
                     ],
@@ -301,7 +370,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                   child: IconButton(
                     icon: const Icon(
                       Icons.share_rounded,
-                      color: AppColors.primaryDark,
+                      color: Colors.white,
                       size: 20,
                     ),
                     tooltip: context.l10n.sharePlace,
@@ -824,19 +893,17 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                                     : FontWeight.w500,
                               ),
                             ),
-                            if (hours.isEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                context
-                                    .l10n
-                                    .operatingHoursMayVaryDuringPublicHolidaysOrSpecialEvents,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.muted,
-                                  fontStyle: FontStyle.italic,
-                                ),
+                            const SizedBox(height: 6),
+                            Text(
+                              context
+                                  .l10n
+                                  .operatingHoursMayVaryDuringPublicHolidaysOrSpecialEvents,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.muted,
+                                fontStyle: FontStyle.italic,
                               ),
-                            ],
+                            ),
                           ],
                         ),
                       ),

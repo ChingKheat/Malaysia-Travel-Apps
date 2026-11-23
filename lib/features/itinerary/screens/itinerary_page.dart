@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:smart_travel_planner/features/itinerary/services/day_route_service.dart';
 import 'package:smart_travel_planner/features/itinerary/widgets/day_route_map.dart';
@@ -180,6 +181,10 @@ class _ItineraryPageState extends State<ItineraryPage>
       );
       return;
     }
+    final previousStopIds = {
+      for (var day = 0; day < _totalDays; day++)
+        ..._rawStopsForDay(day).map(SchedulingEngine.identity),
+    };
     setState(() => _isRegenerating = true);
     try {
       final generated =
@@ -187,6 +192,7 @@ class _ItineraryPageState extends State<ItineraryPage>
             preferences: preferences,
             seed: DateTime.now().microsecondsSinceEpoch,
             requireVisits: true,
+            previousStopIds: previousStopIds,
           );
       if (!mounted) return;
       if (!generated) {
@@ -289,7 +295,7 @@ class _ItineraryPageState extends State<ItineraryPage>
           isGenerated: true,
           date: 'Active Generated Plan',
           detail: '$days days itinerary',
-          destination: '${userPrefs.destination}, Malaysia',
+          destination: userPrefs.destination!,
           budget: userPrefs.budgetCategory ?? 'Medium',
           interests: userPrefs.interests,
           totalDays: days,
@@ -1157,6 +1163,64 @@ class _ItineraryPageState extends State<ItineraryPage>
     }
   }
 
+  Future<void> _editDayPlan(SavedTrip trip) async {
+    final currentStops = _getStopsForDay(_selectedDay);
+    final otherDaysStops = <TravelStop>[];
+    for (int d = 0; d < trip.totalDays; d++) {
+      if (d != _selectedDay) {
+        otherDaysStops.addAll(_getStopsForDay(d));
+      }
+    }
+
+    String? scheduleId;
+    final userPrefs = TripPreferencesService.storedPreferences;
+    final dbTripIdx = userPrefs != null
+        ? _selectedTripIndex - 1
+        : _selectedTripIndex;
+    if (dbTripIdx >= 0 && dbTripIdx < _rawDbItineraries.length) {
+      final itin = _rawDbItineraries[dbTripIdx];
+      if (_selectedDay < itin.dailySchedules.length) {
+        scheduleId = itin.dailySchedules[_selectedDay].scheduleId;
+      }
+    }
+
+    final updatedStops = await Navigator.of(context).push<List<TravelStop>>(
+      MaterialPageRoute(
+        builder: (_) => EditItineraryScreen(
+          tripTitle: trip.title,
+          destination: trip.destination,
+          dayNumber: _selectedDay + 1,
+          initialStops: currentStops,
+          otherDaysStops: otherDaysStops,
+          weatherForecast: _currentDayForecast,
+          scheduleId: scheduleId,
+          preferences: _preferences,
+          scheduleDate: _dateForDay(_selectedDay),
+        ),
+      ),
+    );
+
+    if (!mounted || !context.mounted) return;
+    if (updatedStops != null) {
+      setState(() {
+        if (widget.compactResult) _draftSave = null;
+        final tripKey = _tripKey;
+        _editedTripStops.putIfAbsent(
+          tripKey,
+          () => {},
+        )[_selectedDay] = updatedStops;
+      });
+      showDemoSnackBar(
+        context,
+        context.l10n.dayValuePlanUpdatedValueStops(
+          (_selectedDay + 1).toString(),
+          (updatedStops.length).toString(),
+        ),
+        icon: Icons.check_circle_outline,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.compactResult) return _buildContent(context);
@@ -1295,7 +1359,7 @@ class _ItineraryPageState extends State<ItineraryPage>
         // Horizontally Scrollable Day Selector (Supports 1 to 7+ days without overflowing)
         SizedBox(
           height:
-              56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
+              62 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -1303,8 +1367,13 @@ class _ItineraryPageState extends State<ItineraryPage>
             separatorBuilder: (context, index) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final isSelected = _selectedDay == index;
+              final dayDate = _dateForDay(index);
+              final subtitle = DateFormat.MMMd(
+                Localizations.localeOf(context).toString(),
+              ).format(dayDate);
               return DayPill(
                 label: context.l10n.dayValue((index + 1).toString()),
+                subtitle: subtitle,
                 active: isSelected,
                 onTap: () => _selectDay(index),
               );
@@ -1342,11 +1411,21 @@ class _ItineraryPageState extends State<ItineraryPage>
           children: [
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 if (stops.isNotEmpty &&
                     stops.every((stop) => stop.time.contains(' - ')))
-                  OutlinedButton.icon(
+                  FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => TodayPlanPage(
@@ -1358,10 +1437,19 @@ class _ItineraryPageState extends State<ItineraryPage>
                         ),
                       ),
                     ),
-                    icon: const Icon(Icons.play_arrow),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
                     label: Text(context.l10n.todayPlan),
                   ),
-                TextButton.icon(
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
                   onPressed: () {
                     final target = _dayRouteAnchor.currentContext;
                     if (target != null) {
@@ -1374,7 +1462,7 @@ class _ItineraryPageState extends State<ItineraryPage>
                       );
                     }
                   },
-                  icon: const Icon(Icons.route_outlined),
+                  icon: const Icon(Icons.route_outlined, size: 20),
                   label: Text(context.l10n.viewRoute),
                 ),
               ],
@@ -1385,6 +1473,7 @@ class _ItineraryPageState extends State<ItineraryPage>
               Builder(
                 builder: (context) {
                   final stop = stops[index];
+                  final transport = stop.inboundMode ?? primaryMode;
                   return IntrinsicHeight(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1411,18 +1500,24 @@ class _ItineraryPageState extends State<ItineraryPage>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              if ((stop.inboundMode ?? primaryMode)
-                                  case final transport?
-                                  when index > 0 && stop.travelMinutes > 0)
+                              if (stop.travelMinutes > 0)
                                 Padding(
                                   padding: const EdgeInsets.only(
                                     left: 12,
                                     bottom: 6,
                                   ),
                                   child: Text(
-                                    '${transport == 'E-hailing' ? context.l10n.planHailing : context.tr(transport)}'
-                                    ' · ${stop.travelIsEstimated ? '~' : ''}'
-                                    '${context.l10n.valueMin(context.localNumber(stop.travelMinutes))}',
+                                    [
+                                      if (transport != null)
+                                        transport == 'E-hailing'
+                                            ? context.l10n.planHailing
+                                            : context.tr(transport),
+                                      context.l10n.valueMin(
+                                        context.localNumber(stop.travelMinutes),
+                                      ),
+                                      if (stop.travelIsEstimated)
+                                        context.l10n.todayPlanPlanningEstimate,
+                                    ].join(' · '),
                                     style: const TextStyle(
                                       color: AppColors.muted,
                                     ),
@@ -1448,6 +1543,73 @@ class _ItineraryPageState extends State<ItineraryPage>
                     ),
                   );
                 },
+              ),
+            ],
+            if (stops.isEmpty) ...[
+              const SizedBox(height: 8),
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: AppColors.nightLine),
+                ),
+                color: AppColors.nightSurface,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 32,
+                        color: AppColors.muted,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '0 ${context.l10n.attractions}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.itineraryWarnings(
+                          SmartItineraryService.dayWarnings[_selectedDay] ??
+                              context.l10n.noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours,
+                        ),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => _editDayPlan(trip),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: Text(context.l10n.addStop),
+                            style: demoOutlinedButtonStyle(),
+                          ),
+                          FilledButton.icon(
+                            onPressed: _isRegenerating ? null : _regenerate,
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: Text(
+                              _isRegenerating
+                                  ? context.l10n.generating
+                                  : context.l10n.regenerateItinerary,
+                            ),
+                            style: primaryFilledButtonStyle(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
             const SizedBox(height: 12),
@@ -1480,6 +1642,7 @@ class _ItineraryPageState extends State<ItineraryPage>
           ),
         ?_diningSuggestion(),
         if (_selectedSavedItinerary == null &&
+            stops.isNotEmpty &&
             SmartItineraryService.dayWarnings[_selectedDay]?.isNotEmpty == true)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -1504,64 +1667,7 @@ class _ItineraryPageState extends State<ItineraryPage>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             OutlinedButton.icon(
-              onPressed: () async {
-                final currentStops = _getStopsForDay(_selectedDay);
-                final otherDaysStops = <TravelStop>[];
-                for (int d = 0; d < trip.totalDays; d++) {
-                  if (d != _selectedDay) {
-                    otherDaysStops.addAll(_getStopsForDay(d));
-                  }
-                }
-
-                String? scheduleId;
-                final userPrefs = TripPreferencesService.storedPreferences;
-                final dbTripIdx = userPrefs != null
-                    ? _selectedTripIndex - 1
-                    : _selectedTripIndex;
-                if (dbTripIdx >= 0 && dbTripIdx < _rawDbItineraries.length) {
-                  final itin = _rawDbItineraries[dbTripIdx];
-                  if (_selectedDay < itin.dailySchedules.length) {
-                    scheduleId = itin.dailySchedules[_selectedDay].scheduleId;
-                  }
-                }
-
-                final updatedStops = await Navigator.of(context)
-                    .push<List<TravelStop>>(
-                      MaterialPageRoute(
-                        builder: (_) => EditItineraryScreen(
-                          tripTitle: trip.title,
-                          destination: trip.destination,
-                          dayNumber: _selectedDay + 1,
-                          initialStops: currentStops,
-                          otherDaysStops: otherDaysStops,
-                          weatherForecast: _currentDayForecast,
-                          scheduleId: scheduleId,
-                          preferences: _preferences,
-                          scheduleDate: _dateForDay(_selectedDay),
-                        ),
-                      ),
-                    );
-
-                if (!mounted || !context.mounted) return;
-                if (updatedStops != null) {
-                  setState(() {
-                    if (widget.compactResult) _draftSave = null;
-                    final tripKey = _tripKey;
-                    _editedTripStops.putIfAbsent(
-                      tripKey,
-                      () => {},
-                    )[_selectedDay] = updatedStops;
-                  });
-                  showDemoSnackBar(
-                    context,
-                    context.l10n.dayValuePlanUpdatedValueStops(
-                      (_selectedDay + 1).toString(),
-                      (updatedStops.length).toString(),
-                    ),
-                    icon: Icons.check_circle_outline,
-                  );
-                }
-              },
+              onPressed: () => _editDayPlan(trip),
               icon: const Icon(Icons.edit_calendar_outlined),
               label: Text(
                 context.l10n.editDayValue((_selectedDay + 1).toString()),
@@ -1585,6 +1691,22 @@ class _ItineraryPageState extends State<ItineraryPage>
     );
   }
 
+  IconData _weatherIconFor(String condition) {
+    final lower = condition.toLowerCase();
+    if (lower.contains('thunder') || lower.contains('storm')) {
+      return Icons.thunderstorm_outlined;
+    }
+    if (lower.contains('rain') ||
+        lower.contains('drizzle') ||
+        lower.contains('shower')) {
+      return Icons.water_drop_outlined;
+    }
+    if (lower.contains('cloud') || lower.contains('overcast')) {
+      return Icons.cloud_outlined;
+    }
+    return Icons.wb_sunny_outlined;
+  }
+
   Widget _buildDayIntelligenceBanner(List<TravelStop> stops) {
     final saved = _selectedSavedItinerary;
     final distance =
@@ -1594,11 +1716,22 @@ class _ItineraryPageState extends State<ItineraryPage>
         ? saved.dailySchedules[_selectedDay].totalDistanceKm
         : 0.0;
     final forecast = _currentDayForecast;
+    final requestDate = _dateForDay(_selectedDay);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(
+      requestDate.year,
+      requestDate.month,
+      requestDate.day,
+    );
+    final daysAhead = target.difference(today).inDays;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Wrap(
         spacing: 12,
         runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             '${context.localNumber(stops.length)} ${context.l10n.attractions}',
@@ -1607,7 +1740,82 @@ class _ItineraryPageState extends State<ItineraryPage>
               stops.every((s) => s.latitude != 0 && s.longitude != 0))
             Text('${context.localNumber(distance)} km'),
           if (!_isLoadingWeather && forecast != null && forecast.isAvailable)
-            Text('${forecast.temperatureC}°C · ${forecast.condition}'),
+            InkWell(
+              onTap: () {
+                if (forecast.adviceText.isNotEmpty) {
+                  showDemoSnackBar(
+                    context,
+                    forecast.adviceText,
+                    icon: _weatherIconFor(forecast.condition),
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _weatherIconFor(forecast.condition),
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  const SizedBox(width: 4),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      '${forecast.temperatureC}°C · ${forecast.condition}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (!_isLoadingWeather)
+            InkWell(
+              onTap: () {
+                final msg =
+                    (forecast != null && forecast.adviceText.isNotEmpty)
+                        ? forecast.adviceText
+                        : (daysAhead > 5
+                              ? 'Weather forecast is available within 5 days of travel. Check again closer to your trip.'
+                              : context
+                                    .l10n
+                                    .forecastUnavailableForThisDateWeatherFilteringWasNotApplied);
+                showDemoSnackBar(context, msg, icon: Icons.cloud_off_outlined);
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Tooltip(
+                message:
+                    (forecast != null && forecast.adviceText.isNotEmpty)
+                        ? forecast.adviceText
+                        : (daysAhead > 5
+                              ? 'Weather forecast is available within 5 days of travel. Check again closer to your trip.'
+                              : context
+                                    .l10n
+                                    .forecastUnavailableForThisDateWeatherFilteringWasNotApplied),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_off_outlined,
+                      size: 14,
+                      color: AppColors.muted,
+                    ),
+                    const SizedBox(width: 4),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 160),
+                      child: Text(
+                        daysAhead > 5
+                            ? '${context.l10n.forecastUnavailable} (> 5d)'
+                            : context.l10n.forecastUnavailable,
+                        style: const TextStyle(color: AppColors.muted),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1620,11 +1828,13 @@ class DayPill extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.active = false,
+    this.subtitle,
   });
 
   final String label;
   final VoidCallback onTap;
   final bool active;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -1636,7 +1846,10 @@ class DayPill extends StatelessWidget {
         selected: active,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: subtitle != null ? 8 : 12,
+          ),
           decoration: BoxDecoration(
             color: active
                 ? Theme.of(context).colorScheme.primary
@@ -1650,14 +1863,34 @@ class DayPill extends StatelessWidget {
             ),
           ),
           child: Center(
-            child: Text(
-              context.tr(label),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: active ? AppColors.onNightAccent : AppColors.nightBody,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  context.tr(label),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: active ? AppColors.onNightAccent : AppColors.nightBody,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: active
+                          ? AppColors.onNightAccent.withValues(alpha: 0.85)
+                          : AppColors.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),

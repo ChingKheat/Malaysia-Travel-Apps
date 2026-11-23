@@ -78,11 +78,13 @@ See Google's API contract:
 https://developers.google.com/maps/documentation/routes/compute_route_matrix
 
 Weekly opening periods support closed days, split hours, and overnight intervals.
-Unknown opening hours are explicitly unverified and require confirmation before
-travel. Rain filtering only applies when a forecast is available. The same
-engine validates edits; infeasible edits cannot be saved. Regeneration varies
-priority tie-breaking after confirmation. It may produce the same schedule when
-constraints leave no equivalent alternatives.
+Automatic scheduling skips places with unknown opening hours, including
+must-visit places. If the place catalog provides no opening windows during the
+trip, generation falls back to curated places with usable hours. Rain filtering
+only applies when a forecast is available. The same engine validates edits with
+complete location data. Regeneration varies priority tie-breaking after
+confirmation. It may produce the same schedule when constraints leave no
+equivalent alternatives.
 
 Attractions are never reused to fill exhausted days. An empty day explains that
 no further places fit. Offline coverage depends on the curated catalog; unsupported

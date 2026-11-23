@@ -164,4 +164,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Test description'), findsOneWidget);
   });
+
+  testWidgets('attraction with real database operating hours displays them', (
+    tester,
+  ) async {
+    const attraction = Attraction(
+      xid: 'wikidata_Q1041262',
+      name: 'Central Market',
+      latitude: 3.1458,
+      longitude: 101.6955,
+      category: 'Shopping, Market, Culture',
+      operatingHours: {
+        'weekdayDescriptions': [
+          'Monday: 10:00 AM – 10:00 PM',
+          'Tuesday: 10:00 AM – 10:00 PM',
+        ],
+      },
+    );
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AttractionDetailPage(attraction: attraction),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Central Market'), findsOneWidget);
+    expect(find.textContaining('Monday: 10:00 AM – 10:00 PM'), findsOneWidget);
+    expect(
+      find.text('Opening hours unavailable. Check before visiting.'),
+      findsNothing,
+    );
+  });
 }

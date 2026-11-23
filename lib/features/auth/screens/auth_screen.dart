@@ -7,7 +7,7 @@ import 'package:smart_travel_planner/app/travel_shell.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/auth/widgets/create_account_form.dart';
 import 'package:smart_travel_planner/features/auth/widgets/login_form.dart';
-import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setup_screen.dart';
+import 'package:smart_travel_planner/features/auth/screens/welcome_screen.dart';
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
@@ -126,8 +126,8 @@ class _AuthScreenState extends State<AuthScreen>
                           } else {
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
-                                builder: (_) => const OnboardingSetupScreen(
-                                  isRevisit: true,
+                                builder: (_) => const WelcomeScreen(
+                                  showLanguageSelector: true,
                                 ),
                               ),
                             );

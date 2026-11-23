@@ -410,4 +410,94 @@ const List<Attraction> curatedMalaysianAttractions = [
     sourceUrl: 'https://www.wikidata.org/wiki/Q28219616',
     sourceLicense: 'CC0 1.0 (Wikidata structured data)',
   ),
+  Attraction(
+    xid: 'curated_johor_06',
+    name: 'Danga Bay Waterfront Promenade',
+    latitude: 1.4747,
+    longitude: 103.7226,
+    category: 'Nature, Park, Waterfront',
+    description:
+        'Scenic recreational coastal park along the Johor coast offering relaxing walks, boardwalk views, and family-friendly activities.',
+  ),
+  Attraction(
+    xid: 'curated_johor_07',
+    name: 'Pasar Karat Night Bazaar',
+    latitude: 1.4583,
+    longitude: 103.7645,
+    category: 'Foods, Shopping, Nightlife',
+    description:
+        'Vibrant evening bazaar in downtown Johor Bahru stretching across heritage streets with local skewers, vintage treasures, and clothing.',
+  ),
+  Attraction(
+    xid: 'curated_johor_08',
+    name: 'Johor Bahru Heritage Food Trail',
+    latitude: 1.4560,
+    longitude: 103.7630,
+    category: 'Foods, Dining, Street Food',
+    description:
+        'Famous culinary stretch celebrated for traditional charcoal banana cake, aromatic kopi, Mee Rebus, and herbal duck noodles.',
+  ),
+  Attraction(
+    xid: 'curated_johor_09',
+    name: 'Puteri Harbour Marina Walk',
+    latitude: 1.4175,
+    longitude: 103.6558,
+    category: 'Nature, Viewpoint, Waterfront',
+    description:
+        'Picturesque marina promenade overlooking the Straits of Johor with luxury yachts, relaxing seaside breeze, and open-air bistros.',
+  ),
+  Attraction(
+    xid: 'curated_johor_10',
+    name: 'Kota Tinggi Waterfalls',
+    latitude: 1.8322,
+    longitude: 103.8327,
+    category: 'Nature, Waterfall, Park',
+    description:
+        'Cascading 34-meter natural waterfall at the base of Gunung Muntahak, offering cool mountain pools and scenic rainforest walking trails.',
+  ),
+  Attraction(
+    xid: 'curated_johor_11',
+    name: 'Desaru Coast Beach & Promenade',
+    latitude: 1.5458,
+    longitude: 104.2625,
+    category: 'Nature, Beach, Sights',
+    description:
+        'Pristine 22-kilometer golden coastline along the South China Sea renowned for gentle ocean waves, beach walks, and seaside resorts.',
+  ),
+  Attraction(
+    xid: 'curated_johor_12',
+    name: 'Johor Premium Outlets (JPO)',
+    latitude: 1.6022,
+    longitude: 103.6200,
+    category: 'Shopping, Sights, Landmark',
+    description:
+        'Southeast Asia’s first open-air luxury shopping center featuring over 150 designer stores and beautifully landscaped walkways in Kulai.',
+  ),
+  Attraction(
+    xid: 'curated_johor_13',
+    name: 'The Mall, Mid Valley Southkey',
+    latitude: 1.5002,
+    longitude: 103.7773,
+    category: 'Shopping Mall, Food, Indoor',
+    description:
+        'Premier air-conditioned indoor shopping and dining hub in Johor Bahru featuring major retail brands, cafes, and indoor entertainment.',
+  ),
+  Attraction(
+    xid: 'curated_johor_14',
+    name: 'Johor Bahru Chinese Heritage Museum',
+    latitude: 1.4563,
+    longitude: 103.7640,
+    category: 'Museum, History, Indoor',
+    description:
+        'Four-storey air-conditioned heritage museum in downtown JB preserving the cultural legacy, artifacts, and history of the local community.',
+  ),
+  Attraction(
+    xid: 'curated_johor_15',
+    name: 'Johor Bahru City Square',
+    latitude: 1.4626,
+    longitude: 103.7638,
+    category: 'Shopping Mall, Food, Indoor',
+    description:
+        'Popular multi-level indoor lifestyle mall right by the checkpoint featuring indoor cinema, diverse dining outlets, and fashion stores.',
+  ),
 ];

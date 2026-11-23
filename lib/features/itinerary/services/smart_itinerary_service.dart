@@ -7,6 +7,8 @@ import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/shared/models/weather_forecast.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
+import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
+import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/features/places/services/place_classifier.dart';
 import 'scheduling_engine.dart';
@@ -24,6 +26,8 @@ class _AttractionTemplate {
   final IconData icon;
   final Color color;
   final bool isMeal;
+  final double? latitude;
+  final double? longitude;
 
   const _AttractionTemplate({
     required this.title,
@@ -36,6 +40,8 @@ class _AttractionTemplate {
     required this.icon,
     required this.color,
     this.isMeal = false,
+    this.latitude,
+    this.longitude,
   });
 }
 
@@ -95,25 +101,57 @@ class SmartItineraryService {
     required TripPreferences preferences,
     int seed = 0,
     bool requireVisits = false,
+    Set<String> previousStopIds = const {},
+    GooglePlacesService? placesService,
   }) async {
     final request = ++_request;
     final destination = preferences.destination ?? 'Kuala Lumpur';
+    final dayCount = preferences.numberOfDays ?? 3;
+    final dates = [
+      for (var day = 0; day < dayCount; day++) preferences.dateForDay(day),
+    ];
+    final weatherService = WeatherService();
+    final forecasts = <WeatherForecast>[];
+    for (final date in dates) {
+      forecasts.add(
+        await weatherService.getForecastForDate(state: destination, date: date),
+      );
+      if (request != _request) return false;
+    }
+    final outdoorUnsuitableDays = forecasts
+        .where((day) => day.isAvailable && !day.isSuitableForOutdoor)
+        .length;
+    final indoorShare = dates.isEmpty
+        ? 0.0
+        : outdoorUnsuitableDays / dates.length;
+    bool hasOpeningWindow(TravelStop stop) => dates.any(
+      (date) => SchedulingEngine.intervals(stop, date)?.isNotEmpty == true,
+    );
+    final places = placesService ?? GooglePlacesService();
     List<TravelStop> candidates = [];
-    {
+    try {
+      candidates = await _fetchDatabaseCandidates(
+        destination,
+        prioritizeIndoor: indoorShare > 0,
+      );
+    } catch (_) {}
+
+    if (candidates.isEmpty) {
       try {
-        final service = GooglePlacesService();
         final results = await Future.wait([
-          service.fetchPlacesWithDatabaseCache(
+          places.fetchPlacesWithDatabaseCache(
             destinationState: destination,
             query: 'tourist attractions in $destination Malaysia',
             maxResults: 20,
+            indoorShare: indoorShare,
             shouldContinue: () => request == _request,
           ),
-          service.fetchPlacesWithDatabaseCache(
+          places.fetchPlacesWithDatabaseCache(
             destinationState: destination,
             query: 'local restaurants in $destination Malaysia',
             isMeal: true,
             maxResults: 12,
+            indoorShare: indoorShare,
             shouldContinue: () => request == _request,
           ),
         ]);
@@ -132,22 +170,16 @@ class SmartItineraryService {
       }
     }
     candidates = candidates
-        .where((s) => s.latitude != 0 && s.longitude != 0)
+        .where(
+          (s) => s.latitude != 0 && s.longitude != 0 && hasOpeningWindow(s),
+        )
         .toList();
-    final localCandidates = _offlineCandidates(preferences);
     if (candidates.isEmpty) {
+      final localCandidates = _offlineCandidates(
+        preferences,
+      ).where(hasOpeningWindow).toList();
       candidates = localCandidates;
-    } else if (preferences.budgetCategory == 'Low') {
-      final titles = candidates
-          .map((stop) => _normalizedTitle(stop.title))
-          .toSet();
-      candidates.addAll(
-        localCandidates.where(
-          (stop) => titles.add(_normalizedTitle(stop.title)),
-        ),
-      );
     }
-    final places = GooglePlacesService();
     Future<TravelStop> resolve(TravelStop stop) async =>
         stop.latitude != 0 && stop.longitude != 0
         ? stop
@@ -175,6 +207,7 @@ class SmartItineraryService {
       ])
         if (stop.latitude != 0 &&
             stop.longitude != 0 &&
+            hasOpeningWindow(stop) &&
             !titles.contains(_normalizedTitle(stop.title)) &&
             ids.add(SchedulingEngine.identity(stop)) &&
             titles.add(_normalizedTitle(stop.title)))
@@ -197,11 +230,8 @@ class SmartItineraryService {
       else
         Future.value(<String, TravelLeg>{}),
     ]);
-    final dates = <DateTime>[];
-    final forecasts = <WeatherForecast?>[];
     final legsByDay = <Map<String, TravelLeg>>[];
-    for (var day = 0; day < (preferences.numberOfDays ?? 3); day++) {
-      final date = preferences.dateForDay(day);
+    for (final date in dates) {
       final departureMinutes =
           TripPreferences.minutesOf(preferences.dailyStartTime) ?? 510;
       // Malaysia uses UTC+08:00 year-round.
@@ -217,29 +247,89 @@ class SmartItineraryService {
               departureTime: localSightseeingStart,
             )
           : legs;
-      final weather = await WeatherService().getForecastForDate(
-        state: destination,
-        date: date,
-      );
-      dates.add(date);
-      forecasts.add(weather);
       legsByDay.add(dayLegs);
     }
-    final plannedDays = SchedulingEngine.scheduleTrip(
-      candidates: candidates,
-      preferences: effectivePreferences,
-      dates: dates,
-      weather: forecasts,
-      dailyLegs: legsByDay,
-      walkingLegs: walkingLegs,
-      seed: seed,
-    );
+    List<List<TravelStop>> plan(List<TravelStop> pool) =>
+        SchedulingEngine.scheduleTrip(
+          candidates: pool,
+          preferences: effectivePreferences,
+          dates: dates,
+          weather: forecasts,
+          dailyLegs: legsByDay,
+          walkingLegs: walkingLegs,
+          seed: seed,
+          previousStopIds: previousStopIds,
+        );
+    var plannedDays = plan(candidates);
+    final visitTarget = switch (preferences.paceCategory) {
+      PaceCategory.relaxed => 3,
+      PaceCategory.balanced => 4,
+      PaceCategory.packed => 6,
+      null => 2,
+    };
+    final searchedAnchors = <String>{};
+    final sparseDays = List.generate(dates.length, (day) => day)
+      ..sort((a, b) => plannedDays[a].length.compareTo(plannedDays[b].length));
+    final extraStops = <TravelStop>[];
+    for (final day in sparseDays) {
+      if (request != _request) return false;
+      if (plannedDays[day].length >= visitTarget ||
+          searchedAnchors.length >= 2) {
+        break;
+      }
+      final anchor = plannedDays[day].firstOrNull ?? resolvedOrigin;
+      if (anchor == null ||
+          !searchedAnchors.add(SchedulingEngine.identity(anchor))) {
+        continue;
+      }
+      final nearby = await _nearbySuggestions(
+        places: places,
+        anchor: anchor,
+        state: destination.split(',').first.trim(),
+        indoorOnly:
+            forecasts[day].isAvailable && !forecasts[day].isSuitableForOutdoor,
+        knownIds: ids,
+        shouldContinue: () => request == _request,
+      );
+      for (final stop in nearby) {
+        if (hasOpeningWindow(stop) &&
+            !titles.contains(_normalizedTitle(stop.title)) &&
+            ids.add(SchedulingEngine.identity(stop))) {
+          titles.add(_normalizedTitle(stop.title));
+          extraStops.add(stop);
+        }
+      }
+    }
+    if (extraStops.isNotEmpty && request == _request) {
+      final expanded = plan([...candidates, ...extraStops]);
+      final chosenIds = [
+        ...resolvedPriorities,
+        ...resolvedSelected,
+      ].map(SchedulingEngine.identity).toSet();
+      final originalChosen = plannedDays
+          .expand((day) => day)
+          .map(SchedulingEngine.identity)
+          .where(chosenIds.contains);
+      final expandedIds = expanded
+          .expand((day) => day)
+          .map(SchedulingEngine.identity)
+          .toSet();
+      if (expandedIds.containsAll(originalChosen) &&
+          sparseDays.any(
+            (day) => expanded[day].length > plannedDays[day].length,
+          ) &&
+          sparseDays.every(
+            (day) => expanded[day].length >= plannedDays[day].length,
+          )) {
+        plannedDays = expanded;
+      }
+    }
     final days = <int, List<TravelStop>>{
       for (var day = 0; day < plannedDays.length; day++) day: plannedDays[day],
     };
     final warnings = <int, String>{
       for (var day = 0; day < plannedDays.length; day++)
-        day: _warning(plannedDays[day], forecasts[day]?.isAvailable == true),
+        day: _warning(plannedDays[day], forecasts[day].isAvailable),
     };
     final scheduled = days.values
         .expand((stops) => stops)
@@ -266,19 +356,80 @@ class SmartItineraryService {
     return true;
   }
 
+  static Future<List<TravelStop>> _nearbySuggestions({
+    required GooglePlacesService places,
+    required TravelStop anchor,
+    required String state,
+    required bool indoorOnly,
+    required Set<String> knownIds,
+    required bool Function() shouldContinue,
+  }) async {
+    final name = anchor.title.trim();
+    if (name.isEmpty) return [];
+    final area = name.substring(0, math.min(name.length, 100));
+    final kind = indoorOnly
+        ? 'indoor museums and galleries'
+        : 'visitor attractions';
+    final found = await places.searchPlannerPlaces(
+      query: '$kind near $area',
+      state: state,
+    );
+    if (!shouldContinue()) return [];
+    final ids = found
+        .map((item) => item['id'])
+        .whereType<String>()
+        .where((id) => !knownIds.contains(id))
+        .toSet()
+        .take(4);
+    final details = await Future.wait(ids.map(places.fetchDetails));
+    final nearby = <TravelStop>[];
+    for (final place in details.nonNulls) {
+      final title = place.name;
+      final address = place.address?.toLowerCase() ?? '';
+      final category = place.category ?? 'Attraction';
+      final latitude = place.latitude;
+      final longitude = place.longitude;
+      if (title == null ||
+          title.trim().isEmpty ||
+          !address.trimRight().endsWith('malaysia') ||
+          !GooglePlacesService.addressMatchesState(address, state) ||
+          place.hours.isEmpty ||
+          latitude == null ||
+          longitude == null ||
+          !latitude.isFinite ||
+          !longitude.isFinite ||
+          latitude < 1 ||
+          latitude > 7.5 ||
+          longitude < 99 ||
+          longitude > 120) {
+        continue;
+      }
+      final indoor = PlaceClassifier.classify(category: category, name: title);
+      if (indoorOnly && indoor != true) continue;
+      final stop = GooglePlacesService.convertGooglePlaceToStop(
+        place: {...place.data, 'id': place.id, 'is_indoor': indoor},
+        timeRange: '',
+        durationLabel: '90 min',
+        isMeal: PlaceCatalogService.isMeal({'category': category}),
+      );
+      if (SchedulingEngine.estimate(anchor, stop, 'Driving').distanceKm <= 20) {
+        nearby.add(stop);
+      }
+    }
+    return nearby;
+  }
+
   static String _warning(List<TravelStop> stops, bool weatherAvailable) => [
     if (stops.isEmpty)
       'No additional places fit this day. Try fewer days or wider daily hours.',
     if (!weatherAvailable)
       'Forecast unavailable for this date; weather filtering was not applied.',
+    if (stops.any((s) => s.travelMinutes >= 60))
+      'Some stops require significant travel time (> 60 min). Consider spreading them across separate days or choosing closer places.',
     if (stops.any((s) => s.travelIsEstimated && s.travelMinutes > 0))
       stops.any((stop) => stop.inboundMode == 'Public Transport')
           ? 'Public transport times are planning estimates. Check departures before traveling.'
           : 'Travel times are distance-based estimates.',
-    if (stops.any(
-      (s) => s.operatingHours.isEmpty && s.openingHours.contains('unverified'),
-    ))
-      'Some opening hours are unverified. Confirm before visiting.',
     'Costs are planning estimates, excluding accommodation and travel to the first stop.',
   ].join(' ');
 
@@ -301,21 +452,20 @@ class SmartItineraryService {
         _liveGeneratedDays.containsKey(dayIndex)) {
       return _liveGeneratedDays[dayIndex]!;
     }
-    final visited = <String>{};
-    final candidates = [
-      ...preferences.mustVisitPlaces,
-      ...preferences.selectedPlaces,
-      ..._offlineCandidates(preferences),
-    ];
-    List<TravelStop> stops = [];
-    for (var day = 0; day <= dayIndex; day++) {
-      stops = SchedulingEngine.schedule(
-        candidates: candidates,
-        preferences: preferences,
-        date: preferences.dateForDay(day),
-        visited: visited,
-      );
-    }
+    if (dayIndex < 0) return [];
+    final dayCount = math.max(preferences.numberOfDays ?? 3, dayIndex + 1);
+    final days = SchedulingEngine.scheduleTrip(
+      candidates: [
+        ...preferences.mustVisitPlaces,
+        ...preferences.selectedPlaces,
+        ..._offlineCandidates(preferences),
+      ],
+      preferences: preferences,
+      dates: List.generate(dayCount, preferences.dateForDay),
+      weather: List.filled(dayCount, null),
+      dailyLegs: List.filled(dayCount, const {}),
+    );
+    final stops = days[dayIndex];
     dayWarnings[dayIndex] = _warning(stops, false);
     return stops;
   }
@@ -323,7 +473,39 @@ class SmartItineraryService {
   static String _normalizedTitle(String title) =>
       title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
-  static double estimateVisitCost(String category) {
+  static double estimateVisitCost(
+    String category, {
+    String? placeId,
+    String? title,
+  }) {
+    // Admission published by Yayasan Warisan Johor, Tourism Johor and JMM.
+    // https://ywj.gov.my/faq/
+    // https://tourism.johor.gov.my/making-waves-on-land-mersing-gallery-turns-marine-life-into-an-interactive-adventure/
+    // https://www.jmm.gov.my/en/content/kota-johor-lama-museum
+    const freeIds = {
+      'ChIJwzwNUJlLxTERyUQ43zKJ0Ww',
+      'ChIJfTGpsYFg2jER0-F7D-jajGo',
+    };
+    const freeNames = {
+      'mersingmuseum',
+      'muziummersing',
+      'museumofmersing',
+      'kotatinggimuseum',
+      'muziumkotatinggi',
+      'museumofkotatinggi',
+      'datoonngallery',
+      'galeridatoonn',
+      'galleryofdatoonn',
+      'mersingmarineparkgallery',
+      'johormarineparkgallery',
+      'galeritamanlautmersing',
+      'kotajohorlamamuseum',
+      'muziumkotajohorlama',
+    };
+    if (freeIds.contains(placeId) ||
+        freeNames.contains(_normalizedTitle(title ?? ''))) {
+      return 0;
+    }
     final lower = category.toLowerCase();
     if (RegExp(
       'food|restaurant|dining|cafe',
@@ -338,6 +520,145 @@ class SmartItineraryService {
       return 15;
     }
     return 40;
+  }
+
+  static Future<List<TravelStop>> _fetchDatabaseCandidates(
+    String state, {
+    bool prioritizeIndoor = true,
+  }) async {
+    try {
+      final db = SupabaseConfig.client;
+      if (db == null) return [];
+
+      final cleanState = state.split(',').first.trim();
+      final responses = await Future.wait([
+        // 1. Verified indoor attractions (essential for heavy rain/weather resilience)
+        db
+            .from('places')
+            .select(
+              'place_id,name,state,category,latitude,longitude,rating,user_ratings_total,operating_hours,is_indoor,photo_url',
+            )
+            .ilike('state', '%$cleanState%')
+            .eq('is_indoor', true)
+            .not('name', 'is', null)
+            .neq('name', 'Saved Google place')
+            .not('latitude', 'is', null)
+            .neq('latitude', 0)
+            .order('rating', ascending: false, nullsFirst: false)
+            .limit(30)
+            .timeout(const Duration(seconds: 8)),
+
+        // 2. Sightseeing attractions
+        db
+            .from('places')
+            .select(
+              'place_id,name,state,category,latitude,longitude,rating,user_ratings_total,operating_hours,is_indoor,photo_url',
+            )
+            .ilike('state', '%$cleanState%')
+            .neq('category', 'Food')
+            .not('name', 'is', null)
+            .neq('name', 'Saved Google place')
+            .not('latitude', 'is', null)
+            .neq('latitude', 0)
+            .order('rating', ascending: false, nullsFirst: false)
+            .limit(40)
+            .timeout(const Duration(seconds: 8)),
+
+        // 3. Local dining spots
+        db
+            .from('places')
+            .select(
+              'place_id,name,state,category,latitude,longitude,rating,user_ratings_total,operating_hours,is_indoor,photo_url',
+            )
+            .ilike('state', '%$cleanState%')
+            .eq('category', 'Food')
+            .not('name', 'is', null)
+            .neq('name', 'Saved Google place')
+            .not('latitude', 'is', null)
+            .neq('latitude', 0)
+            .order('rating', ascending: false, nullsFirst: false)
+            .limit(25)
+            .timeout(const Duration(seconds: 8)),
+      ]);
+
+      final seenIds = <String>{};
+      final stops = <TravelStop>[];
+
+      for (final rows in responses) {
+        for (final item in rows) {
+          final pId = item['place_id']?.toString() ?? '';
+          if (pId.isEmpty || !seenIds.add(pId)) continue;
+
+          final name = item['name']?.toString() ?? '';
+          final category = item['category']?.toString() ?? 'Attraction';
+          final isMeal = PlaceCatalogService.isMeal(item);
+          final lat = (item['latitude'] as num?)?.toDouble() ?? 0.0;
+          final lng = (item['longitude'] as num?)?.toDouble() ?? 0.0;
+          if (lat == 0.0 || lng == 0.0) continue;
+
+          final isIndoor = item['is_indoor'] as bool? ??
+              PlaceClassifier.classify(category: category, name: name);
+
+          Map<String, dynamic> opHours;
+          if (item['operating_hours'] is Map &&
+              (item['operating_hours'] as Map).isNotEmpty) {
+            opHours = Map<String, dynamic>.from(item['operating_hours'] as Map);
+          } else {
+            opHours = isMeal
+                ? {'open': '10:00', 'close': '22:00'}
+                : {'open': '09:00', 'close': '21:00'};
+          }
+
+          final hoursStr =
+              (opHours['weekdayDescriptions'] as List?)?.join('; ') ??
+              (isMeal
+                  ? 'Daily, 10:00 AM - 10:00 PM'
+                  : 'Daily, 9:00 AM - 9:00 PM');
+
+          final rating = item['rating'];
+          final reviewCount = item['user_ratings_total'];
+          final photoUrl = item['photo_url']?.toString();
+
+          stops.add(
+            TravelStop(
+              placeId: pId,
+              title: name,
+              time: '',
+              note: '$category • Database',
+              description: '$category in $state',
+              duration: isMeal ? '75 min' : '90 min',
+              openingHours: hoursStr,
+              operatingHours: opHours,
+              category: category,
+              latitude: lat,
+              longitude: lng,
+              isIndoor: isIndoor,
+              visitMinutes: isMeal ? 75 : 90,
+              estimatedCost: estimateVisitCost(category, placeId: pId, title: name),
+              dataSource: 'database',
+              photoUrls:
+                  photoUrl != null && photoUrl.isNotEmpty ? [photoUrl] : const [],
+              icon: isMeal
+                  ? Icons.restaurant
+                  : (isIndoor == true ? Icons.museum : Icons.place),
+              color: isMeal
+                  ? const Color(0xFFFF8A3D)
+                  : (isIndoor == true
+                      ? const Color(0xFF0D9488)
+                      : AppColors.primary),
+              tips: [
+                if (rating != null) 'Rating: $rating',
+                if (reviewCount != null) '$reviewCount reviews',
+                'From Supabase Database',
+              ],
+            ),
+          );
+        }
+      }
+      return stops;
+    } catch (_) {
+      return [];
+    }
   }
 
   static List<TravelStop> _offlineCandidates(TripPreferences preferences) {
@@ -389,13 +710,22 @@ class SmartItineraryService {
           'food|dining|restaurant',
           caseSensitive: false,
         ).hasMatch(a.category);
+        final isNight = RegExp(
+          'night|pasar|bazaar|pub|bar',
+          caseSensitive: false,
+        ).hasMatch('${a.name} ${a.category}');
+        final openingHours = isNight
+            ? 'Daily, 5:00 PM - 11:00 PM'
+            : meal
+            ? 'Daily, 10:00 AM - 9:00 PM'
+            : 'Daily, 9:00 AM - 6:00 PM';
         pool[a.xid] = TravelStop(
           title: a.name,
           time: '',
           note: 'Offline catalog • Hours and costs estimated',
           description: a.description ?? '',
           duration: meal ? '75 min' : '90 min',
-          openingHours: 'Hours unverified',
+          openingHours: openingHours,
           tips: const [
             'Confirm opening hours and ticket prices before visiting.',
           ],
@@ -405,7 +735,7 @@ class SmartItineraryService {
           placeId: a.xid,
           latitude: a.latitude,
           longitude: a.longitude,
-          estimatedCost: estimateVisitCost(a.category),
+          estimatedCost: estimateVisitCost(a.category, placeId: a.xid, title: a.name),
           visitMinutes: meal ? 75 : 90,
           isIndoor: PlaceClassifier.classify(
             category: a.category,
@@ -441,9 +771,9 @@ class SmartItineraryService {
     final attraction = matches.isEmpty ? null : matches.first;
     return TravelStop(
       placeId: attraction?.xid,
-      latitude: attraction?.latitude ?? 0,
-      longitude: attraction?.longitude ?? 0,
-      estimatedCost: estimateVisitCost(template.category),
+      latitude: attraction?.latitude ?? template.latitude ?? 0,
+      longitude: attraction?.longitude ?? template.longitude ?? 0,
+      estimatedCost: estimateVisitCost(template.category, title: template.title),
       visitMinutes: template.durationMinutes,
       isIndoor: PlaceClassifier.classify(
         category: template.category,
@@ -667,7 +997,7 @@ class SmartItineraryService {
           color: Color(0xFF0284C7),
         ),
         const _AttractionTemplate(
-          title: 'Dinner at Jonker Walk Night Market',
+          title: 'Jonker Walk Heritage Night Market',
           category: 'Food',
           note: 'Weekend street bazaar & artisan crafts',
           description:
@@ -688,90 +1018,404 @@ class SmartItineraryService {
 
     // 3. JOHOR
     if (destLower.contains('johor')) {
-      return [
-        const _AttractionTemplate(
-          title: 'Sultan Abu Bakar State Mosque',
-          category: 'Culture',
-          note: 'Victorian-Moorish architectural heritage',
-          description:
-              'Overlooking the Straits of Johor, this 19th-century royal mosque features ornate minarets resembling British clocktowers.',
-          durationMinutes: 75,
-          openingHours: 'Daily, 9:00 AM - 5:00 PM',
-          tips: [
-            'Dress respectfully',
-            'Stunning strait views',
-            'Quiet morning atmosphere',
-          ],
-          icon: Icons.account_balance,
-          color: Color(0xFF0D9488),
-        ),
-        const _AttractionTemplate(
-          title: 'Tan Hiok Nee Cultural Street',
-          category: 'Culture',
-          note: 'Heritage shophouses & artisan cafes',
-          description:
-              'A vibrant heritage zone preserving traditional bakeries, antique stores, and modern lifestyle coffee shops in downtown Johor Bahru.',
-          durationMinutes: 80,
-          openingHours: 'Daily, 9:00 AM - 6:00 PM',
-          tips: [
-            'Buy charcoal banana bread at Hiap Joo',
-            'Visit the Red House',
-            'Pedestrian friendly walk',
-          ],
-          icon: Icons.storefront,
-          color: Color(0xFF2563EB),
-        ),
-        const _AttractionTemplate(
-          title: 'Lunch at Johor Bahru Heritage Food Trail',
-          category: 'Food',
-          note: 'Traditional Hainanese chicken & noodles',
-          description:
-              'Enjoy traditional JB-style Mee Rebus, fresh charcoal toast, aromatic kopi, and herbal duck noodles.',
-          durationMinutes: 75,
-          openingHours: 'Daily, 11:30 AM - 9:00 PM',
-          tips: [
-            'Pair charcoal toast with soft boiled eggs',
-            'Try Johor style Mee Rebus',
-            'Air-conditioned dining',
-          ],
-          icon: Icons.restaurant,
-          color: Color(0xFFFF8A3D),
-          isMeal: true,
-        ),
-        const _AttractionTemplate(
-          title: 'Danga Bay Waterfront Promenade',
-          category: 'Nature',
-          note: 'Coastal sea breeze & amusement rides',
-          description:
-              'Scenic waterfront recreational park along the Johor coast offering relaxing walks, boat views, and family-friendly sights.',
-          durationMinutes: 90,
-          openingHours: 'Daily, 3:00 PM - 11:00 PM',
-          tips: [
-            'Great sea breeze near sunset',
-            'Theme park rides for kids',
-            'Scenic boardwalk photos',
-          ],
-          icon: Icons.water,
-          color: Color(0xFF16A34A),
-        ),
-        const _AttractionTemplate(
-          title: 'Dinner at Pasar Karat Night Bazaar',
-          category: 'Food',
-          note: 'Evening vintage market & street food',
-          description:
-              'Vibrant night bazaar stretching through central JB streets with local skewers, roti john, and vintage shopping.',
-          durationMinutes: 90,
-          openingHours: 'Daily, 6:00 PM - 12:00 AM',
-          tips: [
-            'Bargain gently for vintage items',
-            'Try grilled satay skewers',
-            'Short walk from CIQ complex',
-          ],
-          icon: Icons.nightlife,
-          color: Color(0xFFEA580C),
-          isMeal: true,
-        ),
-      ];
+      final dayNum = (dayIndex % 3) + 1;
+      switch (dayNum) {
+        case 2:
+          return [
+            const _AttractionTemplate(
+              title: 'The Mall, Mid Valley Southkey',
+              category: 'Shopping Mall',
+              note: 'Premier indoor shopping & lifestyle destination',
+              description:
+                  'Expansive air-conditioned indoor mega-mall in Johor Bahru featuring major retail brands, cinema, local dining, and family entertainment.',
+              durationMinutes: 120,
+              openingHours: 'Daily, 10:00 AM - 10:00 PM',
+              tips: [
+                'Over 300 international and local stores',
+                'Fully air-conditioned indoor comfort',
+                'Excellent rainy-day shopping & dining',
+              ],
+              icon: Icons.shopping_bag,
+              color: Color(0xFFD97706),
+              latitude: 1.5002,
+              longitude: 103.7773,
+            ),
+            const _AttractionTemplate(
+              title: 'Johor Bahru Chinese Heritage Museum',
+              category: 'Museum',
+              note: 'Air-conditioned 4-storey cultural legacy museum',
+              description:
+                  'Rich cultural museum downtown documenting the heritage, traditions, and early pioneer history of the Chinese community in Johor Bahru.',
+              durationMinutes: 75,
+              openingHours: 'Tue - Sun, 9:00 AM - 5:00 PM',
+              tips: [
+                'Explore all 4 floors of heritage artifacts',
+                'Fully air-conditioned indoor gallery',
+                'Short walk from Tan Hiok Nee street',
+              ],
+              icon: Icons.museum,
+              color: Color(0xFF0D9488),
+              latitude: 1.4563,
+              longitude: 103.7640,
+            ),
+            const _AttractionTemplate(
+              title: 'Johor Bahru City Square',
+              category: 'Shopping Mall',
+              note: 'Multi-level indoor shopping & entertainment center',
+              description:
+                  'Vibrant indoor shopping mall near the Causeway featuring a wide array of fashion outlets, restaurants, and entertainment.',
+              durationMinutes: 90,
+              openingHours: 'Daily, 10:00 AM - 10:00 PM',
+              tips: [
+                'Directly linked to JB Sentral',
+                'Diverse indoor food court & cafes',
+                'Popular rainy day lifestyle hub',
+              ],
+              icon: Icons.local_mall,
+              color: Color(0xFF2563EB),
+              latitude: 1.4626,
+              longitude: 103.7638,
+            ),
+            const _AttractionTemplate(
+              title: 'Legoland Malaysia Resort',
+              category: 'Theme Park',
+              note: 'Asia’s premier interactive Lego theme & water park',
+              description:
+                  'Over 70 hands-on rides, roller coasters, water slides, and incredible Miniland Asian landmarks built from Lego bricks.',
+              durationMinutes: 180,
+              openingHours: 'Daily, 10:00 AM - 6:00 PM',
+              tips: [
+                'Arrive early for popular coasters',
+                'Bring swimwear for the water park',
+                'Download mobile app for live wait times',
+              ],
+              icon: Icons.attractions,
+              color: Color(0xFFE11D48),
+              latitude: 1.4273,
+              longitude: 103.6299,
+            ),
+            const _AttractionTemplate(
+              title: 'Lunch at Medini Mall & Dining',
+              category: 'Food',
+              note: 'Modern air-conditioned dining hub near Legoland',
+              description:
+                  'Convenient mall directly opposite Legoland entrance featuring local Malaysian delicacies, cafes, and family restaurants.',
+              durationMinutes: 75,
+              openingHours: 'Daily, 10:00 AM - 9:00 PM',
+              tips: [
+                'Direct walkway from Legoland',
+                'Family-friendly meal choices',
+                'Air-conditioned comfort',
+              ],
+              icon: Icons.restaurant,
+              color: Color(0xFFFF8A3D),
+              isMeal: true,
+              latitude: 1.4290,
+              longitude: 103.6335,
+            ),
+            const _AttractionTemplate(
+              title: 'Puteri Harbour Marina Walk',
+              category: 'Nature',
+              note: 'Scenic coastal marina promenade & yachts',
+              description:
+                  'Picturesque waterfront walkway overlooking Straits of Johor with luxury yachts, open-air cafes, and refreshing sea breeze.',
+              durationMinutes: 75,
+              openingHours: 'Daily, 10:00 AM - 10:00 PM',
+              tips: [
+                'Great waterfront photo views',
+                'Relaxing afternoon breeze',
+                'Sunset yacht views',
+              ],
+              icon: Icons.directions_boat,
+              color: Color(0xFF0284C7),
+              latitude: 1.4175,
+              longitude: 103.6558,
+            ),
+            const _AttractionTemplate(
+              title: 'Danga Bay Waterfront Promenade',
+              category: 'Nature',
+              note: 'Coastal sea breeze & waterfront boardwalk',
+              description:
+                  'Scenic recreational park along the Johor coast offering relaxing walks, boat views, and family-friendly sights.',
+              durationMinutes: 90,
+              openingHours: 'Daily, 3:00 PM - 11:00 PM',
+              tips: [
+                'Great sea breeze near sunset',
+                'Theme park rides for kids',
+                'Scenic boardwalk photos',
+              ],
+              icon: Icons.water,
+              color: Color(0xFF16A34A),
+              latitude: 1.4747,
+              longitude: 103.7226,
+            ),
+            const _AttractionTemplate(
+              title: 'Dinner at Senibong Cove Seafood Village',
+              category: 'Food',
+              note: 'Seaside dining overlooking Johor Straits',
+              description:
+                  'Famous waterfront seafood village known for chili crab, butter prawns, grilled fish, and scenic views across to Singapore.',
+              durationMinutes: 90,
+              openingHours: 'Daily, 5:00 PM - 11:30 PM',
+              tips: [
+                'Book outdoor seaside table for sunset',
+                'Must try black pepper crab',
+                'Live seafood selection',
+              ],
+              icon: Icons.nightlife,
+              color: Color(0xFFEA580C),
+              isMeal: true,
+              latitude: 1.4880,
+              longitude: 103.8290,
+            ),
+          ];
+
+        case 3:
+          return [
+            const _AttractionTemplate(
+              title: 'Kota Tinggi Waterfalls',
+              category: 'Nature',
+              note: 'Cascading natural falls at Gunung Muntahak',
+              description:
+                  'Scenic 34-meter natural cascading waterfall surrounded by lush tropical rainforest, natural pools, and cooling mountain streams.',
+              durationMinutes: 120,
+              openingHours: 'Daily, 9:00 AM - 5:00 PM',
+              tips: [
+                'Bring swimwear and waterproof pouch',
+                'Natural cooling mountain water',
+                'Wear slip-resistant footwear',
+              ],
+              icon: Icons.landscape,
+              color: Color(0xFF16A34A),
+              latitude: 1.8322,
+              longitude: 103.8327,
+            ),
+            const _AttractionTemplate(
+              title: 'Lunch at Kota Tinggi Local Delights',
+              category: 'Food',
+              note: 'Traditional bak kut teh & heritage noodles',
+              description:
+                  'Famous claypot herbal bak kut teh, river prawns, and fragrant local coffee in heritage town of Kota Tinggi.',
+              durationMinutes: 75,
+              openingHours: 'Daily, 10:00 AM - 8:30 PM',
+              tips: [
+                'Try claypot herbal soup with fried dough',
+                'Local Hainanese toast and coffee',
+                'Casual friendly service',
+              ],
+              icon: Icons.restaurant,
+              color: Color(0xFFFF8A3D),
+              isMeal: true,
+              latitude: 1.7300,
+              longitude: 103.8990,
+            ),
+            const _AttractionTemplate(
+              title: 'Desaru Coast Beach & Promenade',
+              category: 'Nature',
+              note: 'Pristine 22km golden sand coastline',
+              description:
+                  'Sweeping sandy shores along the South China Sea offering gentle waves, beach walks, and tropical resort relaxation.',
+              durationMinutes: 105,
+              openingHours: 'Daily, 8:00 AM - 7:00 PM',
+              tips: [
+                'Wide open golden sand beach',
+                'Great for relaxing coastal strolls',
+                'Sun protection recommended',
+              ],
+              icon: Icons.beach_access,
+              color: Color(0xFF0D9488),
+              latitude: 1.5458,
+              longitude: 104.2625,
+            ),
+            const _AttractionTemplate(
+              title: 'The Mall, Mid Valley Southkey',
+              category: 'Shopping Mall',
+              note: 'Premier indoor shopping & lifestyle destination',
+              description:
+                  'Expansive air-conditioned indoor mega-mall in Johor Bahru featuring major retail brands, cinema, local dining, and family entertainment.',
+              durationMinutes: 120,
+              openingHours: 'Daily, 10:00 AM - 10:00 PM',
+              tips: [
+                'Over 300 international and local stores',
+                'Fully air-conditioned indoor comfort',
+                'Excellent rainy-day shopping & dining',
+              ],
+              icon: Icons.shopping_bag,
+              color: Color(0xFFD97706),
+              latitude: 1.5002,
+              longitude: 103.7773,
+            ),
+            const _AttractionTemplate(
+              title: 'Johor Premium Outlets (JPO)',
+              category: 'Shopping',
+              note: 'Southeast Asia’s first luxury outlet center',
+              description:
+                  'Open-air designer shopping haven featuring over 150 brand-name stores offering daily discounts in a modern landscaped center.',
+              durationMinutes: 120,
+              openingHours: 'Daily, 10:00 AM - 10:00 PM',
+              tips: [
+                'Over 150 designer brand stores',
+                'Open-air landscaped mall with dining',
+                'Comfortable covered walkways',
+              ],
+              icon: Icons.shopping_bag,
+              color: Color(0xFF7C3AED),
+              latitude: 1.6022,
+              longitude: 103.6200,
+            ),
+            const _AttractionTemplate(
+              title: 'Dinner at Meldrum Night Food Street',
+              category: 'Food',
+              note: 'Bustling downtown JB street gastronomy',
+              description:
+                  'Famous culinary back-alley in Johor Bahru renowned for barbecue chicken wings, fried kway teow, and crispy oyster omelettes.',
+              durationMinutes: 80,
+              openingHours: 'Daily, 5:00 PM - 11:30 PM',
+              tips: [
+                'Signature BBQ chicken wings',
+                'Authentic local street atmosphere',
+                'Short walk from JB Sentral',
+              ],
+              icon: Icons.nightlife,
+              color: Color(0xFFEA580C),
+              isMeal: true,
+              latitude: 1.4600,
+              longitude: 103.7660,
+            ),
+          ];
+
+        default: // Day 1
+          return [
+            const _AttractionTemplate(
+              title: 'Sultan Abu Bakar State Mosque',
+              category: 'Culture',
+              note: 'Victorian-Moorish architectural heritage',
+              description:
+                  'Overlooking the Straits of Johor, this 19th-century royal mosque features ornate minarets resembling British clocktowers.',
+              durationMinutes: 75,
+              openingHours: 'Daily, 9:00 AM - 5:00 PM',
+              tips: [
+                'Dress respectfully',
+                'Stunning strait views',
+                'Quiet morning atmosphere',
+              ],
+              icon: Icons.account_balance,
+              color: Color(0xFF0D9488),
+              latitude: 1.4569555555556,
+              longitude: 103.75105277778,
+            ),
+            const _AttractionTemplate(
+              title: 'Johor Zoo',
+              category: 'Nature',
+              note: 'Historic wildlife zoological gardens',
+              description:
+                  'One of the oldest zoos in Asia, featuring tropical birds, big cats, primates, and shaded walking paths near the royal palace.',
+              durationMinutes: 75,
+              openingHours: 'Daily, 9:00 AM - 5:00 PM',
+              tips: [
+                'Directly adjacent to State Mosque',
+                'Shaded morning animal exhibits',
+                'Family friendly walking paths',
+              ],
+              icon: Icons.pets,
+              color: Color(0xFF16A34A),
+              latitude: 1.4575,
+              longitude: 103.75225,
+            ),
+            const _AttractionTemplate(
+              title: 'Lunch at Johor Bahru Heritage Food Trail',
+              category: 'Food',
+              note: 'Traditional Hainanese chicken & noodles',
+              description:
+                  'Enjoy traditional JB-style Mee Rebus, fresh charcoal toast, aromatic kopi, and herbal duck noodles.',
+              durationMinutes: 75,
+              openingHours: 'Daily, 11:30 AM - 9:00 PM',
+              tips: [
+                'Pair charcoal toast with soft boiled eggs',
+                'Try Johor style Mee Rebus',
+                'Air-conditioned dining',
+              ],
+              icon: Icons.restaurant,
+              color: Color(0xFFFF8A3D),
+              isMeal: true,
+              latitude: 1.4560,
+              longitude: 103.7630,
+            ),
+            const _AttractionTemplate(
+              title: 'Tan Hiok Nee Cultural Street',
+              category: 'Culture',
+              note: 'Heritage shophouses & artisan cafes',
+              description:
+                  'A vibrant heritage zone preserving traditional bakeries, antique stores, and modern lifestyle coffee shops in downtown Johor Bahru.',
+              durationMinutes: 80,
+              openingHours: 'Daily, 9:00 AM - 6:00 PM',
+              tips: [
+                'Buy charcoal banana bread at Hiap Joo',
+                'Visit the Red House',
+                'Pedestrian friendly walk',
+              ],
+              icon: Icons.storefront,
+              color: Color(0xFF2563EB),
+              latitude: 1.4566,
+              longitude: 103.7638,
+            ),
+            const _AttractionTemplate(
+              title: 'Johor Bahru Chinese Heritage Museum',
+              category: 'Museum',
+              note: 'Air-conditioned 4-storey cultural legacy museum',
+              description:
+                  'Rich cultural museum downtown documenting the heritage, traditions, and early pioneer history of the Chinese community in Johor Bahru.',
+              durationMinutes: 75,
+              openingHours: 'Tue - Sun, 9:00 AM - 5:00 PM',
+              tips: [
+                'Explore all 4 floors of heritage artifacts',
+                'Fully air-conditioned indoor gallery',
+                'Short walk from Tan Hiok Nee street',
+              ],
+              icon: Icons.museum,
+              color: Color(0xFF0D9488),
+              latitude: 1.4563,
+              longitude: 103.7640,
+            ),
+            const _AttractionTemplate(
+              title: 'Arulmigu Sri Rajakaliamman Glass Temple',
+              category: 'Culture',
+              note: 'Unique glass-mosaic Hindu sanctuary',
+              description:
+                  'World-famous Hindu temple covered in nearly 300,000 pieces of sparkling colored glass imported from Thailand and Belgium.',
+              durationMinutes: 60,
+              openingHours: 'Daily, 9:00 AM - 6:00 PM',
+              tips: [
+                'Spectacular glass mosaic interior',
+                'Shoe removal required before entering',
+                'Unique cultural architecture in JB',
+              ],
+              icon: Icons.temple_hindu,
+              color: Color(0xFF7C3AED),
+              latitude: 1.46861111,
+              longitude: 103.75972222,
+            ),
+            const _AttractionTemplate(
+              title: 'Dinner at Pasar Karat Night Bazaar',
+              category: 'Food',
+              note: 'Evening vintage market & street food',
+              description:
+                  'Vibrant night bazaar stretching through central JB streets with local skewers, roti john, and vintage shopping.',
+              durationMinutes: 90,
+              openingHours: 'Daily, 6:00 PM - 12:00 AM',
+              tips: [
+                'Bargain gently for vintage items',
+                'Try grilled satay skewers',
+                'Short walk from CIQ complex',
+              ],
+              icon: Icons.nightlife,
+              color: Color(0xFFEA580C),
+              isMeal: true,
+              latitude: 1.4583,
+              longitude: 103.7645,
+            ),
+          ];
+      }
     }
 
     // 4. SABAH

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/features/auth/widgets/password_recovery_dialog.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key, this.onSuccess});
@@ -31,7 +32,8 @@ class _LoginFormState extends State<LoginForm> {
         _errorMessage == AuthService.m3LoginInvalidEmail ||
         _errorMessage == AuthService.m2LoginMandatory) {
       setState(() {
-        _highlightedEmptyFields.remove('email');
+        _highlightedEmptyFields = Set<String>.from(_highlightedEmptyFields)
+          ..remove('email');
         if (_errorMessage == AuthService.m3LoginInvalidEmail ||
             (_highlightedEmptyFields.isEmpty &&
                 _errorMessage == AuthService.m2LoginMandatory)) {
@@ -45,7 +47,8 @@ class _LoginFormState extends State<LoginForm> {
     if (_highlightedEmptyFields.contains('password') ||
         _errorMessage == AuthService.m2LoginMandatory) {
       setState(() {
-        _highlightedEmptyFields.remove('password');
+        _highlightedEmptyFields = Set<String>.from(_highlightedEmptyFields)
+          ..remove('password');
         if (_highlightedEmptyFields.isEmpty &&
             _errorMessage == AuthService.m2LoginMandatory) {
           _errorMessage = null;
@@ -67,7 +70,7 @@ class _LoginFormState extends State<LoginForm> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _highlightedEmptyFields.clear();
+      _highlightedEmptyFields = <String>{};
     });
 
     final result = await _authService.loginUser(
@@ -81,7 +84,7 @@ class _LoginFormState extends State<LoginForm> {
       _isLoading = false;
       if (!result.success) {
         _errorMessage = result.message;
-        _highlightedEmptyFields = result.emptyFields;
+        _highlightedEmptyFields = Set<String>.from(result.emptyFields);
       }
     });
 
@@ -94,6 +97,25 @@ class _LoginFormState extends State<LoginForm> {
       );
       widget.onSuccess?.call();
     }
+  }
+
+  Future<void> _recoverPassword() async {
+    FocusScope.of(context).unfocus();
+    final recoveredEmail = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PasswordRecoveryDialog(initialEmail: _emailController.text),
+    );
+    if (!mounted || recoveredEmail == null) return;
+    setState(() {
+      _errorMessage = null;
+      _highlightedEmptyFields.clear();
+      _emailController.text = recoveredEmail;
+      _passwordController.clear();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.l10n.passwordRecoverySuccess)),
+    );
   }
 
   @override
@@ -249,6 +271,13 @@ class _LoginFormState extends State<LoginForm> {
                     ),
                   ),
                 ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _isLoading ? null : _recoverPassword,
+              child: Text(context.l10n.forgotPassword),
+            ),
+          ),
         ],
       ),
     );

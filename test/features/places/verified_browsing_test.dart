@@ -73,6 +73,16 @@ void main() {
           'curated_johor_03',
           'curated_johor_04',
           'curated_johor_05',
+          'curated_johor_06',
+          'curated_johor_07',
+          'curated_johor_08',
+          'curated_johor_09',
+          'curated_johor_10',
+          'curated_johor_11',
+          'curated_johor_12',
+          'curated_johor_13',
+          'curated_johor_14',
+          'curated_johor_15',
         ]),
       );
 

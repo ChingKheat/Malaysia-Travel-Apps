@@ -95,7 +95,7 @@ class _HomePageState extends State<HomePage> {
         isGenerated: true,
         date: 'Active Planned Trip',
         detail: '${userPrefs.numberOfDays ?? 3} days itinerary',
-        destination: '${userPrefs.destination}, Malaysia',
+        destination: userPrefs.destination!,
         budget: userPrefs.budgetCategory ?? 'Medium',
         interests: userPrefs.interests,
         totalDays: userPrefs.numberOfDays ?? 3,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:smart_travel_planner/core/localization/language_controller.dart';
-import 'package:smart_travel_planner/features/auth/screens/auth_screen.dart';
+import 'package:smart_travel_planner/features/auth/screens/welcome_screen.dart';
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 import 'package:smart_travel_planner/features/onboarding/widgets/onboarding_terms_sheet.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
@@ -211,11 +211,11 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
     if (widget.isRevisit) {
       Navigator.maybePop(context);
     } else {
-      // Transition directly to Login screen (AuthScreen with initialTabIndex = 0)
+      // Transition directly to WelcomeScreen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) =>
-              const AuthScreen(initialTabIndex: 0, showLanguageSelector: false),
+              const WelcomeScreen(showLanguageSelector: true),
         ),
       );
     }

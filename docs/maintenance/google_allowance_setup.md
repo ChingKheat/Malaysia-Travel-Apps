@@ -1,9 +1,13 @@
 # Verify Google allowance before enabling retrieval
 
-The `google-places` Edge Function reserves usage in `google_api_budgets` before
-contacting Google. New installations and new billing months are blocked until
-a trusted operator verifies usage. The Admin Database Hub cannot approve its
-own allowance; it shows the verified remaining search requests.
+The `google-places` Edge Function reserves usage in `google_api_budgets` for
+search and basic details. These operations require a verified budget
+for the current billing month. The Admin Database Hub shows the verified
+remaining search requests.
+
+Full place details, photos, directions and travel-time matrices use Google
+Cloud quotas and billing directly. Track these requests in Google Cloud because
+the Edge Function skips the Supabase allowance check and counter for them.
 
 ## Before verification
 
@@ -14,9 +18,8 @@ own allowance; it shows the verified remaining search requests.
 2. In Google Cloud Billing/Maps usage, verify each SKU across **all projects on
    the billing account**. Allow for delayed usage reporting and outstanding calls.
    Do not infer monthly usage from the latest admin sync history.
-3. Route all Places and Routes requests through this Edge Function. Other apps,
-   keys or projects spending the same SKU are outside this counter: reserve their
-   usage conservatively in the baseline, or keep retrieval blocked.
+3. Route app requests through the server proxy. For budgeted SKUs, account for
+   usage by other apps, keys or projects in the baseline.
 
 ## Default limits (units per US Pacific calendar month)
 
@@ -24,15 +27,8 @@ own allowance; it shows the verified remaining search requests.
 |---|---:|---:|
 | text_search_pro | 4,000 | 5,000 requests |
 | details_pro | 4,000 | 5,000 requests |
-| details_enterprise | Uncapped (`NULL`) | 1,000 requests |
-| photos | 5,000 | 1,000 photographs |
-| routes_essentials | 8,000 | 10,000 requests |
-| route_matrix_essentials | 8,000 | 10,000 origin × destination elements |
 
-The database accepts nonnegative limits. For `details_enterprise`, `NULL`
-removes the app cap while preserving usage tracking and verification. Google
-quotas and billing still apply. To remove the cap for the current month on an
-existing project, run `docs/google_enterprise_uncapped_update.sql`.
+The database accepts nonnegative limits for the operations in the table.
 Published prices must be rechecked if Google changes its SKUs or free allowances.
 
 Use a trusted SQL session to configure **each verified SKU separately**. Replace
@@ -57,8 +53,7 @@ appropriate if external usage could change.
 
 The admin button requires at least 48 verified search units before starting its
 bounded state sync. Every actual search page reserves one unit. Basic displayed
-details reserve `details_pro`; itinerary/detail-screen requests reserve
-`details_enterprise`. A 10-point matrix reserves 100 elements. Failed/timed-out
+details reserve `details_pro`. Failed or timed-out budgeted
 requests are not refunded because Google may have received them.
 
 Only `service_role` can reserve units; the mobile public key cannot modify the

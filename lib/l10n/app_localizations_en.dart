@@ -3091,7 +3091,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planAirport => 'Airport departure · allow 3 hours';
 
   @override
-  String get planAccommodation => 'Daily starting point';
+  String get planAccommodation => 'Daily starting point (optional)';
 
   @override
   String get planOptionalDetails => 'Optional trip details';
@@ -3106,7 +3106,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planSetDeparture => 'Not set';
 
   @override
-  String get planChooseStartingPoint => 'Not set';
+  String get planChooseStartingPoint => 'Choose a place';
+
+  @override
+  String get planClearStartingPoint => 'Clear starting point';
+
+  @override
+  String get planTransitMinutes => 'Minutes between stops';
+
+  @override
+  String get planTransitMinutesHelp =>
+      'Enter 1–240 minutes, including walking, waiting and transfers.';
+
+  @override
+  String get planTransitMinutesError => 'Enter a whole number from 1 to 240.';
 
   @override
   String get planUndecided => 'Undecided';
@@ -3122,6 +3135,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planMustVisit => 'Must-visit attractions (up to 3)';
+
+  @override
+  String get planFromSavedPlaces => 'From saved places';
+
+  @override
+  String get planSearchAttractions => 'Search all';
+
+  @override
+  String get applyFromSavedPlaces => 'Apply from saved places';
+
+  @override
+  String get noSavedPlacesToApply =>
+      'No saved places found yet. Bookmark attractions in Explore or save spots in Scan to quickly select them here.';
+
+  @override
+  String get savedPlacesApplied =>
+      'Applied saved places to your must-visit attractions.';
+
+  @override
+  String get selectSavedPlaces => 'Select Saved Places';
+
+  @override
+  String selectSavedPlacesHelp(String count) {
+    return 'Select up to $count to add as must-visit attractions.';
+  }
+
+  @override
+  String applySelectedPlaces(String count) {
+    return 'Apply selected ($count)';
+  }
+
+  @override
+  String get placeAlreadyAdded => 'Already added';
+
+  @override
+  String matchesDestination(String destination) {
+    return 'Matches $destination';
+  }
 
   @override
   String get planPresets => 'Quick presets';
@@ -3209,6 +3260,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planNoPlaces => 'No matching places. Try another search.';
+
+  @override
+  String get planAddManualOrigin => 'Add starting point manually';
+
+  @override
+  String get planUseCurrentLocation => 'Use current location';
+
+  @override
+  String get planCurrentLocation => 'Current location';
+
+  @override
+  String get planCurrentLocationUnavailable =>
+      'Couldn’t get your location. Try again or choose a place.';
+
+  @override
+  String get planManualOriginHelp =>
+      'Drop a pin at your hotel in a map app. Copy its latitude and longitude here, in that order.';
+
+  @override
+  String get planManualOriginName => 'Hotel or place name';
+
+  @override
+  String get planManualOriginNameRequired => 'Enter the hotel or place name.';
+
+  @override
+  String get planManualOriginCoordinates => 'Coordinates';
+
+  @override
+  String get planManualOriginInvalidCoordinates =>
+      'Enter valid latitude and longitude.';
 
   @override
   String get planAirportTransfer => 'Estimated transfer time to the airport';
@@ -3568,6 +3649,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todayPlanSkipped => 'Skipped';
 
   @override
+  String get todayPlanBackToItinerary => 'Back to itinerary';
+
+  @override
+  String get todayPlanCompletedSubtitle =>
+      'All planned visits for today are complete.';
+
+  @override
+  String get todayPlanExploring => 'Exploring';
+
+  @override
+  String get todayPlanTransit => 'Travel';
+
+  @override
+  String get todayPlanReopenDay => 'Reset day progress';
+
+  @override
+  String get todayPlanReopenPrompt =>
+      'Reset progress and restart today’s plan?';
+
+  @override
+  String get todayPlanReset => 'Reset';
+
+  @override
   String get viewRoute => 'View route';
 
   @override
@@ -3661,4 +3765,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eastMalaysia => 'East Malaysia';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get passwordRecoveryTitle => 'Reset password';
+
+  @override
+  String get passwordRecoveryEmailHelp =>
+      'Enter the email address you use to log in.';
+
+  @override
+  String get passwordRecoverySendCode => 'Send code';
+
+  @override
+  String get passwordRecoveryCodeHelp =>
+      'If an account uses this email address, a reset code will arrive shortly. Check your spam folder if needed.';
+
+  @override
+  String get passwordRecoveryCode => 'Reset code';
+
+  @override
+  String get passwordRecoveryVerifyCode => 'Verify code';
+
+  @override
+  String get passwordRecoveryInvalidCode =>
+      'Enter a valid reset code. If it has expired, go back and request another one.';
+
+  @override
+  String get passwordRecoveryExpired =>
+      'This reset session expired. Request a new code.';
+
+  @override
+  String get passwordRecoveryNewPassword => 'New password';
+
+  @override
+  String get passwordRecoverySave => 'Save new password';
+
+  @override
+  String get passwordRecoverySamePassword => 'Choose a different password.';
+
+  @override
+  String get passwordRecoveryUnavailable =>
+      'Password recovery is unavailable right now. Try again in a moment.';
+
+  @override
+  String get passwordRecoverySuccess =>
+      'Password updated. Log in with your new password.';
 }

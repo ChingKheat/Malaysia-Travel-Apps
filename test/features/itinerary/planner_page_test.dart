@@ -1,13 +1,284 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/itinerary_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
+import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
+import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 
 void main() {
+  const locationChannel = MethodChannel('flutter.baseflow.com/geolocator');
+
+  testWidgets('the generated schedule starts from the selected GPS position', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final messenger = tester.binding.defaultBinaryMessenger;
+    final calls = <String>[];
+    messenger.setMockMethodCallHandler(locationChannel, (call) async {
+      calls.add(call.method);
+      return switch (call.method) {
+        'isLocationServiceEnabled' => true,
+        'checkPermission' => 0,
+        'requestPermission' => 2,
+        'getCurrentPosition' => {'latitude': 3.1579, 'longitude': 101.7123},
+        _ => null,
+      };
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(locationChannel, null),
+    );
+    addTearDown(TripPreferencesService.clearPreferences);
+    addTearDown(SmartItineraryService.clearLiveCache);
+
+    final travelDay = DateUtils.dateOnly(
+      DateTime.now(),
+    ).add(const Duration(days: 7));
+    await _openPlanner(
+      tester,
+      initialDestination: 'Kuala Lumpur',
+      enableTestingBypass: true,
+      initialTravelDates: DateTimeRange(start: travelDay, end: travelDay),
+      initialDailyStartTime: const TimeOfDay(hour: 8, minute: 0),
+      initialDailyEndTime: const TimeOfDay(hour: 20, minute: 0),
+      initialInterests: const {'Culture'},
+      initialBudgetCategory: 'Medium',
+      initialTravelMode: 'Driving',
+    );
+    await _choose(tester, 'Daily starting point (optional)');
+    expect(calls, isEmpty);
+    await _choose(tester, 'Use current location');
+    expect(calls, [
+      'isLocationServiceEnabled',
+      'checkPermission',
+      'requestPermission',
+      'getCurrentPosition',
+    ]);
+    expect(find.text('Current location'), findsOneWidget);
+    expect(find.byTooltip('Clear starting point'), findsOneWidget);
+    await _choose(tester, 'Generate My Itinerary');
+
+    final origin = TripPreferencesService.storedPreferences?.dailyOrigin;
+    expect(origin?.latitude, 3.1579);
+    expect(origin?.longitude, 101.7123);
+    expect(find.byType(ItineraryPage), findsOneWidget);
+  });
+
+  testWidgets('a place can still be chosen when GPS is unavailable', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(locationChannel, (_) async => false);
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(locationChannel, null),
+    );
+
+    await _openPlanner(
+      tester,
+      initialDestination: 'Kuala Lumpur',
+      enableTestingBypass: true,
+    );
+    await _choose(tester, 'Daily starting point (optional)');
+    await _choose(tester, 'Use current location');
+    expect(
+      find.text('Couldn’t get your location. Try again or choose a place.'),
+      findsOneWidget,
+    );
+    await _choose(tester, 'KL Sentral');
+    expect(find.text('KL Sentral'), findsOneWidget);
+  });
+
+  testWidgets('daily starting point suggestions stay in the trip state', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final places = GooglePlacesService(
+      endpoint: 'https://project.test/functions/v1/google-places',
+      accessToken: 'test-session',
+      client: MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['operation'], 'planner_search');
+        expect(body['state'], 'Johor');
+        return http.Response(
+          jsonEncode({
+            'places': [
+              {
+                'id': 'ChIJPetronasKL',
+                'displayName': {'text': 'Petronas Twin Towers (KLCC)'},
+                'formattedAddress':
+                    'Jalan Ampang, 50088 Kuala Lumpur, Malaysia',
+                'location': {'latitude': 3.1579, 'longitude': 101.7116},
+              },
+              {
+                'id': 'ChIJPetronasJohor',
+                'displayName': {'text': 'PETRONAS Johor Bahru'},
+                'formattedAddress':
+                    "Jalan Tampoi, 81200 Johor Bahru, Johor Darul Ta'zim, Malaysia",
+                'location': {'latitude': 1.49, 'longitude': 103.71},
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+    await _openPlanner(
+      tester,
+      initialDestination: 'Johor',
+      enableTestingBypass: true,
+      startingPointPlaces: places,
+    );
+    await _choose(tester, 'Daily starting point (optional)');
+
+    final outOfState = find.text('Petronas Twin Towers (KLCC)');
+    expect(outOfState, findsNothing);
+    expect(find.text('Tan Hiok Nee Cultural Street'), findsOneWidget);
+    final legolandRow = find.widgetWithText(
+      ListTile,
+      'Legoland Malaysia Resort',
+    );
+    final legolandPhoto = tester.widget<Image>(
+      find.descendant(of: legolandRow, matching: find.byType(Image)),
+    );
+    expect(
+      (legolandPhoto.image as ResizeImage).imageProvider,
+      const AssetImage('assets/recognition/legoland_malaysia.jpg'),
+    );
+
+    await tester.enterText(find.byType(TextField), 'petronas');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(outOfState, findsNothing);
+    final localResult = find.text('PETRONAS Johor Bahru');
+    expect(localResult.hitTestable(), findsOneWidget);
+    final onlineRow = find.widgetWithText(ListTile, 'PETRONAS Johor Bahru');
+    expect(
+      find.descendant(
+        of: onlineRow,
+        matching: find.byIcon(Icons.place_outlined),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(localResult);
+    await tester.pumpAndSettle();
+    expect(localResult, findsOneWidget);
+  });
+
+  testWidgets(
+    'typing a partial daily starting point shows selectable matches',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final queries = <String>[];
+      final places = GooglePlacesService(
+        endpoint: 'https://project.test/functions/v1/google-places',
+        accessToken: 'test-session',
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['operation'], 'planner_search');
+          expect(body['state'], 'Kuala Lumpur');
+          queries.add(body['query'] as String);
+          return http.Response(
+            jsonEncode({
+              'places': [
+                for (final number in [15, 16, 18])
+                  {
+                    'id': 'ChIJPV$number',
+                    'displayName': {'text': 'PV$number'},
+                    'formattedAddress': 'Setapak, Kuala Lumpur',
+                    'location': {'latitude': 3.19, 'longitude': 101.72},
+                  },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      await _openPlanner(
+        tester,
+        initialDestination: 'Kuala Lumpur',
+        enableTestingBypass: true,
+        startingPointPlaces: places,
+      );
+      await _choose(tester, 'Daily starting point (optional)');
+
+      final input = find.byType(TextField);
+      await tester.enterText(input, 'pt');
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.enterText(input, 'pv');
+      await tester.pump();
+      expect(queries, isEmpty);
+
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(queries, ['pv']);
+      for (final name in ['PV15', 'PV16', 'PV18']) {
+        expect(find.text(name).hitTestable(), findsOneWidget);
+      }
+      await tester.tap(find.text('PV16'));
+      await tester.pumpAndSettle();
+      expect(find.text('PV16'), findsOneWidget);
+      expect(find.text('PV15'), findsNothing);
+    },
+  );
+
+  testWidgets('an unlisted hotel can be used as the daily starting point', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await _openPlanner(
+      tester,
+      initialDestination: 'Kuala Lumpur',
+      enableTestingBypass: true,
+    );
+    final origin = find.text('Daily starting point (optional)');
+    expect(origin, findsOneWidget);
+    await _choose(tester, 'Daily starting point (optional)');
+
+    const hotel = 'Unlisted Garden Hotel';
+    await tester.enterText(find.byType(TextField), hotel);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add starting point manually'));
+    await tester.pumpAndSettle();
+
+    final dialog = find.byType(AlertDialog);
+    expect(
+      find.descendant(of: dialog, matching: find.text(hotel)),
+      findsOneWidget,
+    );
+    final coordinates = find.descendant(
+      of: dialog,
+      matching: find.widgetWithText(TextFormField, 'Coordinates'),
+    );
+    await tester.enterText(coordinates, '91, 101.7123');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    expect(dialog, findsOneWidget);
+    expect(find.text('Enter valid latitude and longitude.'), findsOneWidget);
+
+    await tester.enterText(coordinates, '3.1579, 101.7123');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    expect(dialog, findsNothing);
+    expect(find.text(hotel), findsOneWidget);
+    final clearOrigin = find.byTooltip('Clear starting point');
+    await _reveal(tester, clearOrigin);
+    await tester.tap(clearOrigin);
+    await tester.pumpAndSettle();
+    expect(find.text(hotel), findsNothing);
+    expect(find.text('Choose a place'), findsOneWidget);
+  });
+
   testWidgets('places selected from Scan appear under highlights', (
     tester,
   ) async {
@@ -69,18 +340,11 @@ void main() {
       }
     }
 
-    for (final label in ['Also open to MRT / LRT', 'Also open to walking']) {
-      final checkbox = find.widgetWithText(CheckboxListTile, label);
-      await _reveal(tester, checkbox);
-      for (final expected in [true, false]) {
-        await tester.tap(checkbox);
-        await tester.pumpAndSettle();
-        expect(tester.widget<CheckboxListTile>(checkbox).value, expected);
-      }
-    }
+    expect(find.text('Also open to MRT / LRT'), findsNothing);
+    expect(find.text('Also open to walking'), findsNothing);
   });
 
-  for (final mode in ['Driving', 'Grab / E-hailing', 'Walking', 'Transit']) {
+  for (final mode in ['Driving', 'Grab / E-hailing', 'Transit']) {
     testWidgets('$mode unlocks budget after its required inputs', (
       tester,
     ) async {
@@ -102,8 +366,26 @@ void main() {
         expect(budget.hitTestable(), findsNothing);
         final estimate = find.byType(TextFormField);
         await _reveal(tester, estimate);
+        expect(
+          find.text(
+            'Enter 1–240 minutes, including walking, waiting and transfers.',
+          ),
+          findsOneWidget,
+        );
+        await tester.enterText(estimate, '241');
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Enter a whole number from 1 to 240.'),
+          findsOneWidget,
+        );
+        final continueButton = find.widgetWithText(
+          TextButton,
+          'Continue to budget & dining',
+        );
+        expect(tester.widget<TextButton>(continueButton).onPressed, isNull);
         await tester.enterText(estimate, '25');
         await tester.pumpAndSettle();
+        expect(find.text('Enter a whole number from 1 to 240.'), findsNothing);
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
       }
@@ -140,43 +422,7 @@ void main() {
     expect(tester.getTopLeft(progress), initialPosition);
   });
 
-  testWidgets('Smart Fill requires review and cancel preserves choices', (
-    tester,
-  ) async {
-    await _openPlanner(
-      tester,
-      enableTestingBypass: true,
-      initialTravelMode: 'Driving',
-    );
-    await _choose(tester, 'Smart Fill');
-    await tester.enterText(find.byType(TextField).first, 'family');
-    await _choose(tester, 'Suggest preferences');
-    expect(find.text('Review suggestions'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    final solo = find.widgetWithText(SelectionCard, 'Solo');
-    await _reveal(tester, solo);
-    expect(tester.widget<SelectionCard>(solo).selected, isTrue);
-  });
-
   for (final scale in [1.0, 2.0]) {
-    testWidgets('classic preset applies a Kuala Lumpur origin and highlights', (
-      tester,
-    ) async {
-      await _openPlanner(tester);
-      await _choose(tester, 'Quick presets');
-      await _choose(tester, 'First-time explorer · culture and KL landmarks');
-      expect(find.text('Apply preset'), findsOneWidget);
-      await tester.tap(find.text('Apply preset'));
-      await tester.pumpAndSettle();
-      await _choose(tester, 'Optional trip details');
-      expect(find.byType(ItineraryPage), findsNothing);
-      await _reveal(tester, find.text('Bukit Bintang'));
-      expect(find.text('Bukit Bintang'), findsWidgets);
-      await _reveal(tester, find.text('Petronas Twin Towers (KLCC)'));
-      expect(find.text('Petronas Twin Towers (KLCC)'), findsOneWidget);
-    });
-
     testWidgets('Plan stays usable at 320 pixels with ${scale}x text', (
       tester,
     ) async {
@@ -184,7 +430,16 @@ void main() {
       await _unlockSchedule(tester);
       await _choose(tester, 'Standard');
       await _choose(tester, 'Continue');
-      await _choose(tester, 'Walking');
+      await _choose(tester, 'Driving');
+      if (scale == 2.0) {
+        await _choose(tester, 'Transit');
+        final estimate = find.byType(TextFormField);
+        await _reveal(tester, estimate);
+        await tester.enterText(estimate, '25');
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      }
       await _choose(tester, 'Continue to budget & dining');
       await _choose(tester, 'High');
       await tester.pumpAndSettle();
@@ -257,10 +512,10 @@ void main() {
     await _choose(tester, 'Continue');
     await _reveal(tester, find.text('High'));
     expect(find.text('High').hitTestable(), findsNothing);
-    await _reveal(tester, find.text('Walking'));
-    await tester.tap(find.text('Walking'));
+    await _reveal(tester, find.text('Driving'));
+    await tester.tap(find.text('Driving'));
     await tester.pumpAndSettle();
-    final modeNote = find.text('Enjoy nearby places at a walking pace.');
+    final modeNote = find.text('Explore further by car or e-hailing.');
     await _reveal(tester, modeNote);
     expect(modeNote, findsOneWidget);
     await _choose(tester, 'Continue to budget & dining');
@@ -386,7 +641,7 @@ void main() {
       // Step 1: Select Destination -> lights up Travel Dates
       await tester.tap(find.text('Select Destination'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Johor, Malaysia'));
+      await tester.tap(find.text('Johor'));
       await tester.pumpAndSettle();
 
       // Now Travel Dates has 'Select' light, Destination no longer has light
@@ -420,12 +675,11 @@ void main() {
       await tester.pumpAndSettle();
       await _choose(tester, 'Continue');
 
-      // Getting around is now illuminated with 'Next'
-      expect(find.text('Next'), findsOneWidget);
+      expect(find.text('Next'), findsNothing);
 
-      // Step 4: Choose Walking to unlock Budget
-      await _reveal(tester, find.text('Walking'));
-      await tester.tap(find.text('Walking'));
+      // Step 4: Choose Driving to unlock Budget
+      await _reveal(tester, find.text('Driving'));
+      await tester.tap(find.text('Driving'));
       await tester.pumpAndSettle();
 
       await _choose(tester, 'Continue to budget & dining');
@@ -478,7 +732,7 @@ Future<void> _unlockSchedule(
     expect(find.text('Select travel dates').hitTestable(), findsNothing);
     await _choose(tester, 'Select Destination');
   }
-  await tester.tap(find.text('Johor, Malaysia'));
+  await tester.tap(find.text('Johor'));
   await tester.pumpAndSettle();
 
   final dateLabel = find.text('Select travel dates');
@@ -559,6 +813,7 @@ Future<void> _openPlanner(
   Set<String>? initialInterests,
   String? initialBudgetCategory,
   String? initialTravelMode,
+  GooglePlacesService? startingPointPlaces,
 }) async {
   tester.view.physicalSize = Size(width, 800);
   tester.view.devicePixelRatio = 1;
@@ -585,6 +840,7 @@ Future<void> _openPlanner(
           initialInterests: initialInterests,
           initialBudgetCategory: initialBudgetCategory,
           initialTravelMode: initialTravelMode,
+          startingPointPlaces: startingPointPlaces,
         ),
       ),
     ),

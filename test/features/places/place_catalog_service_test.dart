@@ -127,6 +127,72 @@ void main() {
     },
   );
   test(
+    'Rain reserves detail requests for confirmed indoor places before the limit',
+    () async {
+      final requested = <String>[];
+      final places = GooglePlacesService(
+        catalog: _Catalog([
+          {
+            ...row('ChIJpark', 'Attraction'),
+            'data_source': 'google',
+            'rating': 5.0,
+            'is_indoor': false,
+          },
+          {
+            ...row('ChIJmarket', 'Attraction'),
+            'data_source': 'google',
+            'rating': 4.9,
+          },
+          {
+            ...row('ChIJmuseum', 'Attraction'),
+            'data_source': 'google',
+            'rating': 4.5,
+            'is_indoor': true,
+          },
+          {
+            ...row('ChIJgallery', 'Attraction'),
+            'data_source': 'google',
+            'rating': 4.2,
+            'is_indoor': true,
+          },
+        ]),
+        accessToken: 'test',
+        client: MockClient((request) async {
+          final id = (jsonDecode(request.body) as Map)['placeId'] as String;
+          requested.add(id);
+          return http.Response(
+            jsonEncode({
+              'id': id,
+              'displayName': {'text': id},
+              'location': {'latitude': 3.1, 'longitude': 101.5},
+            }),
+            200,
+          );
+        }),
+      );
+
+      Future<List<Map<String, dynamic>>> load(double share, {int limit = 2}) =>
+          places.fetchPlacesWithDatabaseCache(
+            destinationState: 'Selangor',
+            query: 'any',
+            maxResults: limit,
+            indoorShare: share,
+          );
+
+      expect((await load(1)).map((p) => p['is_indoor']), [true, true]);
+      expect(requested, ['ChIJmuseum', 'ChIJgallery']);
+      requested.clear();
+      await load(0.5);
+      expect(requested, ['ChIJmuseum', 'ChIJpark']);
+      requested.clear();
+      await load(0);
+      expect(requested, ['ChIJpark', 'ChIJmarket']);
+      requested.clear();
+      await load(1, limit: 3);
+      expect(requested, ['ChIJmuseum', 'ChIJgallery', 'ChIJpark']);
+    },
+  );
+  test(
     'Unauthorized server response never triggers a direct Google fallback',
     () async {
       ApiKeys.googleMaps = 'client-key-must-not-be-used';
@@ -161,4 +227,3 @@ class _Catalog extends PlaceCatalogService {
   @override
   Future<List<Map<String, dynamic>>> load({String? state}) async => rows;
 }
-

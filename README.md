@@ -155,6 +155,26 @@ optional maintenance operations and are not part of normal app startup or tests.
 Run catalog writes or schema exports only as explicit maintenance work. The
 folder cleanup itself does not execute them or deploy backend functions.
 
+## Password recovery
+
+From the login screen, select **Forgot password?** and enter the email used to
+register. Enter the code from the email, save a new password, then log in.
+This requires an online Supabase account.
+
+For the hosted project, open **Authentication → Email Templates → Reset password**
+and paste the subject and HTML from the
+[recovery template configuration](supabase/config.toml) and
+[template file](supabase/templates/password_recovery.html). The app expects
+the email to contain the code (`{{ .Token }}`). The Supabase CLI uses the same
+template for local development. Set up custom SMTP in the hosted project for
+delivery to recipients outside the Supabase organization.
+[Supabase email templates](https://supabase.com/docs/guides/auth/auth-email-templates) ·
+[Supabase SMTP setup](https://supabase.com/docs/guides/auth/auth-smtp)
+
+To verify a hosted setup, use a test account. Request a code, confirm a wrong
+code is rejected, then enter the emailed code and set a new password. Verify
+that the old password fails and the new password signs in to the same account.
+
 ## Database recovery and documentation
 
 [`docs/supabase_schema.sql`](docs/supabase_schema.sql) remains the single source

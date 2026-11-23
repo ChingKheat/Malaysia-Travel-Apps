@@ -1763,17 +1763,52 @@
   "planArrival": "抵达时间",
   "planDeparture": "离开时间",
   "planAirport": "机场出发 · 预留 3 小时",
-  "planAccommodation": "每日出发点",
+  "planAccommodation": "每日出发点（可选）",
   "planOptionalDetails": "选填行程详情",
   "planLocalTime": "时间以目的地当地时间为准。",
   "planSetArrival": "未设置",
   "planSetDeparture": "未设置",
-  "planChooseStartingPoint": "未设置",
+  "planChooseStartingPoint": "选择地点",
+  "planClearStartingPoint": "清除出发点",
+  "planTransitMinutes": "站点之间的时间（分钟）",
+  "planTransitMinutesHelp": "请输入 1 至 240 分钟，包括步行、等候和换乘时间。",
+  "planTransitMinutesError": "请输入 1 至 240 之间的整数。",
   "planUndecided": "尚未决定",
   "planTravelers": "旅客类型",
   "planPace": "游览节奏",
   "planDiet": "饮食偏好",
   "planMustVisit": "必去景点（最多 3 个）",
+  "planFromSavedPlaces": "从已保存地点添加",
+  "planSearchAttractions": "搜索全部",
+  "applyFromSavedPlaces": "应用已保存地点",
+  "noSavedPlacesToApply": "暂无已保存地点。可在“探索”中收藏景点或在“扫描”中保存地点，以便在此快速选择。",
+  "savedPlacesApplied": "已将保存地点应用到必去景点。",
+  "selectSavedPlaces": "选择已保存地点",
+  "selectSavedPlacesHelp": "最多可选择 {count} 个添加为必去景点。",
+  "@selectSavedPlacesHelp": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "applySelectedPlaces": "应用所选 ({count})",
+  "@applySelectedPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "placeAlreadyAdded": "已添加",
+  "matchesDestination": "与 {destination} 匹配",
+  "@matchesDestination": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
   "planPresets": "快速预设",
   "planClassic": "首次探索 · 文化与吉隆坡地标",
   "planFood": "马来西亚美食 · 轻松与街头小吃",
@@ -1802,6 +1837,15 @@
   "planHailing": "Grab／网约车",
   "planSearchOnline": "使用 Google Places 在线搜索",
   "planNoPlaces": "未找到匹配地点，请尝试其他关键词。",
+  "planAddManualOrigin": "手动添加出发点",
+  "planUseCurrentLocation": "使用当前位置",
+  "planCurrentLocation": "当前位置",
+  "planCurrentLocationUnavailable": "无法获取你的位置。请重试或选择一个地点。",
+  "planManualOriginHelp": "在地图应用中标记酒店位置，然后按纬度、经度的顺序将坐标复制到这里。",
+  "planManualOriginName": "酒店或地点名称",
+  "planManualOriginNameRequired": "请输入酒店或地点名称。",
+  "planManualOriginCoordinates": "坐标",
+  "planManualOriginInvalidCoordinates": "请输入有效的纬度和经度。",
   "planAirportTransfer": "预计前往机场的交通时间",
   "planBasics": "行程基本信息",
   "planWhoPace": "旅客与节奏",
@@ -1920,6 +1964,13 @@
   "todayPlanDirectionsTo": "导航至{place}",
   "todayPlanVisited": "已到访",
   "todayPlanSkipped": "已跳过",
+  "todayPlanBackToItinerary": "返回行程",
+  "todayPlanCompletedSubtitle": "今日所有计划行程已完成。",
+  "todayPlanExploring": "游览",
+  "todayPlanTransit": "途中交通",
+  "todayPlanReopenDay": "重置今日进度",
+  "todayPlanReopenPrompt": "重置进度并重新开始今日行程？",
+  "todayPlanReset": "重置",
   "viewRoute": "查看路线",
   "editVisitDuration": "编辑参观时长",
   "openFullscreenMap": "打开全屏地图",
@@ -1945,5 +1996,19 @@
   "discardScheduleChangesMessage": "您的更改尚未保存。要放弃更改并返回吗？",
   "draftSavedOnDevice": "草稿已保存在此设备上。",
   "westMalaysia": "马来西亚西部",
-  "eastMalaysia": "马来西亚东部"
+  "eastMalaysia": "马来西亚东部",
+  "forgotPassword": "忘记密码？",
+  "passwordRecoveryTitle": "重置密码",
+  "passwordRecoveryEmailHelp": "请输入您登录时使用的电子邮箱。",
+  "passwordRecoverySendCode": "发送验证码",
+  "passwordRecoveryCodeHelp": "如果此邮箱已关联账户，您很快就会收到重置验证码。如有需要，请查看垃圾邮件文件夹。",
+  "passwordRecoveryCode": "重置验证码",
+  "passwordRecoveryVerifyCode": "验证验证码",
+  "passwordRecoveryInvalidCode": "请输入有效的重置验证码。如果验证码已过期，请返回并重新获取。",
+  "passwordRecoveryExpired": "本次重置会话已过期。请重新获取验证码。",
+  "passwordRecoveryNewPassword": "新密码",
+  "passwordRecoverySave": "保存新密码",
+  "passwordRecoverySamePassword": "请选择一个不同的密码。",
+  "passwordRecoveryUnavailable": "暂时无法重置密码，请稍后再试。",
+  "passwordRecoverySuccess": "密码已更新，请使用新密码登录。"
 }

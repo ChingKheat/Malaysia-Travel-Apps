@@ -18,6 +18,7 @@ class Attraction {
     this.sourceUrl,
     this.sourceLicense,
     this.verifiedAt,
+    this.operatingHours,
   });
 
   final String xid;
@@ -35,6 +36,7 @@ class Attraction {
   final String? sourceUrl;
   final String? sourceLicense;
   final DateTime? verifiedAt;
+  final Map<String, dynamic>? operatingHours;
 
   LatLng get point => LatLng(latitude, longitude);
   String? get googlePlaceId => xid.startsWith('google_')
@@ -43,6 +45,18 @@ class Attraction {
       ? xid
       : null;
 
+  List<String> get weekdayOpeningHours {
+    final descriptions = operatingHours?['weekdayDescriptions'];
+    if (descriptions is List) {
+      return descriptions
+          .whereType<String>()
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
   Attraction copyWith({
     String? description,
     double? distanceMeters,
@@ -50,6 +64,7 @@ class Attraction {
     int? userRatingsTotal,
     bool? isIndoor,
     String? photoUrl,
+    Map<String, dynamic>? operatingHours,
   }) {
     return Attraction(
       xid: xid,
@@ -67,6 +82,7 @@ class Attraction {
       sourceUrl: sourceUrl,
       sourceLicense: sourceLicense,
       verifiedAt: verifiedAt,
+      operatingHours: operatingHours ?? this.operatingHours,
     );
   }
 
@@ -141,6 +157,12 @@ class Attraction {
         (json['user_ratings_total'] as num?)?.toInt();
     final isIndoor = json['is_indoor'] as bool?;
     final photoUrl = json['photo_url'] as String?;
+    final rawHours = json['regularOpeningHours'] ?? json['operating_hours'];
+    final operatingHours = rawHours is Map<String, dynamic>
+        ? rawHours
+        : rawHours is Map
+            ? Map<String, dynamic>.from(rawHours)
+            : null;
 
     return Attraction(
       xid: json['_data_source'] == 'local' ? id : 'google_$id',
@@ -162,6 +184,7 @@ class Attraction {
       googlePhotos: GooglePlaceDetails(id, {
         'photos': json['photos'] ?? json['google_photos'],
       }).photos,
+      operatingHours: operatingHours,
     );
   }
 

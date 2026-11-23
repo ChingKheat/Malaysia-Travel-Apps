@@ -34,6 +34,13 @@ test('Routes uses the shared backend secret while retaining a separate Routes ov
     }
   }
 });
+test('Directions and travel-time matrices load without a Supabase allowance',async()=>{
+ const {handler,calls}=setup('user',{SUPABASE_SERVICE_ROLE_KEY:undefined});
+ for(const operation of ['route','matrix']) {
+  assert.equal((await handler(req({operation,points}))).status,200);
+ }
+ assert.ok(calls.every(({url})=>!url.endsWith('/rpc/reserve_google_api_usage')));
+});
 test('Matrix validates coordinates, caps billable elements, and fixes the field mask',async()=>{
  const {handler,calls}=setup();
  for(const p of [[],[...points,...Array(9).fill(points[0])],[{latitude:0,longitude:0},points[1]],[{latitude:'3',longitude:101},points[1]]]) {
@@ -45,8 +52,6 @@ test('Matrix validates coordinates, caps billable elements, and fixes the field 
  assert.equal(call.options.headers['X-Goog-Api-Key'],'server-only');
  assert.equal(call.url.includes('server-only'),false);
  assert.equal(JSON.parse(call.options.body).origins.length,2);
- const reservation=calls.at(-2);
- assert.deepEqual(JSON.parse(reservation.options.body),{p_sku:'route_matrix_essentials',p_units:4});
 });
 test('Compute route sends bounded ordered stops without exposing a key',async()=>{
  const {handler,calls}=setup();

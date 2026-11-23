@@ -8,6 +8,8 @@ class PlaceClassifier {
 
     // 1. PRIMARY CHECK: Indoor categories (Food, Dining, Museums, Shopping, Hospitality)
     const indoorCats = [
+      'food',
+      'dining',
       'restaurant',
       'cafe',
       'coffee',

@@ -103,16 +103,7 @@ void main() {
         );
       }
       expect(find.text('Travel dashboard'), findsNothing);
-      await tester.ensureVisible(find.text('Map View'));
-      await tester.pump(const Duration(milliseconds: 350));
-      expect(find.text('Attractions'), findsOneWidget);
-      expect(find.text('Saved'), findsOneWidget);
-      await tester.tap(find.text('Map View'));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.tap(find.text('Attractions'));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Map View'), findsNothing);
       expect(
         find.byKey(const PageStorageKey('explore-attractions-list')),
         findsOneWidget,
@@ -198,9 +189,9 @@ void main() {
 
         await tester.tap(find.text('Select Destination'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Johor, Malaysia'));
+        await tester.tap(find.text('Johor'));
         await tester.pumpAndSettle();
-        expect(find.text('Johor, Malaysia'), findsOneWidget);
+        expect(find.text('Johor'), findsOneWidget);
         await tester.ensureVisible(find.byKey(const ValueKey('plan-my-trips')));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('plan-my-trips')));
@@ -209,7 +200,7 @@ void main() {
         expect(find.byType(TripSelectionScreen), findsOneWidget);
         await tester.pageBack();
         await tester.pumpAndSettle();
-        expect(find.text('Johor, Malaysia'), findsOneWidget);
+        expect(find.text('Johor'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     },

@@ -1,3 +1,7 @@
+[auth.email.template.recovery]
+subject = "Reset your Smart Travel Planner password"
+content_path = "./supabase/templates/password_recovery.html"
+
 # Auth is verified by calling Supabase Auth inside the handler. This supports
 # signing keys that the legacy gateway JWT verifier does not support.
 [functions.google-places]

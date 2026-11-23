@@ -1,13 +1,177 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
 import 'package:smart_travel_planner/shared/services/weather_service.dart';
+import 'package:smart_travel_planner/shared/models/weather_forecast.dart';
+import 'package:smart_travel_planner/features/itinerary/services/scheduling_engine.dart';
 
 void main() {
   group('SmartItineraryService Unit Tests', () {
+    test('uses free admission for a verified venue', () {
+      final museum = GooglePlacesService.convertGooglePlaceToStop(
+        place: {
+          'id': 'ChIJwzwNUJlLxTERyUQ43zKJ0Ww',
+          'displayName': {'text': 'Mersing Museum'},
+        },
+        timeRange: '',
+        durationLabel: '90 min',
+      );
+
+      expect(museum.estimatedCost, 0);
+      expect(SmartItineraryService.estimateVisitCost('Museum'), 40);
+    });
+
+    test(
+      'fills a short day with nearby suggestions from live search',
+      () async {
+        const museumId = 'ChIJwzwNUJlLxTERyUQ43zKJ0Ww';
+        final museum = GooglePlacesService.convertGooglePlaceToStop(
+          place: {
+            'id': museumId,
+            'displayName': {'text': 'Mersing Museum'},
+            'location': {'latitude': 2.43, 'longitude': 103.84},
+            'regularOpeningHours': {
+              'periods': [
+                {
+                  'open': {'day': 0, 'hour': 0},
+                },
+              ],
+            },
+            'is_indoor': true,
+          },
+          timeRange: '',
+          durationLabel: '60 min',
+        ).withVisitMinutes(60);
+        final suggestions = [
+          for (final (index, name) in [
+            'Mersing Marine Park Gallery',
+            'Visitor Gallery A',
+            'Visitor Gallery B',
+          ].indexed)
+            {
+              'id': 'ChIJTestMersing$index',
+              'displayName': {'text': name},
+              'formattedAddress': 'Mersing, Johor, Malaysia',
+              'location': {
+                'latitude': 2.43,
+                'longitude': 103.841 + 0.001 * index,
+              },
+              'primaryTypeDisplayName': {'text': 'Gallery'},
+              'regularOpeningHours': {
+                'periods': [
+                  {
+                    'open': {'day': 0, 'hour': 0},
+                  },
+                ],
+              },
+            },
+        ];
+        final operations = <String>[];
+        final places = GooglePlacesService(
+          endpoint: 'https://project.test/functions/v1/google-places',
+          accessToken: 'test-session',
+          client: MockClient((request) async {
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            operations.add(body['operation'] as String);
+            return switch (body['operation']) {
+              'planner_search' => http.Response(
+                jsonEncode({'places': suggestions}),
+                200,
+              ),
+              'details' => http.Response(
+                jsonEncode(
+                  suggestions.singleWhere(
+                    (place) => place['id'] == body['placeId'],
+                  ),
+                ),
+                200,
+              ),
+              _ => http.Response('{}', 400),
+            };
+          }),
+        );
+        final generated =
+            await SmartItineraryService.generateLiveItineraryForAllDays(
+              preferences: TripPreferences(
+                destination: 'Johor',
+                numberOfDays: 1,
+                dailyStartTime: const TimeOfDay(hour: 9, minute: 0),
+                dailyEndTime: const TimeOfDay(hour: 17, minute: 0),
+                travelMode: 'Walking',
+                departurePoint: museum,
+                mustVisitPlaces: [museum],
+                paceCategory: PaceCategory.balanced,
+                budgetCategory: 'Low',
+              ),
+              placesService: places,
+              requireVisits: true,
+            );
+
+        expect(generated, isTrue);
+        expect(
+          operations,
+          contains('planner_search'),
+          reason: places.lastError,
+        );
+        final stops = SmartItineraryService.getLiveStops(0)!;
+        expect(stops, hasLength(4));
+        expect(stops.first.placeId, museumId);
+        expect(
+          stops
+              .singleWhere(
+                (stop) => stop.title == 'Mersing Marine Park Gallery',
+              )
+              .estimatedCost,
+          0,
+        );
+      },
+    );
+
+    test('offline plans balance the selected places across the trip dates', () {
+      final selected = [
+        for (var index = 0; index < 7; index++)
+          TravelStop.fromJson({
+            'title': 'Selected place $index',
+            'place_id': 'selected-$index',
+            'latitude': 1.5,
+            'longitude': 103.5 + index * 0.001,
+            'opening_hours': 'Open 24 hours',
+            'visit_minutes': 60,
+          }),
+      ];
+      final preferences = TripPreferences(
+        destination: 'Test destination',
+        startDate: DateTime(2026, 12, 7),
+        endDate: DateTime(2026, 12, 9),
+        paceCategory: PaceCategory.relaxed,
+        selectedPlaces: selected,
+      );
+
+      final days = [
+        for (var day = 0; day < 3; day++)
+          SmartItineraryService.generateDailyStops(
+            preferences: preferences,
+            dayIndex: day,
+          ),
+      ];
+
+      expect(
+        days.map((day) => day.length),
+        everyElement(greaterThanOrEqualTo(2)),
+      );
+      expect(
+        days.expand((day) => day).map((stop) => stop.placeId),
+        unorderedEquals(selected.map((stop) => stop.placeId)),
+      );
+    });
+
     test('Schedules attractions for Penang starting at user start time', () {
       const prefs = TripPreferences(
         destination: 'Penang',
@@ -37,11 +201,85 @@ void main() {
       );
     });
 
-    test('Schedules Melaka attractions and a food stop', () {
-      const prefs = TripPreferences(
+    test('Schedules multi-day itinerary for Johor with stops on each day', () async {
+      final prefs = TripPreferences(
+        destination: 'Johor',
+        startDate: DateTime(2026, 11, 29),
+        endDate: DateTime(2026, 12, 1),
+        numberOfDays: 3,
+        dailyStartTime: const TimeOfDay(hour: 9, minute: 0),
+        dailyEndTime: const TimeOfDay(hour: 22, minute: 0),
+        travelMode: 'Driving',
+      );
+
+      final success = await SmartItineraryService.generateLiveItineraryForAllDays(
+        preferences: prefs,
+        requireVisits: false,
+      );
+
+      expect(success, isTrue);
+
+      final day1Stops = await SmartItineraryService.generateLiveItinerary(
+        preferences: prefs,
+        dayIndex: 0,
+      );
+      final day2Stops = await SmartItineraryService.generateLiveItinerary(
+        preferences: prefs,
+        dayIndex: 1,
+      );
+      final day3Stops = await SmartItineraryService.generateLiveItinerary(
+        preferences: prefs,
+        dayIndex: 2,
+      );
+
+      expect(day1Stops, isNotEmpty, reason: 'Day 1 should have scheduled attractions');
+      expect(day2Stops, isNotEmpty, reason: 'Day 2 should have scheduled attractions');
+      expect(day3Stops, isNotEmpty, reason: 'Day 3 should have scheduled attractions');
+      expect(SmartItineraryService.dayWarnings[1]?.contains('No additional places fit this day'), isNot(true));
+      expect(SmartItineraryService.dayWarnings[2]?.contains('No additional places fit this day'), isNot(true));
+    });
+
+    test('Schedules indoor attractions for Johor when weather is thunderstorm', () {
+      final candidates = SmartItineraryService.generateDailyStops(
+        preferences: const TripPreferences(destination: 'Johor'),
+        dayIndex: 1,
+      );
+      final thunderstorm = WeatherForecast(
+        itineraryId: 'test',
+        locationState: 'Johor',
+        scheduleDate: DateTime(2026, 11, 24),
+        condition: 'Heavy thunderstorm',
+        rainProbability: 95,
+      );
+      final stops = SchedulingEngine.schedule(
+        candidates: candidates,
+        preferences: const TripPreferences(
+          destination: 'Johor',
+          dailyStartTime: TimeOfDay(hour: 9, minute: 0),
+          dailyEndTime: TimeOfDay(hour: 21, minute: 0),
+        ),
+        date: DateTime(2026, 11, 24),
+        visited: {},
+        weather: thunderstorm,
+      );
+
+      expect(stops, isNotEmpty, reason: 'Thunderstorm should schedule indoor attractions rather than 0 attractions');
+      expect(stops.every((s) => s.isIndoor == true), isTrue);
+      expect(
+        stops.any((s) =>
+            s.title.contains('Mid Valley') ||
+            s.title.contains('Heritage Museum') ||
+            s.title.contains('City Square')),
+        isTrue,
+      );
+    });
+
+    test('Schedules the Melaka night market within its weekend hours', () {
+      final prefs = TripPreferences(
         destination: 'Melaka',
-        dailyStartTime: TimeOfDay(hour: 8, minute: 30),
-        dailyEndTime: TimeOfDay(hour: 21, minute: 0),
+        startDate: DateTime(2026, 10, 24),
+        dailyStartTime: const TimeOfDay(hour: 8, minute: 30),
+        dailyEndTime: const TimeOfDay(hour: 21, minute: 0),
         travelMode: 'Driving',
         interests: ['Culture', 'Food'],
       );
@@ -51,22 +289,10 @@ void main() {
         dayIndex: 0,
       );
 
-      expect(stops.isNotEmpty, isTrue);
-      // Check Melaka landmark is present
-      expect(
-        stops.any(
-          (s) =>
-              s.title.contains('Dutch Square') ||
-              s.title.contains('A Famosa') ||
-              s.title.contains('Jonker'),
-        ),
-        isTrue,
-      );
-      // Do not invent lunch when only a night-market venue is available.
-      expect(
-        stops.any((s) => s.category.toLowerCase().contains('food')),
-        isTrue,
-      );
+      expect(stops.map((s) => s.title), contains('Melaka River Cruise'));
+      final market = stops.singleWhere((s) => s.category == 'Food');
+      expect(market.title, 'Jonker Walk Heritage Night Market');
+      expect(market.time, '06:00 PM - 07:30 PM');
     });
 
     test('Schedules stops within custom daily end time window', () {

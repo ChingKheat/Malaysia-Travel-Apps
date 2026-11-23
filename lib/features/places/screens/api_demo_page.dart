@@ -4,19 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
-import 'package:smart_travel_planner/core/theme/app_decorations.dart';
 import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
-import 'package:smart_travel_planner/shared/models/route_info.dart';
 import 'package:smart_travel_planner/features/itinerary/services/itinerary_service.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
-import 'package:smart_travel_planner/shared/services/google_route_service.dart';
 import 'package:smart_travel_planner/features/places/services/places_service.dart';
+import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'attraction_detail_page.dart';
 import 'attraction_list_screen.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
-import 'package:smart_travel_planner/features/navigation/screens/map_screen.dart';
 
 class ApiDemoPage extends StatefulWidget {
   const ApiDemoPage({
@@ -36,7 +33,6 @@ class ApiDemoPage extends StatefulWidget {
 
 class _ApiDemoPageState extends State<ApiDemoPage> {
   final _placesService = PlacesService(includeCuratedFallback: true);
-  final _routeService = GoogleRouteService();
   final _itineraryService = ItineraryService();
   final _locationService = LocationService();
 
@@ -47,13 +43,10 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   int _lastOffset = 0;
   final Set<String> _sources = {};
   final List<Map<String, dynamic>> _attributions = [];
-  var _loadingRoute = false;
-  var _selectedView = 0;
   String? _error;
   List<Attraction> _attractions = [];
   List<Attraction> _selectedStops = [];
   List<Attraction> _suggestedHighlights = [];
-  RouteInfo? _route;
 
   // Search and Category filtering states
   String _searchQuery = '';
@@ -69,16 +62,32 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     '🌳 Nature',
   ];
 
-  late final PageController _pageController;
   Timer? _searchDebounce;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: _selectedView);
     _locationService.addListener(_onLocationChanged);
     AuthService().addListener(_onLocationChanged);
+    _loadSavedStops();
     _loadAttractions();
+  }
+
+  Future<void> _loadSavedStops() async {
+    try {
+      final userId = AuthService().currentUser?.uid ?? 'guest';
+      final saved = await PlaceWishlistStore(userId).load();
+      if (mounted && saved.isNotEmpty) {
+        setState(() {
+          final existing = _selectedStops.map((s) => s.xid).toSet();
+          for (final item in saved) {
+            if (!existing.contains(item.xid) && _selectedStops.length < 10) {
+              _selectedStops.add(item);
+            }
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -87,7 +96,6 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     _locationService.removeListener(_onLocationChanged);
     AuthService().removeListener(_onLocationChanged);
     _searchController.dispose();
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -163,12 +171,6 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       });
 
       widget.onPlacesLoaded?.call(attractions);
-
-      if (_selectedStops.length >= 2) {
-        await _loadRoute(_selectedStops);
-      } else {
-        if (mounted) setState(() => _route = null);
-      }
     } catch (error) {
       if (mounted && generation == _loadGeneration) {
         setState(
@@ -182,29 +184,6 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
           _loadingMore = false;
         });
       }
-    }
-  }
-
-  void _autoPickHighlights() {
-    if (_suggestedHighlights.isEmpty) return;
-    final topStops = _suggestedHighlights.take(5).toList();
-    setState(() => _selectedStops = topStops);
-    _loadRoute(topStops);
-    _showSnack('Saved ${topStops.length} top highlights to your list!');
-  }
-
-  Future<void> _loadRoute(List<Attraction> stops) async {
-    if (stops.length < 2) {
-      if (mounted) setState(() => _route = null);
-      return;
-    }
-    setState(() => _loadingRoute = true);
-
-    try {
-      final route = await _routeService.fetchRoute(stops.take(5).toList());
-      if (mounted) setState(() => _route = route);
-    } finally {
-      if (mounted) setState(() => _loadingRoute = false);
     }
   }
 
@@ -224,7 +203,10 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     }
 
     setState(() => _selectedStops = updated);
-    await _loadRoute(updated);
+    final userId = AuthService().currentUser?.uid ?? 'guest';
+    try {
+      await PlaceWishlistStore(userId).toggle(attraction);
+    } catch (_) {}
   }
 
   Future<void> _openDetails(Attraction attraction) async {
@@ -294,226 +276,9 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     );
   }
 
-  void _onTabTapped(int index) {
-    if (_selectedView == index) return;
-    setState(() => _selectedView = index);
-    if (_pageController.hasClients) {
-      _pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeInOutCubic,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildTopNavigationBar(),
-        Expanded(child: _buildBody()),
-      ],
-    );
-  }
-
-  Widget _buildTopNavigationBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tabWidth = (constraints.maxWidth - 8) / 3;
-          return Container(
-            height: 48,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: AppColors.sky.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.12),
-              ),
-            ),
-            child: Stack(
-              children: [
-                // Animated sliding indicator pill
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeInOutCubic,
-                  left: _selectedView * tabWidth,
-                  top: 0,
-                  bottom: 0,
-                  width: tabWidth,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Tabs row
-                Row(
-                  children: [
-                    _buildTopTabItem(
-                      index: 0,
-                      label: context.l10n.attractions,
-                      icon: Icons.explore_rounded,
-                    ),
-                    _buildTopTabItem(
-                      index: 1,
-                      label: context.l10n.mapView,
-                      icon: Icons.map_rounded,
-                    ),
-                    _buildTopTabItem(
-                      index: 2,
-                      label: context.l10n.saved,
-                      icon: Icons.bookmark_rounded,
-                      badgeCount: _selectedStops.length,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTopTabItem({
-    required int index,
-    required String label,
-    required IconData icon,
-    int? badgeCount,
-  }) {
-    final isSelected = _selectedView == index;
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            demoHaptic();
-            _onTabTapped(index);
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: isSelected ? AppColors.onNightAccent : AppColors.muted,
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                      fontFamily: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.fontFamily,
-                      fontSize: 13,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w600,
-                      color: isSelected
-                          ? AppColors.onNightAccent
-                          : AppColors.muted,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    child: Text(context.tr(label)),
-                  ),
-                ),
-                if (badgeCount != null && badgeCount > 0) ...[
-                  const SizedBox(width: 5),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.white.withValues(alpha: 0.25)
-                          : AppColors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      badgeCount.toString(),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: isSelected
-                            ? AppColors.onNightAccent
-                            : AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    final filtered = _filteredAttractions;
-
-    return PageView(
-      controller: _pageController,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        _KeepAlivePage(child: _buildAttractionsView(filtered)),
-        _KeepAlivePage(child: _buildMapView(filtered)),
-        _KeepAlivePage(child: _buildSavedView()),
-      ],
-    );
-  }
-
-  Widget _buildMapView(List<Attraction> filtered) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: MapScreen(
-            isVisible: widget.isVisible && _selectedView == 1,
-            attractions: filtered,
-            selectedStops: _selectedStops,
-            route: _route,
-            center: _locationService.currentLocation,
-            onAttractionTap: _openDetails,
-            onToggleStop: _toggleStop,
-          ),
-        ),
-        Positioned(
-          top: 12,
-          left: 20,
-          right: 20,
-          child: _buildLocationSelector(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSavedView() {
-    return _SavedPlacesView(
-      stops: _selectedStops,
-      route: _route,
-      loadingRoute: _loadingRoute,
-      onStopTap: _openDetails,
-      onToggleStop: _toggleStop,
-      onViewOnMap: () => _onTabTapped(1),
-      onExploreMore: () => _onTabTapped(0),
-      onAutoPickHighlights: _autoPickHighlights,
-    );
+    return _buildAttractionsView(_filteredAttractions);
   }
 
   Widget _buildAttractionsView(List<Attraction> filtered) {
@@ -848,26 +613,6 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
   }
 }
 
-class _KeepAlivePage extends StatefulWidget {
-  const _KeepAlivePage({required this.child});
-  final Widget child;
-
-  @override
-  State<_KeepAlivePage> createState() => _KeepAlivePageState();
-}
-
-class _KeepAlivePageState extends State<_KeepAlivePage>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.child;
-  }
-}
-
 class LocationSelectorSheet extends StatefulWidget {
   const LocationSelectorSheet({super.key});
 
@@ -1137,338 +882,6 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
               }).toList(),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SavedPlacesView extends StatelessWidget {
-  const _SavedPlacesView({
-    required this.stops,
-    required this.route,
-    required this.loadingRoute,
-    required this.onStopTap,
-    required this.onToggleStop,
-    required this.onViewOnMap,
-    required this.onExploreMore,
-    required this.onAutoPickHighlights,
-  });
-
-  final List<Attraction> stops;
-  final RouteInfo? route;
-  final bool loadingRoute;
-  final ValueChanged<Attraction> onStopTap;
-  final ValueChanged<Attraction> onToggleStop;
-  final VoidCallback onViewOnMap;
-  final VoidCallback onExploreMore;
-  final VoidCallback onAutoPickHighlights;
-
-  @override
-  Widget build(BuildContext context) {
-    if (stops.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.bookmark_outline_rounded,
-                  size: 40,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                context.l10n.noSavedPlacesYet,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.l10n
-                    .browseAttractionsInValueAndTapSaveToBuildYourPersonalizedTravelWishlist(
-                      (LocationService().currentAreaName).toString(),
-                    ),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.muted,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 22),
-              FilledButton.icon(
-                onPressed: onExploreMore,
-                icon: const Icon(Icons.travel_explore, size: 18),
-                label: Text(context.l10n.browseAttractions),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 13,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextButton.icon(
-                onPressed: onAutoPickHighlights,
-                icon: const Icon(Icons.auto_awesome, size: 16),
-                label: Text(context.l10n.autoSaveTop5Highlights),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-      children: [
-        // Hero Header Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.nightHeroStart, AppColors.nightHeroEnd],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.bookmark_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.l10n.yourSavedPlaces,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 17,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          context.l10n.valueValueSavedInValue(
-                            (stops.length).toString(),
-                            (stops.length == 1 ? 'place' : 'places').toString(),
-                            (LocationService().currentAreaName).toString(),
-                          ),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              // Action Buttons Row
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onViewOnMap,
-                      icon: const Icon(Icons.map_outlined, size: 16),
-                      label: Text(context.l10n.viewOnMap),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: onExploreMore,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: Text(context.l10n.addMore),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.nightSurface,
-                        foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (stops.length >= 2) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.route_outlined,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          loadingRoute
-                              ? context.l10n.calculatingRouteEstimate
-                              : context.l10n.routeEstValueKmValueMinDriving(
-                                  (route?.distanceKm.toStringAsFixed(1) ??
-                                          '0.0')
-                                      .toString(),
-                                  (route?.durationMinutes.round() ?? 0)
-                                      .toString(),
-                                ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Section Title
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              context.l10n.savedAttractions,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: AppColors.ink,
-                fontSize: 15,
-              ),
-            ),
-            Text(
-              context.l10n.valueItems((stops.length).toString()),
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        // List of Cards
-        ...stops.map((attraction) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: ModernAttractionCard(
-              attraction: attraction,
-              selected: true,
-              onTap: () => onStopTap(attraction),
-              onToggle: () => onToggleStop(attraction),
-            ),
-          );
-        }),
-
-        const SizedBox(height: 10),
-        const _SavedTipsCard(),
-      ],
-    );
-  }
-}
-
-class _SavedTipsCard extends StatelessWidget {
-  const _SavedTipsCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.lightbulb_outline, size: 18, color: AppColors.primary),
-              SizedBox(width: 6),
-              Text(
-                context.l10n.smartItineraryScheduling,
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13.5,
-                  color: AppColors.ink,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context
-                .l10n
-                .savedPlacesCanBeViewedOnTheMapTabToSeeOptimalDrivingPathsOrVisitThePlanTabToAutomaticallyS,
-            style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
-          ),
         ],
       ),
     );
