@@ -45,6 +45,32 @@ class AppLocalizationsMs extends AppLocalizations {
   String get scanWishlist => 'Senarai hajat';
 
   @override
+  String get scanWishlistAddToPlan => 'Tambah ke pelan';
+
+  @override
+  String get scanWishlistAddNote => 'Tambah nota';
+
+  @override
+  String get scanWishlistNote => 'Nota anda';
+
+  @override
+  String get scanWishlistNoteHint => 'Mengapa anda ingin melawat?';
+
+  @override
+  String get scanWishlistNoteFailed => 'Nota tidak dapat disimpan. Cuba lagi.';
+
+  @override
+  String get scanWishlistNothingToPlan =>
+      'Pilih tempat yang mempunyai lokasi untuk ditambah ke pelan.';
+
+  @override
+  String get scanWishlistOtherPlaces => 'Lokasi diperlukan';
+
+  @override
+  String get scanWishlistLocationHelp =>
+      'Lokasi tepat diperlukan sebelum tempat ini boleh ditambah ke pelan.';
+
+  @override
   String get scanClearWishlist => 'Kosongkan senarai hajat';
 
   @override

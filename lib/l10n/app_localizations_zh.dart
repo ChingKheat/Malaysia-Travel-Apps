@@ -42,6 +42,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanWishlist => '愿望清单';
 
   @override
+  String get scanWishlistAddToPlan => '加入规划';
+
+  @override
+  String get scanWishlistAddNote => '添加备注';
+
+  @override
+  String get scanWishlistNote => '你的备注';
+
+  @override
+  String get scanWishlistNoteHint => '为什么想去这里？';
+
+  @override
+  String get scanWishlistNoteFailed => '无法保存备注，请重试。';
+
+  @override
+  String get scanWishlistNothingToPlan => '请选择有确定位置的地点加入规划。';
+
+  @override
+  String get scanWishlistOtherPlaces => '需要地点位置';
+
+  @override
+  String get scanWishlistLocationHelp => '需要准确的位置才能将此地点加入规划。';
+
+  @override
   String get scanClearWishlist => '清空愿望清单';
 
   @override

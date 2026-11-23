@@ -15,6 +15,32 @@ class PlaceWishlistStore {
   String get _key => 'place_wishlist:$userId';
   String get _migrationKey => 'place_wishlist_migrated:$userId';
   String get _legacyKey => 'visual_scan_saved_spots:$userId';
+  String get _notesKey => 'place_wishlist_notes:$userId';
+
+  Future<Map<String, String>> loadNotes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = jsonDecode(prefs.getString(_notesKey) ?? '{}') as Map;
+      return data.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> saveNote(String placeId, String note) async {
+    final prefs = await SharedPreferences.getInstance();
+    final notes = await loadNotes();
+    if (note.trim().isEmpty) {
+      notes.remove(placeId);
+    } else {
+      notes[placeId] = note.trim();
+    }
+    if (!await prefs.setString(_notesKey, jsonEncode(notes))) {
+      throw StateError('Could not save wishlist note');
+    }
+  }
 
   Future<List<Attraction>> load() async {
     try {
@@ -90,6 +116,7 @@ class PlaceWishlistStore {
     final places = await load();
     if (places.any((item) => item.xid == place.xid)) {
       places.removeWhere((item) => item.xid == place.xid);
+      await saveNote(place.xid, '');
     } else {
       places.add(place);
     }
@@ -122,6 +149,15 @@ class PlaceWishlistStore {
     final prefs = await SharedPreferences.getInstance();
     await _write(prefs, places);
     return true;
+  }
+
+  Future<void> updatePlace(Attraction place) async {
+    final places = await load();
+    final index = places.indexWhere((item) => item.xid == place.xid);
+    if (index < 0) return;
+    places[index] = place;
+    final prefs = await SharedPreferences.getInstance();
+    await _write(prefs, places);
   }
 
   Future<void> _write(SharedPreferences prefs, List<Attraction> places) async {

@@ -166,6 +166,54 @@ abstract class AppLocalizations {
   /// **'Wishlist'**
   String get scanWishlist;
 
+  /// No description provided for @scanWishlistAddToPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to plan'**
+  String get scanWishlistAddToPlan;
+
+  /// No description provided for @scanWishlistAddNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note'**
+  String get scanWishlistAddNote;
+
+  /// No description provided for @scanWishlistNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your note'**
+  String get scanWishlistNote;
+
+  /// No description provided for @scanWishlistNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Why do you want to visit?'**
+  String get scanWishlistNoteHint;
+
+  /// No description provided for @scanWishlistNoteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your note. Try again.'**
+  String get scanWishlistNoteFailed;
+
+  /// No description provided for @scanWishlistNothingToPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a place with a known location to add to your plan.'**
+  String get scanWishlistNothingToPlan;
+
+  /// No description provided for @scanWishlistOtherPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Location needed'**
+  String get scanWishlistOtherPlaces;
+
+  /// No description provided for @scanWishlistLocationHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'An exact location is needed before this place can be added to a plan.'**
+  String get scanWishlistLocationHelp;
+
   /// No description provided for @scanClearWishlist.
   ///
   /// In en, this message translates to:
