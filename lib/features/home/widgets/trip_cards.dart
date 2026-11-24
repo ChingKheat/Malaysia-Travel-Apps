@@ -21,6 +21,74 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isDark) {
+      return Material(
+        color: AppColors.nightSurface,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const ValueKey('home-upcoming-trip'),
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Image.asset(
+                'assets/recognition/trip_schedule_malaysia.png',
+                height: 164,
+                fit: BoxFit.cover,
+                excludeFromSemantics: true,
+                errorBuilder: (_, _, _) => const SizedBox(
+                  height: 164,
+                  child: ColoredBox(color: AppColors.nightRaised),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tripTitle(trip),
+                            style: const TextStyle(
+                              color: AppColors.nightBody,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'serif',
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            context.tripDate(trip),
+                            style: const TextStyle(color: AppColors.nightMuted),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            context.tr(trip.detail),
+                            style: const TextStyle(
+                              color: AppColors.nightAccent,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 24,
+                      color: AppColors.nightAccent,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return DemoTapCard(
       onTap: onTap,
       child: Container(

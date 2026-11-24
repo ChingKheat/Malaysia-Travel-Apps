@@ -22,6 +22,7 @@ import 'package:smart_travel_planner/features/places/services/place_wishlist_sto
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
 import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
+import 'package:smart_travel_planner/features/places/widgets/wishlist_note_dialog.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
@@ -342,12 +343,27 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
 
   Future<void> _toggleWishlist(Attraction place) async {
     try {
+      final wasSaved = (await _wishlist.load()).any(
+        (item) => item.xid == place.xid,
+      );
       final places = await _wishlist.toggle(place);
       if (mounted) {
         setState(() {
           _wishlistPlaces = places;
           _wishlistNotes.remove(place.xid);
         });
+        if (!wasSaved) {
+          final note = await showWishlistNoteDialog(
+            context,
+            placeName: place.name,
+          );
+          if (note != null && note.trim().isNotEmpty) {
+            await _wishlist.saveNote(place.xid, note);
+            if (mounted) {
+              setState(() => _wishlistNotes[place.xid] = note.trim());
+            }
+          }
+        }
       }
     } catch (_) {
       _notify('Could not update your wishlist. Try again.');

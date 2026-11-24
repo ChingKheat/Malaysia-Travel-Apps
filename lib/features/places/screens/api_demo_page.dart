@@ -156,7 +156,8 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
       setState(() {
         _page = page;
-        if (page.items.isEmpty && page.failure != PlacesFailure.none &&
+        if (page.items.isEmpty &&
+            page.failure != PlacesFailure.none &&
             page.failure != PlacesFailure.emptyCatalog) {
           _error = page.notice;
         }
@@ -316,7 +317,8 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
                 style: const TextStyle(color: AppColors.nightMuted),
               ),
             ),
-          if (_page != null && _page!.failure != PlacesFailure.none &&
+          if (_page != null &&
+              _page!.failure != PlacesFailure.none &&
               _page!.failure != PlacesFailure.emptyCatalog)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -547,67 +549,63 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
   Widget _buildCategoryChips() {
     return SizedBox(
-      height: 48,
+      height: 44,
       child: ListView.separated(
+        key: ValueKey('explore-categories-$_destinationState'),
         scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
         itemCount: _categories.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final cat = _categories[index];
-          final active = _selectedCategory == cat;
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                demoHaptic();
-                setState(() => _selectedCategory = cat);
-                _loadAttractions();
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: active ? AppColors.primary : AppColors.nightSurface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: active ? AppColors.primary : AppColors.nightLine,
-                    width: 1.2,
-                  ),
-                  boxShadow: active
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.28),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ]
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                ),
-                child: Center(
-                  child: Text(
-                    context.tr(cat),
-                    style: TextStyle(
-                      color: active ? AppColors.onNightAccent : AppColors.ink,
-                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
+        itemBuilder: (context, index) => _categoryChip(_categories[index]),
+      ),
+    );
+  }
+
+  Widget _categoryChip(String cat) {
+    final active = _selectedCategory == cat;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          demoHaptic();
+          setState(() => _selectedCategory = cat);
+          _loadAttractions();
         },
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary : AppColors.nightSurface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: active ? AppColors.primary : AppColors.nightLine,
+              width: 1.2,
+            ),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.28),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+          ),
+          child: Text(
+            context.tr(cat),
+            style: TextStyle(
+              color: active ? AppColors.onNightAccent : AppColors.ink,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 12.5,
+            ),
+          ),
+        ),
       ),
     );
   }

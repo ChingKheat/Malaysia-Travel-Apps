@@ -95,10 +95,12 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
               .eq('place_id', cleanId)
               .maybeSingle();
           if (row != null && row['operating_hours'] is Map) {
-            final hoursMap =
-                Map<String, dynamic>.from(row['operating_hours'] as Map);
-            _overrideAttraction =
-                _attraction.copyWith(operatingHours: hoursMap);
+            final hoursMap = Map<String, dynamic>.from(
+              row['operating_hours'] as Map,
+            );
+            _overrideAttraction = _attraction.copyWith(
+              operatingHours: hoursMap,
+            );
           }
         }
       } catch (_) {}
@@ -278,7 +280,7 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
     final totalPhotos = widget.heroPhoto == null ? galleryPhotos.length : 1;
 
     return Scaffold(
-      backgroundColor: AppColors.nightCanvas,
+      backgroundColor: AppColors.nightSurface,
       body: CustomScrollView(
         slivers: [
           // ==================== HERO SLIVER APP BAR ====================
@@ -554,7 +556,8 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
           ),
 
           // ==================== MAIN CONTENT BODY ====================
-          SliverToBoxAdapter(
+          SliverFillRemaining(
+            hasScrollBody: false,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1009,9 +1012,6 @@ class _AttractionDetailPageState extends State<AttractionDetailPage> {
                           ),
                         ),
                       ],
-
-                      // Extra spacing for sticky bottom bar
-                      const SizedBox(height: 90),
                     ],
                   ),
                 ),

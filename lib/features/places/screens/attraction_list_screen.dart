@@ -36,6 +36,7 @@ Widget _attractionCover(Attraction place) {
       service: _coverGoogle,
       autoLoad: true,
       fill: true,
+      compactAttribution: true,
       attributionTop: 48,
       fallback: unavailable(),
     );
@@ -221,7 +222,9 @@ class AttractionListScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                context.l10n.valueTopPicks((highlights!.length).toString()),
+                context.l10n.valueTopPicks(
+                  highlights!.take(2).length.toString(),
+                ),
                 style: const TextStyle(
                   color: AppColors.primary,
                   fontSize: 11,
@@ -232,27 +235,19 @@ class AttractionListScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 236,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            itemCount: highlights!.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, index) {
-              final attraction = highlights![index];
-              final selected = selectedStops.any(
-                (item) => item.xid == attraction.xid,
-              );
-              return HighlightAttractionCard(
-                attraction: attraction,
-                selected: selected,
-                onTap: () => onAttractionTap(attraction),
-                onToggle: () => onToggleStop(attraction),
-              );
-            },
+        for (final attraction in highlights!.take(2)) ...[
+          SizedBox(
+            height: 216,
+            width: double.infinity,
+            child: HighlightAttractionCard(
+              attraction: attraction,
+              selected: selectedStops.any((item) => item.xid == attraction.xid),
+              onTap: () => onAttractionTap(attraction),
+              onToggle: () => onToggleStop(attraction),
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+        ],
       ],
     );
   }
@@ -458,7 +453,7 @@ class HighlightAttractionCard extends StatelessWidget {
     final rating = attraction.rating?.toStringAsFixed(1);
 
     return Container(
-      width: 205,
+      width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         boxShadow: [

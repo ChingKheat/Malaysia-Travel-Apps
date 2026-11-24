@@ -417,6 +417,14 @@ void main() {
     await tester.scrollUntilVisible(add, 140);
     await tester.tap(add);
     await tester.pumpAndSettle();
+    expect(find.text('Add a note'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, 'Visit at sunset');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save').last);
+    await tester.pumpAndSettle();
+    expect(
+      (await PlaceWishlistStore('recognition-test').loadNotes()).values,
+      contains('Visit at sunset'),
+    );
     expect(find.widgetWithText(FilledButton, 'Saved'), findsWidgets);
     expect(find.text('Saved to favorite places'), findsNothing);
     expect(
@@ -457,6 +465,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AttractionDetailPage), findsOneWidget);
     await tester.tap(find.byTooltip('Save attraction'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Decide later'));
     await tester.pumpAndSettle();
     expect(
       (await PlaceWishlistStore('recognition-test').load()).single.name,
