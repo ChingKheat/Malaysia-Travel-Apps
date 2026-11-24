@@ -9,6 +9,9 @@ class AppLocalizationsMs extends AppLocalizations {
   AppLocalizationsMs([String locale = 'ms']) : super(locale);
 
   @override
+  String get categoryIllustration => 'Ilustrasi kategori';
+
+  @override
   String get profileCountry => 'Negara / Wilayah';
 
   @override
@@ -2665,19 +2668,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get topRated => 'Penilaian tertinggi';
 
   @override
-  String get sights => '🏛️ Tarikan';
+  String get sights => 'Tarikan';
 
   @override
-  String get nature2 => '🌳 Alam Semula Jadi';
+  String get nature2 => 'Alam Semula Jadi';
 
   @override
-  String get food2 => '🍔 Makanan';
+  String get food2 => 'Makanan';
 
   @override
-  String get cafes => '☕ Kafe';
+  String get cafes => 'Kafe';
 
   @override
-  String get shops => '🛍️ Kedai';
+  String get shops => 'Kedai';
 
   @override
   String get admin => '👑 Pentadbir';
@@ -2924,6 +2927,13 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get travelTimesAreDistanceBasedEstimates =>
       'Masa perjalanan ialah anggaran berdasarkan jarak.';
+
+  @override
+  String get transferPastDailyEnd =>
+      'Perjalanan ke destinasi seterusnya dijangka tamat selepas waktu yang anda tetapkan. Tiada lawatan dijadualkan.';
+
+  @override
+  String get transferNextDay => '(+1 hari)';
 
   @override
   String get someOpeningHoursAreUnverifiedConfirmBeforeVisiting =>
@@ -3409,6 +3419,28 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get planContinueHighlights => 'Terus ke tarikan dan minat';
+
+  @override
+  String get planPreviousSelectionTitle => 'Rancangan Perjalanan Terdahulu';
+
+  @override
+  String planPreviousSelectionMessage(String destination) {
+    return 'Anda mempunyai rancangan perjalanan yang sedang berlangsung untuk $destination. Adakah anda ingin menyambung semula atau mula semula?';
+  }
+
+  @override
+  String get planContinueExisting => 'Teruskan';
+
+  @override
+  String get planStartOver => 'Mula Semula';
+
+  @override
+  String get planResetConfirmation =>
+      'Tetapkan semula rancangan ini? Semua pilihan semasa anda akan dipadamkan.';
+
+  @override
+  String get planResetSuccess =>
+      'Rancangan ditetapkan semula. Anda boleh mula baharu.';
 
   @override
   String get profileTravelPreferences => 'Keutamaan Perjalanan';
@@ -3915,27 +3947,25 @@ class AppLocalizationsMs extends AppLocalizations {
   String get assistantChatOptions => 'Pilihan sembang';
 
   @override
-  String get assistantStarterWeather => 'Cuaca';
+  String get assistantStarterWeather => 'Semak cuaca';
 
   @override
-  String get assistantStarterFood => 'Makanan';
+  String get assistantStarterFood => 'Cari makanan';
 
   @override
-  String get assistantStarterTransport => 'Pengangkutan';
+  String get assistantStarterTransport => 'Dapatkan arah';
 
   @override
   String get assistantStarterItinerary => 'Bantuan itinerari';
 
   @override
-  String get assistantPromptWeather =>
-      'Apakah ramalan cuaca di Kuala Lumpur hari ini?';
+  String get assistantPromptWeather => 'Cuaca di';
 
   @override
   String get assistantPromptFood => 'Cadangkan pilihan makanan di Malaysia.';
 
   @override
-  String get assistantPromptTransport =>
-      'Bagaimanakah cara ke KL Sentral dari KLIA?';
+  String get assistantPromptTransport => 'Arah perjalanan dari';
 
   @override
   String get assistantPromptItinerary =>
@@ -3943,7 +3973,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get assistantGreeting =>
-      'Bagaimana saya boleh membantu perjalanan anda?';
+      'Pilih pintasan di bawah atau taip soalan tentang perjalanan anda.';
 
   @override
   String get assistantReviewStop =>
@@ -3952,4 +3982,160 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get assistantItineraryInstructions =>
       'Beritahu saya tempat yang ingin ditambah atau pilih Tambah pada pelan pada kad tempat. Dalam pratonton, pilih perjalanan, hari dan waktu lawatan, kemudian sahkan.';
+
+  @override
+  String get spotlightHeading => 'Ke manakah anda ingin meneroka?';
+
+  @override
+  String get spotlightSubtitle =>
+      'Pilih satu atau lebih destinasi Malaysia untuk membina laluan anda.';
+
+  @override
+  String get spotlightChooseDestinations => 'Pilih destinasi';
+
+  @override
+  String get spotlightDismissLabel => 'Tutup sorotan destinasi';
+
+  @override
+  String get spotlightPickerSubtitle =>
+      'Pilih satu destinasi untuk perjalanan tunggal, atau dua atau lebih untuk laluan berbilang bandar. Pilihan pertama anda menentukan hab permulaan.';
+
+  @override
+  String get spotlightContinueToPlanner => 'Teruskan ke perancang';
+
+  @override
+  String spotlightSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count destinasi dipilih',
+      one: '1 destinasi dipilih',
+      zero: 'Tiada destinasi dipilih',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get spotlightStartBadge => 'Mula';
+
+  @override
+  String spotlightStopOrder(int order) {
+    return 'Hentian $order';
+  }
+
+  @override
+  String spotlightSelectedSemantics(String place, String region) {
+    return '$place, $region, dipilih';
+  }
+
+  @override
+  String spotlightNotSelectedSemantics(String place, String region) {
+    return '$place, $region, belum dipilih';
+  }
+
+  @override
+  String get spotlightPlaceKualaLumpur => 'Kuala Lumpur';
+
+  @override
+  String get spotlightPlaceGeorgeTown => 'George Town';
+
+  @override
+  String get spotlightPlaceLangkawi => 'Langkawi';
+
+  @override
+  String get spotlightPlaceJohorBahru => 'Johor Bahru';
+
+  @override
+  String get spotlightPlaceBatuCaves => 'Batu Caves';
+
+  @override
+  String get spotlightRegionKualaLumpur => 'Kuala Lumpur';
+
+  @override
+  String get spotlightRegionPenang => 'Pulau Pinang';
+
+  @override
+  String get spotlightRegionKedah => 'Kedah';
+
+  @override
+  String get spotlightRegionJohor => 'Johor';
+
+  @override
+  String get spotlightDraftConflictTitle => 'Gantikan draf semasa?';
+
+  @override
+  String spotlightDraftConflictMessage(String summary) {
+    return 'Anda sudah mempunyai draf perjalanan dalam Pelan ($summary). Kekalkan draf ini atau mulakan draf baharu dengan destinasi pilihan anda?';
+  }
+
+  @override
+  String get spotlightKeepCurrentDraft => 'Kekalkan draf semasa';
+
+  @override
+  String get spotlightStartNewDraft => 'Mulakan draf baharu';
+
+  @override
+  String get plannerProposedRouteTitle => 'Cadangan laluan berbilang bandar';
+
+  @override
+  String get plannerRouteAutoOrdered => 'Disusun dari hab permulaan anda';
+
+  @override
+  String get plannerEditRoute => 'Sunting laluan';
+
+  @override
+  String plannerRemoveDestinationTooltip(String destination) {
+    return 'Buang $destination';
+  }
+
+  @override
+  String plannerDaysAllocatedShort(int days) {
+    return '${days}h';
+  }
+
+  @override
+  String get plannerDurationConflictTitle =>
+      'Lebih banyak destinasi daripada hari perjalanan';
+
+  @override
+  String plannerDurationConflictMessage(int hubCount, int dayCount) {
+    return 'Anda memilih $hubCount destinasi untuk perjalanan $dayCount hari. Lanjutkan tarikh perjalanan atau buang satu destinasi sebelum menjana jadual.';
+  }
+
+  @override
+  String get plannerExtendTripDates => 'Lanjutkan tarikh';
+
+  @override
+  String get spotlightSearchHint =>
+      'Cari bandar atau negeri (cth. Ipoh, Sabah)';
+
+  @override
+  String get spotlightShuffle => 'Rawak';
+
+  @override
+  String get spotlightNoMatchingHubs => 'Tiada destinasi sepadan ditemui';
+
+  @override
+  String spotlightFeaturedSpot(String place) {
+    return 'Pilihan · $place';
+  }
+
+  @override
+  String get addToExistingTrip => 'Tambah ke perjalanan sedia ada';
+
+  @override
+  String get createNewTripWithPlaces =>
+      'Cipta perjalanan baharu dengan tempat ini';
+
+  @override
+  String get chooseDayToAdd => 'Pilih hari untuk ditambah';
+
+  @override
+  String addedToTripDay(int day, String trip) {
+    return 'Ditambah ke Hari $day dalam $trip';
+  }
+
+  @override
+  String get scanPlacesAutoFilled =>
+      'Destinasi & minat dipraisi daripada tempat yang diimbas.';
 }

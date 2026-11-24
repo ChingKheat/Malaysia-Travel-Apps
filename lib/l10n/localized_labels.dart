@@ -1225,14 +1225,17 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.outdoor2;
     case "✨ Top Rated":
       return l.topRated;
+    case "Sights":
     case "🏛️ Sights":
       return l.sights;
     case "🌳 Nature":
       return l.nature2;
     case "🍔 Food":
       return l.food2;
+    case "Cafes":
     case "☕ Cafes":
       return l.cafes;
+    case "Shops":
     case "🛍️ Shops":
       return l.shops;
     case "👑 Admin":
@@ -1320,6 +1323,8 @@ String localizeLabel(AppLocalizations? strings, String label) {
       return l.forecastUnavailableForThisDateWeatherFilteringWasNotApplied;
     case "Travel times are distance-based estimates.":
       return l.travelTimesAreDistanceBasedEstimates;
+    case "The transfer is estimated to finish after your planned end time. No sightseeing is scheduled.":
+      return l.transferPastDailyEnd;
     case "Some opening hours are unverified. Confirm before visiting.":
       return l.someOpeningHoursAreUnverifiedConfirmBeforeVisiting;
     case "Costs are planning estimates, excluding accommodation and travel to the first stop.":

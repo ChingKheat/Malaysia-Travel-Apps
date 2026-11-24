@@ -75,6 +75,16 @@ class _MessagesInboxState extends State<MessagesInbox>
     try {
       final data = await service.inbox();
       if (mounted && service.account == AuthService().currentUser?.uid) {
+        final previous = {for (final row in rows) row['conversation_id']: row};
+        for (final row in data) {
+          final old = previous[row['conversation_id']];
+          if (row['avatar_display_url'] == null &&
+              row['avatar_path'] != null &&
+              row['avatar_path'] == old?['avatar_path'] &&
+              old?['avatar_display_url'] != null) {
+            row['avatar_display_url'] = old!['avatar_display_url'];
+          }
+        }
         setState(() {
           rows = data;
           offline = false;
@@ -222,6 +232,7 @@ class _MessagesInboxState extends State<MessagesInbox>
                                 name:
                                     row['display_name'] as String? ??
                                     'Traveller',
+                                avatarUrl: avatarUrl,
                               ),
                             ),
                           );
@@ -255,8 +266,14 @@ class _Notice extends StatelessWidget {
 }
 
 class PrivateChat extends StatefulWidget {
-  const PrivateChat({super.key, required this.id, required this.name});
+  const PrivateChat({
+    super.key,
+    required this.id,
+    required this.name,
+    this.avatarUrl,
+  });
   final String id, name;
+  final String? avatarUrl;
   @override
   State<PrivateChat> createState() => _PrivateChatState();
 }
@@ -277,13 +294,31 @@ class _PrivateChatState extends State<PrivateChat> with WidgetsBindingObserver {
   bool syncing = false;
   bool active = true;
   final delivering = <String>{};
+  String? avatarUrl;
   @override
   void initState() {
     super.initState();
+    avatarUrl = widget.avatarUrl;
+    if (avatarUrl == null) unawaited(_loadAvatar());
     WidgetsBinding.instance.addObserver(this);
     AuthService().addListener(_auth);
     input.addListener(_inputChanged);
     _start();
+  }
+
+  Future<void> _loadAvatar() async {
+    try {
+      final inbox = await service.inbox();
+      if (!mounted || service.account != AuthService().currentUser?.uid) return;
+      for (final row in inbox) {
+        if (row['conversation_id'] == widget.id) {
+          setState(() => avatarUrl = row['avatar_display_url'] as String?);
+          break;
+        }
+      }
+    } catch (_) {
+      // Keep the default avatar when the connection is unavailable.
+    }
   }
 
   void _inputChanged() {
@@ -508,7 +543,13 @@ class _PrivateChatState extends State<PrivateChat> with WidgetsBindingObserver {
     appBar: AppBar(
       title: Row(
         children: [
-          const CircleAvatar(child: Icon(Icons.person)),
+          CircleAvatar(
+            foregroundImage: avatarUrl == null
+                ? null
+                : NetworkImage(avatarUrl!),
+            onForegroundImageError: avatarUrl == null ? null : (_, _) {},
+            child: const Icon(Icons.person),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

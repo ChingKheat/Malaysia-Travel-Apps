@@ -91,10 +91,22 @@ class TripPreferencesService {
       );
     }
 
-    // C2 / A2: Valid Destination Check (must exist in Malaysia state list)
-    final isDestValid = malaysiaStates.any(
-      (state) => state.toLowerCase() == prefs.destination!.trim().toLowerCase(),
-    );
+    // C2 / A2: Valid Destination Check (single state or all multi-destination legs in Malaysia state list)
+    final bool isDestValid;
+    if (prefs.isMultiDestination) {
+      isDestValid = prefs.legs.isNotEmpty &&
+          prefs.legs.every(
+            (leg) => malaysiaStates.any(
+              (state) =>
+                  state.toLowerCase() == leg.stateName.trim().toLowerCase(),
+            ),
+          );
+    } else {
+      isDestValid = malaysiaStates.any(
+        (state) =>
+            state.toLowerCase() == prefs.destination!.trim().toLowerCase(),
+      );
+    }
     if (!isDestValid) {
       return const PreferencesValidationResult(
         success: false,

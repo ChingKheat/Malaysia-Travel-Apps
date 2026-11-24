@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
 import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
@@ -5,14 +7,20 @@ import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
+import 'package:smart_travel_planner/features/itinerary/models/destination_leg.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
+import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
+import 'package:smart_travel_planner/features/itinerary/services/transfer_manager.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/features/itinerary/widgets/modern_date_range_picker.dart';
+import 'package:smart_travel_planner/features/itinerary/widgets/multi_destination_picker_sheet.dart';
+import 'package:smart_travel_planner/features/home/models/spotlight_destination.dart';
 import 'itinerary_page.dart';
 import 'trip_selection_screen.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
@@ -248,7 +256,9 @@ class _DepartureSearch extends SearchDelegate<TravelStop?> {
     _locationStatus.value = point == null
         ? _LocationStatus.unavailable
         : _LocationStatus.idle;
-    if (point != null && navigationContext.mounted && route?.isCurrent == true) {
+    if (point != null &&
+        navigationContext.mounted &&
+        route?.isCurrent == true) {
       close(navigationContext, point);
     }
   }
@@ -407,6 +417,7 @@ class PlannerPage extends StatefulWidget {
     super.key,
     required this.onItineraryReady,
     this.onMyTripsTap,
+    this.onContinueExisting,
     this.userId = 'guest',
     this.useModernPicker = false,
     @visibleForTesting this.enableTestingBypass = false,
@@ -418,10 +429,15 @@ class PlannerPage extends StatefulWidget {
     @visibleForTesting this.initialBudgetCategory,
     @visibleForTesting this.initialTravelMode,
     @visibleForTesting this.startingPointPlaces,
+    this.isVisible = true,
+    @visibleForTesting this.promptOnLaunch = false,
+    this.pendingSpotlightRequest,
+    this.onSpotlightRequestHandled,
   });
 
   final VoidCallback onItineraryReady;
   final VoidCallback? onMyTripsTap;
+  final VoidCallback? onContinueExisting;
   final String userId;
   final bool useModernPicker;
   final bool enableTestingBypass;
@@ -433,6 +449,10 @@ class PlannerPage extends StatefulWidget {
   final String? initialBudgetCategory;
   final String? initialTravelMode;
   final GooglePlacesService? startingPointPlaces;
+  final bool isVisible;
+  final bool promptOnLaunch;
+  final SpotlightPlannerRequest? pendingSpotlightRequest;
+  final ValueChanged<int>? onSpotlightRequestHandled;
 
   @override
   State<PlannerPage> createState() => _PlannerPageState();
@@ -441,6 +461,9 @@ class PlannerPage extends StatefulWidget {
 class _PlannerPageState extends State<PlannerPage> {
   // Trip Preference Form State variables
   String? destination;
+  PlanningMode _planningMode = PlanningMode.singleDestination;
+  List<DestinationLeg> _legs = [];
+  bool _autoOptimizeRouteOrder = true;
   DateTimeRange? travelDates;
   TimeOfDay? dailyStartTime;
   TimeOfDay? dailyEndTime;
@@ -513,6 +536,7 @@ class _PlannerPageState extends State<PlannerPage> {
           description: place.description ?? '',
           duration: '90 min',
           openingHours: 'Hours unverified',
+          operatingHours: place.operatingHours ?? const {},
           tips: const [],
           icon: Icons.place_outlined,
           color: AppColors.primary,
@@ -612,6 +636,12 @@ class _PlannerPageState extends State<PlannerPage> {
             if (stop.placeId != null) stop.placeId!,
             stop.title.trim().toLowerCase(),
           ],
+          for (final place in _scanPlanPlaces.places) ...[
+            if (place.xid.isNotEmpty) place.xid,
+            if (place.googlePlaceId != null && place.googlePlaceId!.isNotEmpty)
+              place.googlePlaceId!,
+            place.name.trim().toLowerCase(),
+          ],
         },
         remainingSlots: remaining,
         destination: destination,
@@ -647,8 +677,47 @@ class _PlannerPageState extends State<PlannerPage> {
   bool _modeConfirmed = false;
   bool _interestsConfirmed = false;
   bool _testingForm = false;
+  bool _hasPromptedPreviousSelection = false;
+  bool _isCheckingPreviousSelection = false;
+  bool _isCurrentPlanSaved = false;
+  int _lastKnownSaveRevision = 0;
+  bool _hasUserEditedDraft = false;
+  bool _hubSelectedExplicitly = false;
+  Future<void>? _draftLoadFuture;
+  int? _handledSpotlightRequestId;
+  bool _isResolvingSpotlightRequest = false;
+  bool get _hasPreviousSelection =>
+      destination != null || _legs.isNotEmpty || travelDates != null;
+  bool get _hasEditableDraft =>
+      _hasUserEditedDraft ||
+      destination != null ||
+      _legs.isNotEmpty ||
+      travelDates != null ||
+      _destinationConfirmed ||
+      _datesConfirmed ||
+      _mustVisit.isNotEmpty ||
+      _departurePoint != null ||
+      interests.isNotEmpty;
+  bool get _hasHubDayConflict =>
+      _planningMode == PlanningMode.multiDestination &&
+      travelDates != null &&
+      _calculatedDays > 0 &&
+      _legs.length > _calculatedDays;
+  String get _visibleDestinationLabel {
+    if (destination == null) return '';
+    if (_hubSelectedExplicitly &&
+        _planningMode == PlanningMode.singleDestination &&
+        _legs.length == 1) {
+      final leg = _legs.first;
+      if (leg.hubName.toLowerCase() != leg.stateName.toLowerCase()) {
+        return '${leg.hubName}, ${leg.stateName}';
+      }
+      return leg.hubName;
+    }
+    return destination!;
+  }
 
-  PlanStep _activeStep = PlanStep.destination;
+  PlanStep _activeStep = PlanStep.travelDates;
   final ScrollController _scrollController = ScrollController();
 
   final GlobalKey _destinationKey = GlobalKey();
@@ -690,7 +759,8 @@ class _PlannerPageState extends State<PlannerPage> {
               ? Duration.zero
               : const Duration(milliseconds: 550),
           curve: Curves.easeInOutCubic,
-          alignment: 0.12,
+          alignment: 0.0,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
         );
       }
     });
@@ -700,8 +770,19 @@ class _PlannerPageState extends State<PlannerPage> {
   void dispose() {
     _scanPlanPlaces.removeListener(_onScanPlanPlacesChanged);
     ProfilePreferencesService.instance.removeListener(_loadProfileDefaults);
+    SupabaseItineraryService().removeListener(_onItineraryRepositoryChanged);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onItineraryRepositoryChanged() {
+    final currentRevision =
+        SupabaseItineraryService().plannerDraftClearedRevision;
+    if (currentRevision != _lastKnownSaveRevision) {
+      _lastKnownSaveRevision = currentRevision;
+      _isCurrentPlanSaved = true;
+      _hasPromptedPreviousSelection = true;
+    }
   }
 
   String? _errorMessage;
@@ -716,11 +797,17 @@ class _PlannerPageState extends State<PlannerPage> {
   void initState() {
     super.initState();
     _scanPlanPlaces.addListener(_onScanPlanPlacesChanged);
-    _scanPlanPlaces.load();
+    _scanPlanPlaces.load().then((_) {
+      if (mounted) _applyScanPlaceDefaults();
+    });
+    _lastKnownSaveRevision =
+        SupabaseItineraryService().plannerDraftClearedRevision;
+    SupabaseItineraryService().addListener(_onItineraryRepositoryChanged);
     _testingForm = widget.enableTestingBypass;
     if (!_testingForm) {
       ProfilePreferencesService.instance.addListener(_loadProfileDefaults);
       _loadProfileDefaults();
+      _draftLoadFuture = _loadDraftIfAvailable();
     }
     if (widget.initialDestination != null) {
       destination = widget.initialDestination;
@@ -771,10 +858,261 @@ class _PlannerPageState extends State<PlannerPage> {
     } else {
       _activeStep = PlanStep.generate;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.isVisible && widget.pendingSpotlightRequest != null) {
+        _resolvePendingSpotlightRequest();
+      } else if (widget.promptOnLaunch) {
+        _checkAndPromptPreviousSelection();
+      }
+    });
   }
 
+  @override
+  void didUpdateWidget(PlannerPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final hasNewSpotlight =
+        widget.pendingSpotlightRequest != null &&
+        widget.pendingSpotlightRequest!.id != _handledSpotlightRequestId &&
+        widget.pendingSpotlightRequest!.id !=
+            oldWidget.pendingSpotlightRequest?.id;
+    final becameVisible = widget.isVisible && !oldWidget.isVisible;
+    if (widget.isVisible && (hasNewSpotlight || becameVisible)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (widget.pendingSpotlightRequest != null &&
+            widget.pendingSpotlightRequest!.id != _handledSpotlightRequestId) {
+          _resolvePendingSpotlightRequest();
+        } else if (becameVisible && !_isResolvingSpotlightRequest) {
+          _checkAndPromptPreviousSelection();
+        }
+      });
+    }
+  }
+
+  bool _scanAutoFilled = false;
+
   void _onScanPlanPlacesChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    _applyScanPlaceDefaults();
+    setState(() {});
+  }
+
+  void _applyScanPlaceDefaults() {
+    if (_testingForm ||
+        _scanPlanPlaces.places.isEmpty ||
+        widget.pendingSpotlightRequest != null) {
+      return;
+    }
+    if (widget.initialDestination != null || widget.initialInterests != null) {
+      return;
+    }
+
+    var changed = false;
+
+    if (destination == null && !_hasUserEditedDraft) {
+      final stateCounts = <String, int>{};
+      for (final place in _scanPlanPlaces.places) {
+        if (place.latitude == 0 && place.longitude == 0) continue;
+        final state = nearestMalaysiaState(
+          LatLng(place.latitude, place.longitude),
+        );
+        stateCounts[state] = (stateCounts[state] ?? 0) + 1;
+      }
+      if (stateCounts.isNotEmpty) {
+        final topState = stateCounts.entries
+            .reduce((a, b) => a.value >= b.value ? a : b)
+            .key;
+        destination = topState;
+        _planningMode = PlanningMode.singleDestination;
+        _legs = [DestinationLeg.fromStateName(topState)];
+        _destinationConfirmed = true;
+        _scanAutoFilled = true;
+        if (_activeStep == PlanStep.destination) {
+          _activeStep = travelDates == null
+              ? PlanStep.travelDates
+              : PlanStep.tripLogistics;
+        }
+        changed = true;
+      }
+    }
+
+    if (interests.isEmpty && !_hasUserEditedDraft) {
+      final inferred = _inferInterestsFromScanPlaces(_scanPlanPlaces.places);
+      if (inferred.isNotEmpty) {
+        interests.addAll(inferred);
+        _interestsConfirmed = true;
+        _scanAutoFilled = true;
+        changed = true;
+      }
+    }
+
+    if (changed && mounted) {
+      setState(() {});
+    }
+  }
+
+  Set<String> _inferInterestsFromScanPlaces(List<Attraction> places) {
+    final result = <String>{};
+    for (final place in places) {
+      final text =
+          '${place.category} ${place.description ?? ''} ${place.name}'
+              .toLowerCase();
+      if (text.contains('food') ||
+          text.contains('restaurant') ||
+          text.contains('cafe') ||
+          text.contains('street food') ||
+          text.contains('dining')) {
+        result.add('Food');
+      }
+      if (text.contains('park') ||
+          text.contains('nature') ||
+          text.contains('garden') ||
+          text.contains('beach') ||
+          text.contains('island') ||
+          text.contains('waterfall') ||
+          text.contains('lake')) {
+        result.add('Nature');
+      }
+      if (text.contains('shop') ||
+          text.contains('mall') ||
+          text.contains('market') ||
+          text.contains('bazaar')) {
+        result.add('Shopping');
+      }
+      if (text.contains('history') ||
+          text.contains('heritage') ||
+          text.contains('museum') ||
+          text.contains('mosque') ||
+          text.contains('temple') ||
+          text.contains('church') ||
+          text.contains('fort') ||
+          text.contains('palace')) {
+        result.add('History');
+      }
+      if (text.contains('adventure') ||
+          text.contains('hike') ||
+          text.contains('cave') ||
+          text.contains('theme park') ||
+          text.contains('hill')) {
+        result.add('Adventure');
+      }
+      if (text.contains('family') ||
+          text.contains('aquarium') ||
+          text.contains('zoo')) {
+        result.add('Family');
+      }
+      if (text.contains('night') || text.contains('bar')) {
+        result.add('Nightlife');
+      }
+      if (text.contains('sight') ||
+          text.contains('landmark') ||
+          text.contains('architecture') ||
+          text.contains('tower') ||
+          text.contains('bridge') ||
+          text.contains('culture') ||
+          text.contains('attraction')) {
+        result.add('Culture');
+      }
+    }
+    if (result.isEmpty) {
+      result.add('Culture');
+    }
+    return result;
+  }
+
+  Widget _buildScanPlanPlacesCard({bool compact = false}) {
+    final places = _scanPlanPlaces.places;
+    final l = context.l10n;
+    return Container(
+      key: const ValueKey('planner-scan-places-card'),
+      padding: EdgeInsets.all(compact ? 12 : 16),
+      decoration: BoxDecoration(
+        color: AppColors.nightSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.photo_camera_outlined,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l.scanPlanPlaces,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ),
+              if (places.length > 1)
+                TextButton(
+                  onPressed: () {
+                    setState(() => _scanAutoFilled = false);
+                    _scanPlanPlaces.clear();
+                  },
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: AppColors.muted,
+                  ),
+                  child: Text(l.clear),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${places.length == 1 ? l.scanPlanOnePlace : l.valuePlaces(places.length.toString())} · ${l.selectedPlacesHelp}',
+            style: const TextStyle(fontSize: 12, color: AppColors.muted),
+          ),
+          if (_scanAutoFilled && !compact) ...[
+            const SizedBox(height: 6),
+            Text(
+              l.scanPlacesAutoFilled,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          for (final place in places)
+            ListTile(
+              key: ValueKey('plan-scan-place-${place.xid}'),
+              dense: compact,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.place_outlined,
+                color: AppColors.primary,
+              ),
+              title: Text(
+                place.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.ink,
+                ),
+              ),
+              subtitle: Text(
+                place.category,
+                style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              ),
+              trailing: IconButton(
+                tooltip: l.removeStop,
+                onPressed: () => _scanPlanPlaces.remove(place.xid),
+                icon: const Icon(Icons.close, size: 18),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   String _formatDate(DateTime date) {
@@ -821,6 +1159,583 @@ class _PlannerPageState extends State<PlannerPage> {
         budgetCategory = preferences.budget.plannerValue;
       }
     });
+  }
+
+  Future<void> _loadDraftIfAvailable() async {
+    if (widget.enableTestingBypass) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('planner_draft_v1_${widget.userId}');
+      if (raw == null || !mounted) return;
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final draftDest = data['destination'] as String?;
+      final draftLegs = data['legs'] is List
+          ? (data['legs'] as List)
+                .whereType<Map>()
+                .map(
+                  (m) => DestinationLeg.fromJson(Map<String, dynamic>.from(m)),
+                )
+                .toList()
+          : <DestinationLeg>[];
+      final draftMode =
+          PlanningMode.values
+              .where((m) => m.name == data['planningMode'])
+              .firstOrNull ??
+          (draftLegs.length > 1
+              ? PlanningMode.multiDestination
+              : PlanningMode.singleDestination);
+      DateTimeRange? draftDates;
+      if (data['startDate'] != null && data['endDate'] != null) {
+        final start = DateTime.tryParse(data['startDate'] as String);
+        final end = DateTime.tryParse(data['endDate'] as String);
+        if (start != null && end != null) {
+          draftDates = DateTimeRange(start: start, end: end);
+        }
+      }
+      if (draftDest != null || draftDates != null || draftLegs.isNotEmpty) {
+        if (destination == null && travelDates == null && _legs.isEmpty) {
+          setState(() {
+            destination = draftDest;
+            _legs = draftLegs;
+            _planningMode = draftMode;
+            _autoOptimizeRouteOrder = data['autoOptimizeRouteOrder'] != false;
+            travelDates = draftDates;
+            _destinationConfirmed =
+                data['destinationConfirmed'] == true ||
+                draftDest != null ||
+                draftLegs.isNotEmpty;
+            _datesConfirmed = data['datesConfirmed'] == true;
+            _hubSelectedExplicitly = data['hubSelectedExplicitly'] == true;
+            _hasUserEditedDraft = true;
+            if (data['travelMode'] is String) {
+              travelMode = data['travelMode'] as String;
+            }
+            if (data['budgetCategory'] is String) {
+              budgetCategory = data['budgetCategory'] as String;
+            }
+            if (data['interests'] is List) {
+              interests.addAll((data['interests'] as List).cast<String>());
+            }
+            _activeStep = destination == null
+                ? PlanStep.destination
+                : travelDates == null
+                ? PlanStep.travelDates
+                : PlanStep.tripLogistics;
+          });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            if ((widget.isVisible || widget.promptOnLaunch) &&
+                widget.pendingSpotlightRequest == null &&
+                !_isResolvingSpotlightRequest) {
+              _checkAndPromptPreviousSelection();
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveDraft() async {
+    if (widget.enableTestingBypass) return;
+    if (_isCurrentPlanSaved) {
+      _isCurrentPlanSaved = false;
+      _hasPromptedPreviousSelection = false;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'planner_draft_v1_${widget.userId}';
+      if (!_hasPreviousSelection) {
+        await prefs.remove(key);
+        return;
+      }
+      final data = {
+        'destination': destination,
+        'planningMode': _planningMode.name,
+        'legs': _legs.map((l) => l.toJson()).toList(),
+        'autoOptimizeRouteOrder': _autoOptimizeRouteOrder,
+        'startDate': travelDates?.start.toIso8601String(),
+        'endDate': travelDates?.end.toIso8601String(),
+        'travelMode': travelMode,
+        'budgetCategory': budgetCategory,
+        'interests': interests.toList(),
+        'destinationConfirmed': _destinationConfirmed,
+        'datesConfirmed': _datesConfirmed,
+        'hubSelectedExplicitly': _hubSelectedExplicitly,
+      };
+      await prefs.setString(key, jsonEncode(data));
+    } catch (_) {}
+  }
+
+  Future<void> _resolvePendingSpotlightRequest() async {
+    final initialRequest = widget.pendingSpotlightRequest;
+    if (!mounted ||
+        initialRequest == null ||
+        initialRequest.id == _handledSpotlightRequestId ||
+        _isResolvingSpotlightRequest) {
+      return;
+    }
+    _isResolvingSpotlightRequest = true;
+    try {
+      await (_draftLoadFuture ?? Future<void>.value());
+      if (!mounted) return;
+      final request = widget.pendingSpotlightRequest;
+      if (request == null || request.id == _handledSpotlightRequestId) return;
+
+      if (_hasEditableDraft) {
+        final summary = _visibleDestinationLabel.isNotEmpty
+            ? _visibleDestinationLabel
+            : (travelDates != null
+                  ? _travelDateLabel
+                  : context.l10n.destination);
+        final replaceDraft = await showDialog<bool>(
+          context: context,
+          barrierDismissible: true,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: AppColors.nightSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: AppColors.line),
+            ),
+            title: Text(
+              context.l10n.spotlightDraftConflictTitle,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+            content: Text(
+              context.l10n.spotlightDraftConflictMessage(summary),
+              style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actions: [
+              OutlinedButton(
+                key: const ValueKey('spotlight-keep-draft-btn'),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(context.l10n.spotlightKeepCurrentDraft),
+              ),
+              FilledButton(
+                key: const ValueKey('spotlight-new-draft-btn'),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(context.l10n.spotlightStartNewDraft),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        _handledSpotlightRequestId = request.id;
+        _hasPromptedPreviousSelection = true;
+        widget.onSpotlightRequestHandled?.call(request.id);
+        if (replaceDraft == true) {
+          _applySpotlightDestinations(
+            request.destinations,
+            resetExistingDraft: true,
+          );
+        }
+      } else {
+        _handledSpotlightRequestId = request.id;
+        _hasPromptedPreviousSelection = true;
+        widget.onSpotlightRequestHandled?.call(request.id);
+        _applySpotlightDestinations(
+          request.destinations,
+          resetExistingDraft: false,
+        );
+      }
+    } finally {
+      _isResolvingSpotlightRequest = false;
+    }
+  }
+
+  void _applySpotlightDestinations(
+    List<SpotlightDestination> selected, {
+    required bool resetExistingDraft,
+  }) {
+    final seenIds = <String>{};
+    final unique = [
+      for (final item in selected)
+        if (seenIds.add(item.id)) item,
+    ];
+    if (unique.isEmpty) return;
+
+    setState(() {
+      if (resetExistingDraft) {
+        travelDates = null;
+        _datesConfirmed = false;
+        _departurePoint = null;
+        _mustVisit.clear();
+        interests.clear();
+        _logisticsConfirmed = false;
+        _travelersConfirmed = false;
+        _paceConfirmed = false;
+        _budgetConfirmed = false;
+        _modeConfirmed = false;
+        _interestsConfirmed = false;
+        _errorMessage = null;
+        _highlightedEmptyFields.clear();
+      }
+
+      if (unique.length == 1) {
+        final picked = unique.first;
+        final days = (travelDates != null && _calculatedDays > 0)
+            ? _calculatedDays.clamp(1, 30)
+            : 3;
+        _planningMode = PlanningMode.singleDestination;
+        _legs = [picked.toDestinationLeg(allocatedDays: days, sequence: 1)];
+        destination = picked.stateName;
+        _hubSelectedExplicitly = true;
+      } else {
+        final rawLegs = [
+          for (int i = 0; i < unique.length; i++)
+            unique[i].toDestinationLeg(allocatedDays: 1, sequence: i + 1),
+        ];
+        final ordered = TransferManager.optimizeLegOrder(rawLegs);
+        _legs =
+            (travelDates != null &&
+                _calculatedDays > 0 &&
+                ordered.length <= _calculatedDays)
+            ? TransferManager.autoDistributeDays(ordered, _calculatedDays)
+            : ordered;
+        _planningMode = PlanningMode.multiDestination;
+        _autoOptimizeRouteOrder = true;
+        _hubSelectedExplicitly = true;
+        destination = TripPreferences(
+          planningMode: PlanningMode.multiDestination,
+          legs: _legs,
+        ).effectiveDestinationLabel;
+      }
+
+      _destinationConfirmed = true;
+      _hasUserEditedDraft = true;
+      _isCurrentPlanSaved = false;
+      _hasPromptedPreviousSelection = true;
+      _errorMessage = null;
+      _highlightedEmptyFields.remove('destination');
+      _activeStep = travelDates == null
+          ? PlanStep.travelDates
+          : PlanStep.tripLogistics;
+    });
+    _saveDraft();
+  }
+
+  void _removeMultiCityLeg(int index) {
+    if (index < 0 || index >= _legs.length) return;
+    setState(() {
+      final remaining = List<DestinationLeg>.from(_legs)..removeAt(index);
+      if (remaining.length <= 1) {
+        _planningMode = PlanningMode.singleDestination;
+        if (remaining.isEmpty) {
+          _legs = [];
+          destination = null;
+          _destinationConfirmed = false;
+          _activeStep = PlanStep.destination;
+        } else {
+          final days = (travelDates != null && _calculatedDays > 0)
+              ? _calculatedDays.clamp(1, 30)
+              : 3;
+          final single = remaining.first.copyWith(
+            allocatedDays: days,
+            sequence: 1,
+          );
+          _legs = [single];
+          destination = single.stateName;
+          _destinationConfirmed = true;
+        }
+      } else {
+        final ordered = _autoOptimizeRouteOrder
+            ? TransferManager.optimizeLegOrder(remaining)
+            : [
+                for (int i = 0; i < remaining.length; i++)
+                  remaining[i].copyWith(sequence: i + 1),
+              ];
+        _legs =
+            (travelDates != null &&
+                _calculatedDays > 0 &&
+                ordered.length <= _calculatedDays)
+            ? TransferManager.autoDistributeDays(ordered, _calculatedDays)
+            : ordered;
+        _planningMode = PlanningMode.multiDestination;
+        destination = TripPreferences(
+          planningMode: PlanningMode.multiDestination,
+          legs: _legs,
+        ).effectiveDestinationLabel;
+      }
+      _hasUserEditedDraft = true;
+      _errorMessage = null;
+    });
+    _saveDraft();
+  }
+
+  Future<void> _openMultiCityEditor() async {
+    final totalDays = _datesConfirmed && _calculatedDays > 0
+        ? _calculatedDays
+        : (_legs.length >= 2 ? _legs.length : 7);
+    final multiResult = await showModalBottomSheet<MultiDestinationResult>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => MultiDestinationPickerSheet(
+        totalDays: totalDays.clamp(2, 30),
+        initialLegs: _legs.isNotEmpty
+            ? _legs
+            : (destination != null
+                  ? [DestinationLeg.fromStateName(destination!)]
+                  : const []),
+        initialAutoOptimize: _autoOptimizeRouteOrder,
+      ),
+    );
+    if (mounted && multiResult != null) {
+      final tempPrefs = TripPreferences(
+        planningMode: PlanningMode.multiDestination,
+        legs: multiResult.legs,
+      );
+      setState(() {
+        _planningMode = PlanningMode.multiDestination;
+        _legs = multiResult.legs;
+        _autoOptimizeRouteOrder = multiResult.autoOptimizeOrder;
+        destination = tempPrefs.effectiveDestinationLabel;
+        _destinationConfirmed = true;
+        _hasUserEditedDraft = true;
+        _departurePoint = null;
+        _mustVisit.clear();
+        _errorMessage = null;
+        _highlightedEmptyFields.remove('destination');
+        _activeStep = _datesConfirmed
+            ? PlanStep.tripLogistics
+            : PlanStep.travelDates;
+      });
+      _saveDraft();
+    }
+  }
+
+  Future<void> _clearSavedDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('planner_draft_v1_${widget.userId}');
+    } catch (_) {}
+  }
+
+  Future<void> _checkAndPromptPreviousSelection() async {
+    if (!mounted ||
+        widget.enableTestingBypass ||
+        (!widget.isVisible && !widget.promptOnLaunch) ||
+        _isCheckingPreviousSelection ||
+        _isCurrentPlanSaved ||
+        _hasPromptedPreviousSelection ||
+        _isResolvingSpotlightRequest ||
+        widget.pendingSpotlightRequest != null) {
+      return;
+    }
+    _isCheckingPreviousSelection = true;
+    try {
+      await (_draftLoadFuture ?? Future<void>.value());
+      if (!mounted ||
+          widget.enableTestingBypass ||
+          (!widget.isVisible && !widget.promptOnLaunch) ||
+          _isCurrentPlanSaved ||
+          _hasPromptedPreviousSelection ||
+          _isResolvingSpotlightRequest ||
+          widget.pendingSpotlightRequest != null) {
+        return;
+      }
+      if (!_hasPreviousSelection) return;
+
+      _hasPromptedPreviousSelection = true;
+
+      final destName = destination ?? context.l10n.destination;
+      final datesSummary = travelDates != null ? ' ($_travelDateLabel)' : '';
+      final fullSummary = '$destName$datesSummary';
+
+      final shouldReset = await showDialog<bool>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: AppColors.nightSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppColors.line),
+          ),
+          icon: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.restore_outlined,
+              color: AppColors.primary,
+              size: 26,
+            ),
+          ),
+          title: Text(
+            context.l10n.planPreviousSelectionTitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
+          ),
+          content: Text(
+            context.l10n.planPreviousSelectionMessage(fullSummary),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            OutlinedButton(
+              key: const ValueKey('plan-prompt-redo-btn'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade400,
+                side: BorderSide(
+                  color: Colors.red.shade400.withValues(alpha: 0.5),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              child: Text(
+                context.l10n.planStartOver,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            FilledButton(
+              key: const ValueKey('plan-prompt-continue-btn'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.nightCanvas,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
+              child: Text(
+                context.l10n.planContinueExisting,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldReset == true && mounted) {
+        _resetPlanToCleanSlate();
+      } else if (shouldReset == false && mounted) {
+        widget.onContinueExisting?.call();
+      }
+    } finally {
+      _isCheckingPreviousSelection = false;
+    }
+  }
+
+  Future<void> _confirmAndReset() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.nightSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.line),
+        ),
+        title: Text(
+          context.l10n.planStartOver,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          context.l10n.planResetConfirmation,
+          style: const TextStyle(color: AppColors.muted, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(context.l10n.planStartOver),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      _resetPlanToCleanSlate();
+    }
+  }
+
+  void _resetPlanToCleanSlate() {
+    setState(() {
+      destination = null;
+      _planningMode = PlanningMode.singleDestination;
+      _legs = [];
+      _autoOptimizeRouteOrder = true;
+      _hasUserEditedDraft = false;
+      _hubSelectedExplicitly = false;
+      travelDates = null;
+      _departurePoint = null;
+      _mustVisit.clear();
+      dailyStartTime = const TimeOfDay(hour: 8, minute: 0);
+      dailyEndTime = const TimeOfDay(hour: 22, minute: 0);
+      travelMode = 'Driving';
+      _transitMinutesInput = '';
+      budgetCategory = '';
+      interests.clear();
+      _travelerType = TravelerType.solo;
+      _pace = PaceCategory.balanced;
+      _diet = DietaryPreference.unrestricted;
+
+      _destinationConfirmed = false;
+      _datesConfirmed = false;
+      _logisticsConfirmed = false;
+      _travelersConfirmed = false;
+      _paceConfirmed = false;
+      _budgetConfirmed = false;
+      _modeConfirmed = false;
+      _interestsConfirmed = false;
+
+      _activeStep = PlanStep.destination;
+      _errorMessage = null;
+      _highlightedEmptyFields.clear();
+      _isCurrentPlanSaved = false;
+      _hasPromptedPreviousSelection = false;
+    });
+
+    _clearSavedDraft();
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.planResetSuccess),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget _buildTimePresetChip({
@@ -872,6 +1787,21 @@ class _PlannerPageState extends State<PlannerPage> {
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context, '__MULTI_CITY__'),
+                      icon: const Icon(Icons.route_outlined, size: 18),
+                      label: const Text(
+                        'Multi-City Tour (All States)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: ListView.separated(
                     controller: scrollController,
@@ -912,18 +1842,38 @@ class _PlannerPageState extends State<PlannerPage> {
       },
     );
 
+    if (mounted && selected == '__MULTI_CITY__') {
+      await _openMultiCityEditor();
+      return;
+    }
+
     if (mounted && selected != null) {
       setState(() {
-        if (destination != selected) {
+        if (destination != selected ||
+            _planningMode == PlanningMode.multiDestination) {
           _departurePoint = null;
           _mustVisit.clear();
         }
+        _planningMode = PlanningMode.singleDestination;
+        _legs = [
+          DestinationLeg.fromStateName(
+            selected,
+            allocatedDays: _datesConfirmed ? _calculatedDays : 3,
+          ),
+        ];
         destination = selected;
         _destinationConfirmed = true;
+        _hubSelectedExplicitly = false;
+        _hasUserEditedDraft = true;
         _errorMessage = null;
         _highlightedEmptyFields.remove('destination');
+        if (_datesConfirmed && _calculatedDays <= 30) {
+          _activeStep = PlanStep.tripLogistics;
+        } else {
+          _activeStep = PlanStep.travelDates;
+        }
       });
-      _advanceToStep(PlanStep.travelDates);
+      _saveDraft();
     }
   }
 
@@ -984,13 +1934,27 @@ class _PlannerPageState extends State<PlannerPage> {
     }
 
     if (mounted && picked != null) {
+      final pickedDays = picked.end.difference(picked.start).inDays + 1;
       setState(() {
         travelDates = picked;
         _datesConfirmed = true;
+        _hasUserEditedDraft = true;
         _errorMessage = null;
         _highlightedEmptyFields.remove('numberOfDays');
+        if (_planningMode == PlanningMode.multiDestination &&
+            _legs.length >= 2 &&
+            pickedDays >= _legs.length) {
+          _legs = TransferManager.autoDistributeDays(_legs, pickedDays);
+        }
+        if (_destinationConfirmed &&
+            _calculatedDays <= 30 &&
+            !_hasHubDayConflict) {
+          _activeStep = PlanStep.tripLogistics;
+        } else {
+          _activeStep = PlanStep.destination;
+        }
       });
-      _advanceToStep(PlanStep.tripLogistics);
+      _saveDraft();
     }
   }
 
@@ -998,12 +1962,32 @@ class _PlannerPageState extends State<PlannerPage> {
 
   Future<void> _handleGenerateItinerary() async {
     if (_isGenerating) return;
+    if (_hasHubDayConflict) {
+      setState(() {
+        _errorMessage = context.l10n.plannerDurationConflictMessage(
+          _legs.length,
+          _calculatedDays,
+        );
+        _activeStep = PlanStep.destination;
+      });
+      _advanceToStep(PlanStep.destination);
+      return;
+    }
     if (_isGenerating) return;
     demoHaptic();
     setState(() {
       _errorMessage = null;
       _highlightedEmptyFields.clear();
     });
+
+    final resolvedLegs =
+        (_planningMode == PlanningMode.multiDestination &&
+            _legs.isNotEmpty &&
+            travelDates != null &&
+            _legs.fold<int>(0, (s, l) => s + l.allocatedDays) !=
+                _calculatedDays)
+        ? TransferManager.autoDistributeDays(_legs, _calculatedDays)
+        : _legs;
 
     final currentPrefs = TripPreferences(
       destination: destination,
@@ -1026,9 +2010,22 @@ class _PlannerPageState extends State<PlannerPage> {
       travelerType: _travelerType,
       paceCategory: _selectedPace,
       dietaryPreference: _diet,
-      mustVisitPlaces: List.unmodifiable(_mustVisit),
-      selectedPlaces: List.unmodifiable(_selectedScanPlaces),
+      mustVisitPlaces: List.unmodifiable([
+        ..._mustVisit,
+        for (final scanStop in _selectedScanPlaces)
+          if (!_mustVisit.any(
+            (m) =>
+                (m.placeId != null && m.placeId == scanStop.placeId) ||
+                m.title.trim().toLowerCase() ==
+                    scanStop.title.trim().toLowerCase(),
+          ))
+            scanStop,
+      ]),
+      selectedPlaces: const [],
       secondaryTransportModes: const [],
+      planningMode: _planningMode,
+      legs: resolvedLegs,
+      autoOptimizeRouteOrder: _autoOptimizeRouteOrder,
     );
 
     // Validate using TripPreferencesService (FR300_3 to FR300_9)
@@ -1410,115 +2407,132 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
       ],
       _PlannerGroup.highlights => [
-        Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          initiallyExpanded: _mustVisit.isNotEmpty || _testingForm,
+          title: Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l.planMustVisit,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
-                      ),
-                    ),
+              const Expanded(
+                child: Text(
+                  'Optional: Add must-visit places',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
                   ),
-                  if (_mustVisit.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${_mustVisit.length}/3',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    key: const ValueKey('plan-from-saved-places-btn'),
-                    onPressed: _mustVisit.length >= 3
-                        ? null
-                        : _chooseFromSavedPlaces,
-                    icon: const Icon(Icons.bookmark_outline_rounded, size: 17),
-                    label: Text(l.planFromSavedPlaces),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: BorderSide(
-                        color: _mustVisit.length >= 3
-                            ? AppColors.line.withValues(alpha: 0.5)
-                            : AppColors.primary.withValues(alpha: 0.6),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+              if (_mustVisit.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_mustVisit.length}/3',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
                     ),
                   ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('plan-search-highlight-btn'),
-                    onPressed: _mustVisit.length >= 3 ? null : _chooseHighlight,
-                    icon: const Icon(Icons.search_rounded, size: 17),
-                    label: Text(l.planSearchAttractions),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
-                      side: const BorderSide(color: AppColors.line),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                ),
+            ],
+          ),
+          childrenPadding: const EdgeInsets.only(top: 4, bottom: 8),
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l.planMustVisit,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
                   ),
-                ],
-              ),
-              if (_mustVisit.isNotEmpty) ...[
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
-                  runSpacing: 6,
+                  runSpacing: 8,
                   children: [
-                    for (final stop in _mustVisit)
-                      InputChip(
-                        key: ValueKey(
-                          'must-visit-chip-${stop.placeId ?? stop.title}',
-                        ),
-                        avatar: const Icon(
-                          Icons.place_outlined,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                        label: Text(stop.title),
-                        onDeleted: () =>
-                            setState(() => _mustVisit.remove(stop)),
+                    OutlinedButton.icon(
+                      key: const ValueKey('plan-from-saved-places-btn'),
+                      onPressed: _mustVisit.length >= 3
+                          ? null
+                          : _chooseFromSavedPlaces,
+                      icon: const Icon(
+                        Icons.bookmark_outline_rounded,
+                        size: 17,
                       ),
+                      label: Text(l.planFromSavedPlaces),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(
+                          color: _mustVisit.length >= 3
+                              ? AppColors.line.withValues(alpha: 0.5)
+                              : AppColors.primary.withValues(alpha: 0.6),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey('plan-search-highlight-btn'),
+                      onPressed: _mustVisit.length >= 3
+                          ? null
+                          : _chooseHighlight,
+                      icon: const Icon(Icons.search_rounded, size: 17),
+                      label: Text(l.planSearchAttractions),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.ink,
+                        side: const BorderSide(color: AppColors.line),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
+                if (_mustVisit.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      for (final stop in _mustVisit)
+                        InputChip(
+                          key: ValueKey(
+                            'must-visit-chip-${stop.placeId ?? stop.title}',
+                          ),
+                          avatar: const Icon(
+                            Icons.place_outlined,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          label: Text(stop.title),
+                          onDeleted: () =>
+                              setState(() => _mustVisit.remove(stop)),
+                        ),
+                    ],
+                  ),
+                ],
               ],
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     };
@@ -1526,12 +2540,81 @@ class _PlannerPageState extends State<PlannerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final canEditDates = _testingForm || _destinationConfirmed;
+    if (widget.useModernPicker &&
+        !_testingForm &&
+        travelDates == null &&
+        !_datesConfirmed &&
+        !_destinationConfirmed) {
+      final now = DateTime.now();
+      return Column(
+        children: [
+          if (widget.onMyTripsTap != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    key: const ValueKey('plan-my-trips'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const TripSelectionScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.luggage_outlined, size: 18),
+                    label: Text(context.l10n.myTrips),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: ModernDateRangePicker(
+              firstDate: DateTime(now.year, now.month, now.day),
+              lastDate: now.add(const Duration(days: 365 * 2)),
+              stepText: 'STEP 1 • TRAVEL DATES',
+              topBanner: _scanPlanPlaces.places.isEmpty
+                  ? null
+                  : _buildScanPlanPlacesCard(compact: true),
+              onDateRangeSelected: (range) {
+                setState(() {
+                  travelDates = range;
+                  _datesConfirmed = true;
+                  _hasUserEditedDraft = true;
+                  _errorMessage = null;
+                  _highlightedEmptyFields.remove('numberOfDays');
+                  final pickedDays =
+                      range.end.difference(range.start).inDays + 1;
+                  if (_planningMode == PlanningMode.multiDestination &&
+                      _legs.length >= 2 &&
+                      pickedDays >= _legs.length) {
+                    _legs = TransferManager.autoDistributeDays(
+                      _legs,
+                      pickedDays,
+                    );
+                  }
+                  _activeStep = destination == null
+                      ? PlanStep.destination
+                      : PlanStep.tripLogistics;
+                });
+                _saveDraft();
+              },
+            ),
+          ),
+        ],
+      );
+    }
+
+    final hasHubDayConflict = _hasHubDayConflict;
     final canEditTravelers =
         _testingForm ||
-        (canEditDates &&
+        (_destinationConfirmed &&
             _datesConfirmed &&
             _calculatedDays <= 30 &&
+            !hasHubDayConflict &&
             _logisticsConfirmed);
     final canEditPace =
         _testingForm || (canEditTravelers && _travelersConfirmed);
@@ -1545,7 +2628,8 @@ class _PlannerPageState extends State<PlannerPage> {
     final canEditInterests =
         _testingForm || (canEditBudget && _budgetConfirmed);
     final canGenerate =
-        _testingForm || (canEditInterests && _interestsConfirmed);
+        (_testingForm || (canEditInterests && _interestsConfirmed)) &&
+        !hasHubDayConflict;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final days = _calculatedDays;
     final duration = _dailyDurationLabel;
@@ -1589,23 +2673,60 @@ class _PlannerPageState extends State<PlannerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (widget.onMyTripsTap != null) ...[
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      key: const ValueKey('plan-my-trips'),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const TripSelectionScreen(),
+                if (_hasPreviousSelection || widget.onMyTripsTap != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (_hasPreviousSelection)
+                        Flexible(
+                          child: TextButton.icon(
+                            key: const ValueKey('plan-start-over-btn'),
+                            onPressed: _confirmAndReset,
+                            icon: const Icon(Icons.restart_alt, size: 16),
+                            label: Text(
+                              context.l10n.planStartOver,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 4,
+                              ),
+                              foregroundColor: AppColors.muted,
+                            ),
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      if (widget.onMyTripsTap != null)
+                        Flexible(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              key: const ValueKey('plan-my-trips'),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const TripSelectionScreen(),
+                                ),
+                              ),
+                              icon: const Icon(Icons.folder_outlined, size: 18),
+                              label: Text(
+                                context.l10n.myTrips,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 4,
+                                ),
+                                foregroundColor: AppColors.primary,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.folder_outlined, size: 20),
-                      label: Text(context.l10n.myTrips),
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                        foregroundColor: AppColors.primary,
-                      ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                 ],
@@ -1636,6 +2757,10 @@ class _PlannerPageState extends State<PlannerPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                if (_scanPlanPlaces.places.isNotEmpty) ...[
+                  _buildScanPlanPlacesCard(),
+                  const SizedBox(height: 16),
+                ],
                 _PlanSection(
                   key: const ValueKey('trip-basics-section'),
                   isHighlighted:
@@ -1655,23 +2780,6 @@ class _PlannerPageState extends State<PlannerPage> {
                   description: context.l10n.whereAndWhenWouldYouLikeToGo,
                   children: [
                     _PlanPickerField(
-                      key: _destinationKey,
-                      label: context.l10n.destination,
-                      value: destination == null
-                          ? context.l10n.selectDestination
-                          : destination!,
-                      isPlaceholder: destination == null,
-                      icon: Icons.place_outlined,
-                      isHighlighted: _activeStep == PlanStep.destination,
-                      hasError: _highlightedEmptyFields.contains('destination'),
-                      errorText: context.l10n.chooseADestination,
-                      onTap: () {
-                        setState(() => _activeStep = PlanStep.destination);
-                        _pickDestination();
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _PlanPickerField(
                       key: _datesKey,
                       label: context.l10n.travelDates,
                       value: travelDates == null
@@ -1679,25 +2787,80 @@ class _PlannerPageState extends State<PlannerPage> {
                           : _travelDateLabel,
                       isPlaceholder: travelDates == null,
                       icon: Icons.calendar_month_outlined,
-                      isHighlighted: _activeStep == PlanStep.travelDates,
+                      isHighlighted:
+                          travelDates == null ||
+                          _activeStep == PlanStep.travelDates,
                       supportingText: days > 0
-                          ? '$days ${days == 1 ? 'day' : 'days'} to explore'
+                          ? '$days ${days == 1 ? 'day' : 'days'} to explore${days >= 5 ? ' • Multi-city recommended' : ''}'
                           : null,
                       hasError: _highlightedEmptyFields.contains(
                         'numberOfDays',
                       ),
                       errorText: context.l10n.chooseYourTravelDates,
-                      onTap: canEditDates
-                          ? () {
-                              setState(
-                                () => _activeStep = PlanStep.travelDates,
-                              );
-                              _pickTravelDates();
-                            }
-                          : null,
+                      onTap: () {
+                        setState(() => _activeStep = PlanStep.travelDates);
+                        _pickTravelDates();
+                      },
                     ),
-                    if (canEditDates && days > 30)
+                    if (days > 30)
                       _PlanFieldError(TripPreferencesService.m4InvalidDays),
+                    const SizedBox(height: 16),
+                    _PlanPickerField(
+                      key: _destinationKey,
+                      label: context.l10n.destination,
+                      value: destination == null
+                          ? context.l10n.selectDestination
+                          : _visibleDestinationLabel,
+                      isPlaceholder: destination == null,
+                      icon: Icons.place_outlined,
+                      isHighlighted:
+                          destination == null ||
+                          _activeStep == PlanStep.destination,
+                      hasError:
+                          _highlightedEmptyFields.contains('destination') ||
+                          hasHubDayConflict,
+                      errorText: context.l10n.chooseADestination,
+                      onTap: () {
+                        setState(() => _activeStep = PlanStep.destination);
+                        _pickDestination();
+                      },
+                    ),
+                    if (_planningMode == PlanningMode.multiDestination &&
+                        _legs.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _ProposedMultiCityRouteCard(
+                        legs: _legs,
+                        showAllocatedDays:
+                            travelDates != null && !hasHubDayConflict,
+                        onEditRoute: _openMultiCityEditor,
+                        onRemoveLeg: _removeMultiCityLeg,
+                      ),
+                    ],
+                    if (hasHubDayConflict) ...[
+                      const SizedBox(height: 12),
+                      KeyedSubtree(
+                        key: const ValueKey('planner-duration-conflict-notice'),
+                        child: _PlanNotice(
+                          icon: Icons.warning_amber_rounded,
+                          title: context.l10n.plannerDurationConflictTitle,
+                          message: context.l10n.plannerDurationConflictMessage(
+                            _legs.length,
+                            days,
+                          ),
+                          isError: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('planner-extend-dates-btn'),
+                          onPressed: _pickTravelDates,
+                          icon: const Icon(Icons.date_range_outlined, size: 18),
+                          label: Text(context.l10n.plannerExtendTripDates),
+                        ),
+                      ),
+                    ],
                     KeyedSubtree(
                       key: _logisticsKey,
                       child: Column(
@@ -1710,7 +2873,10 @@ class _PlannerPageState extends State<PlannerPage> {
                           ),
                           _PlanStepContinueButton(
                             onPressed:
-                                !canEditDates || !_datesConfirmed || days > 30
+                                !_destinationConfirmed ||
+                                    !_datesConfirmed ||
+                                    days > 30 ||
+                                    hasHubDayConflict
                                 ? null
                                 : () {
                                     setState(() => _logisticsConfirmed = true);
@@ -1719,7 +2885,9 @@ class _PlannerPageState extends State<PlannerPage> {
                                     );
                                   },
                             label: context.l10n.planContinueWho,
-                            disabledHint: context.l10n.planUnlockDates,
+                            disabledHint: !_destinationConfirmed
+                                ? context.l10n.planUnlockBasics
+                                : context.l10n.planUnlockDates,
                           ),
                         ],
                       ),
@@ -1861,7 +3029,7 @@ class _PlannerPageState extends State<PlannerPage> {
                       nested: true,
                       enabled: canEditMode,
                       isHighlighted: _activeStep == PlanStep.travelMode,
-                      quietHighlight: true,
+                      showHighlightBadge: false,
                       onTap: canEditMode
                           ? () => setState(
                               () => _activeStep = PlanStep.travelMode,
@@ -1907,6 +3075,7 @@ class _PlannerPageState extends State<PlannerPage> {
                                       'travelMode',
                                     );
                                   });
+                                  _saveDraft();
                                 },
                               ),
                           ],
@@ -2017,6 +3186,7 @@ class _PlannerPageState extends State<PlannerPage> {
                                   'budgetCategory',
                                 );
                               });
+                              _saveDraft();
                             },
                           ),
                       ],
@@ -2092,39 +3262,11 @@ class _PlannerPageState extends State<PlannerPage> {
                                 _errorMessage = null;
                                 _highlightedEmptyFields.remove('interests');
                               });
+                              _saveDraft();
                             },
                           ),
                       ],
                     ),
-                    if (_scanPlanPlaces.places.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        context.l10n.scanPlanPlaces,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        _scanPlanPlaces.places.length == 1
-                            ? context.l10n.scanPlanOnePlace
-                            : context.l10n.valuePlaces(
-                                _scanPlanPlaces.places.length.toString(),
-                              ),
-                      ),
-                      Text(context.l10n.selectedPlacesHelp),
-                      const SizedBox(height: 8),
-                      for (final place in _scanPlanPlaces.places)
-                        ListTile(
-                          key: ValueKey('plan-scan-place-${place.xid}'),
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.place_outlined),
-                          title: Text(place.name),
-                          subtitle: Text(place.category),
-                          trailing: IconButton(
-                            tooltip: context.l10n.removeStop,
-                            onPressed: () => _scanPlanPlaces.remove(place.xid),
-                            icon: const Icon(Icons.close),
-                          ),
-                        ),
-                    ],
                     if (interestError)
                       const _PlanFieldError('Choose at least one interest.'),
                     if (!_interestsConfirmed)
@@ -2213,7 +3355,6 @@ class _PlanSection extends StatelessWidget {
     this.enabled = true,
     this.isHighlighted = false,
     this.showHighlightBadge = true,
-    this.quietHighlight = false,
     this.onTap,
   });
 
@@ -2226,12 +3367,11 @@ class _PlanSection extends StatelessWidget {
   final bool enabled;
   final bool isHighlighted;
   final bool showHighlightBadge;
-  final bool quietHighlight;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final emphasize = isHighlighted && !quietHighlight;
+    final emphasize = isHighlighted;
     final border = hasError
         ? Border.all(color: Colors.red.shade700, width: 1.5)
         : emphasize
@@ -2272,20 +3412,14 @@ class _PlanSection extends StatelessWidget {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 350),
-                  padding: EdgeInsets.all(quietHighlight ? 8 : 9),
+                  padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: quietHighlight
-                        ? AppColors.nightRaised
-                        : emphasize
+                    color: emphasize
                         ? AppColors.primary.withValues(alpha: 0.22)
                         : AppColors.nightAccentContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 21,
-                    color: quietHighlight ? AppColors.muted : AppColors.primary,
-                  ),
+                  child: Icon(icon, size: 21, color: AppColors.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2435,47 +3569,10 @@ class _PlanPickerField extends StatelessWidget {
     final field = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(child: _PlanLabel(label)),
-            if (isHighlighted)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.6),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 5,
-                      height: 5,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      'Select',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+        _PlanLabel(label),
         const SizedBox(height: 8),
         Semantics(
+          key: ValueKey('picker-semantics-$label'),
           button: true,
           label: label,
           child: AnimatedContainer(
@@ -2842,12 +3939,36 @@ class _PlanChoices extends StatelessWidget {
         final columns = ((constraints.maxWidth + gap) / (96 * scale + gap))
             .floor()
             .clamp(1, 3);
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
+
+        final rows = <List<Widget>>[];
+        for (var i = 0; i < children.length; i += columns) {
+          final end = (i + columns < children.length)
+              ? i + columns
+              : children.length;
+          rows.add(children.sublist(i, end));
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final child in children) SizedBox(width: width, child: child),
+            for (var r = 0; r < rows.length; r++) ...[
+              if (r > 0) const SizedBox(height: gap),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var c = 0; c < columns; c++) ...[
+                      if (c > 0) const SizedBox(width: gap),
+                      if (c < rows[r].length)
+                        Expanded(child: rows[r][c])
+                      else
+                        const Expanded(child: SizedBox.shrink()),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ],
         );
       },
@@ -2892,9 +4013,10 @@ class _PlanOption extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 82),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     selected
@@ -2904,24 +4026,34 @@ class _PlanOption extends StatelessWidget {
                     color: selected ? AppColors.primary : AppColors.muted,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    context.tr(title),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                      color: selected ? AppColors.primary : AppColors.ink,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      context.tr(title),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: selected ? AppColors.primary : AppColors.ink,
+                      ),
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 4),
-                    Text(
-                      context.tr(subtitle!),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: AppColors.muted,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        context.tr(subtitle!),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: AppColors.muted,
+                        ),
                       ),
                     ),
                   ],
@@ -3411,6 +4543,150 @@ class _SavedPlacesSelectionSheetState
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProposedMultiCityRouteCard extends StatelessWidget {
+  const _ProposedMultiCityRouteCard({
+    required this.legs,
+    required this.showAllocatedDays,
+    required this.onEditRoute,
+    required this.onRemoveLeg,
+  });
+
+  final List<DestinationLeg> legs;
+  final bool showAllocatedDays;
+  final VoidCallback onEditRoute;
+  final ValueChanged<int> onRemoveLeg;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return Container(
+      key: const ValueKey('planner-multi-city-route-card'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.nightCanvas,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.route_outlined,
+                color: AppColors.primary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.plannerProposedRouteTitle,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton(
+                key: const ValueKey('planner-edit-route-btn'),
+                onPressed: onEditRoute,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: Text(l10n.plannerEditRoute),
+              ),
+            ],
+          ),
+          Text(
+            l10n.plannerRouteAutoOrdered,
+            style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          for (int i = 0; i < legs.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: i == 0 ? AppColors.primary : AppColors.nightSurface,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: i == 0 ? AppColors.primary : AppColors.line,
+                    ),
+                  ),
+                  child: Text(
+                    '${i + 1}',
+                    style: TextStyle(
+                      color: i == 0 ? AppColors.onNightAccent : AppColors.ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        legs[i].hubName.toLowerCase() ==
+                                legs[i].stateName.toLowerCase()
+                            ? legs[i].hubName
+                            : '${legs[i].hubName}, ${legs[i].stateName}',
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (i == 0 || showAllocatedDays)
+                        Text(
+                          [
+                            if (i == 0) l10n.spotlightStartBadge,
+                            if (showAllocatedDays)
+                              l10n.plannerDaysAllocatedShort(
+                                legs[i].allocatedDays,
+                              ),
+                          ].join(' · '),
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: ValueKey('remove-leg-${legs[i].destinationId}'),
+                  tooltip: l10n.plannerRemoveDestinationTooltip(
+                    legs[i].hubName,
+                  ),
+                  onPressed: () => onRemoveLeg(i),
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

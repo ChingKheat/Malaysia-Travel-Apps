@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
+import 'package:smart_travel_planner/features/home/models/spotlight_destination.dart';
+import 'package:smart_travel_planner/features/home/services/destination_spotlight_controller.dart';
+import 'package:smart_travel_planner/features/home/widgets/destination_spotlight_card.dart';
+import 'package:smart_travel_planner/features/home/widgets/destination_spotlight_picker_sheet.dart';
 import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/features/itinerary/services/itinerary_service.dart';
@@ -21,11 +25,15 @@ class ApiDemoPage extends StatefulWidget {
     this.isVisible = true,
     this.discoveryHeader,
     this.onPlacesLoaded,
+    this.spotlightStore,
+    this.onSpotlightSelected,
   });
 
   final bool isVisible;
   final Widget? discoveryHeader;
   final ValueChanged<List<Attraction>>? onPlacesLoaded;
+  final DestinationSpotlightStore? spotlightStore;
+  final ValueChanged<List<SpotlightDestination>>? onSpotlightSelected;
 
   @override
   State<ApiDemoPage> createState() => _ApiDemoPageState();
@@ -55,12 +63,21 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
   static const _categories = [
     'All',
-    '🏛️ Sights',
-    '🍔 Food',
-    '☕ Cafes',
-    '🛍️ Shops',
-    '🌳 Nature',
+    'Sights',
+    'Food',
+    'Cafes',
+    'Shops',
+    'Nature',
   ];
+
+  static const _categoryIcons = <String, IconData>{
+    'All': Icons.explore_outlined,
+    'Sights': Icons.account_balance_outlined,
+    'Food': Icons.restaurant_outlined,
+    'Cafes': Icons.local_cafe_outlined,
+    'Shops': Icons.shopping_bag_outlined,
+    'Nature': Icons.park_outlined,
+  };
 
   Timer? _searchDebounce;
 
@@ -277,9 +294,71 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     );
   }
 
+  Future<void> _openSpotlightFromFloatingCard() async {
+    final selected = await showDestinationSpotlightPicker(context);
+    if (!mounted || selected == null || selected.isEmpty) return;
+    widget.onSpotlightSelected?.call(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _buildAttractionsView(_filteredAttractions);
+    final feed = _buildAttractionsView(_filteredAttractions);
+    final store = widget.spotlightStore;
+    if (store == null || widget.onSpotlightSelected == null) {
+      return feed;
+    }
+
+    return Stack(
+      children: [
+        feed,
+        ListenableBuilder(
+          listenable: store,
+          builder: (context, _) {
+            if (!store.isLoaded || store.isDismissed) {
+              return const SizedBox.shrink();
+            }
+            final maxCardHeight = MediaQuery.sizeOf(context).height * 0.72;
+            return Positioned.fill(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      key: const ValueKey('spotlight-backdrop'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => store.setDismissed(true),
+                      child: ColoredBox(
+                        color: Colors.black.withValues(alpha: 0.54),
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 20,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: 340,
+                          maxHeight: maxCardHeight,
+                        ),
+                        child: DestinationSpotlightCard(
+                          floating: true,
+                          dismissed: false,
+                          featured: store.featuredDestination,
+                          onChooseDestinations: _openSpotlightFromFloatingCard,
+                          onDismiss: () => store.setDismissed(true),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 
   Widget _buildAttractionsView(List<Attraction> filtered) {
@@ -290,10 +369,11 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
         children: [
           if (widget.discoveryHeader != null) widget.discoveryHeader!,
           _buildLocationSelector(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _buildSearchBar(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _buildCategoryChips(),
+          const SizedBox(height: 16),
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
@@ -309,7 +389,7 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
       header: Column(
         children: [
           if (widget.discoveryHeader != null) widget.discoveryHeader!,
-          if (_page?.source == 'Saved verified catalog')
+          if (_page?.source == 'Saved catalog')
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
@@ -328,11 +408,11 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
               ),
             ),
           _buildLocationSelector(),
-          const SizedBox(height: 10),
-          _buildSearchBar(),
-          const SizedBox(height: 10),
-          _buildCategoryChips(),
           const SizedBox(height: 12),
+          _buildSearchBar(),
+          const SizedBox(height: 12),
+          _buildCategoryChips(),
+          const SizedBox(height: 16),
         ],
       ),
       attractions: filtered,
@@ -549,63 +629,76 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
 
   Widget _buildCategoryChips() {
     return SizedBox(
-      height: 44,
+      height: 38,
       child: ListView.separated(
         key: ValueKey('explore-categories-$_destinationState'),
         scrollDirection: Axis.horizontal,
         itemCount: _categories.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) => _categoryChip(_categories[index]),
-      ),
-    );
-  }
-
-  Widget _categoryChip(String cat) {
-    final active = _selectedCategory == cat;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          demoHaptic();
-          setState(() => _selectedCategory = cat);
-          _loadAttractions();
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? AppColors.primary : AppColors.nightSurface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: active ? AppColors.primary : AppColors.nightLine,
-              width: 1.2,
-            ),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.28),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+        itemBuilder: (context, index) {
+          final cat = _categories[index];
+          final active = _selectedCategory == cat;
+          final icon = _categoryIcons[cat] ?? Icons.label_outline_rounded;
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                demoHaptic();
+                setState(() => _selectedCategory = cat);
+                _loadAttractions();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: active ? AppColors.primary : AppColors.nightSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: active
+                        ? AppColors.primary
+                        : AppColors.nightLine.withValues(alpha: 0.7),
+                    width: 1.0,
+                  ),
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.16),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1.5),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 16,
+                      color: active
+                          ? AppColors.onNightAccent
+                          : AppColors.nightMuted,
                     ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+                    const SizedBox(width: 6),
+                    Text(
+                      context.tr(cat),
+                      style: TextStyle(
+                        color: active ? AppColors.onNightAccent : AppColors.ink,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                        fontSize: 13,
+                        letterSpacing: -0.1,
+                      ),
                     ),
                   ],
-          ),
-          child: Text(
-            context.tr(cat),
-            style: TextStyle(
-              color: active ? AppColors.onNightAccent : AppColors.ink,
-              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-              fontSize: 12.5,
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

@@ -98,8 +98,8 @@ class PlacesService {
       source: curated.isNotEmpty
           ? 'Curated app catalog'
           : _catalog.lastLoadOffline
-          ? 'Saved verified catalog'
-          : 'Verified database catalog',
+          ? 'Saved catalog'
+          : 'Database catalog',
       failure: catalogRows.isEmpty && curated.isEmpty
           ? (_catalog is VerifiedCatalogService && _catalog.setupRequired
                 ? PlacesFailure.service
@@ -227,7 +227,7 @@ class PlacesPage {
   String get notice => switch (failure) {
     PlacesFailure.none => 'Results from the attraction catalog.',
     PlacesFailure.emptyCatalog =>
-      'No verified attraction catalog is published for this area yet. An administrator must import reviewed source data.',
+      'No attractions with a name and location are available for this area yet.',
     PlacesFailure.signIn =>
       'Sign in again with a registered account to load live Google places.',
     PlacesFailure.allowance =>

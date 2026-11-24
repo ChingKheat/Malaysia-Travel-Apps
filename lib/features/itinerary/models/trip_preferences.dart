@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/features/itinerary/models/destination_leg.dart';
+import 'package:smart_travel_planner/features/itinerary/models/transfer_event.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 
 enum TravelerType { solo, couple, family, friends, seniors }
@@ -48,6 +50,41 @@ class TripPreferences {
   final String? travelMode;
   final int? transitPlanningMinutes;
   final TravelStop? departurePoint;
+  final PlanningMode planningMode;
+  final List<DestinationLeg> legs;
+  final List<TransferEvent> transitions;
+  final bool autoOptimizeRouteOrder;
+
+  bool get isMultiDestination =>
+      planningMode == PlanningMode.multiDestination && legs.length > 1;
+
+  /// Safe composite display label (< 100 chars for PostgreSQL VARCHAR(100)).
+  String? get effectiveDestinationLabel {
+    if (legs.isEmpty) return destination;
+    if (legs.length == 1) return legs.first.stateName;
+    if (legs.length <= 3) {
+      final joined = legs.map((l) => l.stateName).join(' • ');
+      if (joined.length <= 96) return joined;
+    }
+    final prefix = legs.take(2).map((l) => l.stateName).join(' • ');
+    final label = '$prefix +${legs.length - 2} more';
+    return label.length <= 100 ? label : 'Malaysia Tour (${legs.length} stops)';
+  }
+
+  /// Resolves active legs, synthesizing a single-state leg for legacy trips.
+  List<DestinationLeg> get effectiveLegs {
+    if (legs.isNotEmpty) return legs;
+    final state = destination?.trim();
+    if (state == null || state.isEmpty) return const [];
+    return [
+      DestinationLeg.fromStateName(
+        state,
+        allocatedDays: numberOfDays ?? 3,
+        sequence: 1,
+        accommodation: accommodationArea,
+      ),
+    ];
+  }
 
   const TripPreferences({
     this.destination,
@@ -72,6 +109,10 @@ class TripPreferences {
     this.mustVisitPlaces = const [],
     this.selectedPlaces = const [],
     this.secondaryTransportModes = const [],
+    this.planningMode = PlanningMode.singleDestination,
+    this.legs = const [],
+    this.transitions = const [],
+    this.autoOptimizeRouteOrder = true,
 
     // Preserve the public named parameter used by existing forms and tests.
     // ignore: prefer_initializing_formals
@@ -117,6 +158,11 @@ class TripPreferences {
     if (transitPlanningMinutes != null)
       'transit_planning_minutes': transitPlanningMinutes,
     if (departurePoint != null) 'departure_point': departurePoint!.toJson(),
+    'planning_mode': planningMode.name,
+    'auto_optimize_route_order': autoOptimizeRouteOrder,
+    if (legs.isNotEmpty) 'legs': legs.map((l) => l.toJson()).toList(),
+    if (transitions.isNotEmpty)
+      'transitions': transitions.map((t) => t.toJson()).toList(),
   };
 
   factory TripPreferences.fromJson(Map<String, dynamic> json) {
@@ -161,9 +207,7 @@ class TripPreferences {
         _ => 60,
       },
       mustVisitPlaces: mustVisit is List
-          ? List.unmodifiable(
-              mustVisit.map(place).whereType<TravelStop>().take(3),
-            )
+          ? List.unmodifiable(mustVisit.map(place).whereType<TravelStop>())
           : const [],
       selectedPlaces: selected is List
           ? List.unmodifiable(selected.map(place).whereType<TravelStop>())
@@ -199,6 +243,25 @@ class TripPreferences {
           : null,
       transitPlanningMinutes: (json['transit_planning_minutes'] as num?)
           ?.toInt(),
+      planningMode: parseEnum(PlanningMode.values, 'planning_mode') ??
+          ((json['legs'] is List && (json['legs'] as List).length > 1)
+              ? PlanningMode.multiDestination
+              : PlanningMode.singleDestination),
+      autoOptimizeRouteOrder: json['auto_optimize_route_order'] != false,
+      legs: json['legs'] is List
+          ? List.unmodifiable(
+              (json['legs'] as List)
+                  .whereType<Map>()
+                  .map((m) => DestinationLeg.fromJson(Map<String, dynamic>.from(m))),
+            )
+          : const [],
+      transitions: json['transitions'] is List
+          ? List.unmodifiable(
+              (json['transitions'] as List)
+                  .whereType<Map>()
+                  .map((m) => TransferEvent.fromJson(Map<String, dynamic>.from(m))),
+            )
+          : const [],
     );
   }
 
@@ -224,6 +287,10 @@ class TripPreferences {
     List<TravelStop>? mustVisitPlaces,
     List<TravelStop>? selectedPlaces,
     List<String>? secondaryTransportModes,
+    PlanningMode? planningMode,
+    List<DestinationLeg>? legs,
+    List<TransferEvent>? transitions,
+    bool? autoOptimizeRouteOrder,
   }) {
     return TripPreferences(
       destination: destination ?? this.destination,
@@ -251,6 +318,11 @@ class TripPreferences {
       selectedPlaces: selectedPlaces ?? this.selectedPlaces,
       secondaryTransportModes:
           secondaryTransportModes ?? this.secondaryTransportModes,
+      planningMode: planningMode ?? this.planningMode,
+      legs: legs ?? this.legs,
+      transitions: transitions ?? this.transitions,
+      autoOptimizeRouteOrder:
+          autoOptimizeRouteOrder ?? this.autoOptimizeRouteOrder,
     );
   }
 }

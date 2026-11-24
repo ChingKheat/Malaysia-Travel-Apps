@@ -187,6 +187,16 @@ void main() {
         expect(find.byType(MyTripsScreen), findsNothing);
         expect(find.byKey(const ValueKey('plan-my-trips')), findsOneWidget);
 
+        // Complete the full-page calendar gate first
+        final today = DateTime.now();
+        await tester.tap(find.text('${today.day}').first);
+        await tester.pump();
+        final endDay = today.day < 28 ? today.day + 1 : today.day;
+        await tester.tap(find.text('$endDay').last);
+        await tester.pump();
+        await tester.tap(find.text('Confirm travel dates'));
+        await tester.pumpAndSettle();
+
         await tester.tap(find.text('Select Destination'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Johor'));
@@ -288,6 +298,92 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  testWidgets(
+    'Previous trip plan prompt stays hidden until Plan is tapped and clears after saving',
+    (tester) async {
+      final now = DateTime.now();
+      SharedPreferences.setMockInitialValues({
+        'planner_draft_v1_00000000-0000-4000-8000-000000000003':
+            '{"destination":"Johor","startDate":"${now.add(const Duration(days: 1)).toIso8601String()}","endDate":"${now.add(const Duration(days: 3)).toIso8601String()}","destinationConfirmed":true,"datesConfirmed":true}',
+      });
+
+      await _withApp(tester, () async {
+        // Must not prompt on Explore/Home launch.
+        expect(find.text('Previous Trip Plan'), findsNothing);
+
+        // Switching to Community or AI also must not prompt.
+        await tester.tap(_tab('Community'));
+        await tester.pumpAndSettle();
+        expect(find.text('Previous Trip Plan'), findsNothing);
+
+        // Tapping Plan shows the prompt when there is an unsaved draft.
+        await tester.tap(_tab('Plan'));
+        await tester.pumpAndSettle();
+        expect(find.text('Previous Trip Plan'), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('plan-prompt-continue-btn')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.descendant(
+            of: find.byType(AppHeader),
+            matching: find.text('Plan Your Trip'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Johor'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    },
+  );
+
+  testWidgets(
+    'Saving an itinerary clears the planner draft so Plan does not prompt again',
+    (tester) async {
+      final now = DateTime.now();
+      const draftKey = 'planner_draft_v1_00000000-0000-4000-8000-000000000003';
+      SharedPreferences.setMockInitialValues({
+        draftKey:
+            '{"destination":"Penang","startDate":"${now.add(const Duration(days: 1)).toIso8601String()}","endDate":"${now.add(const Duration(days: 3)).toIso8601String()}","destinationConfirmed":true,"datesConfirmed":true}',
+      });
+
+      await tester.runAsync(() async {
+        await AuthService().loginAsGuest();
+        // Save as draft ("Decide later") -> should NOT clear the planner draft.
+        final draftSave = await SupabaseItineraryService().saveItinerary(
+          title: 'Penang Draft',
+          destinationState: 'Penang',
+          totalCost: 0,
+          dailySchedules: const [],
+          asDraft: true,
+        );
+        expect(draftSave.success, isTrue);
+        final prefsAfterDraft = await SharedPreferences.getInstance();
+        expect(prefsAfterDraft.getString(draftKey), isNotNull);
+
+        // Final save -> MUST clear the planner draft.
+        final finalizedSave = await SupabaseItineraryService().saveItinerary(
+          title: 'Penang Trip',
+          destinationState: 'Penang',
+          totalCost: 0,
+          dailySchedules: const [],
+          asDraft: false,
+        );
+        expect(finalizedSave.success, isTrue);
+        final prefsAfterSave = await SharedPreferences.getInstance();
+        expect(prefsAfterSave.getString(draftKey), isNull);
+      });
+
+      await _withApp(tester, () async {
+        expect(find.text('Previous Trip Plan'), findsNothing);
+        await tester.tap(_tab('Plan'));
+        await tester.pumpAndSettle();
+        expect(find.text('Previous Trip Plan'), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    },
+  );
 }
 
 Finder _tab(String label) => find.descendant(
@@ -308,6 +404,14 @@ Future<void> _withApp(
     await tester.runAsync(() => AuthService().loginAsGuest());
     await tester.pumpWidget(const SmartTravelApp());
     await tester.pumpAndSettle();
+    if (find.text('Previous Trip Plan').evaluate().isEmpty &&
+        find
+            .byKey(const ValueKey('spotlight-dismiss-btn'))
+            .evaluate()
+            .isNotEmpty) {
+      await tester.tap(find.byKey(const ValueKey('spotlight-dismiss-btn')));
+      await tester.pumpAndSettle();
+    }
     await check();
   } finally {
     await tester.pumpWidget(const SizedBox());

@@ -72,6 +72,73 @@ void main() {
     expect(find.byIcon(Icons.person), findsWidgets);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('opening a conversation carries its photo to the header', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: MessagesInbox(service: _PhotoInbox())),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Yi Han'));
+    await tester.pumpAndSettle();
+    final header = tester.widget<AppBar>(find.byType(AppBar).last);
+    final avatar = tester.widget<CircleAvatar>(
+      find.descendant(
+        of: find.byWidget(header),
+        matching: find.byType(CircleAvatar),
+      ),
+    );
+    expect(
+      (avatar.foregroundImage as NetworkImage?)?.url,
+      'https://example.test/avatar.png',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('temporary photo lookup failure keeps the existing photo', (
+    tester,
+  ) async {
+    final inbox = _IntermittentPhotoInbox();
+    await tester.pumpWidget(MaterialApp(home: MessagesInbox(service: inbox)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Retry'));
+    await tester.pumpAndSettle();
+    final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar).first);
+    expect(
+      (avatar.foregroundImage as NetworkImage?)?.url,
+      'https://example.test/avatar.png',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('removing a profile photo clears the previous photo', (
+    tester,
+  ) async {
+    final inbox = _IntermittentPhotoInbox(removePhoto: true);
+    await tester.pumpWidget(MaterialApp(home: MessagesInbox(service: inbox)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Retry'));
+    await tester.pumpAndSettle();
+    final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar).first);
+    expect(avatar.foregroundImage, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+}
+
+class _IntermittentPhotoInbox extends MessagingService {
+  _IntermittentPhotoInbox({this.removePhoto = false});
+  final bool removePhoto;
+  int calls = 0;
+  @override
+  Future<List<Map<String, dynamic>>> inbox() async => [
+    {
+      'conversation_id': 'chat-1',
+      'display_name': 'Yi Han',
+      'avatar_path': calls > 0 && removePhoto ? null : 'user/avatar.png',
+      if (calls++ == 0) 'avatar_display_url': 'https://example.test/avatar.png',
+    },
+  ];
 }
 
 class _PhotoInbox extends MessagingService {
@@ -79,6 +146,7 @@ class _PhotoInbox extends MessagingService {
   Future<List<Map<String, dynamic>>> inbox() async => [
     {
       'display_name': 'Yi Han',
+      'conversation_id': 'chat-1',
       'avatar_display_url': 'https://example.test/avatar.png',
     },
     {'display_name': 'Traveller'},

@@ -9,6 +9,9 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get categoryIllustration => 'Category illustration';
+
+  @override
   String get profileCountry => 'Country / Region';
 
   @override
@@ -2655,19 +2658,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get topRated => 'Top rated';
 
   @override
-  String get sights => '🏛️ Sights';
+  String get sights => 'Sights';
 
   @override
-  String get nature2 => '🌳 Nature';
+  String get nature2 => 'Nature';
 
   @override
-  String get food2 => '🍔 Food';
+  String get food2 => 'Food';
 
   @override
-  String get cafes => '☕ Cafes';
+  String get cafes => 'Cafes';
 
   @override
-  String get shops => '🛍️ Shops';
+  String get shops => 'Shops';
 
   @override
   String get admin => '👑 Admin';
@@ -2915,6 +2918,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get travelTimesAreDistanceBasedEstimates =>
       'Travel times are distance-based estimates.';
+
+  @override
+  String get transferPastDailyEnd =>
+      'The transfer is estimated to finish after your planned end time. No sightseeing is scheduled.';
+
+  @override
+  String get transferNextDay => '(+1 day)';
 
   @override
   String get someOpeningHoursAreUnverifiedConfirmBeforeVisiting =>
@@ -3392,6 +3402,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planContinueHighlights => 'Continue to highlights & interests';
+
+  @override
+  String get planPreviousSelectionTitle => 'Previous Trip Plan';
+
+  @override
+  String planPreviousSelectionMessage(String destination) {
+    return 'You have an ongoing trip plan for $destination. Would you like to continue where you left off or start over?';
+  }
+
+  @override
+  String get planContinueExisting => 'Continue';
+
+  @override
+  String get planStartOver => 'Start Over';
+
+  @override
+  String get planResetConfirmation =>
+      'Reset this trip plan? All your current selections will be cleared.';
+
+  @override
+  String get planResetSuccess => 'Plan reset. You can start fresh.';
 
   @override
   String get profileTravelPreferences => 'Travel Preferences';
@@ -3897,34 +3928,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantChatOptions => 'Chat options';
 
   @override
-  String get assistantStarterWeather => 'Weather';
+  String get assistantStarterWeather => 'Check weather';
 
   @override
-  String get assistantStarterFood => 'Food';
+  String get assistantStarterFood => 'Find food';
 
   @override
-  String get assistantStarterTransport => 'Transport';
+  String get assistantStarterTransport => 'Get directions';
 
   @override
   String get assistantStarterItinerary => 'Itinerary help';
 
   @override
-  String get assistantPromptWeather =>
-      'What is the forecast for Kuala Lumpur today?';
+  String get assistantPromptWeather => 'Weather in';
 
   @override
   String get assistantPromptFood => 'Suggest food options in Malaysia.';
 
   @override
-  String get assistantPromptTransport =>
-      'How do I get from KLIA to KL Sentral?';
+  String get assistantPromptTransport => 'Directions from';
 
   @override
   String get assistantPromptItinerary =>
       'How can I add a stop to my itinerary?';
 
   @override
-  String get assistantGreeting => 'How can I help with your trip?';
+  String get assistantGreeting =>
+      'Pick a shortcut below or type a travel question.';
 
   @override
   String get assistantReviewStop => 'Review the stop details before saving.';
@@ -3932,4 +3962,157 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assistantItineraryInstructions =>
       'Tell me which place to add, or choose Add to plan on a place card. In the preview, choose the trip, day, and visit times, then confirm.';
+
+  @override
+  String get spotlightHeading => 'Where would you like to explore?';
+
+  @override
+  String get spotlightSubtitle =>
+      'Choose one or more Malaysian destinations to shape your route.';
+
+  @override
+  String get spotlightChooseDestinations => 'Choose destinations';
+
+  @override
+  String get spotlightDismissLabel => 'Dismiss destination spotlight';
+
+  @override
+  String get spotlightPickerSubtitle =>
+      'Select one destination for a single trip, or two or more for a multi-city route. Your first pick sets the starting hub.';
+
+  @override
+  String get spotlightContinueToPlanner => 'Continue to planner';
+
+  @override
+  String spotlightSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count destinations selected',
+      one: '1 destination selected',
+      zero: 'No destinations selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get spotlightStartBadge => 'Start';
+
+  @override
+  String spotlightStopOrder(int order) {
+    return 'Stop $order';
+  }
+
+  @override
+  String spotlightSelectedSemantics(String place, String region) {
+    return '$place, $region, selected';
+  }
+
+  @override
+  String spotlightNotSelectedSemantics(String place, String region) {
+    return '$place, $region, not selected';
+  }
+
+  @override
+  String get spotlightPlaceKualaLumpur => 'Kuala Lumpur';
+
+  @override
+  String get spotlightPlaceGeorgeTown => 'George Town';
+
+  @override
+  String get spotlightPlaceLangkawi => 'Langkawi';
+
+  @override
+  String get spotlightPlaceJohorBahru => 'Johor Bahru';
+
+  @override
+  String get spotlightPlaceBatuCaves => 'Batu Caves';
+
+  @override
+  String get spotlightRegionKualaLumpur => 'Kuala Lumpur';
+
+  @override
+  String get spotlightRegionPenang => 'Penang';
+
+  @override
+  String get spotlightRegionKedah => 'Kedah';
+
+  @override
+  String get spotlightRegionJohor => 'Johor';
+
+  @override
+  String get spotlightDraftConflictTitle => 'Replace current draft?';
+
+  @override
+  String spotlightDraftConflictMessage(String summary) {
+    return 'You already have a trip draft in Plan ($summary). Keep it or start a new draft with your chosen destinations?';
+  }
+
+  @override
+  String get spotlightKeepCurrentDraft => 'Keep current draft';
+
+  @override
+  String get spotlightStartNewDraft => 'Start a new draft';
+
+  @override
+  String get plannerProposedRouteTitle => 'Proposed multi-city route';
+
+  @override
+  String get plannerRouteAutoOrdered => 'Ordered from your starting hub';
+
+  @override
+  String get plannerEditRoute => 'Edit route';
+
+  @override
+  String plannerRemoveDestinationTooltip(String destination) {
+    return 'Remove $destination';
+  }
+
+  @override
+  String plannerDaysAllocatedShort(int days) {
+    return '${days}d';
+  }
+
+  @override
+  String get plannerDurationConflictTitle => 'More destinations than trip days';
+
+  @override
+  String plannerDurationConflictMessage(int hubCount, int dayCount) {
+    return 'You selected $hubCount destinations for a $dayCount-day trip. Extend your travel dates or remove a destination before generating.';
+  }
+
+  @override
+  String get plannerExtendTripDates => 'Extend trip';
+
+  @override
+  String get spotlightSearchHint => 'Search city or state (e.g. Ipoh, Sabah)';
+
+  @override
+  String get spotlightShuffle => 'Shuffle';
+
+  @override
+  String get spotlightNoMatchingHubs => 'No matching destinations found';
+
+  @override
+  String spotlightFeaturedSpot(String place) {
+    return 'Featured · $place';
+  }
+
+  @override
+  String get addToExistingTrip => 'Add to an existing trip';
+
+  @override
+  String get createNewTripWithPlaces => 'Create new trip with these places';
+
+  @override
+  String get chooseDayToAdd => 'Choose a day to add';
+
+  @override
+  String addedToTripDay(int day, String trip) {
+    return 'Added to Day $day of $trip';
+  }
+
+  @override
+  String get scanPlacesAutoFilled =>
+      'Destination & interests pre-filled from your scanned places.';
 }

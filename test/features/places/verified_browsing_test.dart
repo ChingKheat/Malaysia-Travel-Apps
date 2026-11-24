@@ -180,7 +180,7 @@ void main() {
           limit: 1,
         );
         expect(second.items.single.xid, 'b');
-        expect(second.hasMore, false);
+        expect(second.hasMore, true);
         expect(first.items.single.rating, isNull);
       }
       expect(
@@ -205,7 +205,7 @@ void main() {
   );
 
   test(
-    'published catalog is server-filtered and survives service recreation offline',
+    'database catalog includes drafts and survives service recreation offline',
     () async {
       var offline = false;
       final db = SupabaseClient(
@@ -213,10 +213,22 @@ void main() {
         'public',
         httpClient: MockClient((req) async {
           if (offline) throw Exception('network unavailable');
-          expect(req.url.queryParameters['catalog_status'], 'eq.published');
+          expect(req.url.queryParameters['catalog_status'], isNull);
+          expect(req.url.queryParameters['data_source'], isNull);
           expect(req.url.queryParameters['state'], 'eq.Kuala Lumpur');
+          expect(
+            req.url.queryParameters['select'],
+            contains('cover_photo:google_photos->0'),
+          );
           return http.Response(
-            jsonEncode([record('a')]),
+            jsonEncode([
+              {
+                ...record('a'),
+                'catalog_status': 'draft',
+                'data_source': 'google',
+                'cover_photo': {'name': 'places/a/photos/cover'},
+              },
+            ]),
             200,
             request: req,
             headers: {'content-type': 'application/json'},
@@ -232,7 +244,10 @@ void main() {
       );
       offline = true;
       final recreated = VerifiedCatalogService(client: db);
-      expect(await recreated.load(state: 'Kuala Lumpur'), hasLength(1));
+      final cached = await recreated.load(state: 'Kuala Lumpur');
+      expect(cached.single['name'], 'Test a');
+      expect(cached.single['latitude'], 3.14);
+      expect(cached.single.containsKey('cover_photo'), false);
       expect(recreated.lastLoadOffline, true);
       expect(recreated.savedAt, isNotNull);
       expect(await recreated.load(state: 'Penang'), isEmpty);

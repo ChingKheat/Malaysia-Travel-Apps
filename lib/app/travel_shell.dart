@@ -7,6 +7,8 @@ import 'package:smart_travel_planner/features/itinerary/services/supabase_itiner
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/features/community/explore_page.dart';
 import 'package:smart_travel_planner/features/assistant/screens/assistant_page.dart';
+import 'package:smart_travel_planner/features/home/models/spotlight_destination.dart';
+import 'package:smart_travel_planner/features/home/services/destination_spotlight_controller.dart';
 import 'package:smart_travel_planner/features/home/screens/home_page.dart';
 import 'package:smart_travel_planner/features/places/screens/api_demo_page.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/image_recognition_page.dart';
@@ -28,11 +30,13 @@ class TravelShell extends StatefulWidget {
 
 class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   Timer? _syncTimer;
+  final DestinationSpotlightStore _spotlightStore = DestinationSpotlightStore();
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     AuthService().addListener(_onAuthStateChanged);
+    _spotlightStore.load();
     _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       unawaited(SupabaseItineraryService().syncPending());
     });
@@ -48,6 +52,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     AuthService().removeListener(_onAuthStateChanged);
+    _spotlightStore.dispose();
     _syncTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -55,6 +60,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
 
   void _onAuthStateChanged() {
     if (!AuthService().isLoggedIn && mounted) {
+      _pendingSpotlightRequest = null;
       final targetScreen = !OnboardingService.instance.isCompleted
           ? const OnboardingSetupScreen()
           : const AuthScreen(initialTabIndex: 0, showLanguageSelector: false);
@@ -67,6 +73,28 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
 
   int _selectedIndex = 0;
   bool _myTripsOpen = false;
+  String? _myTripsInitialItineraryId;
+  int _myTripsInitialDayIndex = 0;
+  int _myTripsRevision = 0;
+  int _nextSpotlightRequestId = 0;
+  SpotlightPlannerRequest? _pendingSpotlightRequest;
+
+  void _openPlannerWithSpotlight(List<SpotlightDestination> destinations) {
+    if (destinations.isEmpty) return;
+    setState(() {
+      _pendingSpotlightRequest = SpotlightPlannerRequest(
+        id: ++_nextSpotlightRequestId,
+        destinations: List.unmodifiable(destinations),
+      );
+      _selectedIndex = 3;
+      _myTripsOpen = false;
+    });
+  }
+
+  void _handleSpotlightRequestCompleted(int requestId) {
+    if (!mounted || _pendingSpotlightRequest?.id != requestId) return;
+    setState(() => _pendingSpotlightRequest = null);
+  }
 
   static const _tabTitles = [
     null,
@@ -91,8 +119,13 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
     });
   }
 
-  void _openMyTrips() {
-    setState(() => _myTripsOpen = true);
+  void _openMyTrips({String? itineraryId, int dayIndex = 0}) {
+    setState(() {
+      _myTripsInitialItineraryId = itineraryId;
+      _myTripsInitialDayIndex = dayIndex;
+      _myTripsRevision++;
+      _myTripsOpen = true;
+    });
   }
 
   void _closeMyTrips() {
@@ -104,6 +137,8 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
     final pages = [
       ApiDemoPage(
         isVisible: _selectedIndex == 0 && !_myTripsOpen,
+        spotlightStore: _spotlightStore,
+        onSpotlightSelected: _openPlannerWithSpotlight,
         discoveryHeader: HomePage(
           discoveryHeaderOnly: true,
           onPlanTap: () => _goToTab(3),
@@ -111,6 +146,9 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
           onRouteTap: () => _goToTab(0),
           onAssistantTap: () => _goToTab(4),
           onCommunityTap: () => _goToTab(1),
+          onSpotlightSelected: _openPlannerWithSpotlight,
+          spotlightStore: _spotlightStore,
+          showSpotlightOnlyWhenDismissed: true,
         ),
       ),
       ExplorePage(isVisible: _selectedIndex == 1 && !_myTripsOpen),
@@ -126,11 +164,21 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
         userId: AuthService().currentUser?.uid ?? 'guest',
         onItineraryReady: _openMyTrips,
         onMyTripsTap: _openMyTrips,
+        onContinueExisting: () => _goToTab(3),
         useModernPicker: true,
+        isVisible: _selectedIndex == 3 && !_myTripsOpen,
+        pendingSpotlightRequest: _pendingSpotlightRequest,
+        onSpotlightRequestHandled: _handleSpotlightRequestCompleted,
       ),
       const AssistantPage(),
       // Keep itinerary drafts and the selected day alive between visits.
-      MyTripsScreen(onBackTap: _closeMyTrips, onPlanTap: () => _goToTab(3)),
+      MyTripsScreen(
+        key: ValueKey('my-trips:$_myTripsRevision'),
+        initialItineraryId: _myTripsInitialItineraryId,
+        initialDayIndex: _myTripsInitialDayIndex,
+        onBackTap: _closeMyTrips,
+        onPlanTap: () => _goToTab(3),
+      ),
     ];
 
     return AnnotatedRegion<SystemUiOverlayStyle>(

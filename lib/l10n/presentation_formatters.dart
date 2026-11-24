@@ -17,7 +17,9 @@ extension PresentationFormatters on BuildContext {
       'No additional places fit this day. Try fewer days or wider daily hours.',
       'Forecast unavailable for this date; weather filtering was not applied.',
       'Travel times are distance-based estimates.',
+      'The transfer is estimated to finish after your planned end time. No sightseeing is scheduled.',
       'Some opening hours are unverified. Confirm before visiting.',
+      'Rain forecasted today. Swapping to an Indoor attraction is recommended.',
       'Costs are planning estimates, excluding accommodation and travel to the first stop.',
     ]) {
       warnings = warnings.replaceAll(message, tr(message));
@@ -28,11 +30,13 @@ extension PresentationFormatters on BuildContext {
   String scheduledTime(String value) {
     // Schedules retain canonical times for persistence and routing. Only their
     // presentation follows the app locale and the device's 24-hour preference.
-    return value.replaceAllMapped(RegExp(r'\b(\d{1,2}):(\d{2})\s*(AM|PM)\b'), (
-      match,
-    ) {
-      final hour = int.parse(match[1]!) % 12 + (match[3] == 'PM' ? 12 : 0);
-      return TimeOfDay(hour: hour, minute: int.parse(match[2]!)).format(this);
-    });
+    final localized = value.replaceAll('(+1 day)', l10n.transferNextDay);
+    return localized.replaceAllMapped(
+      RegExp(r'\b(\d{1,2}):(\d{2})\s*(AM|PM)\b'),
+      (match) {
+        final hour = int.parse(match[1]!) % 12 + (match[3] == 'PM' ? 12 : 0);
+        return TimeOfDay(hour: hour, minute: int.parse(match[2]!)).format(this);
+      },
+    );
   }
 }

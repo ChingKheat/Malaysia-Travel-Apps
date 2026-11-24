@@ -9,6 +9,9 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get categoryIllustration => '类别插画';
+
+  @override
   String get profileCountry => '国家 / 地区';
 
   @override
@@ -2563,19 +2566,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get topRated => '高评分';
 
   @override
-  String get sights => '🏛️ 景点';
+  String get sights => '景点';
 
   @override
-  String get nature2 => '🌳 自然';
+  String get nature2 => '自然';
 
   @override
-  String get food2 => '🍔 美食';
+  String get food2 => '美食';
 
   @override
-  String get cafes => '☕ 咖啡馆';
+  String get cafes => '咖啡馆';
 
   @override
-  String get shops => '🛍️ 购物';
+  String get shops => '购物';
 
   @override
   String get admin => '👑 管理员';
@@ -2817,6 +2820,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get travelTimesAreDistanceBasedEstimates => '交通时间为基于距离的估算。';
+
+  @override
+  String get transferPastDailyEnd => '前往下一站的行程预计会超过你设定的结束时间，因此没有安排游览活动。';
+
+  @override
+  String get transferNextDay => '（次日）';
 
   @override
   String get someOpeningHoursAreUnverifiedConfirmBeforeVisiting =>
@@ -3270,6 +3279,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get planContinueHighlights => '继续：必去景点与兴趣';
+
+  @override
+  String get planPreviousSelectionTitle => '之前的行程计划';
+
+  @override
+  String planPreviousSelectionMessage(String destination) {
+    return '您有正在规划的 $destination 行程。您想从上次的地方继续，还是重新开始？';
+  }
+
+  @override
+  String get planContinueExisting => '继续';
+
+  @override
+  String get planStartOver => '重新开始';
+
+  @override
+  String get planResetConfirmation => '重置此行程计划？您当前的所有选择将被清除。';
+
+  @override
+  String get planResetSuccess => '行程已重置，您可以重新开始规划。';
 
   @override
   String get profileTravelPreferences => '旅行偏好';
@@ -3744,31 +3773,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assistantChatOptions => '对话选项';
 
   @override
-  String get assistantStarterWeather => '天气';
+  String get assistantStarterWeather => '查天气';
 
   @override
-  String get assistantStarterFood => '餐饮';
+  String get assistantStarterFood => '找美食';
 
   @override
-  String get assistantStarterTransport => '交通';
+  String get assistantStarterTransport => '查路线';
 
   @override
   String get assistantStarterItinerary => '行程帮助';
 
   @override
-  String get assistantPromptWeather => '吉隆坡今天的天气如何？';
+  String get assistantPromptWeather => '查询天气，地点：';
 
   @override
   String get assistantPromptFood => '请推荐马来西亚的餐饮选项。';
 
   @override
-  String get assistantPromptTransport => '如何从吉隆坡国际机场前往吉隆坡中央车站？';
+  String get assistantPromptTransport => '查询路线，起点和终点：';
 
   @override
   String get assistantPromptItinerary => '如何在我的行程中添加停靠点？';
 
   @override
-  String get assistantGreeting => '您的旅行需要什么帮助？';
+  String get assistantGreeting => '请选择下方的快捷选项，或输入您的旅行问题。';
 
   @override
   String get assistantReviewStop => '请在保存前查看停靠点详情。';
@@ -3776,4 +3805,155 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get assistantItineraryInstructions =>
       '告诉我想添加的地点，或在地点卡片上选择添加到计划。在预览中选择行程、日期和游览时段，然后确认。';
+
+  @override
+  String get spotlightHeading => '您想去哪里探索？';
+
+  @override
+  String get spotlightSubtitle => '选择一个或多个马来西亚目的地来规划您的路线。';
+
+  @override
+  String get spotlightChooseDestinations => '选择目的地';
+
+  @override
+  String get spotlightDismissLabel => '关闭目的地推荐';
+
+  @override
+  String get spotlightPickerSubtitle =>
+      '选择 1 个地点规划单城行程，或选择 2 个及以上地点开启多城路线。您最先选择的地点将作为起点。';
+
+  @override
+  String get spotlightContinueToPlanner => '继续前往行程规划';
+
+  @override
+  String spotlightSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已选择 $count 个目的地',
+      one: '已选择 1 个目的地',
+      zero: '尚未选择目的地',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get spotlightStartBadge => '起点';
+
+  @override
+  String spotlightStopOrder(int order) {
+    return '第 $order 站';
+  }
+
+  @override
+  String spotlightSelectedSemantics(String place, String region) {
+    return '$place，$region，已选择';
+  }
+
+  @override
+  String spotlightNotSelectedSemantics(String place, String region) {
+    return '$place，$region，未选择';
+  }
+
+  @override
+  String get spotlightPlaceKualaLumpur => '吉隆坡';
+
+  @override
+  String get spotlightPlaceGeorgeTown => '乔治市';
+
+  @override
+  String get spotlightPlaceLangkawi => '兰卡威';
+
+  @override
+  String get spotlightPlaceJohorBahru => '新山';
+
+  @override
+  String get spotlightPlaceBatuCaves => '黑风洞';
+
+  @override
+  String get spotlightRegionKualaLumpur => '吉隆坡';
+
+  @override
+  String get spotlightRegionPenang => '槟城';
+
+  @override
+  String get spotlightRegionKedah => '吉打';
+
+  @override
+  String get spotlightRegionJohor => '柔佛';
+
+  @override
+  String get spotlightDraftConflictTitle => '替换当前草稿？';
+
+  @override
+  String spotlightDraftConflictMessage(String summary) {
+    return '您在行程规划中已有草稿（$summary）。要保留当前草稿，还是使用所选目的地开始新草稿？';
+  }
+
+  @override
+  String get spotlightKeepCurrentDraft => '保留当前草稿';
+
+  @override
+  String get spotlightStartNewDraft => '开始新草稿';
+
+  @override
+  String get plannerProposedRouteTitle => '建议的多城路线';
+
+  @override
+  String get plannerRouteAutoOrdered => '已从您的起点城市自动排序';
+
+  @override
+  String get plannerEditRoute => '编辑路线';
+
+  @override
+  String plannerRemoveDestinationTooltip(String destination) {
+    return '移除$destination';
+  }
+
+  @override
+  String plannerDaysAllocatedShort(int days) {
+    return '$days天';
+  }
+
+  @override
+  String get plannerDurationConflictTitle => '目的地数量超过行程天数';
+
+  @override
+  String plannerDurationConflictMessage(int hubCount, int dayCount) {
+    return '您为 $dayCount 天的行程选择了 $hubCount 个目的地。请延长出行日期或移除一个目的地后再生成行程。';
+  }
+
+  @override
+  String get plannerExtendTripDates => '延长行程';
+
+  @override
+  String get spotlightSearchHint => '搜索城市或州属（如怡保、沙巴）';
+
+  @override
+  String get spotlightShuffle => '换一批';
+
+  @override
+  String get spotlightNoMatchingHubs => '未找到匹配的目的地';
+
+  @override
+  String spotlightFeaturedSpot(String place) {
+    return '精选 · $place';
+  }
+
+  @override
+  String get addToExistingTrip => '添加到现有行程';
+
+  @override
+  String get createNewTripWithPlaces => '使用这些地点创建新行程';
+
+  @override
+  String get chooseDayToAdd => '选择要添加的日期';
+
+  @override
+  String addedToTripDay(int day, String trip) {
+    return '已添加到「$trip」第 $day 天';
+  }
+
+  @override
+  String get scanPlacesAutoFilled => '已根据您扫描的地点自动填写目的地和兴趣。';
 }

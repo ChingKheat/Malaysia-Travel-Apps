@@ -6,9 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/itinerary_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
+import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/trip_preferences_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
@@ -633,19 +635,34 @@ void main() {
         return (container.decoration! as BoxDecoration).border!.top.width;
       }
 
+      double pickerBorderWidth(String label) {
+        final container = tester.widget<AnimatedContainer>(
+          find
+              .descendant(
+                of: find.byKey(ValueKey('picker-semantics-$label')),
+                matching: find.byType(AnimatedContainer),
+              )
+              .first,
+        );
+        return (container.decoration! as BoxDecoration).border!.top.width;
+      }
+
       expect(basicsBorderWidth(), 2);
-      // Initial step: Destination is lit up
-      expect(find.text('Select'), findsOneWidget);
+      // Both Destination and Travel dates are bright until selected; no 'Select' text badge.
+      expect(pickerBorderWidth('Destination'), 2);
+      expect(pickerBorderWidth('Travel dates'), 2);
+      expect(find.text('Select'), findsNothing);
       expect(find.text('Next'), findsNothing);
 
-      // Step 1: Select Destination -> lights up Travel Dates
+      // Step 1: Select Destination -> Destination no longer bright, Travel Dates stays bright
       await tester.tap(find.text('Select Destination'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Johor'));
       await tester.pumpAndSettle();
 
-      // Now Travel Dates has 'Select' light, Destination no longer has light
-      expect(find.text('Select'), findsOneWidget);
+      expect(pickerBorderWidth('Destination'), 1);
+      expect(pickerBorderWidth('Travel dates'), 2);
+      expect(find.text('Select'), findsNothing);
       expect(find.text('Next'), findsNothing);
 
       // Step 2: Pick travel dates, then review the optional details.
@@ -659,6 +676,10 @@ void main() {
         DateTimeRange(start: start, end: start.add(const Duration(days: 3))),
       );
       await tester.pumpAndSettle();
+
+      // Now both Destination and Travel dates are confirmed and no longer bright
+      expect(pickerBorderWidth('Destination'), 1);
+      expect(pickerBorderWidth('Travel dates'), 1);
 
       final hours = find.text('Standard');
       await _reveal(tester, hours);
@@ -716,6 +737,149 @@ void main() {
       expect(find.text('Next'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'prompts to continue or start over when previous selection exists, and start over resets to clean slate',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final now = DateTime.now();
+      final testRange = DateTimeRange(
+        start: now.add(const Duration(days: 1)),
+        end: now.add(const Duration(days: 4)),
+      );
+
+      await _openPlanner(
+        tester,
+        initialDestination: 'Johor',
+        initialTravelDates: testRange,
+        promptOnLaunch: true,
+      );
+
+      // Expect the restore prompt dialog to appear
+      expect(
+        find.byKey(const ValueKey('plan-prompt-redo-btn')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('plan-prompt-continue-btn')),
+        findsOneWidget,
+      );
+
+      // Tap Start Over (Redo)
+      await tester.tap(find.byKey(const ValueKey('plan-prompt-redo-btn')));
+      await tester.pumpAndSettle();
+
+      // Dialog dismissed, fields reset to placeholder
+      expect(find.text('Select Destination'), findsOneWidget);
+      expect(find.text('Select travel dates'), findsOneWidget);
+      expect(find.text('Select'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'continuing previous selection keeps selections intact and top start over button allows reset',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final now = DateTime.now();
+      final testRange = DateTimeRange(
+        start: now.add(const Duration(days: 1)),
+        end: now.add(const Duration(days: 4)),
+      );
+
+      await _openPlanner(
+        tester,
+        initialDestination: 'Johor',
+        initialTravelDates: testRange,
+        promptOnLaunch: true,
+      );
+
+      // Expect prompt and tap Continue
+      expect(
+        find.byKey(const ValueKey('plan-prompt-continue-btn')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('plan-prompt-continue-btn')));
+      await tester.pumpAndSettle();
+
+      // Selections are retained
+      expect(find.text('Johor'), findsOneWidget);
+
+      // Start Over button in header is visible
+      final startOverBtn = find.byKey(const ValueKey('plan-start-over-btn'));
+      expect(startOverBtn, findsOneWidget);
+
+      // Tap header Start Over button -> shows confirmation dialog
+      await tester.tap(startOverBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Start Over'), findsWidgets);
+      // Confirm reset
+      final confirmBtn = find.widgetWithText(FilledButton, 'Start Over');
+      await tester.tap(confirmBtn);
+      await tester.pumpAndSettle();
+
+      // Form is reset
+      expect(find.text('Select Destination'), findsOneWidget);
+      expect(find.text('Select travel dates'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'mounted PlannerPage suppresses Previous Trip Plan prompt once itinerary is saved',
+    (tester) async {
+      SupabaseItineraryService.resetOperationsForTesting();
+      final now = DateTime.now();
+      const uid = '00000000-0000-4000-8000-000000000003';
+      SharedPreferences.setMockInitialValues({
+        'planner_draft_v1_$uid': jsonEncode({
+          'destination': 'Penang',
+          'startDate': now.add(const Duration(days: 1)).toIso8601String(),
+          'endDate': now.add(const Duration(days: 3)).toIso8601String(),
+          'destinationConfirmed': true,
+          'datesConfirmed': true,
+        }),
+      });
+      await tester.runAsync(() => AuthService().loginAsGuest());
+
+      bool isVisible = false;
+      late StateSetter outerSetState;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              outerSetState = setState;
+              return Scaffold(
+                body: PlannerPage(
+                  userId: uid,
+                  isVisible: isVisible,
+                  onItineraryReady: () {},
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Hidden tab must not prompt.
+      expect(find.text('Previous Trip Plan'), findsNothing);
+
+      // Finalize save while mounted -> clears draft and suppresses prompt.
+      await tester.runAsync(
+        () => SupabaseItineraryService().saveItinerary(
+          title: 'Penang Trip',
+          destinationState: 'Penang',
+          totalCost: 0,
+          dailySchedules: const [],
+          asDraft: false,
+        ),
+      );
+
+      outerSetState(() => isVisible = true);
+      await tester.pumpAndSettle();
+      expect(find.text('Previous Trip Plan'), findsNothing);
+    },
+  );
 }
 
 Future<void> _unlockSchedule(
@@ -723,13 +887,11 @@ Future<void> _unlockSchedule(
   bool checkCancellation = false,
 }) async {
   expect(find.text('Travel dates'), findsOneWidget);
-  expect(find.text('Select travel dates').hitTestable(), findsNothing);
   await _choose(tester, 'Select Destination');
   if (checkCancellation) {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Travel dates'), findsOneWidget);
-    expect(find.text('Select travel dates').hitTestable(), findsNothing);
     await _choose(tester, 'Select Destination');
   }
   await tester.tap(find.text('Johor'));
@@ -806,6 +968,7 @@ Future<void> _openPlanner(
   double width = 400,
   double scale = 1,
   bool enableTestingBypass = false,
+  bool promptOnLaunch = false,
   String? initialDestination,
   DateTimeRange? initialTravelDates,
   TimeOfDay? initialDailyStartTime,
@@ -815,6 +978,7 @@ Future<void> _openPlanner(
   String? initialTravelMode,
   GooglePlacesService? startingPointPlaces,
 }) async {
+  SharedPreferences.setMockInitialValues({});
   tester.view.physicalSize = Size(width, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -833,6 +997,7 @@ Future<void> _openPlanner(
           onItineraryReady: () {},
           onMyTripsTap: () {},
           enableTestingBypass: enableTestingBypass,
+          promptOnLaunch: promptOnLaunch,
           initialDestination: initialDestination,
           initialTravelDates: initialTravelDates,
           initialDailyStartTime: initialDailyStartTime,
