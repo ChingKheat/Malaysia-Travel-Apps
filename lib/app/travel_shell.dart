@@ -14,6 +14,7 @@ import 'package:smart_travel_planner/features/places/screens/api_demo_page.dart'
 import 'package:smart_travel_planner/features/image_recognition/screens/image_recognition_page.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
+import 'package:smart_travel_planner/features/itinerary/screens/trip_selection_screen.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/auth/screens/auth_screen.dart';
 import 'package:smart_travel_planner/features/onboarding/screens/onboarding_setup_screen.dart';
@@ -132,6 +133,19 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
     setState(() => _myTripsOpen = false);
   }
 
+  void _openTripSelection() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (routeContext) => TripSelectionScreen(
+          onPlanTap: () {
+            Navigator.of(routeContext).pop();
+            _goToTab(3);
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -142,7 +156,7 @@ class _TravelShellState extends State<TravelShell> with WidgetsBindingObserver {
         discoveryHeader: HomePage(
           discoveryHeaderOnly: true,
           onPlanTap: () => _goToTab(3),
-          onItineraryTap: _openMyTrips,
+          onItineraryTap: _openTripSelection,
           onRouteTap: () => _goToTab(0),
           onAssistantTap: () => _goToTab(4),
           onCommunityTap: () => _goToTab(1),

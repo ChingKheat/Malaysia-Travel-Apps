@@ -3959,21 +3959,26 @@ class AppLocalizationsMs extends AppLocalizations {
   String get assistantStarterItinerary => 'Bantuan itinerari';
 
   @override
-  String get assistantPromptWeather => 'Cuaca di';
+  String get assistantPromptWeather =>
+      'Bagaimanakah cuaca di Johor Bahru hari ini?';
 
   @override
   String get assistantPromptFood => 'Cadangkan pilihan makanan di Malaysia.';
 
   @override
-  String get assistantPromptTransport => 'Arah perjalanan dari';
+  String get assistantPromptTransport =>
+      'Bagaimanakah cara untuk ke KL Sentral dari KLIA?';
 
   @override
   String get assistantPromptItinerary =>
       'Bagaimanakah cara menambah persinggahan pada itinerari saya?';
 
   @override
+  String get assistantChooseQuestion => 'Pilih soalan';
+
+  @override
   String get assistantGreeting =>
-      'Pilih pintasan di bawah atau taip soalan tentang perjalanan anda.';
+      'Apakah yang ingin anda tahu tentang perjalanan anda?';
 
   @override
   String get assistantReviewStop =>

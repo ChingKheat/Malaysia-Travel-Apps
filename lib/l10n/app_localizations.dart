@@ -6774,7 +6774,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantPromptWeather.
   ///
   /// In en, this message translates to:
-  /// **'Weather in'**
+  /// **'What’s the weather in Johor Bahru today?'**
   String get assistantPromptWeather;
 
   /// No description provided for @assistantPromptFood.
@@ -6786,7 +6786,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantPromptTransport.
   ///
   /// In en, this message translates to:
-  /// **'Directions from'**
+  /// **'How do I get from KLIA to KL Sentral?'**
   String get assistantPromptTransport;
 
   /// No description provided for @assistantPromptItinerary.
@@ -6795,10 +6795,16 @@ abstract class AppLocalizations {
   /// **'How can I add a stop to my itinerary?'**
   String get assistantPromptItinerary;
 
+  /// No description provided for @assistantChooseQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a question'**
+  String get assistantChooseQuestion;
+
   /// No description provided for @assistantGreeting.
   ///
   /// In en, this message translates to:
-  /// **'Pick a shortcut below or type a travel question.'**
+  /// **'What would you like to know about your trip?'**
   String get assistantGreeting;
 
   /// No description provided for @assistantReviewStop.

@@ -11,7 +11,9 @@ import 'package:smart_travel_planner/l10n/presentation_formatters.dart';
 import 'my_trips_screen.dart';
 
 class TripSelectionScreen extends StatefulWidget {
-  const TripSelectionScreen({super.key});
+  const TripSelectionScreen({super.key, this.onPlanTap});
+
+  final VoidCallback? onPlanTap;
 
   @override
   State<TripSelectionScreen> createState() => _TripSelectionScreenState();
@@ -42,7 +44,11 @@ class _TripSelectionScreenState extends State<TripSelectionScreen> {
           onPlanTap: () {
             final navigator = Navigator.of(routeContext);
             navigator.pop();
-            navigator.pop();
+            if (widget.onPlanTap != null) {
+              widget.onPlanTap!();
+            } else {
+              navigator.pop();
+            }
           },
         ),
       ),
@@ -142,7 +148,8 @@ class _TripSelectionScreenState extends State<TripSelectionScreen> {
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed:
+                            widget.onPlanTap ?? () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.add_location_alt_outlined),
                         label: Text(context.l10n.planYourTrip),
                         style: ElevatedButton.styleFrom(

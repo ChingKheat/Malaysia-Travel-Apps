@@ -3940,21 +3940,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantStarterItinerary => 'Itinerary help';
 
   @override
-  String get assistantPromptWeather => 'Weather in';
+  String get assistantPromptWeather =>
+      'What’s the weather in Johor Bahru today?';
 
   @override
   String get assistantPromptFood => 'Suggest food options in Malaysia.';
 
   @override
-  String get assistantPromptTransport => 'Directions from';
+  String get assistantPromptTransport =>
+      'How do I get from KLIA to KL Sentral?';
 
   @override
   String get assistantPromptItinerary =>
       'How can I add a stop to my itinerary?';
 
   @override
+  String get assistantChooseQuestion => 'Choose a question';
+
+  @override
   String get assistantGreeting =>
-      'Pick a shortcut below or type a travel question.';
+      'What would you like to know about your trip?';
 
   @override
   String get assistantReviewStop => 'Review the stop details before saving.';

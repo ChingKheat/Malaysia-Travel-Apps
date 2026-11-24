@@ -71,6 +71,7 @@ class TravelAssistantService {
           'Cuba nasi lemak, char kway teow atau roti canai. Bandar mana yang anda akan lawati? Saya boleh cadangkan tempat makan di sana.',
           '可以试试椰浆饭（nasi lemak）、炒粿条或印度煎饼。您打算去哪个城市？我可以推荐当地的餐饮场所。',
         ),
+        chips: const ['Kuala Lumpur', 'Penang', 'Melaka'],
       );
       unawaited(_persist(text, response.text));
       return response;
@@ -468,6 +469,7 @@ class TravelAssistantService {
           if (RegExp('\\b${RegExp.escape(city)}\\b').hasMatch(p)) city,
         if (RegExp(r'\bkl\b|吉隆坡').hasMatch(p) && !p.contains('kuala lumpur'))
           'Kuala Lumpur',
+        if (p.contains('新山')) 'johor',
       ];
       if (locations.length != 1) {
         return _reply(
@@ -590,6 +592,7 @@ class TravelAssistantService {
 
   AssistantMessage _reply(
     String text, {
+    List<String> chips = const [],
     List<AssistantPlaceSuggestion> places = const [],
     List<Map<String, dynamic>> proposals = const [],
   }) => AssistantMessage(
@@ -599,6 +602,7 @@ class TravelAssistantService {
     timestamp: DateTime.now(),
     places: places,
     stopProposals: proposals,
+    followUpChips: chips,
   );
 
   AssistantMessage _forecastReply(Map<String, dynamic> result) {
