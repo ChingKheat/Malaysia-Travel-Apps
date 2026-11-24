@@ -1,5 +1,6 @@
 import '../services/google_places_service.dart';
 import '../widgets/google_place_image.dart';
+import '../widgets/category_illustration.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 
@@ -16,9 +17,8 @@ final _coverGoogle = GooglePlacesService();
 Widget _attractionCover(Attraction place) {
   final asset = AttractionImageResolver.resolveAsset(place);
   final url = AttractionImageResolver.resolvePhotoUrl(place);
-  final (color, icon, _) = ModernAttractionCard.getCategoryMeta(place.category);
-  Widget unavailable() =>
-      ModernAttractionCard.buildFallbackThumbnail(color, icon);
+  final (_, icon, label) = ModernAttractionCard.getCategoryMeta(place.category);
+  Widget unavailable() => CategoryIllustration(category: label, icon: icon);
   if (asset != null) {
     return AttractionAssetImage(
       asset: asset,
@@ -28,14 +28,16 @@ Widget _attractionCover(Attraction place) {
       creditPadding: const EdgeInsets.fromLTRB(8, 56, 8, 0),
     );
   }
-  if (place.googlePlaceId != null && place.googlePhotos.isNotEmpty) {
+  if (place.googlePlaceId != null &&
+      (place.googlePhotos.isNotEmpty || url == null)) {
     return GooglePlaceImage(
       key: ValueKey(place.xid),
       placeId: place.googlePlaceId!,
-      photo: place.googlePhotos.first,
+      photo: place.googlePhotos.firstOrNull,
       service: _coverGoogle,
       autoLoad: true,
       fill: true,
+      showGoogleMapsAttribution: true,
       attributionTop: 48,
       fallback: unavailable(),
     );
@@ -265,7 +267,7 @@ class AttractionListScreen extends StatelessWidget {
       title = context.l10n.searchResults;
       subtitle = context.l10n.matchingValue(searchQuery);
     } else if (selectedCategory != 'All') {
-      title = selectedCategory;
+      title = context.tr(selectedCategory);
       subtitle = context.l10n.placesInValue(
         currentAreaName ?? context.l10n.thisArea,
       );

@@ -23,6 +23,23 @@ class _AssistantPageState extends State<AssistantPage> {
 
   final List<AssistantMessage> _messages = [];
   bool _isTyping = false;
+  String? _starterDraft;
+
+  bool _canSendDraft(String text) {
+    final trimmed = text.trim();
+    return !_isTyping && trimmed.length >= 2 && trimmed != _starterDraft;
+  }
+
+  void _startDraft(String prompt) {
+    final draft = prompt.trim();
+    _starterDraft = draft;
+    final text = '$draft ';
+    _textController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _focusNode.requestFocus();
+  }
 
   @override
   void initState() {
@@ -60,6 +77,7 @@ class _AssistantPageState extends State<AssistantPage> {
   Future<void> _handleSendMessage([String? overrideText]) async {
     if (_isTyping) return;
     final text = overrideText ?? _textController.text;
+    if (overrideText == null && !_canSendDraft(text)) return;
     final validationError = _service.validatePrompt(text);
 
     if (validationError != null) {
@@ -69,6 +87,7 @@ class _AssistantPageState extends State<AssistantPage> {
     }
 
     demoHaptic();
+    _starterDraft = null;
     _textController.clear();
 
     final userMessage = AssistantMessage(
@@ -152,103 +171,19 @@ class _AssistantPageState extends State<AssistantPage> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final starters = [
-      (l.assistantStarterWeather, l.assistantPromptWeather),
-      (l.assistantStarterFood, l.assistantPromptFood),
-      (l.assistantStarterTransport, l.assistantPromptTransport),
-      (l.assistantStarterItinerary, l.assistantPromptItinerary),
+      (l.assistantStarterWeather, () => _startDraft(l.assistantPromptWeather)),
+      (l.assistantStarterFood, () => _handleSendMessage(l.assistantPromptFood)),
+      (
+        l.assistantStarterTransport,
+        () => _startDraft(l.assistantPromptTransport),
+      ),
+      (
+        l.assistantStarterItinerary,
+        () => _handleSendMessage(l.assistantPromptItinerary),
+      ),
     ];
     return Column(
       children: [
-        // Sub-header Bar: Status, Language Pill, and Clear Chat
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: const BoxDecoration(
-            color: AppColors.nightSurface,
-            border: Border(
-              bottom: BorderSide(color: AppColors.line, width: 0.8),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Spacer(),
-              PopupMenuButton<AssistantLanguage>(
-                enabled: !_isTyping,
-                initialValue: _service.currentLanguage,
-                tooltip: context.l10n.assistantResponseLanguage,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                onSelected: _switchLanguage,
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: AssistantLanguage.english,
-                    child: Text('English (EN)'),
-                  ),
-                  const PopupMenuItem(
-                    value: AssistantLanguage.malay,
-                    child: Text('Bahasa Melayu (MS)'),
-                  ),
-                  const PopupMenuItem(
-                    value: AssistantLanguage.chinese,
-                    child: Text('中文 (ZH)'),
-                  ),
-                ],
-                child: Container(
-                  constraints: const BoxConstraints(
-                    minWidth: 48,
-                    minHeight: 48,
-                  ),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.translate_rounded,
-                        size: 13,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _service.currentLanguage.code.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_drop_down,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              PopupMenuButton<bool>(
-                enabled: !_isTyping,
-                tooltip: l.assistantChatOptions,
-                onSelected: (_) => _confirmClearChat(),
-                itemBuilder: (_) => [
-                  PopupMenuItem(value: true, child: Text(l.assistantNewChat)),
-                ],
-              ),
-            ],
-          ),
-        ),
-
         // Chat Messages Stream
         Expanded(
           child: Container(
@@ -270,21 +205,37 @@ class _AssistantPageState extends State<AssistantPage> {
                       onSelectChip: (chip) => _handleSendMessage(chip),
                     ),
                     if (index == 0 && _messages.length == 1)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final (label, prompt) in starters)
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(48, 48),
-                                foregroundColor: AppColors.primary,
-                              ),
-                              onPressed: () => _handleSendMessage(prompt),
-                              child: Text(label),
+                      for (var row = 0; row < starters.length; row += 2)
+                        Padding(
+                          padding: EdgeInsets.only(top: row == 0 ? 0 : 8),
+                          child: IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (var column = 0; column < 2; column++) ...[
+                                  if (column > 0) const SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        minimumSize: const Size(48, 48),
+                                        foregroundColor: AppColors.primary,
+                                      ),
+                                      onPressed: starters[row + column].$2,
+                                      child: Text(
+                                        starters[row + column].$1,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                        ],
-                      ),
+                          ),
+                        ),
                     for (final proposal in message.stopProposals)
                       OutlinedButton(
                         onPressed: _isTyping
@@ -312,6 +263,36 @@ class _AssistantPageState extends State<AssistantPage> {
             top: false,
             child: Row(
               children: [
+                PopupMenuButton<String>(
+                  enabled: !_isTyping,
+                  tooltip: l.assistantChatOptions,
+                  icon: const Icon(Icons.more_vert_rounded),
+                  onSelected: (value) {
+                    if (value == 'newChat') {
+                      _confirmClearChat();
+                      return;
+                    }
+                    _switchLanguage(AssistantLanguage.values.byName(value));
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem<String>(
+                      enabled: false,
+                      child: Text(l.assistantResponseLanguage),
+                    ),
+                    for (final language in AssistantLanguage.values)
+                      CheckedPopupMenuItem(
+                        value: language.name,
+                        checked: language == _service.currentLanguage,
+                        child: Text(language.label),
+                      ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'newChat',
+                      child: Text(l.assistantNewChat),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 4),
                 // Text Input Field
                 Expanded(
                   child: Container(
@@ -345,18 +326,20 @@ class _AssistantPageState extends State<AssistantPage> {
                 ),
                 const SizedBox(width: 8),
                 // Send Button
-                IconButton.filled(
-                  onPressed: _isTyping ? null : () => _handleSendMessage(),
-                  icon: const Icon(
-                    Icons.arrow_upward_rounded,
-                    size: 20,
-                    color: AppColors.onNightAccent,
-                  ),
-                  tooltip: context.l10n.sendPrompt,
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: const CircleBorder(),
-                    minimumSize: const Size(48, 48),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _textController,
+                  builder: (context, value, child) => IconButton.filled(
+                    onPressed: _canSendDraft(value.text)
+                        ? () => _handleSendMessage()
+                        : null,
+                    icon: const Icon(Icons.arrow_upward_rounded, size: 20),
+                    tooltip: l.sendPrompt,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.onNightAccent,
+                      shape: const CircleBorder(),
+                      minimumSize: const Size(48, 48),
+                    ),
                   ),
                 ),
               ],

@@ -1,6 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+import 'package:smart_travel_planner/features/places/screens/attraction_list_screen.dart';
+import 'package:smart_travel_planner/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
@@ -11,6 +14,34 @@ import 'package:smart_travel_planner/shared/models/attraction.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets(
+    'missing photos show labeled illustrations in both Explore layouts',
+    (tester) async {
+      const place = Attraction(
+        xid: 'local-test',
+        name: 'Museum',
+        category: 'History',
+        latitude: 3.1,
+        longitude: 101.6,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: Scaffold(
+            body: AttractionListScreen(
+              attractions: const [place],
+              highlights: const [place],
+              selectedStops: const [],
+              onAttractionTap: (_) {},
+              onToggleStop: (_) {},
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Category illustration'), findsNWidgets(2));
+    },
+  );
 
   test(
     'Explore photos decode from the bundled assets for their exact places',

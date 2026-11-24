@@ -100,6 +100,12 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @categoryIllustration.
+  ///
+  /// In en, this message translates to:
+  /// **'Category illustration'**
+  String get categoryIllustration;
+
   /// No description provided for @profileCountry.
   ///
   /// In en, this message translates to:
@@ -4564,31 +4570,31 @@ abstract class AppLocalizations {
   /// No description provided for @sights.
   ///
   /// In en, this message translates to:
-  /// **'🏛️ Sights'**
+  /// **'Sights'**
   String get sights;
 
   /// No description provided for @nature2.
   ///
   /// In en, this message translates to:
-  /// **'🌳 Nature'**
+  /// **'Nature'**
   String get nature2;
 
   /// No description provided for @food2.
   ///
   /// In en, this message translates to:
-  /// **'🍔 Food'**
+  /// **'Food'**
   String get food2;
 
   /// No description provided for @cafes.
   ///
   /// In en, this message translates to:
-  /// **'☕ Cafes'**
+  /// **'Cafes'**
   String get cafes;
 
   /// No description provided for @shops.
   ///
   /// In en, this message translates to:
-  /// **'🛍️ Shops'**
+  /// **'Shops'**
   String get shops;
 
   /// No description provided for @admin.
@@ -4963,6 +4969,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Travel times are distance-based estimates.'**
   String get travelTimesAreDistanceBasedEstimates;
+
+  /// No description provided for @transferPastDailyEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'The transfer is estimated to finish after your planned end time. No sightseeing is scheduled.'**
+  String get transferPastDailyEnd;
+
+  /// No description provided for @transferNextDay.
+  ///
+  /// In en, this message translates to:
+  /// **'(+1 day)'**
+  String get transferNextDay;
 
   /// No description provided for @someOpeningHoursAreUnverifiedConfirmBeforeVisiting.
   ///
@@ -5804,6 +5822,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue to highlights & interests'**
   String get planContinueHighlights;
+
+  /// Title of prompt when an ongoing trip plan exists
+  ///
+  /// In en, this message translates to:
+  /// **'Previous Trip Plan'**
+  String get planPreviousSelectionTitle;
+
+  /// Message prompting the user to continue or reset previous trip selections
+  ///
+  /// In en, this message translates to:
+  /// **'You have an ongoing trip plan for {destination}. Would you like to continue where you left off or start over?'**
+  String planPreviousSelectionMessage(String destination);
+
+  /// Action button to continue with existing trip selections
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get planContinueExisting;
+
+  /// Action button to reset selections and start fresh
+  ///
+  /// In en, this message translates to:
+  /// **'Start Over'**
+  String get planStartOver;
+
+  /// Confirmation question before resetting all trip planner inputs
+  ///
+  /// In en, this message translates to:
+  /// **'Reset this trip plan? All your current selections will be cleared.'**
+  String get planResetConfirmation;
+
+  /// Notification snackbar after successfully resetting the trip plan
+  ///
+  /// In en, this message translates to:
+  /// **'Plan reset. You can start fresh.'**
+  String get planResetSuccess;
 
   /// No description provided for @profileTravelPreferences.
   ///
@@ -6690,19 +6744,19 @@ abstract class AppLocalizations {
   /// No description provided for @assistantStarterWeather.
   ///
   /// In en, this message translates to:
-  /// **'Weather'**
+  /// **'Check weather'**
   String get assistantStarterWeather;
 
   /// No description provided for @assistantStarterFood.
   ///
   /// In en, this message translates to:
-  /// **'Food'**
+  /// **'Find food'**
   String get assistantStarterFood;
 
   /// No description provided for @assistantStarterTransport.
   ///
   /// In en, this message translates to:
-  /// **'Transport'**
+  /// **'Get directions'**
   String get assistantStarterTransport;
 
   /// No description provided for @assistantStarterItinerary.
@@ -6714,7 +6768,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantPromptWeather.
   ///
   /// In en, this message translates to:
-  /// **'What is the forecast for Kuala Lumpur today?'**
+  /// **'Weather in'**
   String get assistantPromptWeather;
 
   /// No description provided for @assistantPromptFood.
@@ -6726,7 +6780,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantPromptTransport.
   ///
   /// In en, this message translates to:
-  /// **'How do I get from KLIA to KL Sentral?'**
+  /// **'Directions from'**
   String get assistantPromptTransport;
 
   /// No description provided for @assistantPromptItinerary.
@@ -6738,7 +6792,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantGreeting.
   ///
   /// In en, this message translates to:
-  /// **'How can I help with your trip?'**
+  /// **'Pick a shortcut below or type a travel question.'**
   String get assistantGreeting;
 
   /// No description provided for @assistantReviewStop.
@@ -6752,6 +6806,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tell me which place to add, or choose Add to plan on a place card. In the preview, choose the trip, day, and visit times, then confirm.'**
   String get assistantItineraryInstructions;
+
+  /// No description provided for @spotlightHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Where would you like to explore?'**
+  String get spotlightHeading;
+
+  /// No description provided for @spotlightSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one or more Malaysian destinations to shape your route.'**
+  String get spotlightSubtitle;
+
+  /// No description provided for @spotlightChooseDestinations.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose destinations'**
+  String get spotlightChooseDestinations;
+
+  /// No description provided for @spotlightDismissLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss destination spotlight'**
+  String get spotlightDismissLabel;
+
+  /// No description provided for @spotlightPickerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select one destination for a single trip, or two or more for a multi-city route. Your first pick sets the starting hub.'**
+  String get spotlightPickerSubtitle;
+
+  /// No description provided for @spotlightContinueToPlanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to planner'**
+  String get spotlightContinueToPlanner;
+
+  /// No description provided for @spotlightSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No destinations selected} =1{1 destination selected} other{{count} destinations selected}}'**
+  String spotlightSelectedCount(int count);
+
+  /// No description provided for @spotlightStartBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get spotlightStartBadge;
+
+  /// No description provided for @spotlightStopOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop {order}'**
+  String spotlightStopOrder(int order);
+
+  /// No description provided for @spotlightSelectedSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{place}, {region}, selected'**
+  String spotlightSelectedSemantics(String place, String region);
+
+  /// No description provided for @spotlightNotSelectedSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{place}, {region}, not selected'**
+  String spotlightNotSelectedSemantics(String place, String region);
+
+  /// No description provided for @spotlightPlaceKualaLumpur.
+  ///
+  /// In en, this message translates to:
+  /// **'Kuala Lumpur'**
+  String get spotlightPlaceKualaLumpur;
+
+  /// No description provided for @spotlightPlaceGeorgeTown.
+  ///
+  /// In en, this message translates to:
+  /// **'George Town'**
+  String get spotlightPlaceGeorgeTown;
+
+  /// No description provided for @spotlightPlaceLangkawi.
+  ///
+  /// In en, this message translates to:
+  /// **'Langkawi'**
+  String get spotlightPlaceLangkawi;
+
+  /// No description provided for @spotlightPlaceJohorBahru.
+  ///
+  /// In en, this message translates to:
+  /// **'Johor Bahru'**
+  String get spotlightPlaceJohorBahru;
+
+  /// No description provided for @spotlightPlaceBatuCaves.
+  ///
+  /// In en, this message translates to:
+  /// **'Batu Caves'**
+  String get spotlightPlaceBatuCaves;
+
+  /// No description provided for @spotlightRegionKualaLumpur.
+  ///
+  /// In en, this message translates to:
+  /// **'Kuala Lumpur'**
+  String get spotlightRegionKualaLumpur;
+
+  /// No description provided for @spotlightRegionPenang.
+  ///
+  /// In en, this message translates to:
+  /// **'Penang'**
+  String get spotlightRegionPenang;
+
+  /// No description provided for @spotlightRegionKedah.
+  ///
+  /// In en, this message translates to:
+  /// **'Kedah'**
+  String get spotlightRegionKedah;
+
+  /// No description provided for @spotlightRegionJohor.
+  ///
+  /// In en, this message translates to:
+  /// **'Johor'**
+  String get spotlightRegionJohor;
+
+  /// No description provided for @spotlightDraftConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace current draft?'**
+  String get spotlightDraftConflictTitle;
+
+  /// No description provided for @spotlightDraftConflictMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a trip draft in Plan ({summary}). Keep it or start a new draft with your chosen destinations?'**
+  String spotlightDraftConflictMessage(String summary);
+
+  /// No description provided for @spotlightKeepCurrentDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep current draft'**
+  String get spotlightKeepCurrentDraft;
+
+  /// No description provided for @spotlightStartNewDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new draft'**
+  String get spotlightStartNewDraft;
+
+  /// No description provided for @plannerProposedRouteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposed multi-city route'**
+  String get plannerProposedRouteTitle;
+
+  /// No description provided for @plannerRouteAutoOrdered.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordered from your starting hub'**
+  String get plannerRouteAutoOrdered;
+
+  /// No description provided for @plannerEditRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit route'**
+  String get plannerEditRoute;
+
+  /// No description provided for @plannerRemoveDestinationTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {destination}'**
+  String plannerRemoveDestinationTooltip(String destination);
+
+  /// No description provided for @plannerDaysAllocatedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d'**
+  String plannerDaysAllocatedShort(int days);
+
+  /// No description provided for @plannerDurationConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'More destinations than trip days'**
+  String get plannerDurationConflictTitle;
+
+  /// No description provided for @plannerDurationConflictMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You selected {hubCount} destinations for a {dayCount}-day trip. Extend your travel dates or remove a destination before generating.'**
+  String plannerDurationConflictMessage(int hubCount, int dayCount);
+
+  /// No description provided for @plannerExtendTripDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Extend trip'**
+  String get plannerExtendTripDates;
+
+  /// No description provided for @spotlightSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search city or state (e.g. Ipoh, Sabah)'**
+  String get spotlightSearchHint;
+
+  /// No description provided for @spotlightShuffle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get spotlightShuffle;
+
+  /// No description provided for @spotlightNoMatchingHubs.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching destinations found'**
+  String get spotlightNoMatchingHubs;
+
+  /// No description provided for @spotlightFeaturedSpot.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured · {place}'**
+  String spotlightFeaturedSpot(String place);
+
+  /// No description provided for @addToExistingTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to an existing trip'**
+  String get addToExistingTrip;
+
+  /// No description provided for @createNewTripWithPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new trip with these places'**
+  String get createNewTripWithPlaces;
+
+  /// No description provided for @chooseDayToAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a day to add'**
+  String get chooseDayToAdd;
+
+  /// No description provided for @addedToTripDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to Day {day} of {trip}'**
+  String addedToTripDay(int day, String trip);
+
+  /// No description provided for @scanPlacesAutoFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination & interests pre-filled from your scanned places.'**
+  String get scanPlacesAutoFilled;
 }
 
 class _AppLocalizationsDelegate

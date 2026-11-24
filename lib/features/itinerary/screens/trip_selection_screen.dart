@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
+import 'package:smart_travel_planner/features/itinerary/models/destination_leg.dart';
 import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
 import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
 import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
@@ -18,6 +19,7 @@ class TripSelectionScreen extends StatefulWidget {
 
 class _TripSelectionScreenState extends State<TripSelectionScreen> {
   late Future<List<Itinerary>> _trips;
+  String? _selectedStateFilter;
 
   @override
   void initState() {
@@ -160,36 +162,114 @@ class _TripSelectionScreenState extends State<TripSelectionScreen> {
                 ),
               );
             }
-            final count = saved.length + (active == null ? 0 : 1);
+            final allStates = <String>{
+              if (prefs != null) ...prefs.effectiveLegs.map((l) => l.stateName),
+              for (final item in saved)
+                if (item.preferences != null && item.preferences!.legs.isNotEmpty)
+                  ...item.preferences!.legs.map((l) => l.stateName)
+                else if (item.destinationState.trim().isNotEmpty)
+                  item.destinationState.trim(),
+            }.toList();
+
+            bool matchesFilter(List<DestinationLeg> legs, String fallbackState) {
+              if (_selectedStateFilter == null) return true;
+              if (legs.isNotEmpty) {
+                return legs.any((l) => l.stateName == _selectedStateFilter);
+              }
+              return fallbackState == _selectedStateFilter;
+            }
+
+            final showActive = active != null &&
+                matchesFilter(
+                  prefs?.effectiveLegs ?? const [],
+                  active.destination,
+                );
+            final filteredSaved = saved
+                .where(
+                  (item) => matchesFilter(
+                    item.preferences?.legs ?? const [],
+                    item.destinationState,
+                  ),
+                )
+                .toList();
+
+            final count = filteredSaved.length + (showActive ? 1 : 0);
             return ListView.separated(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
               itemCount: count + 1,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return Semantics(
-                    header: true,
-                    child: Text(
-                      context.l10n.selectPlannedItinerary,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: AppColors.ink,
-                            fontWeight: FontWeight.w700,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          context.l10n.selectPlannedItinerary,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                      if (allStates.length >= 2) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 36,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: const Text('All'),
+                                  selected: _selectedStateFilter == null,
+                                  onSelected: (_) => setState(
+                                    () => _selectedStateFilter = null,
+                                  ),
+                                ),
+                              ),
+                              for (final state in allStates)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ChoiceChip(
+                                    label: Text(state),
+                                    selected: _selectedStateFilter == state,
+                                    onSelected: (_) => setState(
+                                      () => _selectedStateFilter = state,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                    ),
+                        ),
+                      ],
+                    ],
                   );
                 }
-                final isActive = active != null && index == 1;
-                final savedIndex = index - 1 - (active == null ? 0 : 1);
+                final isActive = showActive && index == 1;
+                final savedIndex = index - 1 - (showActive ? 1 : 0);
                 final trip = isActive
                     ? active
-                    : saved[savedIndex].toSavedTrip();
-                final id = isActive ? null : saved[savedIndex].itineraryId;
+                    : filteredSaved[savedIndex].toSavedTrip();
+                final id =
+                    isActive ? null : filteredSaved[savedIndex].itineraryId;
                 final status = isActive
                     ? context.l10n.activeItinerary
-                    : saved[savedIndex].isDraft
+                    : filteredSaved[savedIndex].isDraft
                     ? context.l10n.draftLabel
                     : null;
+                final legs = isActive
+                    ? (prefs?.legs ?? const <DestinationLeg>[])
+                    : (filteredSaved[savedIndex].preferences?.legs ??
+                          const <DestinationLeg>[]);
+                final isMulti = legs.length > 1;
+                final displayTitle = isMulti
+                    ? 'Malaysia Tour · ${legs.length} States'
+                    : context.tripTitle(trip);
+
                 return Material(
                   color: AppColors.nightSurface,
                   shape: RoundedRectangleBorder(
@@ -211,8 +291,10 @@ class _TripSelectionScreenState extends State<TripSelectionScreen> {
                               color: AppColors.nightAccentContainer,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
-                              Icons.place_outlined,
+                            child: Icon(
+                              isMulti
+                                  ? Icons.route_outlined
+                                  : Icons.place_outlined,
                               color: AppColors.primary,
                             ),
                           ),
@@ -233,7 +315,7 @@ class _TripSelectionScreenState extends State<TripSelectionScreen> {
                                   const SizedBox(height: 4),
                                 ],
                                 Text(
-                                  context.tripTitle(trip),
+                                  displayTitle,
                                   style: const TextStyle(
                                     color: AppColors.ink,
                                     fontSize: 17,
@@ -241,17 +323,10 @@ class _TripSelectionScreenState extends State<TripSelectionScreen> {
                                     height: 1.3,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  trip.destination,
-                                  style: const TextStyle(
-                                    color: AppColors.muted,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Text(
                                   [
+                                    if (!isMulti) trip.destination,
                                     if (trip.startsOn != null)
                                       context.localDate(trip.startsOn!),
                                     context.l10n.valueDays(
@@ -260,9 +335,50 @@ class _TripSelectionScreenState extends State<TripSelectionScreen> {
                                   ].join(' · '),
                                   style: const TextStyle(
                                     color: AppColors.muted,
-                                    fontSize: 14,
+                                    fontSize: 13,
                                   ),
                                 ),
+                                if (isMulti) ...[
+                                  const SizedBox(height: 10),
+                                  for (int i = 0; i < legs.length; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.circle,
+                                            size: 7,
+                                            color: _selectedStateFilter ==
+                                                    legs[i].stateName
+                                                ? AppColors.primary
+                                                : AppColors.muted,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              legs[i].stateName,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight:
+                                                    _selectedStateFilter ==
+                                                        legs[i].stateName
+                                                    ? FontWeight.w700
+                                                    : FontWeight.w500,
+                                                color: AppColors.ink,
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            '${legs[i].allocatedDays} ${legs[i].allocatedDays == 1 ? 'Day' : 'Days'}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.muted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
                               ],
                             ),
                           ),

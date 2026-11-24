@@ -86,7 +86,7 @@ void main() {
         expect(result.failure, PlacesFailure.emptyCatalog);
         expect(result.failedCount, 0);
         expect(result.items, isEmpty);
-        expect(result.source, 'Verified database catalog');
+        expect(result.source, 'Database catalog');
       }
     },
   );

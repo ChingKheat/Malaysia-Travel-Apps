@@ -63,6 +63,18 @@ class TravelAssistantService {
     final foodQuestion = _pendingFoodQuestion;
     _pendingFoodQuestion = null;
     final lower = text.toLowerCase();
+    if (_countrywideFoodRequest.hasMatch(lower)) {
+      _pendingFoodQuestion = text;
+      final response = _reply(
+        _localized(
+          'Try nasi lemak, char kway teow, or roti canai. Which city are you visiting? I can suggest places to eat there.',
+          'Cuba nasi lemak, char kway teow atau roti canai. Bandar mana yang anda akan lawati? Saya boleh cadangkan tempat makan di sana.',
+          '可以试试椰浆饭（nasi lemak）、炒粿条或印度煎饼。您打算去哪个城市？我可以推荐当地的餐饮场所。',
+        ),
+      );
+      unawaited(_persist(text, response.text));
+      return response;
+    }
     if (foodQuestion != null &&
         !_weatherRequest.hasMatch(lower) &&
         !_foodRequest.hasMatch(lower) &&
@@ -323,6 +335,11 @@ class TravelAssistantService {
   static final _addRequest = RegExp(r'\b(add|tambah|masukkan)\b|添加|加入');
   static final _weatherRequest = RegExp(r'weather|\brain\b|cuaca|hujan|天气|下雨');
   static final _foodRequest = RegExp(r'food|halal|makan|美食|餐饮|清真');
+  static final _countrywideFoodRequest = RegExp(
+    r'^(?:(?:suggest )?food(?: options)? in malaysia|malaysian food|'
+    r'(?:cadangkan )?(?:pilihan )?makanan di malaysia|'
+    r'(?:请)?推荐马来西亚的(?:餐饮选项|美食))[.!?。！？]?$',
+  );
   static final _clockPattern = RegExp(
     r'\b([01]?[0-9]|2[0-3]):([0-5][0-9])\s*(am|pm)?',
     caseSensitive: false,
@@ -525,6 +542,18 @@ class TravelAssistantService {
           'How do I get there by KTM?',
           'Find nearby indoor places',
         ],
+      );
+    }
+    if (RegExp(
+          r'^directions from |^arah perjalanan dari |^查询路线，起点和终点：',
+        ).hasMatch(p) &&
+        !(p.contains('klia') && p.contains('kl sentral'))) {
+      return _reply(
+        _localized(
+          'I can’t check directions for this route right now. Enter your starting point and destination in your maps app for directions.',
+          'Saya tidak dapat menyemak arah untuk laluan ini sekarang. Masukkan tempat bertolak dan destinasi dalam aplikasi peta anda.',
+          '目前无法查询这条路线。请在地图应用中输入起点和终点以获取路线。',
+        ),
       );
     }
     if (RegExp(

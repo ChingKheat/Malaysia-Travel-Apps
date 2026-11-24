@@ -232,6 +232,7 @@ class SchedulingEngine {
     Map<String, TravelLeg> walkingLegs = const {},
     int seed = 0,
     bool preserveOrder = false,
+    bool allowRainyMustVisits = false,
     TravelStop? routeAnchor,
     Set<String> previousStopIds = const {},
   }) {
@@ -295,7 +296,9 @@ class SchedulingEngine {
             !stop.estimatedCost.isFinite) {
           continue;
         }
-        if (enforceIndoor && stop.isIndoor != true) {
+        if (enforceIndoor &&
+            stop.isIndoor != true &&
+            !(allowRainyMustVisits && priorities.contains(stopId))) {
           continue;
         }
         final origin = preferences.dailyOrigin;
@@ -480,6 +483,7 @@ class SchedulingEngine {
       int? firstDay,
       String? excludedSuggestion,
       Set<String> avoidRepeating = const {},
+      bool allowRainyMustVisits = false,
     }) {
       final visited = <String>{};
       final days = List<List<TravelStop>>.filled(dates.length, const []);
@@ -539,6 +543,7 @@ class SchedulingEngine {
           seed: seed + day,
           routeAnchor: anchor,
           previousStopIds: avoidRepeating,
+          allowRainyMustVisits: allowRainyMustVisits,
         );
       }
       return days;
@@ -639,6 +644,15 @@ class SchedulingEngine {
           best = candidate;
           bestOrder = option;
         }
+      }
+    }
+    // Only relax weather filtering when no weather-safe plan covered as many
+    // must-visits. The caller can then warn about the forecast.
+    for (var day = 0; day < dates.length; day++) {
+      final candidate = build(anchors, firstDay: day, allowRainyMustVisits: true);
+      if (coveredMustVisits(candidate) > coveredMustVisits(best)) {
+        best = candidate;
+        bestOrder = anchors;
       }
     }
     balanceSingleVisitDays(best);
