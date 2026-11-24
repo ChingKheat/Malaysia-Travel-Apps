@@ -17,30 +17,10 @@ class AssistantPage extends StatefulWidget {
 
 class _AssistantPageState extends State<AssistantPage> {
   final TravelAssistantService _service = TravelAssistantService();
-  final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final FocusNode _focusNode = FocusNode();
 
   final List<AssistantMessage> _messages = [];
   bool _isTyping = false;
-  String? _starterDraft;
-
-  bool _canSendDraft(String text) {
-    final trimmed = text.trim();
-    return !_isTyping && trimmed.length >= 2 && trimmed != _starterDraft;
-  }
-
-  void _startDraft(String prompt) {
-    final draft = prompt.trim();
-    _starterDraft = draft;
-    final text = '$draft ';
-    _textController.value = TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
-    );
-    _focusNode.requestFocus();
-  }
-
   @override
   void initState() {
     super.initState();
@@ -56,9 +36,7 @@ class _AssistantPageState extends State<AssistantPage> {
 
   @override
   void dispose() {
-    _textController.dispose();
     _scrollController.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
@@ -74,10 +52,8 @@ class _AssistantPageState extends State<AssistantPage> {
     });
   }
 
-  Future<void> _handleSendMessage([String? overrideText]) async {
+  Future<void> _handleSendMessage(String text) async {
     if (_isTyping) return;
-    final text = overrideText ?? _textController.text;
-    if (overrideText == null && !_canSendDraft(text)) return;
     final validationError = _service.validatePrompt(text);
 
     if (validationError != null) {
@@ -87,8 +63,6 @@ class _AssistantPageState extends State<AssistantPage> {
     }
 
     demoHaptic();
-    _starterDraft = null;
-    _textController.clear();
 
     final userMessage = AssistantMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -170,23 +144,39 @@ class _AssistantPageState extends State<AssistantPage> {
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
-    final starters = [
-      (l.assistantStarterWeather, () => _startDraft(l.assistantPromptWeather)),
-      (l.assistantStarterFood, () => _handleSendMessage(l.assistantPromptFood)),
-      (
-        l.assistantStarterTransport,
-        () => _startDraft(l.assistantPromptTransport),
-      ),
-      (
-        l.assistantStarterItinerary,
-        () => _handleSendMessage(l.assistantPromptItinerary),
-      ),
+    final questions = [
+      (Icons.wb_cloudy_outlined, l.assistantPromptWeather),
+      (Icons.restaurant_outlined, l.assistantPromptFood),
+      (Icons.train_outlined, l.assistantPromptTransport),
+      (Icons.route_outlined, l.assistantPromptItinerary),
     ];
+    Widget choices(ValueChanged<String> select) => Column(
+      children: [
+        for (final (icon, question) in questions)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              tileColor: AppColors.nightSurface,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: AppColors.line),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              leading: Icon(icon, color: AppColors.primary),
+              title: Text(
+                question,
+                style: const TextStyle(color: AppColors.ink),
+              ),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
+              onTap: () => select(question),
+            ),
+          ),
+      ],
+    );
     return Column(
       children: [
         // Chat Messages Stream
         Expanded(
-          child: Container(
+          child: Material(
             color: AppColors.nightCanvas,
             child: ListView.builder(
               controller: _scrollController,
@@ -198,44 +188,14 @@ class _AssistantPageState extends State<AssistantPage> {
                 }
                 final message = _messages[index];
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     AssistantChatBubble(
                       message: message,
                       onSelectChip: (chip) => _handleSendMessage(chip),
                     ),
                     if (index == 0 && _messages.length == 1)
-                      for (var row = 0; row < starters.length; row += 2)
-                        Padding(
-                          padding: EdgeInsets.only(top: row == 0 ? 0 : 8),
-                          child: IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                for (var column = 0; column < 2; column++) ...[
-                                  if (column > 0) const SizedBox(width: 8),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        minimumSize: const Size(48, 48),
-                                        foregroundColor: AppColors.primary,
-                                      ),
-                                      onPressed: starters[row + column].$2,
-                                      child: Text(
-                                        starters[row + column].$1,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
+                      choices(_handleSendMessage),
                     for (final proposal in message.stopProposals)
                       OutlinedButton(
                         onPressed: _isTyping
@@ -293,55 +253,34 @@ class _AssistantPageState extends State<AssistantPage> {
                   ],
                 ),
                 const SizedBox(width: 4),
-                // Text Input Field
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.nightRaised,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: TextField(
-                      controller: _textController,
-                      focusNode: _focusNode,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        color: AppColors.ink,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: context.l10n.askPlacesFoodWeatherOrPlans,
-                        hintStyle: TextStyle(
-                          fontSize: 12.5,
-                          color: AppColors.muted,
-                        ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 11),
-                      ),
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _handleSendMessage(),
+                if (_messages.length > 1)
+                  Expanded(
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: Text(l.assistantChooseQuestion),
+                      onPressed: _isTyping
+                          ? null
+                          : () async {
+                              final selected =
+                                  await showModalBottomSheet<String>(
+                                    context: context,
+                                    backgroundColor: AppColors.nightCanvas,
+                                    showDragHandle: true,
+                                    builder: (sheet) => SafeArea(
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.all(16),
+                                        child: choices(
+                                          (value) =>
+                                              Navigator.pop(sheet, value),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                              if (mounted && selected != null)
+                                await _handleSendMessage(selected);
+                            },
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Send Button
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _textController,
-                  builder: (context, value, child) => IconButton.filled(
-                    onPressed: _canSendDraft(value.text)
-                        ? () => _handleSendMessage()
-                        : null,
-                    icon: const Icon(Icons.arrow_upward_rounded, size: 20),
-                    tooltip: l.sendPrompt,
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.onNightAccent,
-                      shape: const CircleBorder(),
-                      minimumSize: const Size(48, 48),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

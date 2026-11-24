@@ -322,14 +322,21 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 16),
           spotlightSection,
-          _MyTripsCard(onTap: widget.onItineraryTap),
-          const SizedBox(height: 18),
           if (upcomingTrip != null) ...[
+            _CurrentPlanHeader(
+              tripCount: _dbSavedTrips.length,
+              onAllTripsTap: widget.onItineraryTap,
+            ),
+            const SizedBox(height: 12),
             TripCard(
               trip: upcomingTrip,
               onTap: widget.onItineraryTap,
+              onTodayRouteTap: widget.onRouteTap,
               isDark: true,
             ),
+            const SizedBox(height: 18),
+          ] else ...[
+            _MyTripsCard(onTap: widget.onItineraryTap),
             const SizedBox(height: 18),
           ],
           _CommunitySection(
@@ -371,18 +378,23 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 20),
 
-        // My Trips Card
-        _MyTripsCard(onTap: widget.onItineraryTap),
-        const SizedBox(height: 18),
-
-        // Active Planned Trip Card if exists
+        // Active Planned Trip or My Trips entry point
         if (upcomingTrip != null) ...[
+          _CurrentPlanHeader(
+            tripCount: _dbSavedTrips.length,
+            onAllTripsTap: widget.onItineraryTap,
+          ),
+          const SizedBox(height: 12),
           TripCard(
             trip: upcomingTrip,
             onTap: widget.onItineraryTap,
+            onTodayRouteTap: widget.onRouteTap,
             isDark: true,
           ),
           const SizedBox(height: 20),
+        ] else ...[
+          _MyTripsCard(onTap: widget.onItineraryTap),
+          const SizedBox(height: 18),
         ],
 
         // "From the Community" Section
@@ -832,6 +844,61 @@ class _CommunitySection extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CurrentPlanHeader extends StatelessWidget {
+  const _CurrentPlanHeader({
+    required this.tripCount,
+    required this.onAllTripsTap,
+  });
+
+  final int tripCount;
+  final VoidCallback onAllTripsTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final allTripsLabel = tripCount > 0 ? 'All trips ($tripCount)' : 'All trips';
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'Current Plan',
+          style: TextStyle(
+            color: AppColors.nightBody,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        InkWell(
+          key: const ValueKey('home-my-trips'),
+          onTap: onAllTripsTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  allTripsLabel,
+                  style: const TextStyle(
+                    color: AppColors.nightAccent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.nightAccent,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

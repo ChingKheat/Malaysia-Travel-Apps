@@ -3785,19 +3785,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assistantStarterItinerary => '行程帮助';
 
   @override
-  String get assistantPromptWeather => '查询天气，地点：';
+  String get assistantPromptWeather => '新山今天天气怎么样？';
 
   @override
   String get assistantPromptFood => '请推荐马来西亚的餐饮选项。';
 
   @override
-  String get assistantPromptTransport => '查询路线，起点和终点：';
+  String get assistantPromptTransport => '从 KLIA 到 KL Sentral 怎么走？';
 
   @override
   String get assistantPromptItinerary => '如何在我的行程中添加停靠点？';
 
   @override
-  String get assistantGreeting => '请选择下方的快捷选项，或输入您的旅行问题。';
+  String get assistantChooseQuestion => '选择问题';
+
+  @override
+  String get assistantGreeting => '关于这次旅行，你想了解什么？';
 
   @override
   String get assistantReviewStop => '请在保存前查看停靠点详情。';

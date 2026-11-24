@@ -33,12 +33,45 @@ void main() {
             widget is Image &&
             widget.image is AssetImage &&
             (widget.image as AssetImage).assetName ==
-                'assets/recognition/trip_schedule_malaysia.png',
+                'assets/recognition/danga_bay_waterfront.jpg',
       ),
       findsOneWidget,
     );
     expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('home-upcoming-trip')));
     expect(opened, true);
+  });
+
+  testWidgets('Upcoming trip shows quick actions when route callback is set', (
+    tester,
+  ) async {
+    var openedPlan = false;
+    var openedRoute = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TripCard(
+            trip: const SavedTrip(
+              title: 'Johor Custom Schedule',
+              date: 'Nov 23, 2026 (3 Days)',
+              detail: '9 stops • RM 366 estimated',
+              destination: 'Johor',
+              budget: 'Moderate',
+              interests: [],
+              totalDays: 3,
+            ),
+            isDark: true,
+            onTap: () => openedPlan = true,
+            onTodayRouteTap: () => openedRoute = true,
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Open Plan'), findsOneWidget);
+    expect(find.text("Today's Route"), findsOneWidget);
+    await tester.tap(find.text("Today's Route"));
+    expect(openedRoute, true);
+    await tester.tap(find.text('Open Plan'));
+    expect(openedPlan, true);
   });
 }

@@ -47,13 +47,6 @@ class AssistantChatBubble extends StatelessWidget {
                 bottomLeft: Radius.circular(18),
                 bottomRight: Radius.circular(18),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x186652E8),
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-              ],
             ),
             child: Text(
               message.text,

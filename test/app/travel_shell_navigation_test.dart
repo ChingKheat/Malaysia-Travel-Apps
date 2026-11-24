@@ -166,8 +166,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('home-my-trips')));
         await tester.pumpAndSettle();
-        expect(find.byType(MyTripsScreen), findsOneWidget);
-        expect(find.text('Plan Your Trip'), findsOneWidget);
+        expect(find.byType(TripSelectionScreen), findsOneWidget);
         await tester.pageBack();
         await tester.pumpAndSettle();
         expect(find.byKey(const ValueKey('home-my-trips')), findsOneWidget);
@@ -182,8 +181,16 @@ void main() {
       await _withApp(tester, () async {
         await tester.tap(find.byKey(const ValueKey('home-my-trips')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Plan Your Trip'));
-        await tester.pumpAndSettle();
+        expect(find.byType(TripSelectionScreen), findsOneWidget);
+        if (find.text('Plan Your Trip').evaluate().isNotEmpty) {
+          await tester.tap(find.text('Plan Your Trip'));
+          await tester.pumpAndSettle();
+        } else {
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+          await tester.tap(_tab('Plan'));
+          await tester.pumpAndSettle();
+        }
         expect(find.byType(MyTripsScreen), findsNothing);
         expect(find.byKey(const ValueKey('plan-my-trips')), findsOneWidget);
 
@@ -263,6 +270,9 @@ void main() {
       TripPreferencesService.activate(preferences);
       await tester.tap(find.byKey(const ValueKey('home-my-trips')));
       await tester.pumpAndSettle();
+      expect(find.byType(TripSelectionScreen), findsOneWidget);
+      await tester.tap(find.text('Kuala Lumpur Custom Schedule').last);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Day 2'));
       await tester.pumpAndSettle();
       expect(
@@ -273,6 +283,9 @@ void main() {
             .active,
         isTrue,
       );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(TripSelectionScreen), findsOneWidget);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-my-trips')), findsOneWidget);
