@@ -204,8 +204,8 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
               authorName != null &&
               widget.showPhotoAuthorAttribution)
             Positioned(
-              left: compact ? 0 : 14,
-              right: compact ? 0 : 14,
+              left: compact ? 8 : 14,
+              right: compact ? null : 14,
               top: widget.attributionTop,
               bottom: widget.attributionTop == null ? (compact ? 0 : 14) : null,
               child: Material(
@@ -216,6 +216,9 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
                       : null,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
+                    constraints: compact
+                        ? const BoxConstraints(maxWidth: 170)
+                        : null,
                     padding: EdgeInsets.symmetric(
                       horizontal: compact ? 2 : 10,
                       vertical: 5,

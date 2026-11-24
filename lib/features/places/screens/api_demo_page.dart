@@ -631,8 +631,8 @@ class _ApiDemoPageState extends State<ApiDemoPage> {
     return SizedBox(
       height: 38,
       child: ListView.separated(
+        key: ValueKey('explore-categories-$_destinationState'),
         scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
         itemCount: _categories.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {

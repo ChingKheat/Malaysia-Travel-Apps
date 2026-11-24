@@ -475,9 +475,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Places selected for your plan'), findsOneWidget);
     expect(find.text('1 place'), findsOneWidget);
-    final button = find.text('Add to Plan');
-    await tester.drag(find.byType(ListView), const Offset(0, -120));
+    expect(find.text('Add to Plan'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('scan-selected-places-bar')));
     await tester.pumpAndSettle();
+    expect(find.text('Sultan Abdul Samad Building'), findsWidgets);
+    final button = find.text('Add to Plan');
     await tester.tap(button);
     expect(openedPlan, true);
   });

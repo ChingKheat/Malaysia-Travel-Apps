@@ -17,6 +17,7 @@ import 'package:smart_travel_planner/features/places/services/google_places_serv
 import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
 import 'package:smart_travel_planner/features/places/widgets/google_maps_attribution.dart';
 import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
+import 'package:smart_travel_planner/features/places/widgets/wishlist_note_dialog.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
 import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
@@ -30,7 +31,7 @@ class RecognitionResultSheet extends StatefulWidget {
     required this.service,
     required this.onNewScan,
     this.onBack,
-    this.onOpenWishlist,
+    this.onOpenHistory,
     this.onOpenPlan,
     this.photo,
     this.onReferenceSelected,
@@ -43,7 +44,7 @@ class RecognitionResultSheet extends StatefulWidget {
   final ImageRecognitionService service;
   final VoidCallback onNewScan;
   final VoidCallback? onBack;
-  final VoidCallback? onOpenWishlist;
+  final VoidCallback? onOpenHistory;
   final VoidCallback? onOpenPlan;
   final ImageProvider<Object>? photo;
   final ValueChanged<String>? onReferenceSelected;
@@ -73,6 +74,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
   bool _saving = false;
   bool _adding = false;
   bool _openingDetails = false;
+  bool _planExpanded = false;
   _SpotFilter _filter = _SpotFilter.all;
 
   PlaceWishlistStore get _wishlist => PlaceWishlistStore(widget.userId);
@@ -152,6 +154,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
 
   Future<void> _save(Attraction spot) async {
     if (_saving) return;
+    final wasSaved = _saved.contains(spot.xid);
     setState(() => _saving = true);
     try {
       final listing =
@@ -174,6 +177,15 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
       if (mounted) {
         setState(() => _saved = places.map((place) => place.xid).toSet());
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        if (!wasSaved) {
+          final note = await showWishlistNoteDialog(
+            context,
+            placeName: spot.name,
+          );
+          if (note != null && note.trim().isNotEmpty) {
+            await _wishlist.saveNote(spot.xid, note);
+          }
+        }
       }
     } catch (_) {
       if (mounted) {
@@ -321,66 +333,110 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
 
   Widget _planSelectionPanel() {
     final places = _planPlaces.places;
-    return _ResultPanel(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+    return Material(
+      color: VisualScanStyle.surface,
+      child: SafeArea(
+        top: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    context.l10n.scanPlanPlaces,
-                    style: VisualScanStyle.heading(18),
-                  ),
+            InkWell(
+              key: const ValueKey('scan-selected-places-bar'),
+              onTap: () => setState(() => _planExpanded = !_planExpanded),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
                 ),
-                if (places.length > 1)
-                  TextButton(
-                    onPressed: _planPlaces.clear,
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      foregroundColor: VisualScanStyle.muted,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.route_outlined,
+                      color: VisualScanStyle.amber,
                     ),
-                    child: Text(context.l10n.clear),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.l10n.scanPlanPlaces,
+                            style: VisualScanStyle.heading(16),
+                          ),
+                          Text(
+                            places.length == 1
+                                ? context.l10n.scanPlanOnePlace
+                                : context.l10n.valuePlaces(
+                                    places.length.toString(),
+                                  ),
+                            style: _supportText,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _planExpanded
+                          ? Icons.keyboard_arrow_down_rounded
+                          : Icons.keyboard_arrow_up_rounded,
+                      color: VisualScanStyle.amber,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_planExpanded) ...[
+              const Divider(height: 1, color: VisualScanStyle.border),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 176),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: places.length,
+                  itemBuilder: (context, index) {
+                    final place = places[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(
+                        Icons.place_outlined,
+                        color: VisualScanStyle.amber,
+                      ),
+                      title: Text(
+                        place.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        tooltip: context.l10n.removeStop,
+                        onPressed: () => _planPlaces.remove(place.xid),
+                        icon: const Icon(Icons.close),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (widget.onOpenPlan != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: _ScanButton(
+                    onPressed: widget.onOpenPlan,
+                    icon: Icons.arrow_forward_rounded,
+                    label: context.l10n.addToPlan,
+                    prominent: true,
+                    fullWidth: true,
                   ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              places.length == 1
-                  ? context.l10n.scanPlanOnePlace
-                  : context.l10n.valuePlaces(places.length.toString()),
-              style: _supportText,
-            ),
-            for (final place in places)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(
-                  Icons.place_outlined,
-                  color: VisualScanStyle.amber,
                 ),
-                title: Text(place.name),
-                trailing: IconButton(
-                  tooltip: context.l10n.removeStop,
-                  onPressed: () => _planPlaces.remove(place.xid),
-                  icon: const Icon(Icons.close),
-                ),
-              ),
-            if (widget.onOpenPlan != null)
-              _ScanButton(
-                onPressed: widget.onOpenPlan,
-                icon: Icons.arrow_forward_rounded,
-                label: context.l10n.addToPlan,
-                prominent: true,
-                fullWidth: true,
-              ),
+            ],
           ],
         ),
       ),
     );
   }
+
+  Widget _withSelectionBar(Widget content) => Column(
+    children: [
+      Expanded(child: content),
+      if (_planPlaces.places.isNotEmpty) _planSelectionPanel(),
+    ],
+  );
 
   Future<RecognitionResult> _translate(String target) async {
     try {
@@ -463,7 +519,7 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
             : 'Confident visual match',
     };
 
-    return ListView(
+    final content = ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
         Row(
@@ -481,13 +537,13 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
         const SizedBox(height: 10),
         Row(
           children: [
-            if (widget.onOpenWishlist != null) ...[
+            if (widget.onOpenHistory != null) ...[
               Expanded(
                 child: OutlinedButton.icon(
                   style: VisualScanStyle.headerButton,
-                  onPressed: widget.onOpenWishlist,
-                  icon: const Icon(Icons.bookmark_border, size: 17),
-                  label: Text(l10n.scanWishlist),
+                  onPressed: widget.onOpenHistory,
+                  icon: const Icon(Icons.history, size: 17),
+                  label: Text(l10n.history),
                 ),
               ),
               const SizedBox(width: 10),
@@ -693,13 +749,10 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
           ),
         ],
         const SizedBox(height: 24),
-        if (_planPlaces.places.isNotEmpty) ...[
-          _planSelectionPanel(),
-          const SizedBox(height: 24),
-        ],
         ..._nearbySection(result),
       ],
     );
+    return _withSelectionBar(content);
   }
 
   List<Widget> _nearbySection(RecognitionResult display) {
