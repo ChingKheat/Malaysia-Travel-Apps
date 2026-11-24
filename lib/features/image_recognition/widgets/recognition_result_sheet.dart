@@ -31,7 +31,7 @@ class RecognitionResultSheet extends StatefulWidget {
     required this.service,
     required this.onNewScan,
     this.onBack,
-    this.onOpenWishlist,
+    this.onOpenHistory,
     this.onOpenPlan,
     this.photo,
     this.onReferenceSelected,
@@ -44,7 +44,7 @@ class RecognitionResultSheet extends StatefulWidget {
   final ImageRecognitionService service;
   final VoidCallback onNewScan;
   final VoidCallback? onBack;
-  final VoidCallback? onOpenWishlist;
+  final VoidCallback? onOpenHistory;
   final VoidCallback? onOpenPlan;
   final ImageProvider<Object>? photo;
   final ValueChanged<String>? onReferenceSelected;
@@ -537,13 +537,13 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
         const SizedBox(height: 10),
         Row(
           children: [
-            if (widget.onOpenWishlist != null) ...[
+            if (widget.onOpenHistory != null) ...[
               Expanded(
                 child: OutlinedButton.icon(
                   style: VisualScanStyle.headerButton,
-                  onPressed: widget.onOpenWishlist,
-                  icon: const Icon(Icons.bookmark_border, size: 17),
-                  label: Text(l10n.scanWishlist),
+                  onPressed: widget.onOpenHistory,
+                  icon: const Icon(Icons.history, size: 17),
+                  label: Text(l10n.history),
                 ),
               ),
               const SizedBox(width: 10),

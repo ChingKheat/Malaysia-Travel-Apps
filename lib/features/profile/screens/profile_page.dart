@@ -25,6 +25,7 @@ import 'package:smart_travel_planner/features/places/services/place_wishlist_sto
 import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
 import 'package:smart_travel_planner/features/places/screens/attraction_list_screen.dart';
 import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
+import 'package:smart_travel_planner/features/profile/screens/saved_places_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.onMyTripsTap, this.imagePicker});
@@ -90,23 +91,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _removeSavedPlace(Attraction place) async {
-    final uid = _authService.currentUser?.uid ?? 'guest';
-    demoHaptic();
-    try {
-      await PlaceWishlistStore(uid).remove(place.xid);
-      if (mounted) {
-        setState(() {
-          _savedPlaces.removeWhere((p) => p.xid == place.xid);
-        });
-        showDemoSnackBar(
-          context,
-          context.l10n.removedValueFromSaved(place.name),
-        );
-      }
-    } catch (_) {}
-  }
-
   Future<void> _openAttractionDetails(Attraction place) async {
     final uid = _authService.currentUser?.uid ?? 'guest';
     await Navigator.of(context).push(
@@ -151,81 +135,12 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     return fallback();
   }
 
-  void _showSavedPlacesSheet() {
-    showProfileSheet<void>(
-      context,
-      title: context.l10n.yourSavedPlaces,
-      body: (sheetContext) {
-        if (_savedPlaces.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                context.l10n.noSavedPlacesYet,
-                style: const TextStyle(color: AppColors.muted),
-              ),
-            ),
-          );
-        }
-        return Column(
-          children: [
-            for (var i = 0; i < _savedPlaces.length; i++) ...[
-              if (i > 0)
-                const Divider(
-                  height: 1,
-                  color: AppColors.nightLine,
-                  indent: 60,
-                ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: _buildPlaceThumbnail(_savedPlaces[i]),
-                  ),
-                ),
-                title: Text(
-                  _savedPlaces[i].name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: AppColors.ink,
-                  ),
-                ),
-                subtitle: Text(
-                  _savedPlaces[i].category.isNotEmpty
-                      ? _savedPlaces[i].category
-                      : context.l10n.attractions,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(
-                    Icons.bookmark_remove_outlined,
-                    size: 20,
-                    color: AppColors.muted,
-                  ),
-                  tooltip: context.l10n.removeFromSaved,
-                  onPressed: () async {
-                    Navigator.pop(sheetContext);
-                    await _removeSavedPlace(_savedPlaces[i]);
-                  },
-                ),
-                onTap: () async {
-                  Navigator.pop(sheetContext);
-                  await _openAttractionDetails(_savedPlaces[i]);
-                },
-              ),
-            ],
-          ],
-        );
-      },
+  Future<void> _showSavedPlacesSheet() async {
+    final uid = _authService.currentUser?.uid ?? 'guest';
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => SavedPlacesPage(userId: uid)),
     );
+    if (mounted) _loadSavedPlaces();
   }
 
   Future<void> _loadStats({bool refresh = false}) async {
@@ -748,28 +663,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                  if (places.length > 3) ...[
-                    const SizedBox(width: 6),
-                    TextButton(
-                      onPressed: _showSavedPlacesSheet,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        context.l10n.seeAll,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ],
             ),
@@ -831,7 +724,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                 ),
               _buildSavedPlaceTile(places[i]),
             ],
-            if (places.length > 3) ...[
+            if (places.isNotEmpty) ...[
               const Divider(height: 1, color: AppColors.nightLine),
               InkWell(
                 onTap: _showSavedPlacesSheet,
@@ -914,15 +807,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                     ),
                   ],
                 ),
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.bookmark_remove_outlined,
-                  size: 20,
-                  color: AppColors.muted,
-                ),
-                tooltip: context.l10n.removeFromSaved,
-                onPressed: () => _removeSavedPlace(place),
               ),
             ],
           ),

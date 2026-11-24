@@ -8,7 +8,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:smart_travel_planner/features/image_recognition/models/recognition_result.dart';
-import 'package:smart_travel_planner/features/image_recognition/data/visual_scan_results.dart';
 import 'package:smart_travel_planner/features/image_recognition/screens/recognition_scan_screen.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
 import 'package:smart_travel_planner/features/image_recognition/services/image_recognition_service.dart';
@@ -19,14 +18,9 @@ import 'package:smart_travel_planner/features/places/screens/attraction_detail_p
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
 import 'package:smart_travel_planner/features/places/utils/attraction_image_resolver.dart';
 import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
-import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
-import 'package:smart_travel_planner/features/places/models/google_place_details.dart';
-import 'package:smart_travel_planner/features/places/widgets/google_place_image.dart';
 import 'package:smart_travel_planner/features/places/widgets/wishlist_note_dialog.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
-import 'package:smart_travel_planner/shared/data/malaysia_states.dart';
 import 'package:smart_travel_planner/shared/services/location_service.dart';
-import 'package:smart_travel_planner/features/itinerary/services/scan_plan_places_store.dart';
 
 import 'package:smart_travel_planner/features/image_recognition/widgets/visual_scan_style.dart';
 
@@ -60,18 +54,9 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
   late final Future<void> _historyLoaded;
   List<RecognitionHistoryEntry> _history = [];
   final Map<String, Future<Uint8List?>> _historyPhotos = {};
-  final Map<String, Future<GooglePlaceDetails?>> _wishlistDetails = {};
-  late final GooglePlacesService _placesService = GooglePlacesService();
   bool _showHistory = false;
-  bool _showWishlist = false;
   bool _selectingHistory = false;
-  bool _selectingWishlist = false;
-  bool _planningWishlist = false;
-  bool _resolvingWishlist = false;
   final Set<int> _selectedHistory = {};
-  final Set<int> _selectedWishlist = {};
-  List<Attraction> _wishlistPlaces = [];
-  Map<String, String> _wishlistNotes = {};
   PlaceWishlistStore get _wishlist => PlaceWishlistStore(widget.userId);
   final LocationService _location = LocationService();
   int _scannerVersion = 0;
@@ -139,78 +124,6 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     child: Icon(Icons.image_outlined, color: VisualScanStyle.amber),
   );
 
-  Widget _wishlistThumbnail(Attraction place) {
-    final photoId = _wishlistPhotoId(place);
-    if (photoId != null) return _historyThumbnail(photoId);
-    final asset = AttractionImageResolver.resolveAsset(place);
-    if (asset != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(9),
-        child: Image.asset(asset, width: 56, height: 56, fit: BoxFit.cover),
-      );
-    }
-    final placeId = place.googlePlaceId;
-    if (placeId == null) return _missingHistoryThumbnail();
-    return FutureBuilder<GooglePlaceDetails?>(
-      future: _wishlistDetails.putIfAbsent(
-        placeId,
-        () => _placesService.fetchDetails(placeId, basic: true),
-      ),
-      builder: (context, snapshot) {
-        final photo = snapshot.data?.photos.firstOrNull;
-        if (photo == null) return _missingHistoryThumbnail();
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(9),
-          child: SizedBox(
-            width: 56,
-            height: 56,
-            child: GooglePlaceImage(
-              placeId: placeId,
-              photo: photo,
-              service: _placesService,
-              requestWidth: 112,
-              autoLoad: true,
-              fill: true,
-              showGoogleMapsAttribution: false,
-              showPhotoAuthorAttribution: false,
-              fallback: _missingHistoryThumbnail(),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  String? _wishlistPhotoId(Attraction place) => _history
-      .where(
-        (entry) => entry.result.name.toLowerCase() == place.name.toLowerCase(),
-      )
-      .map((entry) => entry.photoId)
-      .nonNulls
-      .firstOrNull;
-
-  Future<void> _openWishlistPlace(Attraction place) async {
-    await _pendingWrite;
-    final photoId = _wishlistPhotoId(place);
-    final bytes = await _store.loadPhoto(photoId);
-    if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AttractionDetailPage(
-          attraction: place,
-          placesService: _placesService,
-          showSaveFeedback: false,
-          heroPhoto: bytes == null ? null : MemoryImage(bytes),
-          isSaved: true,
-          onToggleSaved: (item) {
-            _toggleWishlist(item);
-            return true;
-          },
-        ),
-      ),
-    );
-  }
-
   void _saveHistory({(String, Uint8List)? photo}) {
     final entries = List<RecognitionHistoryEntry>.of(_history);
     _pendingWrite = _pendingWrite.then((_) async {
@@ -265,93 +178,14 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     });
   }
 
-  Future<void> _openWishlist() async {
-    final places = await _wishlist.load();
-    final notes = await _wishlist.loadNotes();
-    if (mounted) {
-      setState(() {
-        _wishlistPlaces = places;
-        _wishlistNotes = notes;
-        _showWishlist = true;
-        _showHistory = false;
-        _result = null;
-        _resultPhoto = null;
-      });
-      _resolveWishlistLocations();
-    }
-  }
-
-  Future<void> _resolveWishlistLocations() async {
-    if (_resolvingWishlist) return;
-    _resolvingWishlist = true;
-    try {
-      for (final saved in List<Attraction>.of(_wishlistPlaces)) {
-        if ((saved.latitude != 0 && saved.longitude != 0) ||
-            saved.name == 'Saved place') {
-          continue;
-        }
-        final known = scanLandmarkByName(saved.name);
-        GooglePlaceDetails? details;
-        if (known == null) {
-          try {
-            details = saved.googlePlaceId != null
-                ? await _placesService.fetchDetails(
-                    saved.googlePlaceId!,
-                    basic: true,
-                  )
-                : await _service.lookupPlace(saved.name);
-          } catch (_) {
-            continue;
-          }
-        }
-        final latitude = known?.latitude ?? details?.latitude;
-        final longitude = known?.longitude ?? details?.longitude;
-        if (latitude == null ||
-            longitude == null ||
-            latitude < 0.8 ||
-            latitude > 7.5 ||
-            longitude < 99 ||
-            longitude > 120) {
-          continue;
-        }
-        final resolved = Attraction(
-          xid: saved.xid,
-          name: saved.name,
-          latitude: latitude,
-          longitude: longitude,
-          category: saved.category,
-          description: saved.description,
-        );
-        try {
-          await _wishlist.updatePlace(resolved);
-          if (mounted) {
-            setState(() {
-              final index = _wishlistPlaces.indexWhere(
-                (place) => place.xid == saved.xid,
-              );
-              if (index >= 0) _wishlistPlaces[index] = resolved;
-            });
-          }
-        } catch (_) {
-          // Keep the saved place visible if local storage is unavailable.
-        }
-      }
-    } finally {
-      _resolvingWishlist = false;
-    }
-  }
-
   Future<void> _toggleWishlist(Attraction place) async {
     try {
       final wasSaved = (await _wishlist.load()).any(
         (item) => item.xid == place.xid,
       );
-      final places = await _wishlist.toggle(place);
+      await _wishlist.toggle(place);
       if (mounted) {
-        setState(() {
-          _wishlistPlaces = places;
-          _wishlistNotes.remove(place.xid);
-        });
+        setState(() {});
         if (!wasSaved) {
           final note = await showWishlistNoteDialog(
             context,
@@ -360,7 +194,7 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           if (note != null && note.trim().isNotEmpty) {
             await _wishlist.saveNote(place.xid, note);
             if (mounted) {
-              setState(() => _wishlistNotes[place.xid] = note.trim());
+              setState(() {});
             }
           }
         }
@@ -492,124 +326,14 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
     _saveHistory();
   }
 
-  Future<void> _clearWishlist() async {
-    if (_selectedWishlist.isEmpty) return;
-    final places = [
-      for (var i = 0; i < _wishlistPlaces.length; i++)
-        if (_selectedWishlist.contains(i)) _wishlistPlaces[i],
-    ];
-    for (final place in places) {
-      await _toggleWishlist(place);
-    }
-    if (mounted) {
-      setState(() {
-        _selectedWishlist.clear();
-        _selectingWishlist = false;
-      });
-    }
-  }
-
-  String _wishlistDestination(Attraction place) {
-    if (place.latitude == 0 || place.longitude == 0) {
-      return context.l10n.scanWishlistOtherPlaces;
-    }
-    final point = LatLng(place.latitude, place.longitude);
-    CityArea? closestArea;
-    var closestMeters = double.infinity;
-    for (final state in malaysiaStatesData) {
-      for (final area in state.areas) {
-        final meters = const Distance().as(
-          LengthUnit.Meter,
-          point,
-          LatLng(area.latitude, area.longitude),
-        );
-        if (meters < closestMeters) {
-          closestMeters = meters;
-          closestArea = area;
-        }
-      }
-    }
-    return closestMeters <= 35000 && closestArea != null
-        ? closestArea.name
-        : nearestMalaysiaState(point);
-  }
-
-  Future<void> _editWishlistNote(Attraction place) async {
-    final controller = TextEditingController(text: _wishlistNotes[place.xid]);
-    final note = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(context.l10n.scanWishlistNote),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 200,
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: context.l10n.scanWishlistNoteHint,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(context.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: Text(context.l10n.save),
-          ),
-        ],
-      ),
-    );
-    if (note == null) return;
-    try {
-      await _wishlist.saveNote(place.xid, note);
-      if (mounted) {
-        setState(() {
-          if (note.trim().isEmpty) {
-            _wishlistNotes.remove(place.xid);
-          } else {
-            _wishlistNotes[place.xid] = note.trim();
-          }
-        });
-      }
-    } catch (_) {
-      if (mounted) _notify(context.l10n.scanWishlistNoteFailed);
-    }
-  }
-
-  Future<void> _addSelectedWishlistToPlan() async {
-    final selected = [
-      for (var i = 0; i < _wishlistPlaces.length; i++)
-        if (_selectedWishlist.contains(i)) _wishlistPlaces[i],
-    ];
-    final store = ScanPlanPlacesStore(widget.userId);
-    await store.load();
-    var added = 0;
-    for (final place in selected) {
-      if (place.latitude == 0 || place.longitude == 0) continue;
-      if (await store.add(place)) added++;
-    }
-    if (!mounted) return;
-    _cancelSelection();
-    if (added == 0) {
-      _notify(context.l10n.scanWishlistNothingToPlan);
-      return;
-    }
-    widget.onOpenPlan?.call();
-  }
-
   void _cancelSelection() => setState(() {
     _selectingHistory = false;
-    _selectingWishlist = false;
     _selectedHistory.clear();
-    _selectedWishlist.clear();
-    _planningWishlist = false;
   });
 
-  Widget _selectionBar({required bool history}) {
-    final selected = history ? _selectedHistory : _selectedWishlist;
-    final count = history ? _history.length : _wishlistPlaces.length;
+  Widget _selectionBar() {
+    final selected = _selectedHistory;
+    final count = _history.length;
     return SafeArea(
       top: false,
       child: Container(
@@ -640,18 +364,8 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
             ),
             Expanded(
               child: FilledButton(
-                onPressed: selected.isEmpty
-                    ? null
-                    : history
-                    ? _clearHistory
-                    : _planningWishlist
-                    ? _addSelectedWishlistToPlan
-                    : _clearWishlist,
-                child: Text(
-                  !history && _planningWishlist
-                      ? context.l10n.scanWishlistAddToPlan
-                      : context.l10n.clear,
-                ),
+                onPressed: selected.isEmpty ? null : _clearHistory,
+                child: Text(context.l10n.clear),
               ),
             ),
           ],
@@ -681,22 +395,19 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
                   ? null
                   : () => _pickPhoto(ImageSource.gallery),
               onBack: _showHistory ? () => _closeResult(newScan: false) : null,
-              onOpenWishlist: _openWishlist,
+              onOpenHistory: () => setState(() {
+                _result = null;
+                _resultPhoto = null;
+                _showHistory = true;
+              }),
               onOpenPlan: widget.onOpenPlan,
               onNewScan: () => _closeResult(newScan: true),
             ),
-            null =>
-              _showWishlist
-                  ? _wishlistTab()
-                  : _showHistory
-                  ? _historyTab()
-                  : _scanner(),
+            null => _showHistory ? _historyTab() : _scanner(),
           },
         ),
         if (_result == null && _showHistory && _selectingHistory)
-          _selectionBar(history: true),
-        if (_result == null && _showWishlist && _selectingWishlist)
-          _selectionBar(history: false),
+          _selectionBar(),
       ],
     ),
   );
@@ -742,16 +453,6 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
           onPressed: () => setState(() => _showHistory = true),
           icon: const Icon(Icons.history, size: 17),
           label: Text(context.l10n.history),
-          style: _heroButtonStyle(),
-        ),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: OutlinedButton.icon(
-          key: const ValueKey('scan-wishlist'),
-          onPressed: _openWishlist,
-          icon: const Icon(Icons.bookmark_border, size: 17),
-          label: Text(context.l10n.scanWishlist),
           style: _heroButtonStyle(),
         ),
       ),
@@ -1152,195 +853,6 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
       );
     },
   );
-
-  Widget _wishlistTab() {
-    final entries = _wishlistPlaces.asMap().entries.toList()
-      ..sort((a, b) {
-        final byDestination = _wishlistDestination(
-          a.value,
-        ).compareTo(_wishlistDestination(b.value));
-        return byDestination != 0
-            ? byDestination
-            : a.value.name.compareTo(b.value.name);
-      });
-    return ListView(
-      key: const PageStorageKey('recognition-wishlist'),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-      children: [
-        Row(
-          children: [
-            BackButton(
-              color: VisualScanStyle.amber,
-              onPressed: () {
-                if (_selectingWishlist) {
-                  _cancelSelection();
-                } else {
-                  setState(() => _showWishlist = false);
-                }
-              },
-            ),
-            Expanded(
-              child: Text(
-                context.l10n.scanWishlist,
-                style: VisualScanStyle.heading(22),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_wishlistPlaces.isNotEmpty) ...[
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => setState(() {
-                    _selectingWishlist = true;
-                    _planningWishlist = true;
-                    _selectedWishlist.clear();
-                  }),
-                  icon: const Icon(Icons.add),
-                  label: Text(context.l10n.scanWishlistAddToPlan),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => setState(() {
-                    _selectingWishlist = true;
-                    _planningWishlist = false;
-                    _selectedWishlist.clear();
-                  }),
-                  child: Text(context.l10n.scanClearWishlist),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (_wishlistPlaces.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: _scanPanel(),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.bookmark_border,
-                  size: 36,
-                  color: VisualScanStyle.amber,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  context.l10n.scanWishlistEmpty,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: VisualScanStyle.muted),
-                ),
-              ],
-            ),
-          ),
-        for (final item in entries) ...[
-          if (entries.first == item ||
-              _wishlistDestination(entries[entries.indexOf(item) - 1].value) !=
-                  _wishlistDestination(item.value)) ...[
-            Text(
-              _wishlistDestination(item.value),
-              style: VisualScanStyle.heading(18),
-            ),
-            if (item.value.latitude == 0 || item.value.longitude == 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  context.l10n.scanWishlistLocationHelp,
-                  style: const TextStyle(
-                    color: VisualScanStyle.muted,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            const SizedBox(height: 8),
-          ],
-          Material(
-            color: VisualScanStyle.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: VisualScanStyle.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ListTile(
-                  leading: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_selectingWishlist)
-                        Checkbox(
-                          value: _selectedWishlist.contains(item.key),
-                          activeColor: VisualScanStyle.amber,
-                          onChanged: (_) => setState(() {
-                            if (!_selectedWishlist.add(item.key)) {
-                              _selectedWishlist.remove(item.key);
-                            }
-                          }),
-                        ),
-                      _wishlistThumbnail(item.value),
-                    ],
-                  ),
-                  title: Text(
-                    item.value.name,
-                    style: const TextStyle(color: VisualScanStyle.text),
-                  ),
-                  subtitle: Text(
-                    item.value.category,
-                    style: const TextStyle(color: VisualScanStyle.muted),
-                  ),
-                  trailing: _selectingWishlist
-                      ? null
-                      : const Icon(
-                          Icons.chevron_right,
-                          color: VisualScanStyle.muted,
-                        ),
-                  onTap: () => _selectingWishlist
-                      ? setState(() {
-                          if (!_selectedWishlist.add(item.key)) {
-                            _selectedWishlist.remove(item.key);
-                          }
-                        })
-                      : _openWishlistPlace(item.value),
-                ),
-                if (!_selectingWishlist)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _editWishlistNote(item.value),
-                        icon: const Icon(Icons.edit_note_outlined, size: 18),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: VisualScanStyle.amber,
-                          side: const BorderSide(color: VisualScanStyle.border),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                          alignment: Alignment.centerLeft,
-                        ),
-                        label: Text(
-                          _wishlistNotes[item.value.xid]?.isNotEmpty == true
-                              ? _wishlistNotes[item.value.xid]!
-                              : context.l10n.scanWishlistAddNote,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ],
-    );
-  }
 }
 
 BoxDecoration _scanPanel() => BoxDecoration(

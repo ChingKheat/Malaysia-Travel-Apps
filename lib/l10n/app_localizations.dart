@@ -163,7 +163,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanAddToWishlist.
   ///
   /// In en, this message translates to:
-  /// **'Add to wishlist'**
+  /// **'Add to Saved Places'**
   String get scanAddToWishlist;
 
   /// No description provided for @scanWishlist.
@@ -189,6 +189,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your note'**
   String get scanWishlistNote;
+
+  /// No description provided for @savedPlaceNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get savedPlaceNoteLabel;
 
   /// No description provided for @scanWishlistNoteHint.
   ///
@@ -253,7 +259,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanWishlistEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Places you add to your wishlist will appear here.'**
+  /// **'Places you save will appear here.'**
   String get scanWishlistEmpty;
 
   /// No description provided for @scanOriginalPhoto.
@@ -2417,7 +2423,7 @@ abstract class AppLocalizations {
   /// No description provided for @yourSavedPlaces.
   ///
   /// In en, this message translates to:
-  /// **'Your Saved Places'**
+  /// **'Saved Places'**
   String get yourSavedPlaces;
 
   /// No description provided for @saveAttraction.

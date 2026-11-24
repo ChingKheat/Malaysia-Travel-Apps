@@ -39,7 +39,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanPlanOnePlace => '1 个地点';
 
   @override
-  String get scanAddToWishlist => '加入愿望清单';
+  String get scanAddToWishlist => '加入已保存地点';
 
   @override
   String get scanWishlist => '愿望清单';
@@ -52,6 +52,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scanWishlistNote => '你的备注';
+
+  @override
+  String get savedPlaceNoteLabel => '备注';
 
   @override
   String get scanWishlistNoteHint => '为什么想去这里？';
@@ -84,7 +87,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanViewWishlist => '查看愿望清单';
 
   @override
-  String get scanWishlistEmpty => '加入愿望清单的地点会显示在这里。';
+  String get scanWishlistEmpty => '保存的地点会显示在这里。';
 
   @override
   String get scanOriginalPhoto => '原始照片';
@@ -1274,7 +1277,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get savedAttractions => '已保存景点';
 
   @override
-  String get yourSavedPlaces => '您保存的地点';
+  String get yourSavedPlaces => '已保存地点';
 
   @override
   String get saveAttraction => '保存景点';

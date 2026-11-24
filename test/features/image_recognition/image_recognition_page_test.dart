@@ -11,6 +11,7 @@ import 'package:smart_travel_planner/features/image_recognition/screens/image_re
 import 'package:smart_travel_planner/features/image_recognition/services/recognition_history_store.dart';
 import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
 import 'package:smart_travel_planner/features/places/screens/attraction_detail_page.dart';
+import 'package:smart_travel_planner/features/profile/screens/saved_places_page.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
@@ -83,156 +84,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Wishlist saved from Scan is shown on the Scan page', (
-    tester,
-  ) async {
-    phoneSize(tester, width: 320);
-    await PlaceWishlistStore('recognition-test').toggle(
-      const Attraction(
-        xid: 'google_testgarden',
-        name: 'Test Garden',
-        latitude: 2.9,
-        longitude: 101.7,
-        category: 'Park',
-      ),
-    );
-    await tester.pumpWidget(page());
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
-    await tester.pumpAndSettle();
-    expect(find.text('Wishlist'), findsOneWidget);
-    expect(find.text('Test Garden'), findsOneWidget);
-    expect(find.text('Remove from saved'), findsNothing);
-    await tester.tap(find.text('Clear wishlist'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Select all'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Clear'));
-    await tester.pumpAndSettle();
-    expect(find.text('Test Garden'), findsNothing);
-    expect(
-      find.text('Places you add to your wishlist will appear here.'),
-      findsOneWidget,
-    );
-    expect(await PlaceWishlistStore('recognition-test').load(), isEmpty);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets(
-    'Wishlist groups places, saves a note, and sends selections to Plan',
+    'Profile saved places can add notes and selected places to Plan',
     (tester) async {
       phoneSize(tester);
-      final wishlist = PlaceWishlistStore('recognition-test');
-      await wishlist.toggle(
+      final store = PlaceWishlistStore('recognition-test');
+      await store.add(
         const Attraction(
-          xid: 'garden_kl',
+          xid: 'test-garden',
           name: 'Test Garden',
           latitude: 3.15,
           longitude: 101.69,
           category: 'Park',
         ),
       );
-      await wishlist.toggle(
-        const Attraction(
-          xid: 'park_langkawi',
-          name: 'Island Park',
-          latitude: 6.35,
-          longitude: 99.80,
-          category: 'Park',
-        ),
+      await tester.pumpWidget(
+        const MaterialApp(home: SavedPlacesPage(userId: 'recognition-test')),
       );
-      await tester.pumpWidget(page());
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
-      await tester.pumpAndSettle();
-      expect(find.text('Kuala Lumpur'), findsOneWidget);
-      expect(find.text('Langkawi'), findsOneWidget);
-      expect(
-        find.widgetWithText(OutlinedButton, 'Add a note'),
-        findsNWidgets(2),
-      );
-
-      await tester.tap(find.text('Add a note').first);
+      expect(find.text('Test Garden'), findsOneWidget);
+      await tester.tap(find.text('Add a note'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'Visit at sunset');
       await tester.tap(find.widgetWithText(FilledButton, 'Save').last);
       await tester.pumpAndSettle();
-      expect(find.text('Visit at sunset'), findsOneWidget);
-      expect((await wishlist.loadNotes()).values, contains('Visit at sunset'));
-
-      await tester.tap(find.text('Add to plan').first);
+      expect(find.textContaining('Note: Visit at sunset'), findsOneWidget);
+      await tester.tap(find.text('Remove selected'));
       await tester.pumpAndSettle();
+      expect(find.textContaining('Note: Visit at sunset'), findsOneWidget);
       await tester.tap(find.text('Select all'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Add to plan').last);
+      await tester.tap(find.text('Add to plan'));
       await tester.pumpAndSettle();
-      final planned = ScanPlanPlacesStore('recognition-test').places;
       expect(
-        planned.map((place) => place.name),
-        containsAll(['Test Garden', 'Island Park']),
+        ScanPlanPlacesStore('recognition-test').places.single.name,
+        'Test Garden',
       );
-      expect((await wishlist.load()), hasLength(2));
-      expect(tester.takeException(), isNull);
+      expect((await store.load()).single.name, 'Test Garden');
     },
   );
-
-  testWidgets('Wishlist clears selected places and keeps the others', (
-    tester,
-  ) async {
-    phoneSize(tester);
-    final store = PlaceWishlistStore('recognition-test');
-    for (final name in ['Test Garden', 'Test Museum']) {
-      await store.toggle(
-        Attraction(
-          xid: name,
-          name: name,
-          latitude: 2.9,
-          longitude: 101.7,
-          category: 'Place',
-        ),
-      );
-    }
-    await tester.pumpWidget(page());
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Clear wishlist'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(Checkbox).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Clear'));
-    await tester.pumpAndSettle();
-    expect(find.text('Test Garden'), findsNothing);
-    expect(find.text('Test Museum'), findsOneWidget);
-    expect((await store.load()).single.name, 'Test Museum');
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Wishlist repairs an older landmark with missing coordinates', (
-    tester,
-  ) async {
-    phoneSize(tester);
-    final wishlist = PlaceWishlistStore('recognition-test');
-    await wishlist.toggle(
-      const Attraction(
-        xid: 'scan_sultan_abdul_samad',
-        name: 'Sultan Abdul Samad Building',
-        latitude: 0,
-        longitude: 0,
-        category: 'Historic Landmark',
-      ),
-    );
-    await tester.pumpWidget(page());
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
-    await tester.pumpAndSettle();
-    expect(find.text('Location needed'), findsNothing);
-    expect(find.text('Kuala Lumpur'), findsOneWidget);
-    final repaired = (await wishlist.load()).single;
-    expect(repaired.latitude, greaterThan(0));
-    expect(repaired.longitude, greaterThan(0));
-    expect(tester.takeException(), isNull);
-  });
 
   testWidgets('History shows saved photo thumbnails and framed clear action', (
     tester,
@@ -269,51 +159,6 @@ void main() {
       find.widgetWithText(OutlinedButton, 'Clear history'),
       findsOneWidget,
     );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Opening a scanned Wishlist place reuses its uploaded photo', (
-    tester,
-  ) async {
-    phoneSize(tester);
-    const name = 'Batu Caves';
-    await PlaceWishlistStore('recognition-test').toggle(
-      const Attraction(
-        xid: 'scan_batu_caves',
-        name: name,
-        latitude: 3.23,
-        longitude: 101.68,
-        category: 'Landmark',
-      ),
-    );
-    const photoId = '00000000-0000-4000-8000-000000000002';
-    final photo = base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==',
-    );
-    final history = _PhotoHistoryStore([
-      (
-        result: RecognitionResult(
-          name: name,
-          kind: 'landmark',
-          description: name,
-          location: 'Malaysia',
-          recognizedAt: DateTime(2026),
-        ),
-        photoId: photoId,
-      ),
-    ], photo);
-    await tester.pumpWidget(page(historyStore: history));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('scan-wishlist')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: find.byType(ListTile), matching: find.text(name)),
-    );
-    await tester.pumpAndSettle();
-    final detail = tester.widget<AttractionDetailPage>(
-      find.byType(AttractionDetailPage),
-    );
-    expect(detail.heroPhoto, isA<MemoryImage>());
     expect(tester.takeException(), isNull);
   });
 
@@ -391,7 +236,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Saving a scan result opens the saved place in Scan wishlist', (
+  testWidgets('Saving a scan result keeps the saved place for Profile', (
     tester,
   ) async {
     phoneSize(tester);
@@ -413,7 +258,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Petronas Twin Towers'));
     await tester.pumpAndSettle();
-    final add = find.widgetWithText(FilledButton, 'Add to wishlist').first;
+    final add = find.widgetWithText(FilledButton, 'Add to Saved Places').first;
     await tester.scrollUntilVisible(add, 140);
     await tester.tap(add);
     await tester.pumpAndSettle();
@@ -434,15 +279,6 @@ void main() {
     expect(
       (await PlaceWishlistStore('recognition-test').load()).single.latitude,
       greaterThan(0),
-    );
-    final wishlist = find.widgetWithText(OutlinedButton, 'Wishlist');
-    await tester.scrollUntilVisible(wishlist, -180);
-    await tester.tap(wishlist);
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Petronas Twin Towers'),
-      findsOneWidget,
-      reason: 'Wishlist view should display the just-saved place',
     );
     expect(
       (await PlaceWishlistStore('recognition-test').load()).single.name,
@@ -474,16 +310,7 @@ void main() {
     );
     Navigator.of(tester.element(find.byType(AttractionDetailPage))).pop();
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).first, const Offset(0, 1200));
-    await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).first, const Offset(0, 1200));
-    await tester.pumpAndSettle();
-    final wishlistButton = find.byKey(const ValueKey('scan-wishlist'));
-    await tester.ensureVisible(wishlistButton);
-    await tester.pumpAndSettle();
-    await tester.tap(wishlistButton);
-    await tester.pumpAndSettle();
-    expect(find.text('Sultan Abdul Samad Building'), findsOneWidget);
+    expect(find.byKey(const ValueKey('scan-wishlist')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -560,7 +387,7 @@ void main() {
           .widgetWithText(FilledButton, 'Add to itinerary')
           .first;
       final wishlistAction = find
-          .widgetWithText(FilledButton, 'Add to wishlist')
+          .widgetWithText(FilledButton, 'Add to Saved Places')
           .first;
       final actionButtons = [detailsAction, itineraryAction, wishlistAction];
       final widths = actionButtons
@@ -651,10 +478,6 @@ void main() {
           tester.getBottomLeft(find.byKey(const ValueKey('scan-history'))).dy,
           lessThan(tester.getTopLeft(photo).dy),
         );
-        expect(
-          tester.getBottomLeft(find.byKey(const ValueKey('scan-wishlist'))).dy,
-          lessThan(tester.getTopLeft(photo).dy),
-        );
         final camera = find.text('Take Photo');
         await tester.scrollUntilVisible(camera, 100);
         await tester.pumpAndSettle();
@@ -690,7 +513,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Petronas Twin Towers'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Add to wishlist').first, 130);
+    await tester.scrollUntilVisible(
+      find.text('Add to Saved Places').first,
+      130,
+    );
     expect(tester.takeException(), isNull);
   });
 }

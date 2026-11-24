@@ -41,7 +41,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanPlanOnePlace => '1 place';
 
   @override
-  String get scanAddToWishlist => 'Add to wishlist';
+  String get scanAddToWishlist => 'Add to Saved Places';
 
   @override
   String get scanWishlist => 'Wishlist';
@@ -54,6 +54,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanWishlistNote => 'Your note';
+
+  @override
+  String get savedPlaceNoteLabel => 'Note';
 
   @override
   String get scanWishlistNoteHint => 'Why do you want to visit?';
@@ -88,8 +91,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanViewWishlist => 'View wishlist';
 
   @override
-  String get scanWishlistEmpty =>
-      'Places you add to your wishlist will appear here.';
+  String get scanWishlistEmpty => 'Places you save will appear here.';
 
   @override
   String get scanOriginalPhoto => 'Original Photo';
@@ -1311,7 +1313,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedAttractions => 'Saved Attractions';
 
   @override
-  String get yourSavedPlaces => 'Your Saved Places';
+  String get yourSavedPlaces => 'Saved Places';
 
   @override
   String get saveAttraction => 'Save attraction';
