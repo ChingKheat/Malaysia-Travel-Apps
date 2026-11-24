@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/widgets.dart';
+import 'package:smart_travel_planner/l10n/app_localizations.dart';
+import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:smart_travel_planner/core/config/api_keys.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
@@ -7,6 +10,7 @@ import 'package:smart_travel_planner/features/assistant/models/assistant_message
 import 'package:smart_travel_planner/features/assistant/services/assistant_system_instruction.dart';
 import 'package:smart_travel_planner/features/assistant/services/assistant_tool_handler.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
+import 'package:smart_travel_planner/shared/services/weather_service.dart';
 
 enum AssistantLanguage {
   english('English', 'en'),
@@ -42,41 +46,38 @@ class TravelAssistantService {
             ? 'Prompt is too short. Please be more specific.'
             : null);
 
-  AssistantMessage getInitialGreeting() => AssistantMessage(
-    id: 'msg_welcome',
-    text: switch (currentLanguage) {
-      AssistantLanguage.malay =>
-        'Selamat Datang! 👋 Saya pembantu perjalanan pintar anda untuk Malaysia. Tanya saya tentang cadangan tempat menarik, cuaca, makanan halal atau pengangkutan.',
-      AssistantLanguage.chinese => '欢迎来到马来西亚！👋 我是您的旅行助手，可以协助景点、天气、清真美食与交通规划。',
-      AssistantLanguage.english =>
-        'Selamat Datang! 👋 I am your AI Travel Assistant for Malaysia. Ask me about attractions, weather, halal food, transport, or your itinerary.',
-    },
-    isUser: false,
-    timestamp: DateTime.now(),
-    followUpChips: switch (currentLanguage) {
-      AssistantLanguage.malay => const [
-        '🌧️ Is it going to rain today in KL?',
-        '🍜 Best Halal food around Bukit Bintang',
-        '🏛️ Tarikan kebudayaan popular',
-        '🚆 Cara ke KL Sentral dari KLIA',
-      ],
-      AssistantLanguage.chinese => const [
-        '🌧️ Is it going to rain today in KL?',
-        '🍜 Best Halal food around Bukit Bintang',
-        '🏛️ 值得一游的吉隆坡文化景点',
-        '🚆 如何从 KLIA 坐车到 KL Sentral',
-      ],
-      AssistantLanguage.english => const [
-        '🌧️ Is it going to rain today in KL?',
-        '🍜 Best Halal food around Bukit Bintang',
-        '🏛️ Top cultural places to visit',
-        '🚆 How to travel from KLIA to KL Sentral',
-      ],
-    },
-  );
+  AppLocalizations get _strings =>
+      lookupAppLocalizations(Locale(currentLanguage.code));
+
+  AssistantMessage getInitialGreeting() => _reply(_strings.assistantGreeting);
+
+  String? _pendingFoodQuestion;
+
+  void clearConversation() {
+    _pendingFoodQuestion = null;
+    _history.clear();
+  }
 
   Future<AssistantMessage> askAssistant(String prompt) async {
     final text = prompt.trim();
+    final foodQuestion = _pendingFoodQuestion;
+    _pendingFoodQuestion = null;
+    final lower = text.toLowerCase();
+    if (foodQuestion != null &&
+        !_weatherRequest.hasMatch(lower) &&
+        !_foodRequest.hasMatch(lower) &&
+        !_addRequest.hasMatch(lower)) {
+      final result = await toolHandler.execute('search_malaysia_places', {
+        'category': 'food',
+        'keyword': '',
+        'reference_location': text,
+      });
+      if (result['reference_location'] != null) {
+        final response = _foodReply(result, foodQuestion);
+        unawaited(_persist(text, response.text));
+        return response;
+      }
+    }
     if (_history.length > 20) _history.removeRange(0, _history.length - 20);
     if (ApiKeys.hasGeminiKey) {
       try {
@@ -93,11 +94,7 @@ class TravelAssistantService {
       lastGeminiIssue = 'Gemini API key is not configured.';
       isGeminiAvailable = false;
     }
-    final fallback = await _offlineResponse(text);
-    final diagnostic = _userFacingIssue(lastGeminiIssue);
-    final response = diagnostic == null
-        ? fallback
-        : fallback.copyWith(text: '$diagnostic\n\n${fallback.text}');
+    final response = await _offlineResponse(text);
     unawaited(_persist(text, response.text));
     return response;
   }
@@ -110,9 +107,7 @@ class TravelAssistantService {
         {'text': prompt},
       ],
     });
-    Map<String, dynamic>? finalData;
-    final results = <Map<String, dynamic>>[];
-    final executedData = <Map<String, dynamic>>[];
+    List<Map> catalogMatches = [];
     for (var turn = 0; turn < 5; turn++) {
       final uri = Uri.https(
         'generativelanguage.googleapis.com',
@@ -121,7 +116,12 @@ class TravelAssistantService {
       final requestBody = jsonEncode({
         'systemInstruction': {
           'parts': [
-            {'text': assistantSystemInstruction(currentLanguage)},
+            {
+              'text': assistantSystemInstruction(
+                currentLanguage,
+                _malaysiaToday,
+              ),
+            },
           ],
         },
         'tools': [
@@ -152,9 +152,7 @@ class TravelAssistantService {
           rethrow;
         }
         if (response.statusCode != 503 || attempt == 2) break;
-        await Future<void>.delayed(
-          Duration(milliseconds: 700 * (attempt + 1)),
-        );
+        await Future<void>.delayed(Duration(milliseconds: 700 * (attempt + 1)));
       }
       if (switchedAfterTimeout) continue;
       if (response.statusCode == 503 &&
@@ -164,7 +162,9 @@ class TravelAssistantService {
         continue;
       }
       if (response.statusCode != 200) {
-        throw StateError('Gemini service returned HTTP ${response.statusCode}.');
+        throw StateError(
+          'Gemini service returned HTTP ${response.statusCode}.',
+        );
       }
       final root = jsonDecode(response.body) as Map<String, dynamic>;
       final candidateList = root['candidates'] as List? ?? const [];
@@ -187,43 +187,49 @@ class TravelAssistantService {
           .toList();
       if (calls.isNotEmpty) {
         _history.add({'role': 'model', 'parts': parts});
+        final functionResponses = <Map<String, dynamic>>[];
+        final proposals = <Map<String, dynamic>>[];
+        Map<String, dynamic>? weather;
+        Map<String, dynamic>? food;
         for (final call in calls) {
           final name = call['name']?.toString() ?? '';
           final args = call['args'] is Map
               ? Map<String, dynamic>.from(call['args'] as Map)
               : <String, dynamic>{};
           final result = await toolHandler.execute(name, args);
-          results.add({'name': name, 'result': result});
-          executedData.add(result);
-          if (name == 'search_malaysia_places' && result['places'] is List) {
-            for (final raw in result['places'] as List) {
-              if (raw is Map) {
-                finalData ??= _placeData(Map<String, dynamic>.from(raw));
-              }
-            }
+          if (name == 'get_weather_forecast') weather = result;
+          if (name == 'search_malaysia_places') {
+            if (args['category'] == 'food') food = result;
+            catalogMatches =
+                (result['places'] as List?)?.whereType<Map>().toList() ?? [];
           }
-          if (name == 'get_weather_forecast' && result['success'] == true) {
-            finalData ??= _weatherData(Map<String, dynamic>.from(result));
+          final proposal = result['proposal'];
+          if (name == 'add_to_itinerary' && proposal is Map<String, dynamic>) {
+            proposals.add(proposal);
           }
-          if (name == 'add_to_itinerary' && result['success'] == true) {
-            finalData ??= {
-              'text': null,
-              'places': <AssistantPlaceSuggestion>[],
-            };
-          }
+          functionResponses.add({
+            'functionResponse': {'name': name, 'response': result},
+          });
         }
-        _history.add({
-          'role': 'user',
-          'parts': [
-            for (final item in results)
-              {
-                'functionResponse': {
-                  'name': item['name'],
-                  'response': item['result'],
-                },
-              },
-          ],
-        });
+        _history.add({'role': 'user', 'parts': functionResponses});
+        final reply = switch ((proposals.isNotEmpty, weather, food)) {
+          (true, _, _) => _reply(
+            _strings.assistantReviewStop,
+            proposals: proposals,
+          ),
+          (_, final forecast?, _) => _forecastReply(forecast),
+          (_, _, final choices?) => _foodReply(choices, prompt),
+          _ => null,
+        };
+        if (reply != null) {
+          _history.add({
+            'role': 'model',
+            'parts': [
+              {'text': reply.text},
+            ],
+          });
+          return reply;
+        }
         continue;
       }
       final text = parts
@@ -240,125 +246,55 @@ class TravelAssistantService {
           {'text': text},
         ],
       });
-      final combined = <String, dynamic>{...?finalData};
-      for (final result in executedData) {
-        if (result['places'] is List) combined['places'] = result['places'];
-        if (result['success'] == true && result.containsKey('temperature_c')) {
-          combined['weather_alert'] = {
-            'city': result['city'],
-            'temperature': '${result['temperature_c']}°C',
-            'condition': result['condition'],
-            'rain_probability': result['rain_probability_percent'],
-            'advisory': result['advisory'],
-          };
-        }
+      final lower = prompt.toLowerCase();
+      if (_addRequest.hasMatch(lower) ||
+          _weatherRequest.hasMatch(lower) ||
+          _foodRequest.hasMatch(lower)) {
+        return _offlineResponse(prompt);
       }
-      return _decodeStructured(text, combined);
+      return _decodeStructured(text, catalogMatches);
     }
     throw StateError('Gemini tool loop limit reached');
   }
 
-  AssistantMessage _decodeStructured(
-    String raw,
-    Map<String, dynamic>? toolData,
-  ) {
+  AssistantMessage _decodeStructured(String raw, List<Map> catalogMatches) {
     var text = raw;
-    List<AssistantPlaceSuggestion> places = const [];
-    AssistantWeatherAlert? weather;
     List<String> chips = const [];
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map) {
-        final map = Map<String, dynamic>.from(decoded);
-        text = map['text']?.toString() ?? raw;
-        final placeList = map['places'];
-        if (placeList is List) {
-          places = placeList
-              .whereType<Map>()
-              .map((p) => _place(Map<String, dynamic>.from(p)))
-              .toList();
-        }
-        final w = map['weather_alert'];
-        if (w is Map) weather = _weather(Map<String, dynamic>.from(w));
-        if (map['follow_up_chips'] is List) {
-          chips = (map['follow_up_chips'] as List)
+        text = decoded['text']?.toString() ?? raw;
+        if (decoded['follow_up_chips'] is List) {
+          chips = (decoded['follow_up_chips'] as List)
               .whereType<String>()
               .take(4)
               .toList();
         }
       }
-    } catch (_) {
-      text = raw;
-    }
-    if (places.isEmpty && toolData?['places'] is List) {
-      places = (toolData!['places'] as List)
-          .whereType<Map>()
-          .map((p) => _place(Map<String, dynamic>.from(p)))
-          .toList();
-    }
-    if (weather == null && toolData?['weather_alert'] is Map) {
-      weather = _weather(
-        Map<String, dynamic>.from(toolData!['weather_alert'] as Map),
-      );
-    }
-    if (chips.isEmpty) {
-      chips = const [
-        'Show more indoor attractions',
-        'Find halal food nearby',
-        'Plan public transport',
-      ];
+    } on FormatException {
+      // Plain text responses remain valid.
     }
     return AssistantMessage(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       text: text,
       isUser: false,
       timestamp: DateTime.now(),
-      places: places,
-      weatherAlert: weather,
+      places: catalogMatches
+          .map((row) => _place(Map<String, dynamic>.from(row)))
+          .toList(),
       followUpChips: chips,
     );
   }
 
   String _safeGeminiIssue(Object error) {
     if (error is StateError) return error.message;
-    if (error is FormatException) return 'Gemini returned an unreadable response.';
+    if (error is FormatException) {
+      return 'Gemini returned an unreadable response.';
+    }
     if (error is TimeoutException) return 'Gemini request timed out.';
     return 'Gemini could not be reached. Check the API key and network connection.';
   }
 
-  String? _userFacingIssue(String? issue) {
-    if (issue == null) return null;
-    if (issue.contains('not configured')) {
-      return 'Gemini is not configured for this app build. The assistant is using offline guidance.';
-    }
-    if (issue.startsWith('Gemini service returned HTTP 401') ||
-        issue.startsWith('Gemini service returned HTTP 403')) {
-      return 'Gemini rejected the configured API key. Check the key and its API access; the assistant is using offline guidance.';
-    }
-    if (issue.startsWith('Gemini service returned HTTP 404')) {
-      return 'The configured Gemini model is unavailable. Remove any GEMINI_MODEL override or set it to gemini-3.8-flash; the assistant is using offline guidance.';
-    }
-    if (issue.startsWith('Gemini service returned HTTP 503')) {
-      return 'Gemini is temporarily busy after a few retries. Please try again shortly; the assistant is using offline guidance for now.';
-    }
-    if (issue.contains('timed out')) {
-      return 'Gemini did not respond in time, including the backup model. Please try again shortly; the assistant is using offline guidance for now.';
-    }
-    return 'Gemini could not be reached ($issue). The assistant is using offline guidance.';
-  }
-
-  Map<String, dynamic> _placeData(Map<String, dynamic> place) => {
-    'places': [place],
-  };
-  Map<String, dynamic> _weatherData(Map<String, dynamic> data) => {
-    'weather_alert': {
-      'city': data['city'],
-      'temperature': '${data['temperature_c']}°C',
-      'condition': data['condition'],
-      'rain_probability': data['rain_probability_percent'],
-      'advisory': data['advisory'],
-    },
-  };
   AssistantPlaceSuggestion _place(Map<String, dynamic> p) =>
       AssistantPlaceSuggestion(
         name: p['name']?.toString() ?? 'Place',
@@ -366,19 +302,11 @@ class TravelAssistantService {
         rating: (p['rating'] as num?)?.toDouble(),
         location: p['state']?.toString() ?? '',
         description: p['description']?.toString() ?? '',
+        catalogDetails: p['catalog_details']?.toString(),
         photoUrl: p['photo_url']?.toString(),
         isIndoor: p['is_indoor'] == true,
         placeId: p['place_id']?.toString(),
       );
-  AssistantWeatherAlert _weather(Map<String, dynamic> w) =>
-      AssistantWeatherAlert(
-        city: w['city']?.toString() ?? '',
-        temperature: w['temperature']?.toString() ?? '',
-        condition: w['condition']?.toString() ?? '',
-        rainProbability: (w['rain_probability'] as num?)?.round(),
-        advisory: w['advisory']?.toString() ?? '',
-      );
-
   Future<void> _persist(String prompt, String answer) async {
     try {
       final user = AuthService().currentUser;
@@ -392,126 +320,195 @@ class TravelAssistantService {
     } catch (_) {}
   }
 
+  static final _addRequest = RegExp(r'\b(add|tambah|masukkan)\b|添加|加入');
+  static final _weatherRequest = RegExp(r'weather|\brain\b|cuaca|hujan|天气|下雨');
+  static final _foodRequest = RegExp(r'food|halal|makan|美食|餐饮|清真');
+  static final _clockPattern = RegExp(
+    r'\b([01]?[0-9]|2[0-3]):([0-5][0-9])\s*(am|pm)?',
+    caseSensitive: false,
+  );
+
+  String _clockFromMatch(RegExpMatch match) {
+    var hour = int.parse(match[1]!);
+    final period = match[3]?.toLowerCase();
+    if (period != null) hour = hour % 12 + (period == 'pm' ? 12 : 0);
+    return '${hour.toString().padLeft(2, '0')}:${match[2]}';
+  }
+
+  String? _labeledTime(String prompt, List<RegExpMatch> times, RegExp label) {
+    final matches = times.where(
+      (time) => label.hasMatch(prompt.substring(0, time.start)),
+    );
+    if (matches.length != 1) return null;
+    final match = matches.first;
+    if (RegExp(
+      r'^\s*(?:or|atau|或)\s*\d',
+    ).hasMatch(prompt.substring(match.end))) {
+      return null;
+    }
+    return _clockFromMatch(match);
+  }
+
+  String? _requestedDate(String prompt) {
+    final today = _malaysiaToday;
+    final dates = {
+      for (final match in RegExp(r'\b\d{4}-\d{2}-\d{2}\b').allMatches(prompt))
+        match[0]!,
+      if (RegExp(r'\btoday\b|hari ini|今天').hasMatch(prompt)) _dateString(today),
+      if (RegExp(r'\btomorrow\b|\besok\b|明天').hasMatch(prompt))
+        _dateString(today.add(const Duration(days: 1))),
+    };
+    return dates.length == 1 ? dates.single : null;
+  }
+
+  int? _requestedDay(String prompt) {
+    final matches = RegExp(
+      r'(?:(?:day|hari)\s+(\d+)|第\s*(\d+)\s*天)',
+    ).allMatches(prompt).toList();
+    if (matches.length != 1) return null;
+    final match = matches.single;
+    if (RegExp(
+      r'^\s*(?:or|atau|或)\s*\d',
+    ).hasMatch(prompt.substring(match.end))) {
+      return null;
+    }
+    return int.tryParse((match[1] ?? match[2])!);
+  }
+
   Future<AssistantMessage> _offlineResponse(String prompt) async {
-    await Future<void>.delayed(const Duration(milliseconds: 650));
     final p = prompt.toLowerCase();
-    if (p.contains('weather') ||
-        p.contains('rain') ||
-        p.contains('cuaca') ||
-        p.contains('hujan') ||
-        p.contains('天气') ||
-        p.contains('雨')) {
-      return AssistantMessage(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        text: switch (currentLanguage) {
-          AssistantLanguage.malay =>
-            'Ramalan cuaca di Lembah Klang menunjukkan kebarangkalian hujan renyai sekitar petang. Untuk keselesaan anda, kami cadangkan persinggahan dalam bangunan seperti Aquaria KLCC atau Muzium Kesenian Islam.',
-          AssistantLanguage.chinese =>
-            '根据气象数据，吉隆坡午后有概率出现热带雷阵雨。建议您将行程调换为有顶棚走廊连接的室内景点，例如吉隆坡城中城水族馆（Aquaria KLCC）。',
-          AssistantLanguage.english =>
-            'Scattered tropical thunderstorms are expected around 3:30 PM across central Kuala Lumpur (75% probability). We suggest keeping indoor backups ready such as Aquaria KLCC.',
-        },
-        isUser: false,
-        timestamp: DateTime.now(),
-        weatherAlert: AssistantWeatherAlert(
-          city: 'Kuala Lumpur',
-          temperature: '29°C',
-          condition: switch (currentLanguage) {
-            AssistantLanguage.malay => 'Hujan Petang',
-            AssistantLanguage.chinese => '午后阵雨',
-            AssistantLanguage.english => 'Thunderstorms in PM',
-          },
-          rainProbability: 75,
-          advisory: switch (currentLanguage) {
-            AssistantLanguage.malay =>
-              'Hujan lebat diramalkan petang ini. Laluan pejalan kaki berbumbung disyorkan.',
-            AssistantLanguage.chinese => '预计午后有雷阵雨。推荐使用空调全覆盖人行天桥。',
-            AssistantLanguage.english =>
-              'Heavy shower predicted between 3:30 PM and 5:00 PM. Covered pedestrian walkways recommended.',
-          },
-          suggestedIndoorPlace: 'Aquaria KLCC',
-        ),
-        places: [
-          AssistantPlaceSuggestion(
-            name: switch (currentLanguage) {
-              AssistantLanguage.chinese => 'Aquaria KLCC (吉隆坡水族馆)',
-              _ => 'Aquaria KLCC',
-            },
-            category: switch (currentLanguage) {
-              AssistantLanguage.malay => 'Akuarium & Alam Hidupan',
-              AssistantLanguage.chinese => '室内景点 & 亲子海洋馆',
-              AssistantLanguage.english => 'Oceanarium & Family',
-            },
-            rating: 4.6,
-            location: switch (currentLanguage) {
-              AssistantLanguage.malay => 'Pusat Konvensyen Kuala Lumpur (KLCC)',
-              AssistantLanguage.chinese => '吉隆坡会展中心地下层 (KLCC)',
-              AssistantLanguage.english =>
-                'Kuala Lumpur Convention Centre (Concourse Level)',
-            },
-            description: switch (currentLanguage) {
-              AssistantLanguage.malay =>
-                'Akuarium bertaraf dunia dengan terowong bawah air sepanjang 90 meter.',
-              AssistantLanguage.chinese => '拥有 90 米海底隧道和逾 5,000 种动植物，全程空调舒适防雨。',
-              AssistantLanguage.english =>
-                'World-class aquarium with a 90-metre transparent underwater walkway tunnel.',
-            },
-            photoUrl:
-                'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80',
-            isIndoor: true,
+    if (RegExp(r'^(how (can|do) i|bagaimanakah cara|如何)').hasMatch(p) &&
+        RegExp(r'add|menambah|添加').hasMatch(p)) {
+      return _reply(_strings.assistantItineraryInstructions);
+    }
+    if (_addRequest.hasMatch(p)) {
+      final rows = await toolHandler.catalog();
+      final matches = rows.where((row) {
+        final name = row['name']?.toString().toLowerCase() ?? '';
+        return name.isNotEmpty && p.contains(name);
+      }).toList();
+      if (matches.length == 1) {
+        final trips = await SupabaseItineraryService().getSavedItineraries(
+          refresh: false,
+        );
+        final titles = trips.where((trip) {
+          final title = trip.title.trim().toLowerCase();
+          return title.isNotEmpty &&
+              RegExp(
+                '(?:^|[^a-z0-9])${RegExp.escape(title)}(?:[^a-z0-9]|'
+                r'$)',
+              ).hasMatch(p);
+        }).toList();
+        final times = _clockPattern.allMatches(p).toList();
+        final range =
+            times.length == 2 &&
+            ((times.first[3] == null) == (times.last[3] == null)) &&
+            RegExp(
+              r'^(?:-|–|to|hingga|sampai|至|到)$',
+            ).hasMatch(p.substring(times.first.end, times.last.start).trim());
+        final explicitArrival = _labeledTime(
+          p,
+          times,
+          RegExp(
+            r'(?:arrive(?: at)?|arrival(?: at)?|from|tiba(?: pada)?|dari|到达|从)\s*$',
           ),
-        ],
-        followUpChips: _offlineChips(),
+        );
+        final explicitDeparture = _labeledTime(
+          p,
+          times,
+          RegExp(
+            r'(?:depart(?: at)?|departure(?: at)?|leave(?: at)?|until|bertolak(?: pada)?|hingga|离开|直到)\s*$',
+          ),
+        );
+        final result = await toolHandler.execute('add_to_itinerary', {
+          'place_id': matches.single['place_id'],
+          'trip_title': titles.length == 1 ? titles.single.title : null,
+          'arrival_time': range
+              ? _clockFromMatch(times.first)
+              : explicitArrival,
+          'departure_time': range
+              ? _clockFromMatch(times.last)
+              : explicitDeparture,
+          'date': _requestedDate(p),
+          'day_number': _requestedDay(p),
+        });
+        final proposal = result['proposal'];
+        if (proposal is Map<String, dynamic>) {
+          return _reply(_strings.assistantReviewStop, proposals: [proposal]);
+        }
+      }
+      return _reply(
+        _localized(
+          'Which catalog place would you like to add?',
+          'Tempat manakah dalam katalog yang ingin anda tambah?',
+          '您想添加目录中的哪个地点？',
+        ),
       );
     }
-    if (p.contains('food') ||
-        p.contains('halal') ||
-        p.contains('makan') ||
-        p.contains('alor') ||
-        p.contains('bukit bintang') ||
-        p.contains('美食') ||
-        p.contains('清真')) {
-      return AssistantMessage(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        text: switch (currentLanguage) {
-          AssistantLanguage.malay =>
-            'Untuk pilihan makanan halal dan rasa tempatan terbaik di Kuala Lumpur, pastikan anda mencuba pelbagai hidangan jalanan di Jalan Alor dan Kampung Baru.',
-          AssistantLanguage.chinese =>
-            '吉隆坡堪称美食天堂！若您想品尝地道风味，阿罗街（Jalan Alor）是体验夜市排档的不二之选。',
-          AssistantLanguage.english =>
-            'Malaysia is a global food paradise! For an electrifying hawker evening, visit Jalan Alor in Bukit Bintang.',
-        },
-        isUser: false,
-        timestamp: DateTime.now(),
-        places: [
-          AssistantPlaceSuggestion(
-            name: switch (currentLanguage) {
-              AssistantLanguage.chinese => '阿罗街美食夜市 (Jalan Alor)',
-              _ => 'Jalan Alor Food Street',
-            },
-            category: switch (currentLanguage) {
-              AssistantLanguage.malay => 'Makanan Jalanan & Malam',
-              AssistantLanguage.chinese => '街头美食 & 夜市大排档',
-              AssistantLanguage.english => 'Street Food & Night Market',
-            },
-            rating: 4.5,
-            location: switch (currentLanguage) {
-              AssistantLanguage.chinese => '吉隆坡武吉免登 (Bukit Bintang)',
-              _ => 'Bukit Bintang, Kuala Lumpur',
-            },
-            description: switch (currentLanguage) {
-              AssistantLanguage.malay =>
-                'Pusat hidangan malam yang meriah dengan pelbagai gerai makanan halal dan jalanan.',
-              AssistantLanguage.chinese => '集聚炒粿条、烤鸡翅、沙爹肉串与热带水果的著名美食街。',
-              AssistantLanguage.english =>
-                'Famous street food haven with extensive local halal and street delicacies.',
-            },
-            photoUrl:
-                'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80',
-            isIndoor: false,
+    if (_weatherRequest.hasMatch(p)) {
+      final locations = [
+        for (final city in WeatherService.stateCoordinates.keys)
+          if (RegExp('\\b${RegExp.escape(city)}\\b').hasMatch(p)) city,
+        if (RegExp(r'\bkl\b|吉隆坡').hasMatch(p) && !p.contains('kuala lumpur'))
+          'Kuala Lumpur',
+      ];
+      if (locations.length != 1) {
+        return _reply(
+          _localized(
+            'Which location and date would you like a forecast for?',
+            'Untuk lokasi dan tarikh manakah anda mahu ramalan cuaca?',
+            '您想查询哪个地点和日期的天气？',
           ),
-        ],
-        followUpChips: _offlineChips(),
+        );
+      }
+      final day = _requestedDate(p);
+      if (day == null) {
+        return _reply(
+          _localized(
+            'What date should I check for ${locations.single}?',
+            'Tarikh manakah yang perlu saya semak untuk ${locations.single}?',
+            '您想查询 ${locations.single} 哪一天的天气？',
+          ),
+        );
+      }
+      final times = _clockPattern.allMatches(p).toList();
+      final period = RegExp(
+        r'morning|afternoon|evening|night|pagi|petang|malam|早上|上午|下午|晚上',
+      ).firstMatch(p)?.group(0);
+      if (times.length > 1 || (times.isEmpty && period != null)) {
+        return _forecastReply({
+          'city': locations.single,
+          'forecast_date': day,
+          'forecast_time': period,
+        });
+      }
+      return _forecastReply(
+        await toolHandler.execute('get_weather_forecast', {
+          'city': locations.single,
+          'date': day,
+          'time': times.isEmpty ? null : _clockFromMatch(times.single),
+        }),
+      );
+    }
+    if (_foodRequest.hasMatch(p)) {
+      final rows = await toolHandler.catalog();
+      final names =
+          {
+              ...WeatherService.stateCoordinates.keys,
+              for (final row in rows)
+                if (row['name'] case final String name)
+                  if (name.length > 2) name.toLowerCase(),
+            }.where((name) => p.contains(name)).toList()
+            ..sort((a, b) => b.length.compareTo(a.length));
+      return _foodReply(
+        await toolHandler.execute('search_malaysia_places', {
+          'keyword': '',
+          'category': 'food',
+          'reference_location':
+              names.firstOrNull ??
+              (RegExp(r'\bkl\b|吉隆坡').hasMatch(p) ? 'Kuala Lumpur' : null),
+        }),
+        prompt,
       );
     }
     if (p.contains('batu cave') ||
@@ -530,24 +527,170 @@ class TravelAssistantService {
         ],
       );
     }
-    return AssistantMessage(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      text: _offlineGeneralText(),
-      isUser: false,
-      timestamp: DateTime.now(),
-      followUpChips: _offlineChips(),
+    if (RegExp(
+      r'transport|transit|mrt|lrt|klia|pengangkutan|交通|机场',
+    ).hasMatch(p)) {
+      return _reply(
+        _localized(
+          'In Kuala Lumpur, MRT and LRT trains serve many major areas. KLIA Ekspres connects the airport to KL Sentral.',
+          'Di Kuala Lumpur, MRT dan LRT menghubungkan banyak kawasan utama. KLIA Ekspres menghubungkan lapangan terbang dengan KL Sentral.',
+          '在吉隆坡，MRT 和 LRT 连接多个主要地区。KLIA Ekspres 连接机场和吉隆坡中央车站。',
+        ),
+      );
+    }
+    return _reply(
+      _localized(
+        'What would you like help with: food, weather, transport, or your itinerary?',
+        'Anda perlukan bantuan tentang makanan, cuaca, pengangkutan atau itinerari?',
+        '您想了解餐饮、天气、交通，还是需要行程帮助？',
+      ),
     );
   }
 
-  List<String> _offlineChips() => switch (currentLanguage) {
-    AssistantLanguage.malay => const ['Cadangkan tarikan berbumbung di KL', 'Cari makanan halal', 'Cara guna MRT dan LRT di KL?'],
-    AssistantLanguage.chinese => const ['推荐吉隆坡室内景点', '寻找清真美食', '吉隆坡如何乘坐 MRT 和 LRT？'],
-    AssistantLanguage.english => const ['Suggest indoor attractions in KL', 'Find halal food in KL', 'How do MRT and LRT work in KL?'],
-  };
+  DateTime get _malaysiaToday =>
+      DateTime.now().toUtc().add(const Duration(hours: 8));
 
-  String _offlineGeneralText() => switch (currentLanguage) {
-    AssistantLanguage.malay => 'Saya boleh membantu merancang perjalanan di Malaysia. Di Kuala Lumpur, MRT/LRT menghubungkan banyak kawasan utama; Touch ’n Go biasa digunakan untuk transit, manakala Grab berguna untuk perjalanan terus. Untuk makanan halal, cari pensijilan halal atau tanya premis. Anda mahu cadangan tarikan berbumbung, makanan halal, atau pengangkutan awam?',
-    AssistantLanguage.chinese => '我可以协助规划马来西亚行程。在吉隆坡，MRT/LRT 可到达许多主要区域；Touch ’n Go 常用于公共交通，Grab 适合点对点出行。选择清真餐饮时，请查看清真认证或向店家确认。您想了解室内景点、清真美食，还是公共交通？',
-    AssistantLanguage.english => 'I can help plan travel around Malaysia. In Kuala Lumpur, the MRT and LRT connect many major areas; Touch ’n Go is commonly used for transit, while Grab is useful for direct trips. For halal food, look for displayed halal certification or confirm with the venue. Would you like indoor attractions, halal food ideas, or public transport guidance?',
-  };
+  String _dateString(DateTime date) => date.toIso8601String().split('T').first;
+
+  String _localized(String en, String ms, String zh) =>
+      switch (currentLanguage) {
+        AssistantLanguage.english => en,
+        AssistantLanguage.malay => ms,
+        AssistantLanguage.chinese => zh,
+      };
+
+  AssistantMessage _reply(
+    String text, {
+    List<AssistantPlaceSuggestion> places = const [],
+    List<Map<String, dynamic>> proposals = const [],
+  }) => AssistantMessage(
+    id: DateTime.now().microsecondsSinceEpoch.toString(),
+    text: text,
+    isUser: false,
+    timestamp: DateTime.now(),
+    places: places,
+    stopProposals: proposals,
+  );
+
+  AssistantMessage _forecastReply(Map<String, dynamic> result) {
+    final city = result['city']?.toString() ?? '';
+    final date = result['forecast_date']?.toString() ?? '';
+    final time = result['forecast_time'];
+    final details = [
+      if (city.isNotEmpty) city,
+      if (date.isNotEmpty) date,
+      if (time != null)
+        time is String && time.contains(':') ? '$time MYT' : '$time',
+    ].join(' · ');
+    if (result['success'] != true) {
+      final unavailable = _localized(
+        'Forecast unavailable for the requested location and time.',
+        'Ramalan tidak tersedia untuk lokasi dan masa yang diminta.',
+        '没有该地点和时间的天气预报。',
+      );
+      return _reply([if (details.isNotEmpty) details, unavailable].join('\n'));
+    }
+    final status = result['cached'] == true
+        ? ' · ${_localized('Cached forecast', 'Ramalan daripada cache', '缓存预报')}'
+        : '';
+    final rain = result['rain_probability_percent'];
+    final rainLabel = _localized(
+      'Chance of rain',
+      'Kebarangkalian hujan',
+      '降雨概率',
+    );
+    return _reply(
+      '$details$status\n${result['condition']} · ${result['temperature_c']} °C'
+      '${rain == null ? '' : ' · $rainLabel $rain%'}',
+    );
+  }
+
+  AssistantMessage _foodReply(Map<String, dynamic> result, String prompt) {
+    final reference = result['reference_location'];
+    if (reference == null &&
+        RegExp(
+          r'near|closest|around me|berdekatan|terdekat|sekitar|附近|最近',
+          caseSensitive: false,
+        ).hasMatch(prompt)) {
+      _pendingFoodQuestion = prompt;
+      return _reply(
+        _localized(
+          'Which city or landmark should I search near?',
+          'Bandar atau mercu tanda manakah yang patut saya gunakan untuk carian berdekatan?',
+          '您想查找哪个城市或地标附近的餐饮？',
+        ),
+      );
+    }
+    final candidates =
+        (result['places'] as List?)?.whereType<Map>() ?? const <Map>[];
+    final requiresHalal =
+        RegExp(r'\bhalal\b|清真', caseSensitive: false).hasMatch(prompt) &&
+        !RegExp(
+          r'non[- ]halal|tidak halal|非清真',
+          caseSensitive: false,
+        ).hasMatch(prompt);
+    final rows = requiresHalal
+        ? candidates.where((row) => row['is_halal'] == true)
+        : candidates;
+    if (requiresHalal && rows.isEmpty) {
+      return _reply(
+        _localized(
+          'I couldn’t confirm halal status for any matching food venues.',
+          'Saya tidak dapat mengesahkan status halal bagi tempat makan yang sepadan.',
+          '我无法确认符合条件的餐饮场所的清真状态。',
+        ),
+      );
+    }
+    final text = reference != null
+        ? _localized(
+            'Food options by distance from $reference, where coordinates are available.',
+            'Pilihan makanan mengikut jarak dari $reference, jika koordinat tersedia.',
+            '有坐标的餐饮选项按距离 $reference 的远近排列。',
+          )
+        : _localized(
+            'Here are food options from the catalog.',
+            'Berikut ialah pilihan makanan daripada katalog.',
+            '以下是目录中的餐饮选项。',
+          );
+    if (rows.isEmpty) {
+      _pendingFoodQuestion = prompt;
+      return _reply(
+        _localized(
+          'No food options are available in the catalog. Which city or landmark should I check?',
+          'Tiada pilihan makanan dalam katalog. Bandar atau mercu tanda manakah yang patut saya semak?',
+          '目录中没有可用的餐饮选项。您想查询哪个城市或地标？',
+        ),
+      );
+    }
+    return _reply(
+      text,
+      places: [
+        for (final row in rows)
+          _place({
+            ...row,
+            'catalog_details': [
+              if (row['distance_km'] case final double distance)
+                '${distance.toStringAsFixed(1)} km',
+              switch (row['is_halal']) {
+                true => _localized(
+                  'Halal · Catalog',
+                  'Halal · Katalog',
+                  '清真 · 目录',
+                ),
+                false => _localized(
+                  'Non-halal · Catalog',
+                  'Tidak halal · Katalog',
+                  '非清真 · 目录',
+                ),
+                _ => _localized(
+                  'Halal status unknown',
+                  'Status halal tidak diketahui',
+                  '清真状态未知',
+                ),
+              },
+            ].join(' · '),
+          }),
+      ],
+    );
+  }
 }

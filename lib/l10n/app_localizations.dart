@@ -100,6 +100,12 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @profileCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Country / Region'**
+  String get profileCountry;
+
   /// No description provided for @unscheduledSelectedPlaces.
   ///
   /// In en, this message translates to:
@@ -6584,6 +6590,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password updated. Log in with your new password.'**
   String get passwordRecoverySuccess;
+
+  /// No description provided for @assistantPreviewStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview stop'**
+  String get assistantPreviewStop;
+
+  /// No description provided for @assistantTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip'**
+  String get assistantTrip;
+
+  /// No description provided for @assistantDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day or date'**
+  String get assistantDay;
+
+  /// No description provided for @assistantArrival.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrival time'**
+  String get assistantArrival;
+
+  /// No description provided for @assistantDeparture.
+  ///
+  /// In en, this message translates to:
+  /// **'Departure time'**
+  String get assistantDeparture;
+
+  /// No description provided for @assistantChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose'**
+  String get assistantChoose;
+
+  /// No description provided for @assistantConfirmStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm and save'**
+  String get assistantConfirmStop;
+
+  /// No description provided for @assistantNoTrips.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a trip before adding a stop.'**
+  String get assistantNoTrips;
+
+  /// No description provided for @assistantTripUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This trip or day is no longer available.'**
+  String get assistantTripUnavailable;
+
+  /// No description provided for @assistantStopConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'These times overlap with another stop. Choose a different time or day.'**
+  String get assistantStopConflict;
+
+  /// No description provided for @assistantInvalidTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Departure must be after arrival.'**
+  String get assistantInvalidTimes;
+
+  /// No description provided for @assistantSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The stop could not be saved. Please try again.'**
+  String get assistantSaveFailed;
+
+  /// No description provided for @assistantPendingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this device · Pending sync'**
+  String get assistantPendingSync;
+
+  /// No description provided for @assistantSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get assistantSynced;
+
+  /// No description provided for @assistantNewChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get assistantNewChat;
+
+  /// No description provided for @assistantChatOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat options'**
+  String get assistantChatOptions;
+
+  /// No description provided for @assistantStarterWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather'**
+  String get assistantStarterWeather;
+
+  /// No description provided for @assistantStarterFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get assistantStarterFood;
+
+  /// No description provided for @assistantStarterTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get assistantStarterTransport;
+
+  /// No description provided for @assistantStarterItinerary.
+  ///
+  /// In en, this message translates to:
+  /// **'Itinerary help'**
+  String get assistantStarterItinerary;
+
+  /// No description provided for @assistantPromptWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'What is the forecast for Kuala Lumpur today?'**
+  String get assistantPromptWeather;
+
+  /// No description provided for @assistantPromptFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest food options in Malaysia.'**
+  String get assistantPromptFood;
+
+  /// No description provided for @assistantPromptTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I get from KLIA to KL Sentral?'**
+  String get assistantPromptTransport;
+
+  /// No description provided for @assistantPromptItinerary.
+  ///
+  /// In en, this message translates to:
+  /// **'How can I add a stop to my itinerary?'**
+  String get assistantPromptItinerary;
+
+  /// No description provided for @assistantGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'How can I help with your trip?'**
+  String get assistantGreeting;
+
+  /// No description provided for @assistantReviewStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the stop details before saving.'**
+  String get assistantReviewStop;
+
+  /// No description provided for @assistantItineraryInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell me which place to add, or choose Add to plan on a place card. In the preview, choose the trip, day, and visit times, then confirm.'**
+  String get assistantItineraryInstructions;
 }
 
 class _AppLocalizationsDelegate

@@ -20,7 +20,9 @@ class RegisterResult {
     this.user,
     Set<String>? emptyFields,
     this.requiresEmailConfirmation = false,
-  }) : emptyFields = emptyFields != null ? Set<String>.from(emptyFields) : <String>{};
+  }) : emptyFields = emptyFields != null
+           ? Set<String>.from(emptyFields)
+           : <String>{};
 }
 
 class LoginResult {
@@ -34,7 +36,9 @@ class LoginResult {
     required this.message,
     this.user,
     Set<String>? emptyFields,
-  }) : emptyFields = emptyFields != null ? Set<String>.from(emptyFields) : <String>{};
+  }) : emptyFields = emptyFields != null
+           ? Set<String>.from(emptyFields)
+           : <String>{};
 }
 
 class AuthService extends ChangeNotifier {
@@ -170,7 +174,11 @@ class AuthService extends ChangeNotifier {
       try {
         await client
             .from('profiles')
-            .upsert(user.toSupabaseMap(), onConflict: 'user_id')
+            .upsert(
+              user.toSupabaseMap(),
+              onConflict: 'user_id',
+              ignoreDuplicates: true,
+            )
             .timeout(const Duration(seconds: 5));
       } catch (e) {
         debugPrint('Supabase profile sync note: $e');
@@ -334,6 +342,8 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
     required String confirmPassword,
+    String phone = '',
+    String nationality = '',
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -395,6 +405,8 @@ class AuthService extends ChangeNotifier {
               password: password,
               data: {
                 'full_name': name.trim(),
+                'phone': phone.trim(),
+                'nationality': nationality.trim(),
                 'preferred_language':
                     OnboardingService.instance.selectedLanguage,
                 'terms_accepted': OnboardingService.instance.isCompleted,
@@ -426,7 +438,8 @@ class AuthService extends ChangeNotifier {
             createdAt: DateTime.now(),
             avatarUrl:
                 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
-            nationality: 'Malaysia 🇲🇾',
+            nationality: nationality.trim(),
+            phone: phone.trim(),
             travelStyle: 'Smart Traveler',
             tripsPlanned: 0,
             placesVisited: 0,
@@ -492,7 +505,8 @@ class AuthService extends ChangeNotifier {
       createdAt: createdAt,
       avatarUrl:
           'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
-      nationality: 'Malaysia 🇲🇾',
+      nationality: nationality.trim(),
+      phone: phone.trim(),
       travelStyle: 'Smart Traveler',
       tripsPlanned: 0,
       placesVisited: 0,
@@ -527,6 +541,7 @@ class AuthService extends ChangeNotifier {
     createdAt: user.createdAt,
     avatarUrl: avatarUrl,
     nationality: user.nationality,
+    phone: user.phone,
     travelStyle: user.travelStyle,
     tripsPlanned: user.tripsPlanned,
     placesVisited: user.placesVisited,
@@ -560,6 +575,8 @@ class AuthService extends ChangeNotifier {
   Future<bool> updateProfile({
     required String name,
     String? preferredLanguage,
+    String? phone,
+    String? nationality,
   }) async {
     final user = _currentUser;
     if (user == null || name.trim().isEmpty) return false;
@@ -573,6 +590,8 @@ class AuthService extends ChangeNotifier {
         client.auth.currentUser?.id == user.uid) {
       try {
         final updateMap = <String, dynamic>{'full_name': name.trim()};
+        if (phone != null) updateMap['phone'] = phone.trim();
+        if (nationality != null) updateMap['nationality'] = nationality.trim();
         if (preferredLanguage != null) {
           updateMap['preferred_language'] = preferredLanguage;
         }
@@ -599,7 +618,8 @@ class AuthService extends ChangeNotifier {
       email: user.email,
       createdAt: user.createdAt,
       avatarUrl: user.avatarUrl,
-      nationality: user.nationality,
+      nationality: nationality?.trim() ?? user.nationality,
+      phone: phone?.trim() ?? user.phone,
       travelStyle: user.travelStyle,
       tripsPlanned: user.tripsPlanned,
       placesVisited: user.placesVisited,

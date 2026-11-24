@@ -1,3 +1,4 @@
+import '../widgets/assistant_stop_preview.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
@@ -22,15 +23,6 @@ class _AssistantPageState extends State<AssistantPage> {
 
   final List<AssistantMessage> _messages = [];
   bool _isTyping = false;
-
-  final List<String> _quickPrompts = [
-    '🌧️ Is it going to rain in KL today?',
-    '🍜 Best Halal food near Bukit Bintang',
-    '🏛️ Cultural etiquette for Batu Caves',
-    '🚇 How to get from KL Sentral to KLCC',
-    '🗣️ Useful Malay travel phrases',
-    '🛍️ Top indoor shopping and museums',
-  ];
 
   @override
   void initState() {
@@ -66,6 +58,7 @@ class _AssistantPageState extends State<AssistantPage> {
   }
 
   Future<void> _handleSendMessage([String? overrideText]) async {
+    if (_isTyping) return;
     final text = overrideText ?? _textController.text;
     final validationError = _service.validatePrompt(text);
 
@@ -101,12 +94,16 @@ class _AssistantPageState extends State<AssistantPage> {
       _messages.add(response);
     });
     _scrollToBottom();
+    if (response.stopProposals.length == 1 && mounted) {
+      await showAssistantStopPreview(context, response.stopProposals.single);
+    }
   }
 
   void _switchLanguage(AssistantLanguage language) {
     if (_service.currentLanguage == language) return;
     demoHaptic();
     setState(() {
+      _service.clearConversation();
       _service.currentLanguage = language;
       _loadInitialMessage();
     });
@@ -135,6 +132,7 @@ class _AssistantPageState extends State<AssistantPage> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
+              _service.clearConversation();
               _loadInitialMessage();
               showDemoSnackBar(
                 context,
@@ -150,71 +148,15 @@ class _AssistantPageState extends State<AssistantPage> {
     );
   }
 
-  void _simulateVoiceInput() {
-    demoHaptic();
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          8,
-          20,
-          24 + MediaQuery.paddingOf(ctx).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-              child: const Icon(Icons.mic_rounded, color: AppColors.primary),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              context.l10n.voiceTravelAssistant,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context
-                  .l10n
-                  .listeningForVoiceCommandsInEnglishMalayOrChineseTapBelowToSendASampleSpokenQuery,
-              style: TextStyle(color: AppColors.muted, height: 1.4),
-            ),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _handleSendMessage(
-                  'Recommend 2 indoor spots if it rains near KLCC this afternoon.',
-                );
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(
-                context.l10n.trySpokenQuery,
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
+    final starters = [
+      (l.assistantStarterWeather, l.assistantPromptWeather),
+      (l.assistantStarterFood, l.assistantPromptFood),
+      (l.assistantStarterTransport, l.assistantPromptTransport),
+      (l.assistantStarterItinerary, l.assistantPromptItinerary),
+    ];
     return Column(
       children: [
         // Sub-header Bar: Status, Language Pill, and Clear Chat
@@ -228,33 +170,9 @@ class _AssistantPageState extends State<AssistantPage> {
           ),
           child: Row(
             children: [
-              // AI Online Status Indicator
-              Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(right: 6),
-                decoration: BoxDecoration(
-                  color: _service.isGeminiAvailable
-                      ? const Color(0xFF10B981)
-                      : AppColors.muted,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  context.l10n.gemini15FlashMalaysianTravelAi,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.muted,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Language Selector Menu
+              const Spacer(),
               PopupMenuButton<AssistantLanguage>(
+                enabled: !_isTyping,
                 initialValue: _service.currentLanguage,
                 tooltip: context.l10n.assistantResponseLanguage,
                 shape: RoundedRectangleBorder(
@@ -276,6 +194,11 @@ class _AssistantPageState extends State<AssistantPage> {
                   ),
                 ],
                 child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
@@ -314,66 +237,15 @@ class _AssistantPageState extends State<AssistantPage> {
                 ),
               ),
               const SizedBox(width: 6),
-              // Clear Chat
-              IconButton(
-                onPressed: _confirmClearChat,
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  size: 19,
-                  color: AppColors.muted,
-                ),
-                tooltip: context.l10n.resetConversation,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              PopupMenuButton<bool>(
+                enabled: !_isTyping,
+                tooltip: l.assistantChatOptions,
+                onSelected: (_) => _confirmClearChat(),
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: true, child: Text(l.assistantNewChat)),
+                ],
               ),
             ],
-          ),
-        ),
-
-        // Quick Suggestion Chips Carousel
-        Container(
-          height: 44,
-          color: AppColors.nightCanvas,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            scrollDirection: Axis.horizontal,
-            itemCount: _quickPrompts.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 6),
-            itemBuilder: (context, index) {
-              final prompt = _quickPrompts[index];
-              return InkWell(
-                onTap: () => _handleSendMessage(prompt),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.nightSurface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.line),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x04111827),
-                        blurRadius: 4,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      context.tr(prompt),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ),
 
@@ -390,9 +262,39 @@ class _AssistantPageState extends State<AssistantPage> {
                   return const AssistantTypingIndicator();
                 }
                 final message = _messages[index];
-                return AssistantChatBubble(
-                  message: message,
-                  onSelectChip: (chip) => _handleSendMessage(chip),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AssistantChatBubble(
+                      message: message,
+                      onSelectChip: (chip) => _handleSendMessage(chip),
+                    ),
+                    if (index == 0 && _messages.length == 1)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final (label, prompt) in starters)
+                            OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                foregroundColor: AppColors.primary,
+                              ),
+                              onPressed: () => _handleSendMessage(prompt),
+                              child: Text(label),
+                            ),
+                        ],
+                      ),
+                    for (final proposal in message.stopProposals)
+                      OutlinedButton(
+                        onPressed: _isTyping
+                            ? null
+                            : () => showAssistantStopPreview(context, proposal),
+                        child: Text(
+                          '${l.assistantPreviewStop} · ${proposal['place_name']}',
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
@@ -410,22 +312,6 @@ class _AssistantPageState extends State<AssistantPage> {
             top: false,
             child: Row(
               children: [
-                // Voice input button
-                IconButton(
-                  onPressed: _simulateVoiceInput,
-                  icon: const Icon(
-                    Icons.mic_none_rounded,
-                    color: AppColors.primary,
-                  ),
-                  tooltip: context.l10n.voiceSearch,
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.08),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 // Text Input Field
                 Expanded(
                   child: Container(
@@ -460,7 +346,7 @@ class _AssistantPageState extends State<AssistantPage> {
                 const SizedBox(width: 8),
                 // Send Button
                 IconButton.filled(
-                  onPressed: () => _handleSendMessage(),
+                  onPressed: _isTyping ? null : () => _handleSendMessage(),
                   icon: const Icon(
                     Icons.arrow_upward_rounded,
                     size: 20,
@@ -470,6 +356,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: const CircleBorder(),
+                    minimumSize: const Size(48, 48),
                   ),
                 ),
               ],

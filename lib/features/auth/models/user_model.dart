@@ -7,6 +7,7 @@ class UserModel {
   final DateTime createdAt;
   final String avatarUrl;
   final String nationality;
+  final String phone;
   final String travelStyle;
   final int tripsPlanned;
   final int placesVisited;
@@ -22,7 +23,8 @@ class UserModel {
     required this.createdAt,
     this.avatarUrl =
         'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
-    this.nationality = 'Malaysia 🇲🇾',
+    this.nationality = '',
+    this.phone = '',
     this.travelStyle = 'Cultural Explorer',
     this.tripsPlanned = 0,
     this.placesVisited = 0,
@@ -50,7 +52,8 @@ class UserModel {
           data['avatar_url'] ??
           data['avatarUrl'] ??
           'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
-      nationality: data['nationality'] ?? 'Malaysia 🇲🇾',
+      nationality: data['nationality'] ?? '',
+      phone: data['phone'] ?? '',
       travelStyle:
           data['travel_style'] ?? data['travelStyle'] ?? 'Cultural Explorer',
       tripsPlanned: data['trips_planned'] ?? data['tripsPlanned'] ?? 0,
@@ -71,6 +74,8 @@ class UserModel {
       'user_id': uid,
       'email': email,
       'full_name': name,
+      'phone': phone,
+      'nationality': nationality,
       'preferred_language': preferredLanguage,
       'role': role,
       if (travelPreferences case final preferences?)
@@ -96,6 +101,7 @@ class UserModel {
       'created_at': createdAt.toIso8601String(),
       'avatarUrl': avatarUrl,
       'nationality': nationality,
+      'phone': phone,
       'travelStyle': travelStyle,
       'tripsPlanned': tripsPlanned,
       'placesVisited': placesVisited,

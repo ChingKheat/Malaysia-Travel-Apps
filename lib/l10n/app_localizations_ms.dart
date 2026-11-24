@@ -9,6 +9,9 @@ class AppLocalizationsMs extends AppLocalizations {
   AppLocalizationsMs([String locale = 'ms']) : super(locale);
 
   @override
+  String get profileCountry => 'Negara / Wilayah';
+
+  @override
   String get unscheduledSelectedPlaces =>
       'Tempat pilihan yang belum dijadualkan';
 
@@ -3853,4 +3856,97 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get passwordRecoverySuccess =>
       'Kata laluan telah dikemas kini. Log masuk dengan kata laluan baharu.';
+
+  @override
+  String get assistantPreviewStop => 'Pratonton persinggahan';
+
+  @override
+  String get assistantTrip => 'Perjalanan';
+
+  @override
+  String get assistantDay => 'Hari atau tarikh';
+
+  @override
+  String get assistantArrival => 'Waktu tiba';
+
+  @override
+  String get assistantDeparture => 'Waktu bertolak';
+
+  @override
+  String get assistantChoose => 'Pilih';
+
+  @override
+  String get assistantConfirmStop => 'Sahkan dan simpan';
+
+  @override
+  String get assistantNoTrips =>
+      'Simpan perjalanan sebelum menambah persinggahan.';
+
+  @override
+  String get assistantTripUnavailable =>
+      'Perjalanan atau hari ini tidak lagi tersedia.';
+
+  @override
+  String get assistantStopConflict =>
+      'Waktu ini bertindih dengan persinggahan lain. Pilih waktu atau hari lain.';
+
+  @override
+  String get assistantInvalidTimes =>
+      'Waktu bertolak mesti selepas waktu tiba.';
+
+  @override
+  String get assistantSaveFailed =>
+      'Persinggahan tidak dapat disimpan. Sila cuba lagi.';
+
+  @override
+  String get assistantPendingSync =>
+      'Disimpan pada peranti ini · Menunggu penyegerakan';
+
+  @override
+  String get assistantSynced => 'Disegerakkan';
+
+  @override
+  String get assistantNewChat => 'Sembang baharu';
+
+  @override
+  String get assistantChatOptions => 'Pilihan sembang';
+
+  @override
+  String get assistantStarterWeather => 'Cuaca';
+
+  @override
+  String get assistantStarterFood => 'Makanan';
+
+  @override
+  String get assistantStarterTransport => 'Pengangkutan';
+
+  @override
+  String get assistantStarterItinerary => 'Bantuan itinerari';
+
+  @override
+  String get assistantPromptWeather =>
+      'Apakah ramalan cuaca di Kuala Lumpur hari ini?';
+
+  @override
+  String get assistantPromptFood => 'Cadangkan pilihan makanan di Malaysia.';
+
+  @override
+  String get assistantPromptTransport =>
+      'Bagaimanakah cara ke KL Sentral dari KLIA?';
+
+  @override
+  String get assistantPromptItinerary =>
+      'Bagaimanakah cara menambah persinggahan pada itinerari saya?';
+
+  @override
+  String get assistantGreeting =>
+      'Bagaimana saya boleh membantu perjalanan anda?';
+
+  @override
+  String get assistantReviewStop =>
+      'Semak butiran persinggahan sebelum menyimpan.';
+
+  @override
+  String get assistantItineraryInstructions =>
+      'Beritahu saya tempat yang ingin ditambah atau pilih Tambah pada pelan pada kad tempat. Dalam pratonton, pilih perjalanan, hari dan waktu lawatan, kemudian sahkan.';
 }

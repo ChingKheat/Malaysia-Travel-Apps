@@ -20,10 +20,16 @@ void main() {
     await tester.ensureVisible(find.text('Edit Profile'));
     await tester.tap(find.text('Edit Profile'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'New Name');
+    await tester.enterText(find.byType(TextField).first, 'New Name');
+    await tester.enterText(find.byType(TextField).at(2), '+60 12 345 6789');
+    expect(find.text('Country / Region'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).at(3), 'Malaysia');
+    await tester.ensureVisible(find.text('Save'));
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(find.text('New Name'), findsOneWidget);
+    expect(auth.currentUser!.phone, '+60 12 345 6789');
+    expect(auth.currentUser!.nationality, 'Malaysia');
     expect(tester.takeException(), isNull);
     await auth.logout();
   });

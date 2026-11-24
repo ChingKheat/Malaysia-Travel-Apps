@@ -2,11 +2,9 @@ import 'dart:async';
 import 'package:image_picker/image_picker.dart';
 import 'package:smart_travel_planner/features/profile/services/profile_avatar_service.dart';
 
-import 'package:smart_travel_planner/features/auth/models/travel_preferences.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/my_trips_screen.dart';
 import 'package:smart_travel_planner/features/itinerary/screens/planner_page.dart';
 import 'package:smart_travel_planner/features/itinerary/services/supabase_itinerary_service.dart';
-import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
 import 'package:smart_travel_planner/features/profile/services/travel_footprint.dart';
 import 'package:smart_travel_planner/features/profile/widgets/profile_sheets.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
@@ -42,16 +40,11 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   final _authService = AuthService();
   late final ImagePicker _imagePicker = widget.imagePicker ?? ImagePicker();
 
-  final _settings = ProfilePreferencesService.instance;
   final _trips = SupabaseItineraryService();
-  TravelPreferences _preferences = const TravelPreferences();
   TravelFootprint? _footprint;
   int? _tripCount;
-  bool _preferencesLoaded = false;
-  bool _pending = false;
   bool _savingPhoto = false;
   int _statsRequest = 0;
-  int _preferencesRequest = 0;
   List<Attraction> _savedPlaces = [];
   bool _savedPlacesLoaded = false;
 
@@ -60,26 +53,21 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _trips.addListener(_loadStats);
-    _settings.addListener(_loadPreferences);
     _loadStats(refresh: true);
-    _loadPreferences();
     _loadSavedPlaces();
     unawaited(_authService.syncAvatar());
-    unawaited(_settings.syncTravel(refresh: true));
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _trips.removeListener(_loadStats);
-    _settings.removeListener(_loadPreferences);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited(_settings.syncTravel());
       unawaited(_authService.syncAvatar());
       _loadSavedPlaces();
     }
@@ -183,7 +171,11 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
           children: [
             for (var i = 0; i < _savedPlaces.length; i++) ...[
               if (i > 0)
-                const Divider(height: 1, color: AppColors.nightLine, indent: 60),
+                const Divider(
+                  height: 1,
+                  color: AppColors.nightLine,
+                  indent: 60,
+                ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: ClipRRect(
@@ -252,39 +244,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _loadPreferences() async {
-    final request = ++_preferencesRequest;
-    final uid = _authService.currentUser?.uid;
-    final result = await _settings.loadTravel();
-    if (!mounted ||
-        request != _preferencesRequest ||
-        uid != _authService.currentUser?.uid) {
-      return;
-    }
-    setState(() {
-      _preferences = result.preferences ?? const TravelPreferences();
-      _pending = result.pending;
-      _preferencesLoaded = true;
-    });
-  }
-
-  Future<void> _editPreferences() async {
-    final uid = _authService.currentUser?.uid;
-    await showProfileSheet<void>(
-      context,
-      title: context.l10n.profileEditPreferences,
-      body: (_) => TravelPreferencesEditor(
-        initial: _preferences,
-        onSave: (value) async {
-          if (_authService.currentUser?.uid != uid) return false;
-          final saved = await _settings.saveTravel(value);
-          if (saved) unawaited(_settings.syncTravel());
-          return saved;
-        },
-      ),
-    );
-  }
-
   Future<void> _changePhoto() async {
     if (_savingPhoto) return;
     try {
@@ -342,62 +301,39 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     if (mounted) _loadStats();
   }
 
-  void _showFootprint({required bool regions}) {
+  void _showFootprint() {
     final footprint = _footprint;
     if (footprint == null) return;
-    final title = regions
-        ? context.l10n.profileRegionsVisited
-        : context.l10n.profileFootprint;
     showProfileSheet<void>(
       context,
-      title: title,
+      title: context.l10n.profileFootprint,
       body: (context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: regions
-            ? [
-                Text(_coverage(footprint)),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value:
-                      footprint.regions.length /
-                      TravelFootprint.malaysiaRegions.length,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(height: 12),
-                Text(context.l10n.profileCoverage),
-                if (footprint.regions.isEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(context.l10n.profileNoRegions),
-                ],
-              ]
-            : [
-                Text(
-                  '${context.l10n.placesVisited} · ${context.localNumber(footprint.places.length)}',
-                ),
-                if (footprint.places.isEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(context.l10n.profileNoVisits),
-                ],
-                for (final name in footprint.places)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.place_outlined,
-                      color: AppColors.primary,
-                    ),
-                    title: Text(
-                      name == 'Saved Google place'
-                          ? context.l10n.savedGooglePlace
-                          : name,
-                    ),
-                  ),
-              ],
+        children: [
+          Text(
+            '${context.l10n.placesVisited} · ${context.localNumber(footprint.places.length)}',
+          ),
+          if (footprint.places.isEmpty) ...[
+            const SizedBox(height: 8),
+            Text(context.l10n.profileNoVisits),
+          ],
+          for (final name in footprint.places)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.place_outlined,
+                color: AppColors.primary,
+              ),
+              title: Text(
+                name == 'Saved Google place'
+                    ? context.l10n.savedGooglePlace
+                    : name,
+              ),
+            ),
+        ],
       ),
     );
   }
-
-  String _coverage(TravelFootprint footprint) =>
-      '${context.localNumber(footprint.regions.length)}/${context.localNumber(TravelFootprint.malaysiaRegions.length)}';
 
   Future<void> _editProfile() async {
     final user = _authService.currentUser;
@@ -406,7 +342,14 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       context: context,
       builder: (_) => _EditProfileDialog(
         initialName: user.name,
-        onSave: (name) => _authService.updateProfile(name: name),
+        email: user.email,
+        initialPhone: user.phone,
+        initialNationality: user.nationality,
+        onSave: (name, phone, nationality) => _authService.updateProfile(
+          name: name,
+          phone: phone,
+          nationality: nationality,
+        ),
       ),
     );
     if (!mounted || saved != true) return;
@@ -570,9 +513,19 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   // Travel preferences are shown in their own section below.
                   const SizedBox(height: 16),
-                  _profileDetail(Icons.public_outlined, user.nationality),
                   const SizedBox(height: 8),
                   _profileDetail(Icons.explore_outlined, user.travelStyle),
+                  if (user.nationality.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _profileDetail(
+                      Icons.public_outlined,
+                      user.nationality.trim(),
+                    ),
+                  ],
+                  if (user.phone.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _profileDetail(Icons.phone_outlined, user.phone.trim()),
+                  ],
                   if (user.isAdmin) ...[
                     const SizedBox(height: 8),
                     _profileDetail(
@@ -594,8 +547,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
             _buildStatistics(),
             const SizedBox(height: 20),
             _buildSavedPlacesSection(),
-            const SizedBox(height: 20),
-            _buildTravelPreferences(),
             const SizedBox(height: 20),
 
             // Profile Settings
@@ -633,9 +584,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const OnboardingSetupScreen(
-                            isRevisit: true,
-                          ),
+                          builder: (_) =>
+                              const OnboardingSetupScreen(isRevisit: true),
                         ),
                       );
                     },
@@ -749,63 +699,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       ),
     );
   }
-
-  List<(IconData, String, String)> _preferenceRows() => [
-    (
-      Icons.speed,
-      context.l10n.profilePace,
-      profilePaceLabel(context, _preferences.pace),
-    ),
-    (
-      Icons.wallet_outlined,
-      context.l10n.profileBudgetTier,
-      profileBudgetLabel(context, _preferences.budget),
-    ),
-    (
-      Icons.restaurant_outlined,
-      context.l10n.profileDiet,
-      profileDietLabel(context, _preferences.diet),
-    ),
-  ];
-
-  Widget _buildTravelPreferences() => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-    decoration: cardDecoration(),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                context.l10n.profileTravelPreferences,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            TextButton(
-              onPressed: _preferencesLoaded ? _editPreferences : null,
-              child: Text(context.l10n.profileEdit),
-            ),
-          ],
-        ),
-        for (final (icon, label, value) in _preferenceRows())
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(icon, color: AppColors.primary),
-            title: Text(label),
-            subtitle: Text(_preferencesLoaded ? value : '—'),
-          ),
-        if (_pending)
-          Text(
-            context.l10n.profilePending,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
-          ),
-      ],
-    ),
-  );
 
   Widget _buildSavedPlacesSection() {
     final places = _savedPlaces;
@@ -931,7 +824,11 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               i++
             ) ...[
               if (i > 0)
-                const Divider(height: 1, color: AppColors.nightLine, indent: 76),
+                const Divider(
+                  height: 1,
+                  color: AppColors.nightLine,
+                  indent: 76,
+                ),
               _buildSavedPlaceTile(places[i]),
             ],
             if (places.length > 3) ...[
@@ -1054,20 +951,14 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
         context.l10n.placesVisited,
         footprint == null ? null : context.localNumber(footprint.places.length),
         Icons.explore_outlined,
-        footprint == null ? null : () => _showFootprint(regions: false),
-      ),
-      _buildStatCard(
-        context.l10n.profileRegions,
-        footprint == null ? null : _coverage(footprint),
-        Icons.map_outlined,
-        footprint == null ? null : () => _showFootprint(regions: true),
+        footprint == null ? null : _showFootprint,
       ),
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final scale = MediaQuery.textScalerOf(context).scale(1);
-        final columns = width / scale >= 540 ? 4 : 2;
+        final columns = width / scale >= 540 ? 3 : 2;
         const gap = 8.0;
 
         final rows = <List<Widget>>[];
@@ -1088,11 +979,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                       if (c > 0) const SizedBox(width: gap),
                       Expanded(child: rows[r][c]),
                     ],
-                    if (rows[r].length < columns)
-                      for (var e = 0; e < columns - rows[r].length; e++) ...[
-                        const SizedBox(width: gap),
-                        const Expanded(child: SizedBox()),
-                      ],
                   ],
                 ),
               ),
@@ -1237,37 +1123,57 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
 }
 
 class _EditProfileDialog extends StatefulWidget {
-  const _EditProfileDialog({required this.initialName, required this.onSave});
+  const _EditProfileDialog({
+    required this.initialName,
+    required this.email,
+    required this.initialPhone,
+    required this.initialNationality,
+    required this.onSave,
+  });
 
   final String initialName;
-  final Future<bool> Function(String) onSave;
+  final String email;
+  final String initialPhone;
+  final String initialNationality;
+  final Future<bool> Function(String, String, String) onSave;
 
   @override
   State<_EditProfileDialog> createState() => _EditProfileDialogState();
 }
 
 class _EditProfileDialogState extends State<_EditProfileDialog> {
-  late final TextEditingController _controller;
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _nationalityController;
   String? _inlineError;
   bool _saving = false;
 
-  bool get _hasChanges => _controller.text.trim() != widget.initialName.trim();
+  bool get _hasChanges =>
+      _nameController.text.trim() != widget.initialName.trim() ||
+      _phoneController.text.trim() != widget.initialPhone.trim() ||
+      _nationalityController.text.trim() != widget.initialNationality.trim();
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialName);
+    _nameController = TextEditingController(text: widget.initialName);
+    _phoneController = TextEditingController(text: widget.initialPhone);
+    _nationalityController = TextEditingController(
+      text: widget.initialNationality,
+    );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _nationalityController.dispose();
     super.dispose();
   }
 
   Future<void> _handleSave() async {
     if (_saving || !_hasChanges) return;
-    final text = _controller.text.trim();
+    final text = _nameController.text.trim();
     if (text.isEmpty) {
       setState(() {
         _inlineError = context.tr(AuthService.m2NameRequired);
@@ -1278,7 +1184,11 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       _saving = true;
       _inlineError = null;
     });
-    final saved = await widget.onSave(text);
+    final saved = await widget.onSave(
+      text,
+      _phoneController.text.trim(),
+      _nationalityController.text.trim(),
+    );
     if (!mounted) return;
     if (saved) {
       Navigator.pop(context, true);
@@ -1292,109 +1202,352 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-
     return PopScope(
       canPop: !_saving,
-      child: AlertDialog(
-        scrollable: true,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        title: Row(
-          children: [
-            ExcludeSemantics(
-              child: CircleAvatar(
-                radius: 24,
-                backgroundColor: colors.primaryContainer,
-                foregroundColor: colors.onPrimaryContainer,
-                child: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _controller,
-                  builder: (context, value, _) {
-                    final name = value.text.trim();
-                    if (name.isEmpty) return const Icon(Icons.person_outline);
-                    return Text(
-                      name.characters.first.toUpperCase(),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: colors.onPrimaryContainer,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.clip,
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: Text(context.l10n.editProfile2)),
-          ],
+      child: Dialog(
+        backgroundColor: AppColors.nightSurface,
+        elevation: 16,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.nightLine, width: 1),
         ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-        content: SizedBox(
-          width: 312,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildNameField(context),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _hasChanges && !_saving ? _handleSave : null,
-                child: _saving
-                    ? SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          semanticsLabel: context.l10n.save,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Clean dialog header with title, subtitle, and close button
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.nightRaised,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.nightLine),
+                      ),
+                      child: const Icon(
+                        Icons.person_outline_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.l10n.editProfile2,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.email,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.nightMuted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _saving ? null : () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: AppColors.nightMuted,
+                      ),
+                      splashRadius: 18,
+                      tooltip: context.l10n.cancel,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: AppColors.nightLine),
+                const SizedBox(height: 16),
+
+                // Individual Rounded Soft Card 1: Full Name
+                _buildFieldCard(
+                  label: context.l10n.fullName2,
+                  icon: Icons.badge_outlined,
+                  isRequired: true,
+                  errorText: _inlineError,
+                  child: TextField(
+                    controller: _nameController,
+                    readOnly: _saving,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (_) {
+                      if (_inlineError != null) {
+                        setState(() => _inlineError = null);
+                      } else {
+                        setState(() {});
+                      }
+                    },
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: context.l10n.eGAliBinAhmad,
+                      hintStyle: TextStyle(
+                        color: AppColors.nightMuted.withValues(alpha: 0.4),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Individual Rounded Soft Card 2: Email Address (Read-only)
+                _buildFieldCard(
+                  label: context.l10n.emailAddress,
+                  icon: Icons.email_outlined,
+                  isReadOnly: true,
+                  child: TextFormField(
+                    initialValue: widget.email,
+                    readOnly: true,
+                    style: const TextStyle(
+                      color: AppColors.nightMuted,
+                      fontSize: 14,
+                    ),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Individual Rounded Soft Card 3: Phone Number
+                _buildFieldCard(
+                  label: context.l10n.phone,
+                  icon: Icons.phone_outlined,
+                  child: TextField(
+                    controller: _phoneController,
+                    readOnly: _saving,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    onChanged: (_) => setState(() {}),
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: '+60 12 345 6789',
+                      hintStyle: TextStyle(
+                        color: AppColors.nightMuted.withValues(alpha: 0.4),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Individual Rounded Soft Card 4: Country / Region
+                _buildFieldCard(
+                  label: context.l10n.profileCountry,
+                  icon: Icons.public_outlined,
+                  child: TextField(
+                    controller: _nationalityController,
+                    readOnly: _saving,
+                    textInputAction: TextInputAction.done,
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) => _handleSave(),
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: 'e.g. Malaysia',
+                      hintStyle: TextStyle(
+                        color: AppColors.nightMuted.withValues(alpha: 0.4),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Horizontal Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _saving
+                            ? null
+                            : () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.nightMuted,
+                          side: const BorderSide(color: AppColors.nightLine),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      )
-                    : Text(context.l10n.save),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: _saving ? null : () => Navigator.pop(context),
-                child: Text(context.l10n.cancel),
-              ),
-            ],
+                        child: Text(
+                          context.l10n.cancel,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _hasChanges && !_saving ? _handleSave : null,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.onNightAccent,
+                          disabledBackgroundColor: AppColors.nightRaised,
+                          disabledForegroundColor: AppColors.nightMuted
+                              .withValues(alpha: 0.4),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _saving
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.onNightAccent,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                context.l10n.save,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNameField(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return TextField(
-      controller: _controller,
-      readOnly: _saving,
-      textInputAction: TextInputAction.done,
-      textCapitalization: TextCapitalization.words,
-      onChanged: (_) => setState(() => _inlineError = null),
-      onSubmitted: (_) => _handleSave(),
-      decoration: InputDecoration(
-        border: const OutlineInputBorder(),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: colors.outline),
+  Widget _buildFieldCard({
+    required String label,
+    required IconData icon,
+    required Widget child,
+    bool isReadOnly = false,
+    bool isRequired = false,
+    String? errorText,
+  }) {
+    final hasError = errorText != null && errorText.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isReadOnly ? AppColors.nightCanvas : AppColors.nightRaised,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasError ? Colors.redAccent : AppColors.nightLine,
+              width: hasError ? 1.5 : 1.0,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: hasError ? Colors.redAccent : AppColors.nightMuted,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  if (isRequired)
+                    const Text(
+                      ' *',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  if (isReadOnly) ...[
+                    const Spacer(),
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 13,
+                      color: AppColors.nightMuted,
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: isReadOnly
+                        ? AppColors.nightMuted.withValues(alpha: 0.5)
+                        : AppColors.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: child),
+                ],
+              ),
+            ],
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: colors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: colors.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: colors.error, width: 2),
-        ),
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(context.l10n.fullName2),
-            const Text(' *', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        hintText: context.l10n.eGAliBinAhmad,
-        errorText: _inlineError,
-      ),
+        if (hasError) ...[
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              errorText,
+              style: const TextStyle(fontSize: 11, color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

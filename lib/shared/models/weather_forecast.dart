@@ -11,6 +11,9 @@ class WeatherForecast {
   final double temperatureC;
   final String adviceText;
   final bool isAvailable;
+  final bool isCached;
+  final bool hasRainProbability;
+  final String? localTime;
 
   const WeatherForecast({
     this.id = '',
@@ -22,6 +25,9 @@ class WeatherForecast {
     this.temperatureC = 30.0,
     this.adviceText = '',
     this.isAvailable = true,
+    this.isCached = false,
+    this.hasRainProbability = true,
+    this.localTime,
   });
 
   /// Evaluates whether current day's weather is suitable for outdoor attractions
