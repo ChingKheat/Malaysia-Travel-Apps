@@ -59,7 +59,7 @@ class PlaceCatalogService {
         rows.addAll(page);
         if (page.length < 1000) break;
       }
-      final usable = rows.map(persistentRow).where(valid).toList();
+      final usable = rows.map(databaseRow).where(valid).toList();
       try {
         await prefs?.setString(key, jsonEncode(usable));
       } catch (_) {}
@@ -97,7 +97,7 @@ class PlaceCatalogService {
         return saved
             .whereType<Map>()
             .map((p) => Map<String, dynamic>.from(p))
-            .map(persistentRow)
+            .map(databaseRow)
             .where((r) => valid(r) && (state == null || r['state'] == state))
             .toList();
       } catch (_) {
@@ -112,9 +112,15 @@ class PlaceCatalogService {
           (row['place_id'] as String).isNotEmpty &&
           row['state'] is String;
     }
+    return hasLocationDetails(row);
+  }
+
+  static bool hasLocationDetails(Map<String, dynamic> row) {
     final lat = row['latitude'], lng = row['longitude'];
     return row['place_id'] is String &&
+        (row['place_id'] as String).trim().isNotEmpty &&
         row['name'] is String &&
+        (row['name'] as String).trim().isNotEmpty &&
         row['name'] != 'Saved Google place' &&
         lat is num &&
         lng is num &&
@@ -144,13 +150,7 @@ class PlaceCatalogService {
   ];
 
   static Map<String, dynamic> persistentRow(Map<String, dynamic> row) {
-    final rawPhoto = row['photo_url']?.toString();
-    final safePhoto =
-        rawPhoto != null &&
-            !rawPhoto.contains('places.googleapis.com') &&
-            !rawPhoto.contains('key=')
-        ? rawPhoto
-        : null;
+    final safePhoto = _safePhoto(row);
     if (!isGoogleReference(row)) return {...row, 'photo_url': safePhoto};
     return {
       'place_id': row['place_id'],
@@ -170,6 +170,22 @@ class PlaceCatalogService {
     };
   }
 
+  static Map<String, dynamic> databaseRow(Map<String, dynamic> row) => {
+    ...row,
+    'photo_url': _safePhoto(row),
+  };
+
+  static String? _safePhoto(Map<String, dynamic> row) {
+    final rawPhoto = row['photo_url']?.toString();
+    final safePhoto =
+        rawPhoto != null &&
+            !rawPhoto.contains('places.googleapis.com') &&
+            !rawPhoto.contains('key=')
+        ? rawPhoto
+        : null;
+    return safePhoto;
+  }
+
   static bool isMeal(Map<String, dynamic> row) =>
       mealPattern.hasMatch('${row['category']}');
   static Map<String, dynamic> asGoogleShape(Map<String, dynamic> row) => {
@@ -184,7 +200,9 @@ class PlaceCatalogService {
     'attributions': row['attributions'] ?? const [],
     'is_indoor': row['is_indoor'],
     'photo_url': row['photo_url'],
-    'photos': row['google_photos'] ?? const [],
+    'photos':
+        row['google_photos'] ??
+        [if (row['cover_photo'] case final Map photo) photo],
     'catalog_source_url': row['catalog_source_url'],
     'catalog_license': row['catalog_license'],
     'catalog_verified_at': row['catalog_verified_at'],

@@ -85,7 +85,7 @@ void main() {
       );
       expect(google.searched, isFalse);
       expect(page.failure, PlacesFailure.emptyCatalog);
-      expect(page.source, 'Verified database catalog');
+      expect(page.source, 'Database catalog');
       expect(page.items, isEmpty);
       expect(page.hasMore, isFalse);
     },

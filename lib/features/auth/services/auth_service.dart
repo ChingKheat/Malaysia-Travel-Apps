@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/auth/models/user_model.dart';
+import 'package:smart_travel_planner/features/home/services/destination_spotlight_controller.dart';
 import 'package:smart_travel_planner/features/onboarding/services/onboarding_service.dart';
 import 'package:smart_travel_planner/features/profile/services/profile_avatar_service.dart';
 
@@ -72,6 +73,9 @@ class AuthService extends ChangeNotifier {
       client.auth.onAuthStateChange.listen((data) async {
         final session = data.session;
         if (session != null && session.user.id != _currentUser?.uid) {
+          if (data.event == AuthChangeEvent.signedIn && _currentUser == null) {
+            DestinationSpotlightStore.resetForLogin();
+          }
           await _loadProfileFromSupabase(
             session.user.id,
             session.user.email ?? '',
@@ -220,6 +224,7 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
+    final wasLoggedIn = isLoggedIn;
     _isLoading = true;
     notifyListeners();
 
@@ -263,6 +268,9 @@ class AuthService extends ChangeNotifier {
           );
           _isGuest = false;
           _isLoading = false;
+          if (!wasLoggedIn && isLoggedIn) {
+            DestinationSpotlightStore.resetForLogin();
+          }
           notifyListeners();
           return LoginResult(
             success: true,
@@ -317,6 +325,9 @@ class AuthService extends ChangeNotifier {
     );
     _isGuest = false;
     _isLoading = false;
+    if (!wasLoggedIn && isLoggedIn) {
+      DestinationSpotlightStore.resetForLogin();
+    }
     notifyListeners();
 
     unawaited(_ensureSupabaseProfile(authenticatedUser));
@@ -345,6 +356,7 @@ class AuthService extends ChangeNotifier {
     String phone = '',
     String nationality = '',
   }) async {
+    final wasLoggedIn = isLoggedIn;
     _isLoading = true;
     notifyListeners();
 
@@ -458,6 +470,9 @@ class AuthService extends ChangeNotifier {
           _currentUser = newUser;
           _isGuest = false;
           _isLoading = false;
+          if (!wasLoggedIn && isLoggedIn) {
+            DestinationSpotlightStore.resetForLogin();
+          }
           notifyListeners();
 
           return RegisterResult(
@@ -521,6 +536,9 @@ class AuthService extends ChangeNotifier {
     _currentUser = newUser;
     _isGuest = false;
     _isLoading = false;
+    if (!wasLoggedIn && isLoggedIn) {
+      DestinationSpotlightStore.resetForLogin();
+    }
     notifyListeners();
 
     unawaited(_ensureSupabaseProfile(newUser));
@@ -677,6 +695,7 @@ class AuthService extends ChangeNotifier {
   // --- Helper Guest & Logout Methods ---
 
   Future<void> loginAsGuest() async {
+    final wasLoggedIn = isLoggedIn;
     _isLoading = true;
     notifyListeners();
 
@@ -705,6 +724,9 @@ class AuthService extends ChangeNotifier {
     );
     _isGuest = true;
     _isLoading = false;
+    if (!wasLoggedIn && isLoggedIn) {
+      DestinationSpotlightStore.resetForLogin();
+    }
     notifyListeners();
 
     unawaited(_ensureSupabaseProfile(guestUser));

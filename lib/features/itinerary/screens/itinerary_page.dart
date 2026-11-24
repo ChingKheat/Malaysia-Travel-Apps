@@ -13,6 +13,7 @@ import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.
 import 'package:smart_travel_planner/features/itinerary/models/saved_trip.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
+import 'package:smart_travel_planner/features/itinerary/widgets/multi_city_route_filter_bar.dart';
 import 'today_plan_page.dart';
 import 'package:smart_travel_planner/shared/models/weather_forecast.dart';
 import 'package:smart_travel_planner/features/itinerary/services/smart_itinerary_service.dart';
@@ -34,11 +35,13 @@ class ItineraryPage extends StatefulWidget {
   final VoidCallback? onPlanTap;
   final bool compactResult;
   final String? initialItineraryId;
+  final int initialDayIndex;
   const ItineraryPage({
     super.key,
     this.onPlanTap,
     this.compactResult = false,
     this.initialItineraryId,
+    this.initialDayIndex = 0,
   });
 
   @override
@@ -49,6 +52,7 @@ class _ItineraryPageState extends State<ItineraryPage>
     with WidgetsBindingObserver {
   int _selectedTripIndex = 0;
   int _selectedDay = 0;
+  int? _selectedLegIndex;
   final _dayRouteAnchor = GlobalKey();
   final _dayRoutes = DayRouteService();
   List<SavedTrip> _dbSavedTrips = [];
@@ -69,6 +73,7 @@ class _ItineraryPageState extends State<ItineraryPage>
   @override
   void initState() {
     super.initState();
+    _selectedDay = widget.initialDayIndex < 0 ? 0 : widget.initialDayIndex;
     WidgetsBinding.instance.addObserver(this);
     _loadedUserId = AuthService().currentUser?.uid;
     SupabaseItineraryService().addListener(_onRepositoryChanged);
@@ -780,7 +785,9 @@ class _ItineraryPageState extends State<ItineraryPage>
         .where(
           (r) =>
               ids.contains(r['place_id']) &&
-              (!PlaceCatalogService.isGoogleReference(r) || r['_live'] == true),
+              (!PlaceCatalogService.isGoogleReference(r) ||
+                  PlaceCatalogService.hasLocationDetails(r) ||
+                  r['_live'] == true),
         )
         .map(
           (r) =>
@@ -1205,10 +1212,8 @@ class _ItineraryPageState extends State<ItineraryPage>
       setState(() {
         if (widget.compactResult) _draftSave = null;
         final tripKey = _tripKey;
-        _editedTripStops.putIfAbsent(
-          tripKey,
-          () => {},
-        )[_selectedDay] = updatedStops;
+        _editedTripStops.putIfAbsent(tripKey, () => {})[_selectedDay] =
+            updatedStops;
       });
       showDemoSnackBar(
         context,
@@ -1356,29 +1361,104 @@ class _ItineraryPageState extends State<ItineraryPage>
           ),
         const SizedBox(height: 14),
 
-        // Horizontally Scrollable Day Selector (Supports 1 to 7+ days without overflowing)
-        SizedBox(
-          height:
-              62 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: totalDays,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final isSelected = _selectedDay == index;
-              final dayDate = _dateForDay(index);
-              final subtitle = DateFormat.MMMd(
-                Localizations.localeOf(context).toString(),
-              ).format(dayDate);
-              return DayPill(
-                label: context.l10n.dayValue((index + 1).toString()),
-                subtitle: subtitle,
-                active: isSelected,
-                onTap: () => _selectDay(index),
-              );
+        if (_preferences.isMultiDestination) ...[
+          MultiCityRouteFilterBar(
+            legs: _preferences.legs,
+            startDate: _dateForDay(0),
+            selectedLegIndex: _selectedLegIndex,
+            onSelectLeg: (legIdx) {
+              setState(() => _selectedLegIndex = legIdx);
+              if (legIdx != null && legIdx < _preferences.legs.length) {
+                int startOffset = 0;
+                for (int i = 0; i < legIdx; i++) {
+                  startOffset += _preferences.legs[i].allocatedDays;
+                }
+                if (startOffset < totalDays) {
+                  _selectDay(startOffset);
+                }
+              }
             },
           ),
+          const SizedBox(height: 12),
+        ],
+
+        // Horizontally Scrollable Day Selector (Filtered by selected state leg when active)
+        Builder(
+          builder: (context) {
+            final List<int> visibleDays;
+            if (_preferences.isMultiDestination &&
+                _selectedLegIndex != null &&
+                _selectedLegIndex! < _preferences.legs.length) {
+              int startOffset = 0;
+              for (int i = 0; i < _selectedLegIndex!; i++) {
+                startOffset += _preferences.legs[i].allocatedDays;
+              }
+              final count = _preferences.legs[_selectedLegIndex!].allocatedDays;
+              visibleDays = [
+                for (
+                  int d = startOffset;
+                  d < startOffset + count && d < totalDays;
+                  d++
+                )
+                  d,
+              ];
+            } else {
+              visibleDays = [for (int d = 0; d < totalDays; d++) d];
+            }
+
+            final transferDays = <int>{};
+            if (_preferences.isMultiDestination) {
+              int offset = 0;
+              for (int i = 0; i < _preferences.legs.length; i++) {
+                if (i > 0) transferDays.add(offset);
+                offset += _preferences.legs[i].allocatedDays;
+              }
+            }
+
+            return SizedBox(
+              height:
+                  (_preferences.isMultiDestination ? 68 : 62) *
+                  MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: visibleDays.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, idx) {
+                  final dayIndex = visibleDays[idx];
+                  final isSelected = _selectedDay == dayIndex;
+                  final dayDate = _dateForDay(dayIndex);
+                  if (_preferences.isMultiDestination) {
+                    final locale = Localizations.localeOf(context).toString();
+                    final weekday = DateFormat.E(
+                      locale,
+                    ).format(dayDate).toUpperCase();
+                    final monthLabel = DateFormat.MMM(
+                      locale,
+                    ).format(dayDate).toUpperCase();
+                    final dayNum = dayDate.day.toString();
+                    return _CalendarDayCell(
+                      weekday: weekday,
+                      dayNumber: dayNum,
+                      monthLabel: monthLabel,
+                      active: isSelected,
+                      isTransferDay: transferDays.contains(dayIndex),
+                      onTap: () => _selectDay(dayIndex),
+                    );
+                  }
+                  final subtitle = DateFormat.MMMd(
+                    Localizations.localeOf(context).toString(),
+                  ).format(dayDate);
+                  return DayPill(
+                    label: context.l10n.dayValue((dayIndex + 1).toString()),
+                    subtitle: subtitle,
+                    active: isSelected,
+                    onTap: () => _selectDay(dayIndex),
+                  );
+                },
+              ),
+            );
+          },
         ),
         const SizedBox(height: 14),
 
@@ -1575,7 +1655,9 @@ class _ItineraryPageState extends State<ItineraryPage>
                       Text(
                         context.itineraryWarnings(
                           SmartItineraryService.dayWarnings[_selectedDay] ??
-                              context.l10n.noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours,
+                              context
+                                  .l10n
+                                  .noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours,
                         ),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
@@ -1773,26 +1855,24 @@ class _ItineraryPageState extends State<ItineraryPage>
           else if (!_isLoadingWeather)
             InkWell(
               onTap: () {
-                final msg =
-                    (forecast != null && forecast.adviceText.isNotEmpty)
-                        ? forecast.adviceText
-                        : (daysAhead > 5
-                              ? 'Weather forecast is available within 5 days of travel. Check again closer to your trip.'
-                              : context
-                                    .l10n
-                                    .forecastUnavailableForThisDateWeatherFilteringWasNotApplied);
+                final msg = (forecast != null && forecast.adviceText.isNotEmpty)
+                    ? forecast.adviceText
+                    : (daysAhead > 5
+                          ? 'Weather forecast is available within 5 days of travel. Check again closer to your trip.'
+                          : context
+                                .l10n
+                                .forecastUnavailableForThisDateWeatherFilteringWasNotApplied);
                 showDemoSnackBar(context, msg, icon: Icons.cloud_off_outlined);
               },
               borderRadius: BorderRadius.circular(4),
               child: Tooltip(
-                message:
-                    (forecast != null && forecast.adviceText.isNotEmpty)
-                        ? forecast.adviceText
-                        : (daysAhead > 5
-                              ? 'Weather forecast is available within 5 days of travel. Check again closer to your trip.'
-                              : context
-                                    .l10n
-                                    .forecastUnavailableForThisDateWeatherFilteringWasNotApplied),
+                message: (forecast != null && forecast.adviceText.isNotEmpty)
+                    ? forecast.adviceText
+                    : (daysAhead > 5
+                          ? 'Weather forecast is available within 5 days of travel. Check again closer to your trip.'
+                          : context
+                                .l10n
+                                .forecastUnavailableForThisDateWeatherFilteringWasNotApplied),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1871,7 +1951,9 @@ class DayPill extends StatelessWidget {
                   context.tr(label),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: active ? AppColors.onNightAccent : AppColors.nightBody,
+                    color: active
+                        ? AppColors.onNightAccent
+                        : AppColors.nightBody,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -1892,6 +1974,102 @@ class DayPill extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarDayCell extends StatelessWidget {
+  const _CalendarDayCell({
+    required this.weekday,
+    required this.dayNumber,
+    required this.monthLabel,
+    required this.onTap,
+    this.active = false,
+    this.isTransferDay = false,
+  });
+
+  final String weekday;
+  final String dayNumber;
+  final String monthLabel;
+  final VoidCallback onTap;
+  final bool active;
+  final bool isTransferDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final secondaryColor = active
+        ? AppColors.onNightAccent.withValues(alpha: 0.85)
+        : AppColors.muted;
+    return DemoTapCard(
+      onTap: onTap,
+      borderRadius: 14,
+      child: Semantics(
+        button: true,
+        selected: active,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 58,
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          decoration: BoxDecoration(
+            color: active ? primary : AppColors.nightSurface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: active ? primary : AppColors.nightLine,
+              width: 1.4,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                weekday,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: secondaryColor,
+                ),
+              ),
+              Text(
+                dayNumber,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                  color: active ? AppColors.onNightAccent : AppColors.nightBody,
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    monthLabel,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: secondaryColor,
+                    ),
+                  ),
+                  if (isTransferDay) ...[
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.directions_transit_outlined,
+                      size: 10,
+                      color: active
+                          ? AppColors.onNightAccent
+                          : AppColors.primary,
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ),
         ),
       ),

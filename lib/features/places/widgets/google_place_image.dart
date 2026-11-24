@@ -12,7 +12,7 @@ class GooglePlaceImage extends StatefulWidget {
   const GooglePlaceImage({
     super.key,
     required this.placeId,
-    required this.photo,
+    this.photo,
     required this.service,
     this.photoIndex = 0,
     this.requestWidth = 800,
@@ -25,7 +25,7 @@ class GooglePlaceImage extends StatefulWidget {
     this.showPhotoAuthorAttribution = true,
   });
   final String placeId;
-  final GooglePlacePhoto photo;
+  final GooglePlacePhoto? photo;
   final int photoIndex;
   final int requestWidth;
   final bool compactAttribution;
@@ -42,7 +42,7 @@ class GooglePlaceImage extends StatefulWidget {
 
 class _GooglePlaceImageState extends State<GooglePlaceImage> {
   Uint8List? _bytes;
-  late GooglePlacePhoto _photo;
+  GooglePlacePhoto? _photo;
   bool _loading = false;
   bool _requested = false;
   int _generation = 0;
@@ -58,7 +58,7 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
   @override
   void didUpdateWidget(covariant GooglePlaceImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.photo.name != widget.photo.name ||
+    if (oldWidget.photo?.name != widget.photo?.name ||
         oldWidget.placeId != widget.placeId) {
       _generation++;
       _photo = widget.photo;
@@ -79,17 +79,25 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
       _loading = true;
       _requested = true;
     });
-    final result = await widget.service.fetchPhotoResult(
-      _photo,
-      width: widget.requestWidth,
-    );
-    var bytes = result.bytes;
+    final initial = widget.photo;
+    final result = initial == null
+        ? null
+        : await widget.service.fetchPhotoResult(
+            initial,
+            width: widget.requestWidth,
+          );
+    if (!mounted || generation != _generation) return;
+    var bytes = result?.bytes;
     // A photo reference can expire. Ask Google for new details and retry once.
     if (bytes == null) {
-      final details = await widget.service.fetchDetails(widget.placeId);
+      final details = await widget.service.fetchDetails(
+        widget.placeId,
+        basic: true,
+      );
+      if (!mounted || generation != _generation) return;
       final photos = details?.photos ?? [];
       for (final fresh in photos.skip(widget.photoIndex).take(3)) {
-        if (!result.expired && fresh.name == _photo.name) continue;
+        if (result?.expired == false && fresh.name == initial?.name) continue;
         bytes = await widget.service.fetchPhoto(
           fresh,
           width: widget.requestWidth,
@@ -169,8 +177,9 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
 
     if (widget.fill) {
       final compact = widget.compactAttribution;
-      final authorName = _photo.authors.firstOrNull?['displayName']?.toString();
-      final authorUri = _photo.authors.firstOrNull?['uri']?.toString();
+      final authorName = _photo?.authors.firstOrNull?['displayName']
+          ?.toString();
+      final authorUri = _photo?.authors.firstOrNull?['uri']?.toString();
 
       return Stack(
         fit: StackFit.expand,
@@ -257,7 +266,7 @@ class _GooglePlaceImageState extends State<GooglePlaceImage> {
         SizedBox(height: 220, width: double.infinity, child: imageWidget),
         if (_bytes != null) ...[
           const Text('Google Maps'),
-          ..._photo.authors.map(
+          ...?_photo?.authors.map(
             (author) => TextButton(
               onPressed: author['uri'] == null
                   ? null

@@ -182,6 +182,7 @@ class ModernDateRangePicker extends StatefulWidget {
     this.currentStep = 2,
     this.confirmButtonText,
     this.subtext,
+    this.topBanner,
   });
 
   final DateTimeRange? initialDateRange;
@@ -199,6 +200,7 @@ class ModernDateRangePicker extends StatefulWidget {
   final int currentStep;
   final String? confirmButtonText;
   final String? subtext;
+  final Widget? topBanner;
 
   @override
   State<ModernDateRangePicker> createState() => _ModernDateRangePickerState();
@@ -381,6 +383,10 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker> {
                   children: [
                     if (widget.showHeader) ...[
                       _buildHeader(strings),
+                      const SizedBox(height: 16),
+                    ],
+                    if (widget.topBanner != null) ...[
+                      widget.topBanner!,
                       const SizedBox(height: 16),
                     ],
                     _buildTitle(strings),

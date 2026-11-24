@@ -10,11 +10,13 @@ class MyTripsScreen extends StatelessWidget {
     required this.onBackTap,
     required this.onPlanTap,
     this.initialItineraryId,
+    this.initialDayIndex = 0,
   });
 
   final VoidCallback onBackTap;
   final VoidCallback onPlanTap;
   final String? initialItineraryId;
+  final int initialDayIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +39,7 @@ class MyTripsScreen extends StatelessWidget {
         child: ItineraryPage(
           onPlanTap: onPlanTap,
           initialItineraryId: initialItineraryId,
+          initialDayIndex: initialDayIndex,
         ),
       ),
     );

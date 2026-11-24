@@ -87,6 +87,21 @@ void main() {
     expect(days.last.map((stop) => stop.placeId), contains(chosen.placeId));
   });
 
+  test('schedules an outdoor must-visit when every day has rain', () {
+    final chosen = place('Selected park', 103.5, isIndoor: false);
+    final days = SchedulingEngine.scheduleTrip(
+      candidates: [chosen, place('Indoor museum', 103.501, isIndoor: true)],
+      preferences: TripPreferences(mustVisitPlaces: [chosen]),
+      dates: [date],
+      weather: [WeatherForecast(
+        itineraryId: 'test', locationState: 'Johor', scheduleDate: date,
+        condition: 'Rain', rainProbability: 80,
+      )],
+      dailyLegs: [{}],
+    );
+    expect(days.single.map((stop) => stop.placeId), contains(chosen.placeId));
+  });
+
   test('regeneration rotates suggestions and preserves chosen stops', () {
     final required = place('Must-visit museum', 103.5);
     final chosen = place('Selected gallery', 103.501);

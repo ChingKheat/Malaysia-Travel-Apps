@@ -1,4 +1,5 @@
 {
+  "categoryIllustration": "Category illustration",
   "profileCountry": "Country / Region",
   "unscheduledSelectedPlaces": "Unscheduled selected places",
   "selectedPlacesHelp": "We’ll try to fit these places into your trip.",
@@ -1457,11 +1458,11 @@
   "indoor3": "🏢 Indoor",
   "outdoor2": "☀️ Outdoor",
   "topRated": "Top rated",
-  "sights": "🏛️ Sights",
-  "nature2": "🌳 Nature",
-  "food2": "🍔 Food",
-  "cafes": "☕ Cafes",
-  "shops": "🛍️ Shops",
+  "sights": "Sights",
+  "nature2": "Nature",
+  "food2": "Food",
+  "cafes": "Cafes",
+  "shops": "Shops",
   "admin": "👑 Admin",
   "review2": "❓ Review",
   "indoorValue": "🏛️ Indoor ({arg0})",
@@ -1690,6 +1691,8 @@
   "noAdditionalPlacesFitThisDayTryFewerDaysOrWiderDailyHours": "No additional places fit this day. Try fewer days or wider daily hours.",
   "forecastUnavailableForThisDateWeatherFilteringWasNotApplied": "Forecast unavailable for this date; weather filtering was not applied.",
   "travelTimesAreDistanceBasedEstimates": "Travel times are distance-based estimates.",
+  "transferPastDailyEnd": "The transfer is estimated to finish after your planned end time. No sightseeing is scheduled.",
+  "transferNextDay": "(+1 day)",
   "someOpeningHoursAreUnverifiedConfirmBeforeVisiting": "Some opening hours are unverified. Confirm before visiting.",
   "costsArePlanningEstimatesExcludingAccommodationAndTravelToTheFirstStop": "Costs are planning estimates, excluding accommodation and travel to the first stop.",
   "itinerarySavedSuccessfullyToYourProfile": "Itinerary saved successfully to your profile!",
@@ -1901,6 +1904,35 @@
   "planContinueBudget": "Continue to budget & dining",
   "planLogisticsHelp": "Add times and a starting point to help plan your days. All fields are optional.",
   "planContinueHighlights": "Continue to highlights & interests",
+  "planPreviousSelectionTitle": "Previous Trip Plan",
+  "@planPreviousSelectionTitle": {
+    "description": "Title of prompt when an ongoing trip plan exists"
+  },
+  "planPreviousSelectionMessage": "You have an ongoing trip plan for {destination}. Would you like to continue where you left off or start over?",
+  "@planPreviousSelectionMessage": {
+    "description": "Message prompting the user to continue or reset previous trip selections",
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "planContinueExisting": "Continue",
+  "@planContinueExisting": {
+    "description": "Action button to continue with existing trip selections"
+  },
+  "planStartOver": "Start Over",
+  "@planStartOver": {
+    "description": "Action button to reset selections and start fresh"
+  },
+  "planResetConfirmation": "Reset this trip plan? All your current selections will be cleared.",
+  "@planResetConfirmation": {
+    "description": "Confirmation question before resetting all trip planner inputs"
+  },
+  "planResetSuccess": "Plan reset. You can start fresh.",
+  "@planResetSuccess": {
+    "description": "Notification snackbar after successfully resetting the trip plan"
+  },
   "profileTravelPreferences": "Travel Preferences",
   "profilePace": "Travel Pace",
   "profileModerate": "Moderate",
@@ -2069,15 +2101,138 @@
   "assistantSynced": "Synced",
   "assistantNewChat": "New chat",
   "assistantChatOptions": "Chat options",
-  "assistantStarterWeather": "Weather",
-  "assistantStarterFood": "Food",
-  "assistantStarterTransport": "Transport",
+  "assistantStarterWeather": "Check weather",
+  "assistantStarterFood": "Find food",
+  "assistantStarterTransport": "Get directions",
   "assistantStarterItinerary": "Itinerary help",
-  "assistantPromptWeather": "What is the forecast for Kuala Lumpur today?",
+  "assistantPromptWeather": "Weather in",
   "assistantPromptFood": "Suggest food options in Malaysia.",
-  "assistantPromptTransport": "How do I get from KLIA to KL Sentral?",
+  "assistantPromptTransport": "Directions from",
   "assistantPromptItinerary": "How can I add a stop to my itinerary?",
-  "assistantGreeting": "How can I help with your trip?",
+  "assistantGreeting": "Pick a shortcut below or type a travel question.",
   "assistantReviewStop": "Review the stop details before saving.",
-  "assistantItineraryInstructions": "Tell me which place to add, or choose Add to plan on a place card. In the preview, choose the trip, day, and visit times, then confirm."
+  "assistantItineraryInstructions": "Tell me which place to add, or choose Add to plan on a place card. In the preview, choose the trip, day, and visit times, then confirm.",
+  "spotlightHeading": "Where would you like to explore?",
+  "spotlightSubtitle": "Choose one or more Malaysian destinations to shape your route.",
+  "spotlightChooseDestinations": "Choose destinations",
+  "spotlightDismissLabel": "Dismiss destination spotlight",
+  "spotlightPickerSubtitle": "Select one destination for a single trip, or two or more for a multi-city route. Your first pick sets the starting hub.",
+  "spotlightContinueToPlanner": "Continue to planner",
+  "spotlightSelectedCount": "{count, plural, =0{No destinations selected} =1{1 destination selected} other{{count} destinations selected}}",
+  "@spotlightSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "spotlightStartBadge": "Start",
+  "spotlightStopOrder": "Stop {order}",
+  "@spotlightStopOrder": {
+    "placeholders": {
+      "order": {
+        "type": "int"
+      }
+    }
+  },
+  "spotlightSelectedSemantics": "{place}, {region}, selected",
+  "@spotlightSelectedSemantics": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      },
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "spotlightNotSelectedSemantics": "{place}, {region}, not selected",
+  "@spotlightNotSelectedSemantics": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      },
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "spotlightPlaceKualaLumpur": "Kuala Lumpur",
+  "spotlightPlaceGeorgeTown": "George Town",
+  "spotlightPlaceLangkawi": "Langkawi",
+  "spotlightPlaceJohorBahru": "Johor Bahru",
+  "spotlightPlaceBatuCaves": "Batu Caves",
+  "spotlightRegionKualaLumpur": "Kuala Lumpur",
+  "spotlightRegionPenang": "Penang",
+  "spotlightRegionKedah": "Kedah",
+  "spotlightRegionJohor": "Johor",
+  "spotlightDraftConflictTitle": "Replace current draft?",
+  "spotlightDraftConflictMessage": "You already have a trip draft in Plan ({summary}). Keep it or start a new draft with your chosen destinations?",
+  "@spotlightDraftConflictMessage": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "spotlightKeepCurrentDraft": "Keep current draft",
+  "spotlightStartNewDraft": "Start a new draft",
+  "plannerProposedRouteTitle": "Proposed multi-city route",
+  "plannerRouteAutoOrdered": "Ordered from your starting hub",
+  "plannerEditRoute": "Edit route",
+  "plannerRemoveDestinationTooltip": "Remove {destination}",
+  "@plannerRemoveDestinationTooltip": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "plannerDaysAllocatedShort": "{days}d",
+  "@plannerDaysAllocatedShort": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "plannerDurationConflictTitle": "More destinations than trip days",
+  "plannerDurationConflictMessage": "You selected {hubCount} destinations for a {dayCount}-day trip. Extend your travel dates or remove a destination before generating.",
+  "@plannerDurationConflictMessage": {
+    "placeholders": {
+      "hubCount": {
+        "type": "int"
+      },
+      "dayCount": {
+        "type": "int"
+      }
+    }
+  },
+  "plannerExtendTripDates": "Extend trip",
+  "spotlightSearchHint": "Search city or state (e.g. Ipoh, Sabah)",
+  "spotlightShuffle": "Shuffle",
+  "spotlightNoMatchingHubs": "No matching destinations found",
+  "spotlightFeaturedSpot": "Featured · {place}",
+  "@spotlightFeaturedSpot": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "addToExistingTrip": "Add to an existing trip",
+  "createNewTripWithPlaces": "Create new trip with these places",
+  "chooseDayToAdd": "Choose a day to add",
+  "addedToTripDay": "Added to Day {day} of {trip}",
+  "@addedToTripDay": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      },
+      "trip": {
+        "type": "String"
+      }
+    }
+  },
+  "scanPlacesAutoFilled": "Destination & interests pre-filled from your scanned places."
 }

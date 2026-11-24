@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'itinerary_cloud.dart';
 import 'package:smart_travel_planner/features/itinerary/models/itinerary_models.dart';
@@ -55,6 +56,8 @@ class SupabaseItineraryService extends ChangeNotifier
   String? _lastUserId;
   String? lastError;
   String lastOperationMessage = '';
+  int _plannerDraftClearedRevision = 0;
+  int get plannerDraftClearedRevision => _plannerDraftClearedRevision;
   static const m1SaveSuccess = 'Itinerary saved successfully to your profile!';
   static const m1SaveLocal = 'Saved on this device. Cloud sync is pending.';
   static const m2SaveError =
@@ -149,6 +152,18 @@ class SupabaseItineraryService extends ChangeNotifier
         'draft': asDraft,
       };
       await _store.write(user.uid, journal);
+      final shouldClearPlannerDraft =
+          !asDraft &&
+          (itineraryId == null ||
+              itineraryId == TripPreferencesService.activeItineraryId ||
+              existing?['draft'] == true);
+      if (shouldClearPlannerDraft) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('planner_draft_v1_${user.uid}');
+        } catch (_) {}
+        _plannerDraftClearedRevision++;
+      }
       if (!asDraft) await _sync(user.uid, journal);
       final synced = (journal[id] as Map)['pending'] != true;
       notifyListeners();

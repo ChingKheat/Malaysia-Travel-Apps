@@ -53,6 +53,42 @@ TravelStop stop(Map<String, dynamic> data) =>
 
 void main() {
   test(
+    'Matches a local parenthesized alias to the nearby primary name',
+    () async {
+      final places = service((request) async {
+        final body = jsonDecode(request.body) as Map;
+        final place = {
+          'id': 'ChIJ123',
+          'displayName': {'text': 'Central Market'},
+          'location': {'latitude': 3.1453, 'longitude': 101.6958},
+        };
+        return http.Response(
+          jsonEncode(
+            body['operation'] == 'planner_search'
+                ? {
+                    'places': [place],
+                  }
+                : place,
+          ),
+          200,
+        );
+      });
+      final local = TravelStop.fromJson({
+        'title': 'Central Market (Pasar Seni)',
+        'place_id': 'curated_kl_03',
+        'latitude': 3.1453,
+        'longitude': 101.6958,
+      });
+      expect(
+        (await places.findDetailsForLocalStop(
+          local,
+          state: 'Kuala Lumpur',
+        ))?.id,
+        'ChIJ123',
+      );
+    },
+  );
+  test(
     'Matches a local place only with a nearby matching Google listing',
     () async {
       final operations = <String>[];
@@ -482,6 +518,43 @@ void main() {
       expect(find.text('Photo: Original photographer'), findsNothing);
     },
   );
+  testWidgets('catalog cover looks up a photo by place ID on display', (
+    tester,
+  ) async {
+    final operations = <String>[];
+    final places = service((req) async {
+      final body = jsonDecode(req.body) as Map;
+      operations.add(body['operation'] as String);
+      if (body['operation'] == 'details') {
+        expect(body['placeId'], 'ChIJ123');
+        return http.Response(jsonEncode(fixture()), 200, headers: {
+          'content-type': 'application/json; charset=utf-8',
+        });
+      }
+      return http.Response.bytes(
+        base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4AWP4DwQACfsD/fteaysAAAAASUVORK5CYII=',
+        ),
+        200,
+        headers: {'content-type': 'image/png'},
+      );
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: GooglePlaceImage(
+            placeId: 'ChIJ123',
+            service: places,
+            autoLoad: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(operations, ['details', 'photo']);
+    expect(find.text('Photo: Original photographer'), findsOneWidget);
+  });
+
   test('Propagates upstreamStatus from proxy error responses', () async {
     final places = service((req) async {
       return http.Response(

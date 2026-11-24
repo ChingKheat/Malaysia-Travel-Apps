@@ -327,9 +327,24 @@ class _RecognitionResultSheetState extends State<RecognitionResultSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              context.l10n.scanPlanPlaces,
-              style: VisualScanStyle.heading(18),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.scanPlanPlaces,
+                    style: VisualScanStyle.heading(18),
+                  ),
+                ),
+                if (places.length > 1)
+                  TextButton(
+                    onPressed: _planPlaces.clear,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: VisualScanStyle.muted,
+                    ),
+                    child: Text(context.l10n.clear),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(

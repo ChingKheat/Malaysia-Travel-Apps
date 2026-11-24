@@ -132,7 +132,9 @@ class GooglePlacesService {
     return hydrated
         .where(
           (r) =>
-              !PlaceCatalogService.isGoogleReference(r) || r['_live'] == true,
+              !PlaceCatalogService.isGoogleReference(r) ||
+              PlaceCatalogService.hasLocationDetails(r) ||
+              r['_live'] == true,
         )
         .map(PlaceCatalogService.asGoogleShape)
         .toList();
@@ -153,7 +155,10 @@ class GooglePlacesService {
       final batch = selected.skip(start).take(4);
       final hydrated = await Future.wait(
         batch.map((row) async {
-          if (!PlaceCatalogService.isGoogleReference(row)) return row;
+          if (!PlaceCatalogService.isGoogleReference(row) ||
+              PlaceCatalogService.hasLocationDetails(row)) {
+            return row;
+          }
           final details = await fetchDetails(
             row['place_id'].toString(),
             basic: !full,
@@ -198,12 +203,8 @@ class GooglePlacesService {
         }),
       );
       result.addAll(hydrated);
-      if (hydrated.every(
-        (r) => PlaceCatalogService.isGoogleReference(r) && r['_live'] != true,
-      )) {
-        result.addAll(
-          selected.skip(start + 4).map(PlaceCatalogService.persistentRow),
-        );
+      if (hydrated.every((r) => r['_loadError'] != null)) {
+        result.addAll(selected.skip(start + 4));
         break;
       }
     }
@@ -462,7 +463,13 @@ class GooglePlacesService {
         stop.longitude == 0) {
       return null;
     }
-    final results = await searchPlannerPlaces(query: stop.title, state: state);
+    final primaryName = stop.title
+        .replaceAll(RegExp(r'\s*\([^)]*\)'), '')
+        .trim();
+    final results = await searchPlannerPlaces(
+      query: primaryName.isEmpty ? stop.title : primaryName,
+      state: state,
+    );
     final matches = <({String id, double distance})>[];
     for (final result in results) {
       final id = result['id'];
@@ -521,9 +528,23 @@ class GooglePlacesService {
         .where((word) => word.isNotEmpty && word != 'state')
         .map((word) => word == 'masjid' ? 'mosque' : word)
         .toSet();
-    final a = words(first), b = words(second);
-    if (a.isEmpty || b.isEmpty) return false;
-    return 2 * a.intersection(b).length / (a.length + b.length) >= 0.8;
+    Iterable<String> names(String value) sync* {
+      yield value;
+      final primary = value.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
+      if (primary.isNotEmpty && primary != value) yield primary;
+    }
+
+    for (final left in names(first)) {
+      for (final right in names(second)) {
+        final a = words(left), b = words(right);
+        if (a.isNotEmpty &&
+            b.isNotEmpty &&
+            2 * a.intersection(b).length / (a.length + b.length) >= 0.8) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   // Kept for older callers: expiring Google photo URLs must never be persisted.

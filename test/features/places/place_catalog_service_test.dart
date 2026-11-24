@@ -59,10 +59,7 @@ void main() {
         'public',
         httpClient: MockClient((request) async {
           expect(request.url.host, 'db.test');
-          expect(
-            request.url.queryParameters['select'],
-            contains('photo_url'),
-          );
+          expect(request.url.queryParameters['select'], contains('photo_url'));
           return http.Response(
             jsonEncode([row('museum', 'Museum'), row('food', 'Restaurant')]),
             200,
@@ -127,7 +124,7 @@ void main() {
     },
   );
   test(
-    'Rain reserves detail requests for confirmed indoor places before the limit',
+    'Rain prioritizes indoor database places without requesting details',
     () async {
       final requested = <String>[];
       final places = GooglePlacesService(
@@ -180,16 +177,14 @@ void main() {
           );
 
       expect((await load(1)).map((p) => p['is_indoor']), [true, true]);
-      expect(requested, ['ChIJmuseum', 'ChIJgallery']);
-      requested.clear();
-      await load(0.5);
-      expect(requested, ['ChIJmuseum', 'ChIJpark']);
-      requested.clear();
-      await load(0);
-      expect(requested, ['ChIJpark', 'ChIJmarket']);
-      requested.clear();
-      await load(1, limit: 3);
-      expect(requested, ['ChIJmuseum', 'ChIJgallery', 'ChIJpark']);
+      expect((await load(0.5)).map((p) => p['id']), ['ChIJmuseum', 'ChIJpark']);
+      expect((await load(0)).map((p) => p['id']), ['ChIJpark', 'ChIJmarket']);
+      expect((await load(1, limit: 3)).map((p) => p['id']), [
+        'ChIJmuseum',
+        'ChIJgallery',
+        'ChIJpark',
+      ]);
+      expect(requested, isEmpty);
     },
   );
   test(

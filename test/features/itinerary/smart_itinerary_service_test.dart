@@ -64,6 +64,164 @@ void main() {
       },
     );
 
+    test(
+      'schedules a saved local LEGOLAND after verifying its hours',
+      () async {
+        final selected = TravelStop.fromJson({
+          'title': 'Legoland Malaysia Resort',
+          'place_id': 'curated_johor_01',
+          'latitude': 1.4273,
+          'longitude': 103.6299,
+          'opening_hours': 'Hours unverified',
+        });
+        final place = {
+          'id': 'ChIJLegoland',
+          'displayName': {'text': 'Legoland Malaysia Resort'},
+          'location': {'latitude': 1.4273, 'longitude': 103.6299},
+          'regularOpeningHours': {
+            'periods': [
+              {
+                'open': {'day': 0, 'hour': 0},
+              },
+            ],
+          },
+        };
+        final places = GooglePlacesService(
+          endpoint: 'https://project.test/functions/v1/google-places',
+          accessToken: 'test-session',
+          client: MockClient((request) async {
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            if (body['operation'] == 'details') {
+              return http.Response(jsonEncode(place), 200);
+            }
+            return http.Response(
+              jsonEncode({
+                'places': body['query'] == selected.title ? [place] : [],
+              }),
+              200,
+            );
+          }),
+        );
+        expect(
+          await places.findDetailsForLocalStop(selected, state: 'Johor'),
+          isNotNull,
+        );
+        await SmartItineraryService.generateLiveItineraryForAllDays(
+          preferences: TripPreferences(
+            destination: 'Johor',
+            startDate: DateTime(2035, 1, 1),
+            numberOfDays: 1,
+            mustVisitPlaces: [selected],
+          ),
+          placesService: places,
+        );
+        expect(
+          SmartItineraryService.getLiveStops(0)!.map((s) => s.placeId),
+          contains('ChIJLegoland'),
+        );
+      },
+    );
+
+    test('schedules multiple different saved must-visits after verifying hours', () async {
+      final selected = [
+        for (var i = 0; i < 2; i++)
+          TravelStop.fromJson({
+            'title': 'Selected attraction $i',
+            'place_id': 'local-attraction-$i',
+            'latitude': 1.43,
+            'longitude': 103.63 + i * 0.001,
+            'opening_hours': 'Hours unverified',
+          }),
+      ];
+      final details = [
+        for (var i = 0; i < selected.length; i++)
+          {
+            'id': 'ChIJSelectedAttraction$i',
+            'displayName': {'text': selected[i].title},
+            'location': {
+              'latitude': selected[i].latitude,
+              'longitude': selected[i].longitude,
+            },
+            'regularOpeningHours': {
+              'periods': [
+                {'open': {'day': 0, 'hour': 0}},
+              ],
+            },
+          },
+      ];
+      final places = GooglePlacesService(
+        endpoint: 'https://project.test/functions/v1/google-places',
+        accessToken: 'test-session',
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          if (body['operation'] == 'details') {
+            return http.Response(
+              jsonEncode(details.firstWhere((place) => place['id'] == body['placeId'])),
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'places': details.where((place) =>
+                  (place['displayName'] as Map)['text'] == body['query']).toList(),
+            }),
+            200,
+          );
+        }),
+      );
+      await SmartItineraryService.generateLiveItineraryForAllDays(
+        preferences: TripPreferences(
+          destination: 'Johor',
+          startDate: DateTime(2035, 1, 1),
+          numberOfDays: 1,
+          mustVisitPlaces: selected,
+        ),
+        placesService: places,
+      );
+      expect(
+        SmartItineraryService.getLiveStops(0)!.map((stop) => stop.placeId),
+        containsAll(['ChIJSelectedAttraction0', 'ChIJSelectedAttraction1']),
+      );
+    });
+
+    test('keeps a local must-visit when live details are unavailable', () async {
+      final selected = TravelStop.fromJson({
+        'title': 'Legoland Malaysia Resort',
+        'place_id': 'curated_johor_01',
+        'latitude': 1.4273,
+        'longitude': 103.6299,
+        'opening_hours': 'Hours unverified',
+      });
+      final places = GooglePlacesService(
+        endpoint: 'https://project.test/functions/v1/google-places',
+        accessToken: 'test-session',
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          if ((body['query'] as String? ?? '').startsWith('tourist attractions')) {
+            return http.Response(jsonEncode({'places': [{
+              'id': 'ChIJOtherAttraction',
+              'displayName': {'text': 'Other attraction'},
+              'location': {'latitude': 1.428, 'longitude': 103.63},
+              'regularOpeningHours': {'periods': [{'open': {'day': 0, 'hour': 0}}]},
+            }]}), 200);
+          }
+          return http.Response(jsonEncode({'places': []}), 200);
+        }),
+      );
+      await SmartItineraryService.generateLiveItineraryForAllDays(
+        preferences: TripPreferences(
+          destination: 'Johor',
+          startDate: DateTime(2035, 1, 1),
+          numberOfDays: 1,
+          mustVisitPlaces: [selected],
+        ),
+        placesService: places,
+      );
+      final stops = SmartItineraryService.getLiveStops(0)!;
+      expect(stops.map((stop) => stop.placeId), contains('curated_johor_01'));
+      expect(SmartItineraryService.dayWarnings[0], contains('Some opening hours are unverified'));
+    });
+
     test('uses free admission for a verified venue', () {
       final museum = GooglePlacesService.convertGooglePlaceToStop(
         place: {

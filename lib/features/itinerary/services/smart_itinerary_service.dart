@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/core/theme/app_colors.dart';
 import 'package:smart_travel_planner/shared/models/travel_stop.dart';
 import 'package:smart_travel_planner/shared/models/weather_forecast.dart';
+import 'package:smart_travel_planner/features/itinerary/models/destination_leg.dart';
 import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.dart';
 import 'package:smart_travel_planner/features/places/services/google_places_service.dart';
+import 'segmented_itinerary_scheduler.dart';
+import 'travel_feasibility_calculator.dart';
 import 'package:smart_travel_planner/features/places/services/place_catalog_service.dart';
 import 'package:smart_travel_planner/core/config/supabase_config.dart';
 import 'package:smart_travel_planner/features/places/data/curated_attractions.dart';
@@ -52,6 +55,7 @@ class SmartItineraryService {
   static int _request = 0;
   static int get revision => _generation;
   static final Map<int, String> dayWarnings = {};
+  static TravelFeasibilityReport? lastFeasibilityReport;
   static String _key(TripPreferences prefs) => jsonEncode(prefs.toJson());
 
   static void clearLiveCache() {
@@ -59,6 +63,7 @@ class SmartItineraryService {
     _liveGeneratedDays.clear();
     _cacheKey = null;
     dayWarnings.clear();
+    lastFeasibilityReport = null;
     _generation++;
   }
 
@@ -66,6 +71,11 @@ class SmartItineraryService {
       _liveGeneratedDays[dayIndex];
   static bool hasLiveStops(int dayIndex) =>
       _liveGeneratedDays.containsKey(dayIndex);
+
+  static void updateLiveStops(int dayIndex, List<TravelStop> stops) {
+    _liveGeneratedDays[dayIndex] = List<TravelStop>.unmodifiable(stops);
+    _generation++;
+  }
 
   /// Computes accurate route distance between consecutive stops using Haversine formula + winding road factor
   static double calculateRouteDistanceKm(List<TravelStop> stops) {
@@ -97,6 +107,103 @@ class SmartItineraryService {
     return double.parse(totalKm.toStringAsFixed(2));
   }
 
+  static Future<bool> _generateMultiDestinationAllDays({
+    required TripPreferences preferences,
+    GooglePlacesService? placesService,
+  }) async {
+    final request = ++_request;
+    final places = placesService ?? GooglePlacesService();
+
+    final result = await SegmentedItineraryScheduler.schedule(
+      preferences: preferences,
+      resolvePriority: (stop, leg) async {
+        try {
+          if (stop.isGooglePlace) {
+            final refreshed = await places.refreshStop(stop);
+            if (SchedulingEngine.intervals(
+                  refreshed,
+                  preferences.dateForDay(0),
+                ) !=
+                null) {
+              return refreshed;
+            }
+          } else {
+            final details = await places.findDetailsForLocalStop(
+              stop,
+              state: leg.stateName,
+            );
+            if (details != null && details.hours.isNotEmpty) {
+              return stop.withGoogleDetails(details);
+            }
+          }
+        } catch (_) {
+          // Fall back to the bundled catalog when place lookup is unavailable.
+        }
+        final local = _offlineCandidates(
+          preferences.copyWith(destination: leg.stateName),
+        );
+        final id = SchedulingEngine.identity(stop);
+        final title = _normalizedTitle(stop.title);
+        for (final candidate in local) {
+          if (SchedulingEngine.identity(candidate) == id ||
+              _normalizedTitle(candidate.title) == title) {
+            return candidate;
+          }
+        }
+        return stop;
+      },
+      fetchCandidates: (DestinationLeg leg) async {
+        List<TravelStop> list = [];
+        try {
+          list = await _fetchDatabaseCandidates(leg.stateName);
+        } catch (_) {}
+        if (list.isEmpty) {
+          try {
+            final raw = await places.fetchPlacesWithDatabaseCache(
+              destinationState: leg.stateName,
+              query: 'tourist attractions in ${leg.hubName} Malaysia',
+              maxResults: 18,
+              indoorShare: 0.2,
+              shouldContinue: () => request == _request,
+            );
+            list = raw
+                .map(
+                  (p) => GooglePlacesService.convertGooglePlaceToStop(
+                    place: p,
+                    timeRange: '',
+                    durationLabel: '90 min',
+                  ),
+                )
+                .toList();
+          } catch (_) {}
+        }
+        if (list.isEmpty) {
+          list = _offlineCandidates(
+            preferences.copyWith(destination: leg.stateName),
+          );
+        }
+        return list;
+      },
+    );
+
+    if (request != _request) return false;
+
+    _liveGeneratedDays
+      ..clear()
+      ..addAll(result.days);
+    dayWarnings
+      ..clear()
+      ..addAll(result.warnings);
+    _cacheKey = _key(preferences);
+    lastFeasibilityReport = TravelFeasibilityCalculator.evaluate(
+      days: result.days,
+      transfers: result.resolvedTransfers,
+      preferences: preferences,
+    );
+    _generation++;
+    return true;
+  }
+
   static Future<bool> generateLiveItineraryForAllDays({
     required TripPreferences preferences,
     int seed = 0,
@@ -104,8 +211,19 @@ class SmartItineraryService {
     Set<String> previousStopIds = const {},
     GooglePlacesService? placesService,
   }) async {
+    if (preferences.isMultiDestination) {
+      return _generateMultiDestinationAllDays(
+        preferences: preferences,
+        placesService: placesService,
+      );
+    }
     final request = ++_request;
-    final destination = preferences.destination ?? 'Kuala Lumpur';
+    final singleLeg = preferences.effectiveLegs.length == 1
+        ? preferences.effectiveLegs.first
+        : null;
+    final destination =
+        preferences.destination ?? singleLeg?.stateName ?? 'Kuala Lumpur';
+    final hubQuery = singleLeg?.hubName ?? destination;
     final dayCount = preferences.numberOfDays ?? 3;
     final dates = [
       for (var day = 0; day < dayCount; day++) preferences.dateForDay(day),
@@ -141,14 +259,14 @@ class SmartItineraryService {
         final results = await Future.wait([
           places.fetchPlacesWithDatabaseCache(
             destinationState: destination,
-            query: 'tourist attractions in $destination Malaysia',
+            query: 'tourist attractions in $hubQuery Malaysia',
             maxResults: 20,
             indoorShare: indoorShare,
             shouldContinue: () => request == _request,
           ),
           places.fetchPlacesWithDatabaseCache(
             destinationState: destination,
-            query: 'local restaurants in $destination Malaysia',
+            query: 'local restaurants in $hubQuery Malaysia',
             isMeal: true,
             maxResults: 12,
             indoorShare: indoorShare,
@@ -180,22 +298,66 @@ class SmartItineraryService {
       ).where(hasOpeningWindow).toList();
       candidates = localCandidates;
     }
-    Future<TravelStop> resolve(TravelStop stop) async =>
-        stop.latitude != 0 &&
-            stop.longitude != 0 &&
-            dates.every((date) => SchedulingEngine.intervals(stop, date) != null)
-        ? stop
-        : places.refreshStop(stop);
+    final offlineById = {
+      for (final stop in _offlineCandidates(preferences))
+        SchedulingEngine.identity(stop): stop,
+    };
+    final estimatedHours = <String>{};
+    Future<TravelStop> resolve(TravelStop stop) async {
+      if (stop.latitude != 0 &&
+          stop.longitude != 0 &&
+          dates.every(
+            (date) => SchedulingEngine.intervals(stop, date) != null,
+          )) {
+        return stop;
+      }
+      if (stop.isGooglePlace) return places.refreshStop(stop);
+      final details = await places.findDetailsForLocalStop(
+        stop,
+        state: destination,
+      );
+      if (details != null) return stop.withGoogleDetails(details);
+      final fallback = offlineById[SchedulingEngine.identity(stop)];
+      if (fallback != null) {
+        estimatedHours.add(SchedulingEngine.identity(fallback));
+      }
+      return fallback ?? stop;
+    }
+
     final resolvedPriorities = await Future.wait(
       preferences.mustVisitPlaces.map(resolve),
     );
     final resolvedSelected = await Future.wait(
       preferences.selectedPlaces.map(resolve),
     );
-    final origin = preferences.dailyOrigin;
+    final origin =
+        preferences.dailyOrigin ??
+        (singleLeg != null &&
+                singleLeg.hubName.toLowerCase() !=
+                    singleLeg.stateName.toLowerCase()
+            ? TravelStop(
+                title: '${singleLeg.hubName} City Centre',
+                time: '',
+                note: 'Base Hub',
+                description: 'Base hub for ${singleLeg.hubName}.',
+                duration: '0 min',
+                openingHours: '24 hours',
+                tips: const [],
+                icon: Icons.place_outlined,
+                color: const Color(0xFFE5A645),
+                latitude: singleLeg.latitude,
+                longitude: singleLeg.longitude,
+              )
+            : null);
     final resolvedOrigin = origin == null ? null : await resolve(origin);
     final effectivePreferences = preferences.copyWith(
-      departurePoint: resolvedOrigin,
+      departurePoint: preferences.departurePoint != null
+          ? resolvedOrigin
+          : null,
+      accommodationArea:
+          preferences.departurePoint == null && resolvedOrigin != null
+          ? resolvedOrigin
+          : preferences.accommodationArea,
       mustVisitPlaces: resolvedPriorities,
       selectedPlaces: resolvedSelected,
     );
@@ -333,6 +495,27 @@ class SmartItineraryService {
       for (var day = 0; day < plannedDays.length; day++)
         day: _warning(plannedDays[day], forecasts[day].isAvailable),
     };
+    final priorityIds = resolvedPriorities
+        .map(SchedulingEngine.identity)
+        .toSet();
+    for (var day = 0; day < plannedDays.length; day++) {
+      if (forecasts[day].isAvailable &&
+          !forecasts[day].isSuitableForOutdoor &&
+          plannedDays[day].any(
+            (stop) =>
+                priorityIds.contains(SchedulingEngine.identity(stop)) &&
+                stop.isIndoor != true,
+          )) {
+        warnings[day] =
+            '${warnings[day] ?? ''} Rain forecasted today. Swapping to an Indoor attraction is recommended.';
+      }
+      if (plannedDays[day].any(
+        (stop) => estimatedHours.contains(SchedulingEngine.identity(stop)),
+      )) {
+        warnings[day] =
+            '${warnings[day] ?? ''} Some opening hours are unverified. Confirm before visiting.';
+      }
+    }
     final scheduled = days.values
         .expand((stops) => stops)
         .map((stop) => _normalizedTitle(stop.title))
@@ -598,7 +781,8 @@ class SmartItineraryService {
           final lng = (item['longitude'] as num?)?.toDouble() ?? 0.0;
           if (lat == 0.0 || lng == 0.0) continue;
 
-          final isIndoor = item['is_indoor'] as bool? ??
+          final isIndoor =
+              item['is_indoor'] as bool? ??
               PlaceClassifier.classify(category: category, name: name);
 
           Map<String, dynamic> opHours;
@@ -636,18 +820,23 @@ class SmartItineraryService {
               longitude: lng,
               isIndoor: isIndoor,
               visitMinutes: isMeal ? 75 : 90,
-              estimatedCost: estimateVisitCost(category, placeId: pId, title: name),
+              estimatedCost: estimateVisitCost(
+                category,
+                placeId: pId,
+                title: name,
+              ),
               dataSource: 'database',
-              photoUrls:
-                  photoUrl != null && photoUrl.isNotEmpty ? [photoUrl] : const [],
+              photoUrls: photoUrl != null && photoUrl.isNotEmpty
+                  ? [photoUrl]
+                  : const [],
               icon: isMeal
                   ? Icons.restaurant
                   : (isIndoor == true ? Icons.museum : Icons.place),
               color: isMeal
                   ? const Color(0xFFFF8A3D)
                   : (isIndoor == true
-                      ? const Color(0xFF0D9488)
-                      : AppColors.primary),
+                        ? const Color(0xFF0D9488)
+                        : AppColors.primary),
               tips: [
                 if (rating != null) 'Rating: $rating',
                 if (reviewCount != null) '$reviewCount reviews',
@@ -737,7 +926,11 @@ class SmartItineraryService {
           placeId: a.xid,
           latitude: a.latitude,
           longitude: a.longitude,
-          estimatedCost: estimateVisitCost(a.category, placeId: a.xid, title: a.name),
+          estimatedCost: estimateVisitCost(
+            a.category,
+            placeId: a.xid,
+            title: a.name,
+          ),
           visitMinutes: meal ? 75 : 90,
           isIndoor: PlaceClassifier.classify(
             category: a.category,
@@ -775,7 +968,10 @@ class SmartItineraryService {
       placeId: attraction?.xid,
       latitude: attraction?.latitude ?? template.latitude ?? 0,
       longitude: attraction?.longitude ?? template.longitude ?? 0,
-      estimatedCost: estimateVisitCost(template.category, title: template.title),
+      estimatedCost: estimateVisitCost(
+        template.category,
+        title: template.title,
+      ),
       visitMinutes: template.durationMinutes,
       isIndoor: PlaceClassifier.classify(
         category: template.category,

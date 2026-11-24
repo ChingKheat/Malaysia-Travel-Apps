@@ -151,13 +151,19 @@ class AssistantToolHandler {
                 (!indoor || row['is_indoor'] == true);
           }).toList();
           final resolved = await _google.hydrateRows(
-            candidates.where(PlaceCatalogService.isGoogleReference),
+            candidates.where(
+              (row) =>
+                  PlaceCatalogService.isGoogleReference(row) &&
+                  !PlaceCatalogService.hasLocationDetails(row),
+            ),
             limit: 8,
           );
           final matches =
               [
                     ...candidates.where(
-                      (row) => !PlaceCatalogService.isGoogleReference(row),
+                      (row) =>
+                          !PlaceCatalogService.isGoogleReference(row) ||
+                          PlaceCatalogService.hasLocationDetails(row),
                     ),
                     ...resolved,
                   ]

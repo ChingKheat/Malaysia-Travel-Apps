@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/features/auth/services/auth_service.dart';
 import 'package:smart_travel_planner/features/community/explore_page.dart';
 import 'package:smart_travel_planner/features/community/community_page.dart';
+import 'package:smart_travel_planner/features/home/models/spotlight_destination.dart';
+import 'package:smart_travel_planner/features/home/services/destination_spotlight_controller.dart';
+import 'package:smart_travel_planner/features/home/widgets/destination_spotlight_card.dart';
+import 'package:smart_travel_planner/features/home/widgets/destination_spotlight_picker_sheet.dart';
 import 'package:smart_travel_planner/features/home/widgets/popular_attractions_section.dart';
 import 'package:smart_travel_planner/features/home/widgets/trip_cards.dart';
 import 'package:smart_travel_planner/features/profile/screens/profile_page.dart';
@@ -23,6 +27,9 @@ class HomePage extends StatefulWidget {
     this.attractions,
     this.discoveryHeaderOnly = false,
     this.onCommunityTap,
+    this.onSpotlightSelected,
+    this.spotlightStore,
+    this.showSpotlightOnlyWhenDismissed = false,
   });
 
   final VoidCallback onPlanTap;
@@ -32,6 +39,9 @@ class HomePage extends StatefulWidget {
   final List<Attraction>? attractions;
   final bool discoveryHeaderOnly;
   final VoidCallback? onCommunityTap;
+  final ValueChanged<List<SpotlightDestination>>? onSpotlightSelected;
+  final DestinationSpotlightStore? spotlightStore;
+  final bool showSpotlightOnlyWhenDismissed;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -40,6 +50,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<SavedTrip> _dbSavedTrips = [];
   final TextEditingController _searchController = TextEditingController();
+  DestinationSpotlightStore? _ownedSpotlightStore;
+  DestinationSpotlightStore get _spotlightStore =>
+      widget.spotlightStore ??
+      (_ownedSpotlightStore ??= DestinationSpotlightStore());
   String get _searchQuery => _searchController.text.trim();
   String _selectedCategory = 'All';
 
@@ -55,14 +69,28 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     SupabaseItineraryService().addListener(_onRepoChanged);
+    if (widget.spotlightStore == null) {
+      _spotlightStore.load();
+    }
     _loadTrips();
   }
 
   @override
   void dispose() {
     SupabaseItineraryService().removeListener(_onRepoChanged);
+    _ownedSpotlightStore?.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openSpotlightPicker() async {
+    final selected = await showDestinationSpotlightPicker(context);
+    if (!mounted || selected == null || selected.isEmpty) return;
+    if (widget.onSpotlightSelected != null) {
+      widget.onSpotlightSelected!(selected);
+    } else {
+      widget.onPlanTap();
+    }
   }
 
   void _onRepoChanged() {
@@ -264,6 +292,24 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final upcomingTrip = _upcomingTrip;
+    final spotlightSection = ListenableBuilder(
+      listenable: _spotlightStore,
+      builder: (context, _) {
+        if (widget.showSpotlightOnlyWhenDismissed &&
+            !_spotlightStore.isDismissed) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: DestinationSpotlightCard(
+            dismissed: _spotlightStore.isDismissed,
+            featured: _spotlightStore.featuredDestination,
+            onChooseDestinations: _openSpotlightPicker,
+            onDismiss: () => _spotlightStore.setDismissed(true),
+          ),
+        );
+      },
+    );
     if (widget.discoveryHeaderOnly) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -275,6 +321,7 @@ class _HomePageState extends State<HomePage> {
             showSearch: false,
           ),
           const SizedBox(height: 16),
+          spotlightSection,
           _MyTripsCard(onTap: widget.onItineraryTap),
           const SizedBox(height: 18),
           if (upcomingTrip != null) ...[
@@ -312,6 +359,8 @@ class _HomePageState extends State<HomePage> {
           onAssistantTap: widget.onAssistantTap,
           onFeaturedTap: () => _showFeaturedStory(context),
         ),
+        const SizedBox(height: 16),
+        spotlightSection,
         const SizedBox(height: 16),
 
         // Filter Categories Chips
