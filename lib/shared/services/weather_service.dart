@@ -68,9 +68,10 @@ class WeatherService {
 
     try {
       final cached = _googleCache[state.toLowerCase()];
+      final isCached =
+          cached != null && DateTime.now().difference(cached.$1).inMinutes < 30;
       List<dynamic> daysList;
-      if (cached != null &&
-          DateTime.now().difference(cached.$1).inMinutes < 30) {
+      if (isCached) {
         daysList = cached.$2;
       } else {
         final url = Uri.parse(
@@ -78,10 +79,13 @@ class WeatherService {
           '?key=$key&location.latitude=$lat&location.longitude=$lng&days=10&unitsSystem=METRIC',
         );
         var response = await (_injectedClient ?? _client)
-            .get(url, headers: const {
-              'X-Android-Package': 'com.example.smart_travel_planner',
-              'X-Android-Cert': '3DA9D45DA96884FCF31911528985A3C5D62F593F',
-            })
+            .get(
+              url,
+              headers: const {
+                'X-Android-Package': 'com.example.smart_travel_planner',
+                'X-Android-Cert': '3DA9D45DA96884FCF31911528985A3C5D62F593F',
+              },
+            )
             .timeout(const Duration(seconds: 8));
 
         if (response.statusCode == 403) {
@@ -125,21 +129,22 @@ class WeatherService {
 
       if (bestMatch != null) {
         final daytime = bestMatch['daytimeForecast'] as Map<String, dynamic>?;
-        final condition =
-            daytime?['weatherCondition']?['description']?['text']?.toString() ??
-            'Partly Cloudy';
-        final pop =
-            (daytime?['precipitation']?['probability']?['percent'] as num?)
-                ?.toDouble() ??
-            0.0;
-        final maxTemp =
-            (bestMatch['maxTemperature']?['degrees'] as num?)?.toDouble() ??
-            30.5;
+        final condition = daytime?['weatherCondition']?['description']?['text']
+            ?.toString();
+        final probability =
+            daytime?['precipitation']?['probability']?['percent'] as num?;
+        final pop = probability?.toDouble() ?? 0.0;
+        final maxTemp = (bestMatch['maxTemperature']?['degrees'] as num?)
+            ?.toDouble();
+        if (condition == null || maxTemp == null) return null;
 
         return WeatherForecast(
           itineraryId: itineraryId,
           locationState: state,
           scheduleDate: date,
+          isCached: isCached,
+          hasRainProbability:
+              daytime?['precipitation']?['probability']?['percent'] is num,
           condition: condition,
           rainProbability: double.parse(pop.toStringAsFixed(1)),
           temperatureC: double.parse(maxTemp.toStringAsFixed(1)),
@@ -163,13 +168,16 @@ class WeatherService {
     required String state,
     required DateTime date,
     String itineraryId = '',
+    String? localTime,
   }) async {
     final coordinates = _getCoordinates(state);
     if (coordinates == null) return unavailable(state, date, itineraryId);
     final (lat, lng) = coordinates;
 
     // 1. Try Google Maps Platform Weather API first (up to 10 days horizon).
-    if (ApiKeys.hasGoogleMapsKey && _injectedClient == null) {
+    if (localTime == null &&
+        ApiKeys.hasGoogleMapsKey &&
+        _injectedClient == null) {
       final googleForecast = await _fetchGoogleWeather(
         state: state,
         date: date,
@@ -192,9 +200,11 @@ class WeatherService {
         );
 
         final cached = _cache[state.toLowerCase()];
+        final isCached =
+            cached != null &&
+            DateTime.now().difference(cached.$1).inMinutes < 30;
         List<dynamic> list;
-        if (cached != null &&
-            DateTime.now().difference(cached.$1).inMinutes < 30) {
+        if (isCached) {
           list = cached.$2;
         } else {
           final response = await (_injectedClient ?? _client)
@@ -212,16 +222,23 @@ class WeatherService {
 
           // Find slot on that date closest to midday (12:00 or 15:00)
           Map<String, dynamic>? bestMatch;
+          String? matchedTime;
           for (final item in list) {
             final utc = DateTime.tryParse('${item['dt_txt']}Z');
             final local = utc?.add(const Duration(hours: 8));
             final dtTxt = local?.toIso8601String() ?? '';
             if (dtTxt.startsWith(targetDateStr)) {
-              if (dtTxt.contains('12:00') || dtTxt.contains('15:00')) {
+              final slot = dtTxt.substring(11, 16);
+              if (localTime != null && slot != localTime) continue;
+              if (localTime != null || slot == '12:00' || slot == '15:00') {
                 bestMatch = item as Map<String, dynamic>;
+                matchedTime = slot;
                 break;
               }
-              bestMatch ??= item as Map<String, dynamic>;
+              if (bestMatch == null) {
+                bestMatch = item as Map<String, dynamic>;
+                matchedTime = slot;
+              }
             }
           }
 
@@ -229,15 +246,15 @@ class WeatherService {
 
           if (bestMatch != null) {
             final weatherArr = bestMatch['weather'] as List<dynamic>? ?? [];
-            final mainWeather = weatherArr.isNotEmpty
-                ? weatherArr.first['main']?.toString() ?? 'Clouds'
-                : 'Clouds';
-            final descWeather = weatherArr.isNotEmpty
-                ? weatherArr.first['description']?.toString() ?? ''
-                : '';
+            final weather = weatherArr.firstOrNull as Map?;
+            final descWeather = weather?['description']?.toString() ?? '';
+            final mainWeather = weather?['main']?.toString();
             final pop = ((bestMatch['pop'] as num?)?.toDouble() ?? 0.2) * 100.0;
             final main = bestMatch['main'] as Map<String, dynamic>? ?? {};
-            final temp = (main['temp'] as num?)?.toDouble() ?? 30.5;
+            final temp = (main['temp'] as num?)?.toDouble();
+            if (temp == null || (descWeather.isEmpty && mainWeather == null)) {
+              return unavailable(state, date, itineraryId);
+            }
 
             final conditionTitle = descWeather.isNotEmpty
                 ? descWeather
@@ -248,12 +265,15 @@ class WeatherService {
                             : '${w[0].toUpperCase()}${w.substring(1)}',
                       )
                       .join(' ')
-                : mainWeather;
+                : mainWeather!;
 
             return WeatherForecast(
               itineraryId: itineraryId,
               locationState: state,
               scheduleDate: date,
+              isCached: isCached,
+              hasRainProbability: bestMatch['pop'] is num,
+              localTime: matchedTime,
               condition: conditionTitle,
               rainProbability: double.parse(pop.toStringAsFixed(1)),
               temperatureC: double.parse(temp.toStringAsFixed(1)),

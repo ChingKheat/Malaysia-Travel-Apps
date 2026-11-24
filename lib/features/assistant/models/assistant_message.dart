@@ -5,6 +5,7 @@ class AssistantPlaceSuggestion {
     this.rating,
     this.location = '',
     this.description = '',
+    this.catalogDetails,
     this.photoUrl,
     this.isIndoor = true,
     this.placeId,
@@ -15,6 +16,7 @@ class AssistantPlaceSuggestion {
   final double? rating;
   final String location;
   final String description;
+  final String? catalogDetails;
   final String? photoUrl;
   final bool isIndoor;
   final String? placeId;
@@ -48,6 +50,7 @@ class AssistantMessage {
     this.weatherAlert,
     this.followUpChips = const [],
     this.isTyping = false,
+    this._stopProposals = const [],
   });
 
   final String id;
@@ -58,6 +61,8 @@ class AssistantMessage {
   final AssistantWeatherAlert? weatherAlert;
   final List<String> followUpChips;
   final bool isTyping;
+  final List<Map<String, dynamic>>? _stopProposals;
+  List<Map<String, dynamic>> get stopProposals => _stopProposals ?? const [];
 
   AssistantMessage copyWith({
     String? id,
@@ -78,6 +83,7 @@ class AssistantMessage {
       weatherAlert: weatherAlert ?? this.weatherAlert,
       followUpChips: followUpChips ?? this.followUpChips,
       isTyping: isTyping ?? this.isTyping,
+      stopProposals: stopProposals,
     );
   }
 }

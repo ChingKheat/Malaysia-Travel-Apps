@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS nationality TEXT;
 
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.profiles'::regclass AND conname = 'profiles_user_id_fkey') THEN
@@ -217,13 +219,15 @@ CREATE INDEX IF NOT EXISTS idx_assistant_messages_user_id ON public.assistant_me
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (user_id, email, full_name, preferred_language, role)
+    INSERT INTO public.profiles (user_id, email, full_name, preferred_language, role, phone, nationality)
     VALUES (
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
         COALESCE(NEW.raw_user_meta_data->>'preferred_language', 'en'),
-        'user'
+        'user',
+        NEW.raw_user_meta_data->>'phone',
+        NEW.raw_user_meta_data->>'nationality'
     )
     ON CONFLICT (user_id) DO UPDATE
     SET email = EXCLUDED.email;
@@ -992,11 +996,13 @@ BEGIN
   IF actor IS NULL OR NOT EXISTS (SELECT 1 FROM public.private_conversations c WHERE c.id=chat_id AND actor IN (c.participant_low,c.participant_high)) THEN RAISE EXCEPTION 'Conversation unavailable'; END IF;
   UPDATE public.private_messages SET read_at=now() WHERE conversation_id=chat_id AND sender_id<>actor AND read_at IS NULL;
 END $$;
+DROP FUNCTION IF EXISTS public.private_inbox();
 CREATE OR REPLACE FUNCTION public.private_inbox()
-RETURNS TABLE (conversation_id uuid, other_user_id uuid, display_name text, last_activity_at timestamptz, preview text, message_at timestamptz, unread_count bigint)
+RETURNS TABLE (conversation_id uuid, other_user_id uuid, display_name text, last_activity_at timestamptz, preview text, message_at timestamptz, unread_count bigint, avatar_path text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT c.id, other.id, COALESCE(NULLIF(btrim(p.full_name),''),'Traveller'), c.last_activity_at, latest.content, latest.created_at,
-    (SELECT count(*) FROM public.private_messages u WHERE u.conversation_id=c.id AND u.sender_id<>(SELECT auth.uid()) AND u.read_at IS NULL)
+    (SELECT count(*) FROM public.private_messages u WHERE u.conversation_id=c.id AND u.sender_id<>(SELECT auth.uid()) AND u.read_at IS NULL),
+    CASE WHEN p.avatar_url IN (other.id || '/avatar.jpg', other.id || '/avatar.png', other.id || '/avatar.webp') THEN p.avatar_url END
   FROM public.private_conversations c
   CROSS JOIN LATERAL (SELECT CASE WHEN c.participant_low=(SELECT auth.uid()) THEN c.participant_high ELSE c.participant_low END AS id) other
   LEFT JOIN public.profiles p ON p.user_id=other.id
@@ -1006,6 +1012,17 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
 $$;
 REVOKE ALL ON FUNCTION public.private_conversation_get_or_create(uuid), public.private_message_send(uuid,uuid,text), public.private_messages_mark_read(uuid), public.private_inbox() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.private_conversation_get_or_create(uuid), public.private_message_send(uuid,uuid,text), public.private_messages_mark_read(uuid), public.private_inbox() TO authenticated;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='profile_avatars_select_conversation_partner') THEN
+    CREATE POLICY profile_avatars_select_conversation_partner ON storage.objects FOR SELECT TO authenticated
+      USING (bucket_id = 'profile-avatars' AND EXISTS (
+        SELECT 1 FROM public.private_conversations c
+        CROSS JOIN LATERAL (SELECT CASE WHEN c.participant_low=(SELECT auth.uid()) THEN c.participant_high ELSE c.participant_low END AS id) other
+        WHERE (SELECT auth.uid()) IN (c.participant_low, c.participant_high)
+          AND storage.objects.name IN (other.id || '/avatar.jpg', other.id || '/avatar.png', other.id || '/avatar.webp')
+      ));
+  END IF;
+END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname='supabase_realtime') THEN
     IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='private_messages') THEN

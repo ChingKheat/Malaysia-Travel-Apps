@@ -181,7 +181,9 @@ class SmartItineraryService {
       candidates = localCandidates;
     }
     Future<TravelStop> resolve(TravelStop stop) async =>
-        stop.latitude != 0 && stop.longitude != 0
+        stop.latitude != 0 &&
+            stop.longitude != 0 &&
+            dates.every((date) => SchedulingEngine.intervals(stop, date) != null)
         ? stop
         : places.refreshStop(stop);
     final resolvedPriorities = await Future.wait(

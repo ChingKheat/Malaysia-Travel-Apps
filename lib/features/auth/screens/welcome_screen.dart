@@ -244,7 +244,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     )
                                   : Column(
                                       children: [
-                                        // Get Started (Gradient Button)
+                                        // Get Started (Primary Accent Button)
                                         Container(
                                           width: double.infinity,
                                           height: 54,
@@ -254,8 +254,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                             ),
                                             gradient: const LinearGradient(
                                               colors: [
-                                                AppColors.nightHeroStart,
-                                                AppColors.nightHeroEnd,
+                                                AppColors.primary,
+                                                Color(0xFFD97706),
                                               ],
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
@@ -266,6 +266,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor:
                                                   Colors.transparent,
+                                              foregroundColor:
+                                                  AppColors.onNightAccent,
                                               shadowColor: Colors.transparent,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
@@ -275,7 +277,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                             child: Text(
                                               context.l10n.getStarted,
                                               style: const TextStyle(
-                                                color: Colors.white,
+                                                color: AppColors.onNightAccent,
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w800,
                                               ),

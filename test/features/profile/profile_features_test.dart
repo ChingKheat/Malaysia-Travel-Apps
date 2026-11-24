@@ -11,6 +11,7 @@ import 'package:smart_travel_planner/features/itinerary/models/trip_preferences.
 import 'package:smart_travel_planner/features/profile/screens/profile_page.dart';
 import 'package:smart_travel_planner/features/profile/services/profile_preferences_service.dart';
 import 'package:smart_travel_planner/features/profile/services/travel_footprint.dart';
+import 'package:smart_travel_planner/features/profile/widgets/profile_sheets.dart';
 import 'package:smart_travel_planner/l10n/app_localizations.dart';
 import 'package:smart_travel_planner/shared/models/attraction.dart';
 import 'package:smart_travel_planner/features/places/services/place_wishlist_store.dart';
@@ -158,20 +159,13 @@ void main() {
     await tester.pumpWidget(app(const ValueKey(1)));
     await tap('Open profile');
     expect(find.byKey(const ValueKey('profile-change-photo')), findsOneWidget);
-    await tap('Edit');
-    await tap('Fast-paced');
-    await tap('Vegetarian');
-    await tap('Save');
-    expect(find.text('Fast-paced'), findsOneWidget);
+    expect(find.text('Travel Preferences'), findsNothing);
 
     await tap('Places Visited');
     expect(find.text('Travel Footprint'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tap('States & territories');
-    expect(find.text('States and Territories Visited'), findsOneWidget);
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    expect(find.text('States & territories'), findsNothing);
 
     expect(find.text('Preferred Currency'), findsNothing);
     expect(find.text('About Smart Travel Planner'), findsNothing);
@@ -203,10 +197,35 @@ void main() {
 
     await tester.pumpWidget(app(const ValueKey(2)));
     await tap('Open profile');
-    expect(find.text('Fast-paced'), findsOneWidget);
     await tap('Trips Planned');
     expect(openedTrips, isTrue);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('TravelPreferencesEditor saves preferences', (tester) async {
+    TravelPreferences? saved;
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: TravelPreferencesEditor(
+            initial: const TravelPreferences(),
+            onSave: (val) async {
+              saved = val;
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Fast-paced'));
+    await tester.tap(find.text('Vegetarian'));
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(saved?.pace, PaceCategory.packed);
+    expect(saved?.diet, DietaryPreference.vegetarian);
   });
 
   testWidgets('displays saved places and removes them on tap', (tester) async {

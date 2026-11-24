@@ -1,3 +1,4 @@
+import 'assistant_stop_preview.dart';
 import 'package:smart_travel_planner/l10n/localized_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_travel_planner/features/assistant/services/assistant_tool_handler.dart';
@@ -6,43 +7,22 @@ import 'package:smart_travel_planner/features/assistant/models/assistant_message
 import 'package:smart_travel_planner/shared/utils/demo_feedback.dart';
 
 class AssistantPlaceCard extends StatelessWidget {
-  const AssistantPlaceCard({
-    super.key,
-    required this.place,
-    this.onAddToItinerary,
-    this.placeId,
-  });
+  const AssistantPlaceCard({super.key, required this.place, this.placeId});
 
   final AssistantPlaceSuggestion place;
-  final VoidCallback? onAddToItinerary;
   final String? placeId;
 
   Future<void> _add(BuildContext context) async {
-    if (onAddToItinerary != null) {
-      onAddToItinerary!();
-      return;
-    }
-    if (placeId == null || placeId!.isEmpty) {
-      showDemoSnackBar(
-        context,
-        'This recommendation cannot be added because its catalog ID is missing.',
-        icon: Icons.error_outline,
-      );
-      return;
-    }
     final result = await AssistantToolHandler().execute('add_to_itinerary', {
-      'place_id': placeId,
+      'place_id': placeId ?? place.placeId,
     });
     if (!context.mounted) return;
-    showDemoSnackBar(
-      context,
-      result['success'] == true
-          ? 'Added to your itinerary.'
-          : (result['error']?.toString() ?? 'Unable to add this place.'),
-      icon: result['success'] == true
-          ? Icons.bookmark_added_rounded
-          : Icons.error_outline,
-    );
+    final proposal = result['proposal'];
+    if (proposal is Map<String, dynamic>) {
+      await showAssistantStopPreview(context, proposal);
+    } else {
+      showDemoSnackBar(context, context.l10n.placeDetailsAreUnavailable);
+    }
   }
 
   void _showPlaceDetails(BuildContext context) {
@@ -142,7 +122,7 @@ class AssistantPlaceCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                place.description,
+                place.catalogDetails ?? place.description,
                 style: const TextStyle(
                   fontSize: 14,
                   height: 1.5,
@@ -263,6 +243,14 @@ class AssistantPlaceCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 11, color: AppColors.muted),
                 ),
+                if (place.catalogDetails case final details?)
+                  Text(
+                    details,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
+                  ),
                 const SizedBox(height: 6),
                 Row(
                   children: [

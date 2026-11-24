@@ -9,6 +9,9 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get profileCountry => 'Country / Region';
+
+  @override
   String get unscheduledSelectedPlaces => 'Unscheduled selected places';
 
   @override
@@ -3839,4 +3842,92 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordRecoverySuccess =>
       'Password updated. Log in with your new password.';
+
+  @override
+  String get assistantPreviewStop => 'Preview stop';
+
+  @override
+  String get assistantTrip => 'Trip';
+
+  @override
+  String get assistantDay => 'Day or date';
+
+  @override
+  String get assistantArrival => 'Arrival time';
+
+  @override
+  String get assistantDeparture => 'Departure time';
+
+  @override
+  String get assistantChoose => 'Choose';
+
+  @override
+  String get assistantConfirmStop => 'Confirm and save';
+
+  @override
+  String get assistantNoTrips => 'Save a trip before adding a stop.';
+
+  @override
+  String get assistantTripUnavailable =>
+      'This trip or day is no longer available.';
+
+  @override
+  String get assistantStopConflict =>
+      'These times overlap with another stop. Choose a different time or day.';
+
+  @override
+  String get assistantInvalidTimes => 'Departure must be after arrival.';
+
+  @override
+  String get assistantSaveFailed =>
+      'The stop could not be saved. Please try again.';
+
+  @override
+  String get assistantPendingSync => 'Saved on this device · Pending sync';
+
+  @override
+  String get assistantSynced => 'Synced';
+
+  @override
+  String get assistantNewChat => 'New chat';
+
+  @override
+  String get assistantChatOptions => 'Chat options';
+
+  @override
+  String get assistantStarterWeather => 'Weather';
+
+  @override
+  String get assistantStarterFood => 'Food';
+
+  @override
+  String get assistantStarterTransport => 'Transport';
+
+  @override
+  String get assistantStarterItinerary => 'Itinerary help';
+
+  @override
+  String get assistantPromptWeather =>
+      'What is the forecast for Kuala Lumpur today?';
+
+  @override
+  String get assistantPromptFood => 'Suggest food options in Malaysia.';
+
+  @override
+  String get assistantPromptTransport =>
+      'How do I get from KLIA to KL Sentral?';
+
+  @override
+  String get assistantPromptItinerary =>
+      'How can I add a stop to my itinerary?';
+
+  @override
+  String get assistantGreeting => 'How can I help with your trip?';
+
+  @override
+  String get assistantReviewStop => 'Review the stop details before saving.';
+
+  @override
+  String get assistantItineraryInstructions =>
+      'Tell me which place to add, or choose Add to plan on a place card. In the preview, choose the trip, day, and visit times, then confirm.';
 }

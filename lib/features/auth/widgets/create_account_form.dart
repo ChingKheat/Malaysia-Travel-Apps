@@ -18,6 +18,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   final _authService = AuthService();
 
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -53,6 +54,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.removeListener(_onPasswordChanged);
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -71,6 +73,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
     final result = await _authService.registerUser(
       name: _nameController.text,
       email: _emailController.text,
+      phone: _phoneController.text,
       password: _passwordController.text,
       confirmPassword: _confirmPasswordController.text,
     );
@@ -89,6 +92,7 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
       if (result.requiresEmailConfirmation) {
         _nameController.clear();
         _emailController.clear();
+        _phoneController.clear();
         _passwordController.clear();
         _confirmPasswordController.clear();
         await showDialog<void>(
@@ -248,6 +252,18 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
           ),
           const SizedBox(height: 18),
 
+          TextField(
+            controller: _phoneController,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            decoration: _inputDecoration(
+              label: _buildFieldLabel(context.l10n.phone),
+              hint: '',
+              icon: Icons.phone_outlined,
+            ),
+          ),
+          const SizedBox(height: 18),
           // Field 3: Password with Floating Label, Toggle & Strength Checklist
           TextField(
             controller: _passwordController,
@@ -435,19 +451,13 @@ class _CreateAccountFormState extends State<CreateAccountForm> {
         color: AppColors.muted.withValues(alpha: 0.65),
         fontSize: 14,
       ),
-      labelStyle: const TextStyle(
-        color: AppColors.muted,
-        fontSize: 14,
-      ),
+      labelStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
       floatingLabelStyle: TextStyle(
         color: hasError ? Colors.redAccent : AppColors.primary,
         fontWeight: FontWeight.w600,
         fontSize: 14,
       ),
-      errorStyle: const TextStyle(
-        color: Colors.redAccent,
-        fontSize: 12,
-      ),
+      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 12),
       prefixIcon: Icon(
         icon,
         color: hasError ? Colors.redAccent : AppColors.muted,

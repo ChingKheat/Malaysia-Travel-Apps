@@ -34,15 +34,11 @@ void main() {
       expect(find.text('All locations'), findsOneWidget);
       expect(find.text('Saved posts'), findsOneWidget);
 
-      // 2. Verify Filter Chips
-      expect(find.text('All'), findsOneWidget);
-      expect(find.text('Local Tips'), findsOneWidget);
-      expect(find.text('Trip Logs'), findsOneWidget);
+      // 2. Verify Filter Chips are removed
+      expect(find.text('Local Tips'), findsNothing);
+      expect(find.text('Trip Logs'), findsNothing);
+      expect(find.text('Photos'), findsNothing);
       expect(find.text('Questions'), findsNothing);
-      await tester.drag(find.text('Trip Logs'), const Offset(-250, 0));
-      await tester.pumpAndSettle();
-      expect(find.text('Photos'), findsOneWidget);
-      expect(find.text('Places & Map'), findsNothing);
 
       expect(find.text('No posts yet.'), findsOneWidget);
       expect(find.byType(CitylorePostCard), findsNothing);
