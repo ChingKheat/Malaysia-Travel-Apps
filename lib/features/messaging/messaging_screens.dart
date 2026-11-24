@@ -11,14 +11,16 @@ String _t(BuildContext c, String en, String zh, String ms) =>
     communityText(c, en, zh, ms);
 
 class MessagesInbox extends StatefulWidget {
-  const MessagesInbox({super.key});
+  const MessagesInbox({super.key, this.service});
+  final MessagingService? service;
+
   @override
   State<MessagesInbox> createState() => _MessagesInboxState();
 }
 
 class _MessagesInboxState extends State<MessagesInbox>
     with WidgetsBindingObserver {
-  final service = MessagingService();
+  late final service = widget.service ?? MessagingService();
   List<Map<String, dynamic>> rows = [];
   bool loading = true, offline = false;
   RealtimeChannel? channel;
@@ -158,10 +160,19 @@ class _MessagesInboxState extends State<MessagesInbox>
                     itemCount: rows.length,
                     itemBuilder: (context, i) {
                       final row = rows[i];
+                      final avatarUrl = row['avatar_display_url'] as String?;
                       final unread =
                           (row['unread_count'] as num?)?.toInt() ?? 0;
                       return ListTile(
-                        leading: const CircleAvatar(child: Icon(Icons.person)),
+                        leading: CircleAvatar(
+                          foregroundImage: avatarUrl == null
+                              ? null
+                              : NetworkImage(avatarUrl),
+                          onForegroundImageError: avatarUrl == null
+                              ? null
+                              : (_, _) {},
+                          child: const Icon(Icons.person),
+                        ),
                         title: Text(
                           row['display_name'] as String? ??
                               _t(context, 'Traveller', '旅友', 'Pengembara'),

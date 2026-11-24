@@ -58,4 +58,29 @@ void main() {
     expect(find.textContaining('No conversations yet'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('inbox uses the other participant photo when available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: MessagesInbox(service: _PhotoInbox())),
+    );
+    await tester.pumpAndSettle();
+    final avatars = tester.widgetList<CircleAvatar>(find.byType(CircleAvatar));
+    expect(avatars.first.foregroundImage, isA<NetworkImage>());
+    expect(avatars.last.foregroundImage, isNull);
+    expect(find.byIcon(Icons.person), findsWidgets);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+}
+
+class _PhotoInbox extends MessagingService {
+  @override
+  Future<List<Map<String, dynamic>>> inbox() async => [
+    {
+      'display_name': 'Yi Han',
+      'avatar_display_url': 'https://example.test/avatar.png',
+    },
+    {'display_name': 'Traveller'},
+  ];
 }

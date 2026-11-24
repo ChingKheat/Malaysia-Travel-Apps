@@ -48,7 +48,7 @@ class _ExplorePageState extends State<ExplorePage> {
   bool _feedUnavailable = false;
   String? _feedAccount;
   int _loadVersion = 0;
-  String _selectedCategory = 'All';
+  bool _savedOnly = false;
   String? _selectedPlace;
 
   @override
@@ -104,7 +104,7 @@ class _ExplorePageState extends State<ExplorePage> {
       context,
     ).push(MaterialPageRoute<bool>(builder: (_) => const CommunityComposer()));
     if (mounted && published == true) {
-      setState(() => _selectedCategory = 'All');
+      setState(() => _savedOnly = false);
       await _refreshFeed();
     }
   }
@@ -287,9 +287,8 @@ class _ExplorePageState extends State<ExplorePage> {
           !communityPlaceMatches(p.place, _selectedPlace!)) {
         return false;
       }
-      if (_selectedCategory == 'All') return true;
-      if (_selectedCategory == 'Saved') return p.saved;
-      return p.topic == _selectedCategory;
+      if (_savedOnly) return p.saved;
+      return true;
     }).toList();
 
     return Container(
@@ -425,12 +424,10 @@ class _ExplorePageState extends State<ExplorePage> {
                       height: 48,
                       child: OutlinedButton.icon(
                         onPressed: () => setState(
-                          () => _selectedCategory = _selectedCategory == 'Saved'
-                              ? 'All'
-                              : 'Saved',
+                          () => _savedOnly = !_savedOnly,
                         ),
                         icon: Icon(
-                          _selectedCategory == 'Saved'
+                          _savedOnly
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
                         ),
@@ -446,12 +443,12 @@ class _ExplorePageState extends State<ExplorePage> {
                                 ),
                               ),
                             ),
-                            if (_selectedCategory == 'Saved')
+                            if (_savedOnly)
                               const Icon(Icons.check),
                           ],
                         ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _selectedCategory == 'Saved'
+                          foregroundColor: _savedOnly
                               ? AppColors.nightAccent
                               : null,
                         ),
@@ -472,15 +469,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 ),
               ),
 
-            // 2. Category Filter Chips
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _buildFilterBar(),
-              ),
-            ),
-
-            // 3. Post Feed Cards
+            // Post Feed Cards
             if (filteredPosts.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -496,8 +485,7 @@ class _ExplorePageState extends State<ExplorePage> {
                                     '暂时无法载入帖子，下拉重试。',
                                     'Siaran gagal dimuatkan. Tarik ke bawah untuk mencuba lagi.',
                                   )
-                                : _selectedPlace != null ||
-                                      _selectedCategory != 'All'
+                                : _selectedPlace != null || _savedOnly
                                 ? communityText(
                                     context,
                                     'No posts match this filter.',
@@ -530,76 +518,6 @@ class _ExplorePageState extends State<ExplorePage> {
                 },
               ),
 
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterBar() {
-    const categories = ['All', 'Local Tip', 'Trip Log', 'Photo'];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SizedBox(
-        height: 44,
-        child: Row(
-          children: [
-            for (var index = 0; index < categories.length; index++) ...[
-              if (index > 0) const SizedBox(width: 8),
-              Expanded(
-                child: Builder(
-                  builder: (context) {
-                    final cat = categories[index];
-                    final label = switch (cat) {
-                      'Local Tip' => 'Local Tips',
-                      'Trip Log' => 'Trip Logs',
-                      'Photo' => 'Photos',
-                      _ => cat,
-                    };
-                    final selected = _selectedCategory == cat;
-
-                    return InkWell(
-                      onTap: () => setState(() => _selectedCategory = cat),
-                      borderRadius: BorderRadius.circular(12),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.nightAccent
-                              : AppColors.nightSurface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selected
-                                ? AppColors.nightAccent
-                                : AppColors.nightLine,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: selected
-                                ? AppColors.onNightAccent
-                                : AppColors.nightMuted,
-                            fontSize: 13,
-                            fontWeight: selected
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
           ],
         ),
       ),

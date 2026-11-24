@@ -9,6 +9,8 @@ import 'local_itinerary_store.dart';
 import 'trip_preferences_service.dart';
 import 'smart_itinerary_service.dart';
 
+enum StopConfirmation { pending, synced, conflict, unavailable, failed }
+
 class ItinerarySaveResult {
   final bool success;
   final bool synced;
@@ -49,6 +51,7 @@ class SupabaseItineraryService extends ChangeNotifier
   static void resetOperationsForTesting() {
     _instance._operations = Future.value();
   }
+
   String? _lastUserId;
   String? lastError;
   String lastOperationMessage = '';
@@ -310,6 +313,74 @@ class SupabaseItineraryService extends ChangeNotifier
     } catch (e) {
       lastError = '$e';
       return false;
+    }
+  });
+
+  Future<StopConfirmation> confirmStop(
+    String userId,
+    String tripId,
+    ItineraryStop proposal,
+  ) => _serial(() async {
+    if (AuthService().currentUser?.uid != userId) {
+      return StopConfirmation.unavailable;
+    }
+    try {
+      final journal = await _store.read(userId);
+      final record = journal[tripId] as Map?;
+      if (record == null ||
+          record['deleted'] == true ||
+          record['draft'] == true) {
+        return StopConfirmation.unavailable;
+      }
+      final trip = record['trip'] as Map;
+      if (trip['user_id'] != userId) return StopConfirmation.unavailable;
+      final days = (trip['daily_schedules'] as List).cast<Map>();
+      final index = days.indexWhere(
+        (day) => day['schedule_id'] == proposal.scheduleId,
+      );
+      if (index < 0) return StopConfirmation.unavailable;
+
+      // The proposal UUID is persisted as the stop ID, including in Supabase.
+      final existing = days.expand(
+        (day) => (day['itinerary_stops'] as List).cast<Map>(),
+      );
+      if (!existing.any((stop) => stop['id'] == proposal.id)) {
+        final start = _dbTime(proposal.arrivalTime);
+        final end = _dbTime(proposal.departureTime);
+        if (proposal.id.isEmpty ||
+            proposal.placeId.isEmpty ||
+            start.compareTo(end) >= 0) {
+          return StopConfirmation.failed;
+        }
+        final day = days[index];
+        final stops = (day['itinerary_stops'] as List).cast<Map>();
+        for (final stop in stops) {
+          final arrival = _dbTime(stop['arrival_time'].toString());
+          final departure = _dbTime(stop['departure_time'].toString());
+          if (start.compareTo(departure) < 0 && end.compareTo(arrival) > 0) {
+            return StopConfirmation.conflict;
+          }
+        }
+        stops.add(_stopJson(proposal, proposal.scheduleId));
+        stops.sort(
+          (a, b) => _dbTime(
+            a['arrival_time'].toString(),
+          ).compareTo(_dbTime(b['arrival_time'].toString())),
+        );
+        for (var i = 0; i < stops.length; i++) {
+          stops[i]['stop_order'] = i + 1;
+        }
+        record['pending'] = true;
+        await _store.write(userId, journal);
+      }
+      await _sync(userId, journal);
+      notifyListeners();
+      return (journal[tripId] as Map)['pending'] == true
+          ? StopConfirmation.pending
+          : StopConfirmation.synced;
+    } catch (error) {
+      lastError = '$error';
+      return StopConfirmation.failed;
     }
   });
 

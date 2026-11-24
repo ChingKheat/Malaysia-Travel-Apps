@@ -9,6 +9,9 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get profileCountry => '国家 / 地区';
+
+  @override
   String get unscheduledSelectedPlaces => '未安排的已选景点';
 
   @override
@@ -3688,4 +3691,86 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get passwordRecoverySuccess => '密码已更新，请使用新密码登录。';
+
+  @override
+  String get assistantPreviewStop => '预览停靠点';
+
+  @override
+  String get assistantTrip => '行程';
+
+  @override
+  String get assistantDay => '天数或日期';
+
+  @override
+  String get assistantArrival => '到达时间';
+
+  @override
+  String get assistantDeparture => '离开时间';
+
+  @override
+  String get assistantChoose => '请选择';
+
+  @override
+  String get assistantConfirmStop => '确认并保存';
+
+  @override
+  String get assistantNoTrips => '请先保存行程，再添加停靠点。';
+
+  @override
+  String get assistantTripUnavailable => '此行程或日期已不可用。';
+
+  @override
+  String get assistantStopConflict => '所选时间与另一停靠点重叠。请选择其他时间或日期。';
+
+  @override
+  String get assistantInvalidTimes => '离开时间必须晚于到达时间。';
+
+  @override
+  String get assistantSaveFailed => '无法保存停靠点。请重试。';
+
+  @override
+  String get assistantPendingSync => '已保存到此设备 · 等待同步';
+
+  @override
+  String get assistantSynced => '已同步';
+
+  @override
+  String get assistantNewChat => '新对话';
+
+  @override
+  String get assistantChatOptions => '对话选项';
+
+  @override
+  String get assistantStarterWeather => '天气';
+
+  @override
+  String get assistantStarterFood => '餐饮';
+
+  @override
+  String get assistantStarterTransport => '交通';
+
+  @override
+  String get assistantStarterItinerary => '行程帮助';
+
+  @override
+  String get assistantPromptWeather => '吉隆坡今天的天气如何？';
+
+  @override
+  String get assistantPromptFood => '请推荐马来西亚的餐饮选项。';
+
+  @override
+  String get assistantPromptTransport => '如何从吉隆坡国际机场前往吉隆坡中央车站？';
+
+  @override
+  String get assistantPromptItinerary => '如何在我的行程中添加停靠点？';
+
+  @override
+  String get assistantGreeting => '您的旅行需要什么帮助？';
+
+  @override
+  String get assistantReviewStop => '请在保存前查看停靠点详情。';
+
+  @override
+  String get assistantItineraryInstructions =>
+      '告诉我想添加的地点，或在地点卡片上选择添加到计划。在预览中选择行程、日期和游览时段，然后确认。';
 }

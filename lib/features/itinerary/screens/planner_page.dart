@@ -495,9 +495,11 @@ class _PlannerPageState extends State<PlannerPage> {
 
   TravelStop _highlight(Attraction place) => TravelStop.fromJson({
     ..._location((place.name, place.latitude, place.longitude)).toJson(),
-    'place_id': place.xid,
+    'place_id': place.googlePlaceId ?? place.xid,
     'category': place.category,
     'is_indoor': place.isIndoor,
+    'operating_hours': place.operatingHours ?? const <String, dynamic>{},
+    'data_source': place.googlePlaceId == null ? 'local' : 'google',
   });
 
   List<TravelStop> get _selectedScanPlaces {

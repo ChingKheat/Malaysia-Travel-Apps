@@ -14,6 +14,56 @@ import 'package:smart_travel_planner/features/itinerary/services/scheduling_engi
 
 void main() {
   group('SmartItineraryService Unit Tests', () {
+    test(
+      'refreshes a selected Google place with coordinates but no hours',
+      () async {
+        final selected = TravelStop.fromJson({
+          'title': 'Saved museum',
+          'place_id': 'ChIJSavedMuseum',
+          'latitude': 2.43,
+          'longitude': 103.84,
+          'opening_hours': 'Hours unverified',
+        });
+        final places = GooglePlacesService(
+          endpoint: 'https://project.test/functions/v1/google-places',
+          accessToken: 'test-session',
+          client: MockClient((request) async {
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            if (body['operation'] == 'details') {
+              return http.Response(
+                jsonEncode({
+                  'id': 'ChIJSavedMuseum',
+                  'displayName': {'text': 'Saved museum'},
+                  'location': {'latitude': 2.43, 'longitude': 103.84},
+                  'regularOpeningHours': {
+                    'periods': [
+                      {
+                        'open': {'day': 0, 'hour': 0},
+                      },
+                    ],
+                  },
+                }),
+                200,
+              );
+            }
+            return http.Response(jsonEncode({'places': []}), 200);
+          }),
+        );
+        await SmartItineraryService.generateLiveItineraryForAllDays(
+          preferences: TripPreferences(
+            destination: 'Johor',
+            numberOfDays: 1,
+            mustVisitPlaces: [selected],
+          ),
+          placesService: places,
+        );
+        expect(
+          SmartItineraryService.getLiveStops(0)!.map((s) => s.placeId),
+          contains('ChIJSavedMuseum'),
+        );
+      },
+    );
+
     test('uses free admission for a verified venue', () {
       final museum = GooglePlacesService.convertGooglePlaceToStop(
         place: {

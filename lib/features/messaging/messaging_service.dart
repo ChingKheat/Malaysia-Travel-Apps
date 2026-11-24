@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/config/supabase_config.dart';
 import '../auth/services/auth_service.dart';
+import '../profile/services/profile_avatar_service.dart';
 
 /// Account-scoped cache and idempotent message delivery. Never stores tokens.
 class MessagingService {
@@ -55,6 +56,27 @@ class MessagingService {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
     await write('inbox', rows);
+    final paths = rows
+        .map((row) => row['avatar_path'])
+        .whereType<String>()
+        .toSet();
+    if (paths.isEmpty || client != c) return rows;
+
+    try {
+      final signedUrls = await c.storage
+          .from(ProfileAvatarService.bucket)
+          .createSignedUrlsResult(paths.toList(), 300)
+          .timeout(const Duration(seconds: 3));
+      final urlsByPath = {
+        for (final url in signedUrls.whereType<SignedUrlSuccess>())
+          url.path: url.signedUrl,
+      };
+      for (final row in rows) {
+        row['avatar_display_url'] = urlsByPath[row['avatar_path']];
+      }
+    } catch (_) {
+      // The inbox remains usable when avatar storage is unavailable.
+    }
     return rows;
   }
 

@@ -731,11 +731,6 @@ class _ImageRecognitionPageState extends State<ImageRecognitionPage> {
         _quickLandmarkCard(place),
         const SizedBox(height: 10),
       ],
-      const SizedBox(height: 14),
-      Text(
-        context.l10n.scanHistoryPhotoPrivacy,
-        style: const TextStyle(color: VisualScanStyle.muted, fontSize: 12),
-      ),
     ],
   );
 

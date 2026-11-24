@@ -9,11 +9,12 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: CreateAccountForm())),
     );
+    expect(find.text('Country / Region'), findsNothing);
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), 'Test User');
     await tester.enterText(fields.at(1), 'invalid');
-    await tester.enterText(fields.at(2), 'Password123!');
     await tester.enterText(fields.at(3), 'Password123!');
+    await tester.enterText(fields.at(4), 'Password123!');
     await tester.ensureVisible(find.text('Register Account'));
     await tester.tap(find.text('Register Account'));
     await tester.pump();
